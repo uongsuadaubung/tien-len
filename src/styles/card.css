@@ -1,0 +1,96 @@
+/* =========================================================
+   LÁ BÀI TÂY (PLAYING CARD & CORNER SYMMETRY)
+   ========================================================= */
+
+.playing-card {
+  width: 74px;
+  height: 106px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ffffff 0%, #fafafa 60%, #f4f4f5 100%);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(250, 204, 21, 0.15);
+  display: flex;
+  position: relative;
+  transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.18s ease, border-color 0.18s ease;
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  user-select: none;
+}
+
+.playing-card:hover {
+  transform: translateY(-12px);
+  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.45), 0 0 12px rgba(249, 178, 8, 0.5);
+}
+
+.playing-card.selected {
+  transform: translateY(-26px) !important;
+  box-shadow: 0 18px 28px rgba(0, 0, 0, 0.6), 0 0 18px #f9b208 !important;
+  border: 2px solid #f9b208 !important;
+}
+
+.playing-card.selected:hover {
+  transform: translateY(-30px) !important;
+}
+
+/* Các góc lá bài & Biểu tượng chính giữa */
+.card-corner-tl {
+  position: absolute !important;
+  top: 5px !important;
+  left: 6px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  pointer-events: none !important;
+}
+
+.card-corner-tr {
+  position: absolute !important;
+  top: 5px !important;
+  right: 6px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  pointer-events: none !important;
+}
+
+.card-corner-bl {
+  position: absolute !important;
+  bottom: 5px !important;
+  left: 6px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  transform: rotate(180deg) !important;
+  pointer-events: none !important;
+}
+
+.card-corner-br {
+  position: absolute !important;
+  bottom: 5px !important;
+  right: 6px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  line-height: 1 !important;
+  font-weight: 900 !important;
+  transform: rotate(180deg) !important;
+  pointer-events: none !important;
+}
+
+.card-center-suit {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  pointer-events: none !important;
+  font-weight: 900 !important;
+  user-select: none !important;
+}

@@ -1,0 +1,284 @@
+/* =========================================================
+   HIỆU ỨNG BỘ BÀI & ANIMATION CHIA BÀI KIỂU ZINGPLAY
+   ========================================================= */
+
+/* Lưng bài hoàng gia Tết đỏ ánh kim VIP */
+.card-back-premium {
+  background: radial-gradient(circle at center, #991b1b 0%, #580812 65%, #240206 100%);
+  border: 1.8px solid #facc15;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(250, 204, 21, 0.35);
+  position: relative;
+  overflow: hidden;
+  border-radius: 7px;
+  user-select: none;
+}
+
+.card-back-premium::before {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1.2px dashed rgba(250, 204, 21, 0.6);
+  border-radius: 5px;
+  background: radial-gradient(circle at center, rgba(250, 204, 21, 0.12) 0%, transparent 80%);
+}
+
+.card-back-premium::after {
+  content: '🧧';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.8));
+}
+
+/* Cỗ bài trung tâm 3D */
+.deck-3d-stack {
+  position: relative;
+  width: 66px;
+  height: 94px;
+  perspective: 600px;
+  filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.85));
+}
+
+.deck-shuffle-flourish {
+  animation: deckFlourish 0.4s ease-in-out infinite;
+}
+
+@keyframes deckFlourish {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-6px) scale(1.04) rotate(-2deg); }
+}
+
+/* Luồng bài bay phong cách ZingPlay (4 Streams) */
+@keyframes streamToBottom {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, calc(-50% + clamp(160px, 28dvh, 260px))) scale(1) rotate(0deg);
+    opacity: 0;
+  }
+}
+
+@keyframes streamToLeft {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% - clamp(140px, 26vw, 300px)), -50%) scale(0.7) rotate(-90deg);
+    opacity: 0;
+  }
+}
+
+@keyframes streamToTop {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, calc(-50% - clamp(130px, 24dvh, 220px))) scale(0.7) rotate(180deg);
+    opacity: 0;
+  }
+}
+
+@keyframes streamToRight {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8) rotate(0deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + clamp(140px, 26vw, 300px)), -50%) scale(0.7) rotate(90deg);
+    opacity: 0;
+  }
+}
+
+.zingplay-stream-p0 {
+  animation: streamToBottom 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.zingplay-stream-p1 {
+  animation: streamToLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.zingplay-stream-p2 {
+  animation: streamToTop 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.zingplay-stream-p3 {
+  animation: streamToRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Animation bay chính xác từ cỗ bài tâm bàn đến tâm ghế từng người chơi */
+@keyframes flyFromDeckToSeat {
+  0% {
+    transform: translate3d(-50%, -50%, 0) scale(0.9) rotate(0deg);
+    opacity: 1;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.7));
+  }
+  25% {
+    transform: translate3d(calc(-50% + var(--dx) * 0.25), calc(-50% + var(--dy) * 0.25), 30px) scale(1.1) rotate(calc(var(--rot) * 0.4));
+    opacity: 1;
+    filter: drop-shadow(0 16px 20px rgba(0, 0, 0, 0.5));
+  }
+  85% {
+    transform: translate3d(calc(-50% + var(--dx) * 0.92), calc(-50% + var(--dy) * 0.92), 10px) scale(0.8) rotate(var(--rot));
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate3d(calc(-50% + var(--dx)), calc(-50% + var(--dy)), 0) scale(0.65) rotate(var(--rot));
+    opacity: 0;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  }
+}
+
+.fly-card-to-seat {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 50px;
+  height: 72px;
+  animation: flyFromDeckToSeat 0.32s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+/* Hiệu ứng xòe quạt 13 lá bài mượt mà */
+@keyframes fanCardCascade {
+  0% {
+    transform: translateY(40px) scale(0.7) rotate(0deg);
+    opacity: 0;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(var(--rot-deg, 0deg));
+    opacity: 1;
+  }
+}
+
+.zingplay-card-fan {
+  animation: fanCardCascade 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Hào quang xoay nhẹ */
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 14s linear infinite;
+}
+
+/* =========================================================
+   HIỆU ỨNG TRƯỢT BÀI VÀO BÀN TRÒN (CARD SLIDE-IN ANIMATIONS)
+   ========================================================= */
+
+@keyframes slideInFromBottom {
+  0% {
+    transform: translateY(180px) scale(0.6) rotate(0deg);
+    opacity: 0;
+    filter: drop-shadow(0 20px 25px rgba(0, 0, 0, 0.8));
+  }
+  75% {
+    transform: translateY(-8px) scale(1.03) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromTop {
+  0% {
+    transform: translateY(-180px) scale(0.6) rotate(0deg);
+    opacity: 0;
+    filter: drop-shadow(0 20px 25px rgba(0, 0, 0, 0.8));
+  }
+  75% {
+    transform: translateY(8px) scale(1.03) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromLeft {
+  0% {
+    transform: translate(-240px, -40px) scale(0.6) rotate(-20deg);
+    opacity: 0;
+    filter: drop-shadow(0 20px 25px rgba(0, 0, 0, 0.8));
+  }
+  75% {
+    transform: translate(10px, 4px) scale(1.03) rotate(2deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromRight {
+  0% {
+    transform: translate(240px, -40px) scale(0.6) rotate(20deg);
+    opacity: 0;
+    filter: drop-shadow(0 20px 25px rgba(0, 0, 0, 0.8));
+  }
+  75% {
+    transform: translate(-10px, 4px) scale(1.03) rotate(-2deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+.card-slide-p0 {
+  animation: slideInFromBottom 0.36s cubic-bezier(0.18, 0.89, 0.32, 1.15) forwards;
+}
+
+.card-slide-p1 {
+  animation: slideInFromLeft 0.36s cubic-bezier(0.18, 0.89, 0.32, 1.15) forwards;
+}
+
+.card-slide-p2 {
+  animation: slideInFromTop 0.36s cubic-bezier(0.18, 0.89, 0.32, 1.15) forwards;
+}
+
+.card-slide-p3 {
+  animation: slideInFromRight 0.36s cubic-bezier(0.18, 0.89, 0.32, 1.15) forwards;
+}

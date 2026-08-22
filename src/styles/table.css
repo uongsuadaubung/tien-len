@@ -1,0 +1,59 @@
+/* =========================================================
+   BÀN TRÒN TIẾN LÊN MIỀN NAM (CIRCULAR FELT TABLE)
+   ========================================================= */
+
+.round-table {
+  width: clamp(230px, 35dvh, 400px);
+  height: clamp(230px, 35dvh, 400px);
+  max-width: min(35dvh, 42vw);
+  max-height: min(35dvh, 42vw);
+  aspect-ratio: 1 / 1;
+  border-radius: 50% !important;
+  background: radial-gradient(circle at center, #420f18 0%, #26050b 55%, #140205 100%);
+  border: clamp(8px, 1.2dvh, 14px) solid #230b05;
+  box-shadow: 
+    0 0 0 2px #f9b208,
+    0 0 0 6px #140602,
+    0 0 0 9px rgba(249, 178, 8, 0.4),
+    inset 0 0 45px rgba(0, 0, 0, 0.85),
+    inset 0 0 90px rgba(20, 2, 5, 0.9),
+    0 25px 60px rgba(0, 0, 0, 0.95);
+  position: relative;
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+/* Đệm viền da / gỗ bàn tròn */
+.round-table::before {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  border: 3px solid rgba(249, 178, 8, 0.25);
+  pointer-events: none;
+}
+
+/* Vòng chỉ vàng & Họa tiết nỉ nhung trung tâm bàn tròn */
+.table-inner-felt {
+  position: absolute;
+  inset: 14px;
+  border-radius: 50%;
+  border: 2px dashed rgba(249, 178, 8, 0.25);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-center-emblem {
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(249, 178, 8, 0.12);
+  background: radial-gradient(circle, rgba(249, 178, 8, 0.05) 0%, transparent 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}

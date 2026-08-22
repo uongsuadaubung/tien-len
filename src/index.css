@@ -1,0 +1,11 @@
+/* =========================================================
+   TIẾN LÊN MIỀN NAM - CHIẾU BÀI NGÀY TẾT
+   MODULAR CSS ARCHITECTURE
+   ========================================================= */
+
+@import './styles/base.css';
+@import './styles/table.css';
+@import './styles/card.css';
+@import './styles/bot.css';
+@import './styles/dealing.css';
+@import './styles/hud.css';
