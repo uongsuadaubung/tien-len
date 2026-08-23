@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { soundManager } from '../audio/sound-manager';
 import { FastForward, Sparkles } from 'lucide-react';
+import { UI_TIMINGS } from '../constants/ui-timings';
 
 interface DealingDeckAnimationProps {
   isDealing: boolean;
+  playerCount?: number;
   onDealComplete: () => void;
   onDealCard: (playerIndex: number, currentCardCount: number) => void;
   onSkip?: () => void;
@@ -18,12 +20,15 @@ interface FlyingCard {
 
 export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
   isDealing,
+  playerCount = 4,
   onDealComplete,
   onDealCard,
   onSkip
 }) => {
+  const actualPlayerCount = Math.min(4, Math.max(2, playerCount));
+  const totalDeckCards = actualPlayerCount * 13;
   const [flyingCards, setFlyingCards] = useState<FlyingCard[]>([]);
-  const [remainingDeckCards, setRemainingDeckCards] = useState<number>(52);
+  const [remainingDeckCards, setRemainingDeckCards] = useState<number>(totalDeckCards);
   const [isShuffling, setIsShuffling] = useState<boolean>(true);
   const deckRef = useRef<HTMLDivElement | null>(null);
 
@@ -39,7 +44,7 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
     if (!isDealing) {
       clearAllTimeouts();
       setFlyingCards([]);
-      setRemainingDeckCards(52);
+      setRemainingDeckCards(totalDeckCards);
       setIsShuffling(false);
       isFinishedRef.current = false;
       return;
@@ -47,27 +52,32 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
 
     isFinishedRef.current = false;
     setIsShuffling(true);
-    setRemainingDeckCards(52);
+    setRemainingDeckCards(totalDeckCards);
     setFlyingCards([]);
 
-    // 1. Giai đoạn Xào bài (0ms -> 400ms)
+    // 1. Giai đoạn Xào bài
     soundManager.playShuffle();
 
-    // 2. Giai đoạn Chia bài xoay tròn 4 người (400ms -> 2500ms)
+    // 2. Giai đoạn Chia bài xoay tròn
     const startDealingTimeout = setTimeout(() => {
       setIsShuffling(false);
 
-      const seatIds = ['seat-p0', 'seat-p1', 'seat-p2', 'seat-p3'];
-      const totalCards = 52;
-      const delayPerCard = 40; // 40ms giữa mỗi lá bài
+      const seatIds = actualPlayerCount === 2 
+        ? ['seat-p0', 'seat-p1']
+        : actualPlayerCount === 3
+        ? ['seat-p0', 'seat-p1', 'seat-p2']
+        : ['seat-p0', 'seat-p1', 'seat-p2', 'seat-p3'];
+
+      const totalCards = actualPlayerCount * 13;
+      const delayPerCard = UI_TIMINGS.DEAL_CARD_INTERVAL_MS;
 
       for (let i = 0; i < totalCards; i++) {
         const t = setTimeout(() => {
           if (isFinishedRef.current) return;
 
-          const playerIndex = i % 4;
+          const playerIndex = i % actualPlayerCount;
           const targetSeatId = seatIds[playerIndex];
-          const targetCount = Math.floor(i / 4) + 1;
+          const targetCount = Math.floor(i / actualPlayerCount) + 1;
 
           let dx = 0;
           let dy = 0;
@@ -90,12 +100,23 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
             rot = Math.round(Math.atan2(dy, dx) * (180 / Math.PI) + 90);
           } else {
             // Tọa độ dự phòng nếu chưa kịp render DOM
-            const fallbackMap = [
-              { dx: 0, dy: 240, rot: 0 },
-              { dx: -280, dy: 0, rot: -90 },
-              { dx: 0, dy: -220, rot: 180 },
-              { dx: 280, dy: 0, rot: 90 }
-            ];
+            const fallbackMap = actualPlayerCount === 2
+              ? [
+                  { dx: 0, dy: 240, rot: 0 },
+                  { dx: 0, dy: -220, rot: 180 }
+                ]
+              : actualPlayerCount === 3
+              ? [
+                  { dx: 0, dy: 240, rot: 0 },
+                  { dx: -280, dy: 0, rot: -90 },
+                  { dx: 0, dy: -220, rot: 180 }
+                ]
+              : [
+                  { dx: 0, dy: 240, rot: 0 },
+                  { dx: -280, dy: 0, rot: -90 },
+                  { dx: 0, dy: -220, rot: 180 },
+                  { dx: 280, dy: 0, rot: 90 }
+                ];
             dx = fallbackMap[playerIndex].dx;
             dy = fallbackMap[playerIndex].dy;
             rot = fallbackMap[playerIndex].rot;
@@ -113,25 +134,25 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
           };
 
           setFlyingCards(prev => [...prev.slice(-6), newCard]);
-          setRemainingDeckCards(52 - (i + 1));
+          setRemainingDeckCards(totalCards - (i + 1));
 
-          // Khi lá bài bay tới ghế (sau 160ms) -> cập nhật số bài tăng lên
+          // Khi lá bài bay tới ghế -> cập nhật số bài tăng lên
           const hitTimeout = setTimeout(() => {
             if (isFinishedRef.current) return;
             onDealCard(playerIndex, targetCount);
-          }, 160);
+          }, UI_TIMINGS.DEAL_HIT_DELAY_MS);
           timeoutsRef.current.push(hitTimeout);
 
-          // Khi lá cuối cùng (lá thứ 52) bay tới đích
+          // Khi lá cuối cùng bay tới đích
           if (i === totalCards - 1) {
             const finishTimeout = setTimeout(() => {
               if (isFinishedRef.current) return;
               isFinishedRef.current = true;
-              for (let p = 0; p < 4; p++) {
+              for (let p = 0; p < actualPlayerCount; p++) {
                 onDealCard(p, 13);
               }
               onDealComplete();
-            }, 380);
+            }, UI_TIMINGS.DEAL_FINISH_DELAY_MS);
             timeoutsRef.current.push(finishTimeout);
           }
         }, i * delayPerCard);

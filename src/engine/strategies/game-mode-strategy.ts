@@ -1,0 +1,555 @@
+import { 
+  GameMode, 
+  GameSettings, 
+  Player, 
+  GameRules, 
+  createDefaultGameRules 
+} from '../types';
+import { 
+  calculateCountCardsSettlement, 
+  calculateWinnerTakesAllSettlement, 
+  calculateTraditionalSettlement 
+} from '../economy';
+import { calculateEloDelta, matchmakeRankedOpponents } from '../elo';
+import { generateRandomBotConfig, getBotConfig, getRandomBotConfigsForTable } from '../../ai/bot-factory';
+import { BotConfig } from '../../ai/types';
+import { CampaignChapter } from '../campaign';
+import { PlayerProfile } from '../storage';
+
+/**
+ * Ngữ cảnh đầu vào để khởi tạo bàn đấu (Match Setup Context)
+ */
+export interface MatchSetupContext {
+  profile: PlayerProfile;
+  customRules?: Partial<GameRules>;
+  customSettings?: Partial<GameSettings>;
+  customBotPersonaIds?: [string, string, string];
+  customBotConfigs?: [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>];
+  campaignChapter?: CampaignChapter;
+  undergroundBetAmount?: number;
+  playerCount?: number;
+}
+
+/**
+ * Kết quả khởi tạo cấu hình bàn đấu hoàn chỉnh (Match Setup Result)
+ */
+export interface MatchSetupResult {
+  rules: GameRules;
+  settings: GameSettings;
+  botPersonaIds: [string, string, string];
+  customBotConfigs: [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>];
+  playerCount: number;
+  initialPlayers: Player[];
+}
+
+/**
+ * Ngữ cảnh kết toán ván đấu (Match Settlement Context)
+ */
+export interface MatchSettlementContext {
+  players: Player[];
+  winners: Player[];
+  betAmount: number;
+  playerElo?: number;
+  isBankLoanActive?: boolean;
+  campaignReward?: number;
+}
+
+/**
+ * Kết quả kết toán ván đấu chuẩn hóa
+ */
+export interface MatchSettlementResult {
+  strategyId: string;
+  payouts: Record<string, number>;
+  eloDelta: number;
+  loanDeduction: number;
+  isVictoryModalRanked: boolean;
+  campaignReward?: number;
+}
+
+/**
+ * Hàm trợ giúp dựng mảng người chơi ban đầu
+ */
+function buildInitialPlayers(
+  profile: PlayerProfile,
+  bConfigs: BotConfig[],
+  botPersonaIds: [string, string, string],
+  playerCount: number
+): Player[] {
+  const players: Player[] = [
+    {
+      id: 'p0',
+      name: profile.name || 'Bạn (Người Chơi)',
+      avatar: profile.avatar || '🤠',
+      isBot: false,
+      hand: [],
+      playedCards: [],
+      score: profile.coins,
+      isPassedCurrentRound: false,
+      hasPlayedFirstCard: false
+    }
+  ];
+
+  const usedNames: string[] = [players[0].name];
+  const usedAvatars: string[] = [players[0].avatar];
+
+  for (let i = 0; i < playerCount - 1; i++) {
+    const config = bConfigs[i];
+    const personaId = botPersonaIds[i];
+
+    let botName = config.name;
+    let botAvatar = config.avatar;
+
+    if (!botName || !botAvatar) {
+      const tierNum = config.elo ? Math.min(5, Math.max(1, Math.floor((config.elo - 800) / 350) + 1)) : 2;
+      const dyn = generateRandomBotConfig(tierNum, {
+        excludeNames: usedNames,
+        excludeAvatars: usedAvatars,
+        baseId: personaId
+      });
+      botName = botName || dyn.name;
+      botAvatar = botAvatar || dyn.avatar;
+    }
+
+    usedNames.push(botName || `Bot ${i + 1}`);
+    usedAvatars.push(botAvatar || '🤖');
+
+    players.push({
+      id: `p${i + 1}`,
+      name: botName || `Bot ${i + 1}`,
+      avatar: botAvatar || '🤖',
+      isBot: true,
+      botPersonaId: personaId,
+      hand: [],
+      playedCards: [],
+      score: 5000,
+      isPassedCurrentRound: false,
+      hasPlayedFirstCard: false
+    });
+  }
+
+  return players;
+}
+
+/**
+ * Helper chuẩn hóa dựng MatchSetupResult từ GameRules để loại bỏ code trùng lặp
+ */
+function createMatchSetupResult(
+  context: MatchSetupContext,
+  rules: GameRules,
+  defaultBotConfigs: BotConfig[]
+): MatchSetupResult {
+  const customBotConfigs = context.customBotConfigs ?? [{}, {}, {}];
+  let bConfigs: BotConfig[];
+  let botPersonaIds: [string, string, string];
+
+  if (context.customBotPersonaIds) {
+    botPersonaIds = context.customBotPersonaIds;
+    bConfigs = [
+      getBotConfig(botPersonaIds[0], customBotConfigs[0]),
+      getBotConfig(botPersonaIds[1], customBotConfigs[1]),
+      getBotConfig(botPersonaIds[2], customBotConfigs[2])
+    ];
+  } else {
+    bConfigs = defaultBotConfigs;
+    botPersonaIds = [bConfigs[0].id, bConfigs[1].id, bConfigs[2].id];
+  }
+
+  let legacyMode: GameMode = 'TRADITIONAL';
+  if (rules.settlementRule === 'CARD_COUNT') legacyMode = 'COUNT_CARDS';
+  else if (rules.settlementRule === 'WINNER_TAKES_ALL') legacyMode = 'WINNER_TAKES_ALL';
+
+  const settings: GameSettings = {
+    mode: legacyMode,
+    betAmount: rules.table.betAmount,
+    playerCount: rules.table.playerCount,
+    allowFourPairsCutAnytime: rules.chopping.allowFourPairsCutAnytime,
+    instantWinEnabled: rules.instantWin.enabled,
+    soundEnabled: rules.table.soundEnabled,
+    botThinkDelayMs: rules.table.botThinkDelayMs
+  };
+
+  const initialPlayers = buildInitialPlayers(context.profile, bConfigs, botPersonaIds, rules.table.playerCount);
+
+  return {
+    rules,
+    settings,
+    botPersonaIds,
+    customBotConfigs,
+    playerCount: rules.table.playerCount,
+    initialPlayers
+  };
+}
+
+/**
+ * Interface Chiến Lược Chế Độ Chơi (Game Mode Strategy)
+ * Tập trung vào Cấu Hình Luật Bàn Đấu (setupMatch) và Nghiệp Vụ Kết Toán Tiến Trình (settleMatch).
+ * Các cơ chế bàn chơi (check game over, chặt heo, tính điểm trong trận) được GameEngine xử lý độc lập qua GameRules.
+ */
+export interface GameModeStrategy {
+  readonly id: string;
+  readonly name: string;
+  readonly description: string;
+  readonly isFreeToPlay: boolean;
+
+  setupMatch(context: MatchSetupContext): MatchSetupResult;
+  settleMatch(context: MatchSettlementContext): MatchSettlementResult;
+}
+
+// ============================================================================
+// 1. TRUYỀN THỐNG (TRADITIONAL STRATEGY)
+// ============================================================================
+export class TraditionalModeStrategy implements GameModeStrategy {
+  readonly id = 'TRADITIONAL';
+  readonly name = 'Truyền Thống';
+  readonly description = 'Đánh đến người áp chót, tính tiền Nhất Nhì Ba Bét theo số người chơi.';
+  readonly isFreeToPlay = false;
+
+  setupMatch(context: MatchSetupContext): MatchSetupResult {
+    const playerCount = (context.playerCount ?? context.customRules?.table?.playerCount ?? context.customSettings?.playerCount ?? 4) as 2 | 3 | 4;
+    const betAmount = context.customRules?.table?.betAmount ?? context.customSettings?.betAmount ?? 100;
+
+    const rules = createDefaultGameRules({
+      settlementRule: context.customRules?.settlementRule || 'TRADITIONAL_RANK_BASED',
+      chopping: {
+        allowFourPairsCutAnytime: context.customRules?.chopping?.allowFourPairsCutAnytime ?? context.customSettings?.allowFourPairsCutAnytime ?? true,
+        allowThreePairsCutTwo: true,
+        allowFourOfAKindCutPairsOfTwos: true,
+        multiplier: context.customRules?.chopping?.multiplier ?? 1
+      },
+      table: {
+        playerCount,
+        betAmount,
+        botThinkDelayMs: context.customRules?.table?.botThinkDelayMs ?? context.customSettings?.botThinkDelayMs ?? 850,
+        soundEnabled: true
+      }
+    });
+
+    const defaultBots = getRandomBotConfigsForTable([1, 2, 3], 3);
+    return createMatchSetupResult(context, rules, defaultBots);
+  }
+
+  settleMatch(context: MatchSettlementContext): MatchSettlementResult {
+    const payouts = calculateTraditionalSettlement(
+      context.players,
+      context.winners,
+      context.betAmount,
+      false
+    );
+
+    return {
+      strategyId: this.id,
+      payouts,
+      eloDelta: 0,
+      loanDeduction: 0,
+      isVictoryModalRanked: false
+    };
+  }
+}
+
+// ============================================================================
+// 2. ĐẤU HẠNG ELO (RANKED STRATEGY - THUẦN KỸ NĂNG)
+// ============================================================================
+export class RankedModeStrategy implements GameModeStrategy {
+  readonly id = 'RANKED';
+  readonly name = 'Đấu Hạng Elo';
+  readonly description = 'Thi đấu xếp hạng kỹ năng (0 Xu cược), tính biến động điểm Elo & thưởng Vàng cho người về Nhất.';
+  readonly isFreeToPlay = true;
+
+  setupMatch(context: MatchSetupContext): MatchSetupResult {
+    const matchedBots = matchmakeRankedOpponents(context.profile.elo);
+    const rules = createDefaultGameRules({
+      settlementRule: 'TRADITIONAL_RANK_BASED',
+      table: {
+        playerCount: 4,
+        betAmount: 0,
+        botThinkDelayMs: 850,
+        soundEnabled: true
+      }
+    });
+
+    return createMatchSetupResult(context, rules, matchedBots);
+  }
+
+  settleMatch(context: MatchSettlementContext): MatchSettlementResult {
+    const payouts: Record<string, number> = {};
+    for (const p of context.players) {
+      payouts[p.id] = 0;
+    }
+
+    if (context.winners.length > 0) {
+      const winnerFirst = context.winners[0];
+      payouts[winnerFirst.id] = 500;
+    }
+
+    const p0Index = context.winners.findIndex(p => p.id === 'p0');
+    const playerRank = p0Index !== -1 ? p0Index + 1 : context.players.length;
+    const playerElo = context.playerElo ?? 1000;
+    const eloRes = calculateEloDelta(playerRank, playerElo, 1000);
+
+    return {
+      strategyId: this.id,
+      payouts,
+      eloDelta: eloRes.delta,
+      loanDeduction: 0,
+      isVictoryModalRanked: true
+    };
+  }
+}
+
+// ============================================================================
+// 3. ĐẾM LÁ (COUNT CARDS STRATEGY)
+// ============================================================================
+export class CountCardsModeStrategy implements GameModeStrategy {
+  readonly id = 'COUNT_CARDS';
+  readonly name = 'Đếm Lá';
+  readonly description = '1 người hết bài là dừng ván. Người thua đền theo số lá còn lại + thối heo + cóng.';
+  readonly isFreeToPlay = false;
+
+  setupMatch(context: MatchSetupContext): MatchSetupResult {
+    const playerCount = (context.playerCount ?? context.customRules?.table?.playerCount ?? context.customSettings?.playerCount ?? 4) as 2 | 3 | 4;
+    const betAmount = context.customRules?.table?.betAmount ?? context.customSettings?.betAmount ?? 100;
+
+    const rules = createDefaultGameRules({
+      settlementRule: 'CARD_COUNT',
+      table: {
+        playerCount,
+        betAmount,
+        botThinkDelayMs: 850,
+        soundEnabled: true
+      }
+    });
+
+    const defaultBots = getRandomBotConfigsForTable([1, 2, 3], 3);
+    return createMatchSetupResult(context, rules, defaultBots);
+  }
+
+  settleMatch(context: MatchSettlementContext): MatchSettlementResult {
+    const winnerFirst = context.winners[0] || context.players[0];
+    const payouts = calculateCountCardsSettlement(
+      context.players,
+      winnerFirst.id,
+      context.betAmount,
+      false
+    );
+
+    return {
+      strategyId: this.id,
+      payouts,
+      eloDelta: 0,
+      loanDeduction: 0,
+      isVictoryModalRanked: false
+    };
+  }
+}
+
+// ============================================================================
+// 4. THẾ GIỚI NGẦM (UNDERGROUND CASINO STRATEGY)
+// ============================================================================
+export class UndergroundModeStrategy implements GameModeStrategy {
+  readonly id = 'UNDERGROUND';
+  readonly name = 'Sòng Bạc Ngầm';
+  readonly description = '1 người hết bài là dừng ván. Đếm lá sát phạt x2 khốc liệt, trích 10% trả nợ ngân hàng khi thắng.';
+  readonly isFreeToPlay = false;
+
+  setupMatch(context: MatchSetupContext): MatchSetupResult {
+    const betAmount = context.undergroundBetAmount ?? context.customRules?.table?.betAmount ?? context.customSettings?.betAmount ?? 500;
+
+    const rules = createDefaultGameRules({
+      settlementRule: 'CARD_COUNT',
+      chopping: {
+        allowFourPairsCutAnytime: true,
+        allowThreePairsCutTwo: true,
+        allowFourOfAKindCutPairsOfTwos: true,
+        multiplier: 2 // Sát phạt x2
+      },
+      cong: {
+        enabled: true,
+        penaltyCards: 26,
+        multiplier: 2 // Phạt Cóng x2 (52 lá)
+      },
+      table: {
+        playerCount: 4,
+        betAmount,
+        botThinkDelayMs: 850,
+        soundEnabled: true
+      }
+    });
+
+    const defaultBots = getRandomBotConfigsForTable([3, 4, 5], 3);
+    return createMatchSetupResult(context, rules, defaultBots);
+  }
+
+  settleMatch(context: MatchSettlementContext): MatchSettlementResult {
+    const winnerFirst = context.winners[0] || context.players[0];
+    const payouts = calculateCountCardsSettlement(
+      context.players,
+      winnerFirst.id,
+      context.betAmount,
+      true
+    );
+
+    let loanDeduction = 0;
+    const humanNet = payouts['p0'] || 0;
+    if (context.isBankLoanActive && humanNet > 0) {
+      loanDeduction = Math.round(humanNet * 0.10);
+      payouts['p0'] = humanNet - loanDeduction;
+    }
+
+    return {
+      strategyId: this.id,
+      payouts,
+      eloDelta: 0,
+      loanDeduction,
+      isVictoryModalRanked: false
+    };
+  }
+}
+
+// ============================================================================
+// 5. CHIẾN DỊCH (CAMPAIGN STRATEGY)
+// ============================================================================
+export class CampaignModeStrategy implements GameModeStrategy {
+  readonly id = 'CAMPAIGN';
+  readonly name = 'Chiến Dịch';
+  readonly description = '1 người hết bài là dừng ván. Không phạt đếm lá giữa các người chơi, thắng ải nhận thưởng xu.';
+  readonly isFreeToPlay = false;
+
+  setupMatch(context: MatchSetupContext): MatchSetupResult {
+    const chapter = context.campaignChapter;
+    const betAmount = chapter?.betAmount ?? 100;
+
+    const rules = createDefaultGameRules({
+      settlementRule: 'CARD_COUNT',
+      table: {
+        playerCount: 4,
+        betAmount,
+        botThinkDelayMs: 850,
+        soundEnabled: true
+      }
+    });
+
+    const defaultBots = chapter ? chapter.bots : getRandomBotConfigsForTable([1, 2, 3], 3);
+    return createMatchSetupResult(context, rules, defaultBots);
+  }
+
+  settleMatch(context: MatchSettlementContext): MatchSettlementResult {
+    const payouts: Record<string, number> = {};
+    for (let i = 0; i < context.players.length; i++) {
+      payouts[context.players[i].id] = 0;
+    }
+
+    const winnerFirst = context.winners[0];
+    const isPlayerWin = winnerFirst?.id === 'p0';
+    const reward = (isPlayerWin && context.campaignReward) ? context.campaignReward : 0;
+
+    if (reward > 0) {
+      payouts['p0'] = reward;
+    }
+
+    return {
+      strategyId: this.id,
+      payouts,
+      eloDelta: 0,
+      loanDeduction: 0,
+      isVictoryModalRanked: false,
+      campaignReward: reward
+    };
+  }
+}
+
+// ============================================================================
+// 6. NHẤT ĂN TẤT (WINNER TAKES ALL STRATEGY)
+// ============================================================================
+export class WinnerTakesAllModeStrategy implements GameModeStrategy {
+  readonly id = 'WINNER_TAKES_ALL';
+  readonly name = 'Nhất Ăn Tất';
+  readonly description = '1 người hết bài là dừng ván. Người về Nhất gom trọn tiền cược cơ bản của cả bàn + thối heo.';
+  readonly isFreeToPlay = false;
+
+  setupMatch(context: MatchSetupContext): MatchSetupResult {
+    const playerCount = (context.playerCount ?? context.customRules?.table?.playerCount ?? context.customSettings?.playerCount ?? 4) as 2 | 3 | 4;
+    const betAmount = context.customRules?.table?.betAmount ?? context.customSettings?.betAmount ?? 100;
+
+    const rules = createDefaultGameRules({
+      settlementRule: 'WINNER_TAKES_ALL',
+      table: {
+        playerCount,
+        betAmount,
+        botThinkDelayMs: 850,
+        soundEnabled: true
+      }
+    });
+
+    const defaultBots = getRandomBotConfigsForTable([2, 3, 4], 3);
+    return createMatchSetupResult(context, rules, defaultBots);
+  }
+
+  settleMatch(context: MatchSettlementContext): MatchSettlementResult {
+    const winnerFirst = context.winners[0] || context.players[0];
+    const payouts = calculateWinnerTakesAllSettlement(
+      context.players,
+      winnerFirst.id,
+      context.betAmount,
+      false
+    );
+
+    return {
+      strategyId: this.id,
+      payouts,
+      eloDelta: 0,
+      loanDeduction: 0,
+      isVictoryModalRanked: false
+    };
+  }
+}
+
+// ============================================================================
+// STRATEGY REGISTRY & RESOLVER FACTORY
+// ============================================================================
+
+export const GAME_MODE_STRATEGIES: Record<string, GameModeStrategy> = {
+  TRADITIONAL: new TraditionalModeStrategy(),
+  RANKED: new RankedModeStrategy(),
+  COUNT_CARDS: new CountCardsModeStrategy(),
+  UNDERGROUND: new UndergroundModeStrategy(),
+  CAMPAIGN: new CampaignModeStrategy(),
+  WINNER_TAKES_ALL: new WinnerTakesAllModeStrategy(),
+  SOLO_1V1: new CountCardsModeStrategy(),
+  CUSTOM_SANDBOX: new TraditionalModeStrategy()
+};
+
+/**
+ * Lấy Strategy tương ứng theo ID
+ */
+export function getGameModeStrategy(strategyId: string): GameModeStrategy {
+  const normalized = (strategyId || '').toUpperCase();
+  return GAME_MODE_STRATEGIES[normalized] || GAME_MODE_STRATEGIES.TRADITIONAL;
+}
+
+/**
+ * Định vị Strategy chính xác nhất cho phiên đấu hiện tại
+ * @param activeGameType 'QUICK' | 'RANKED' | 'CAMPAIGN' | 'UNDERGROUND'
+ * @param customMode 'TRADITIONAL' | 'COUNT_CARDS' | 'WINNER_TAKES_ALL' | 'CUSTOM'
+ */
+export function resolveStrategyForMatch(
+  activeGameType: 'QUICK' | 'RANKED' | 'CAMPAIGN' | 'UNDERGROUND',
+  customMode: string = 'TRADITIONAL'
+): GameModeStrategy {
+  switch (activeGameType) {
+    case 'RANKED':
+      return GAME_MODE_STRATEGIES.RANKED;
+    case 'CAMPAIGN':
+      return GAME_MODE_STRATEGIES.CAMPAIGN;
+    case 'UNDERGROUND':
+      return GAME_MODE_STRATEGIES.UNDERGROUND;
+    case 'QUICK':
+    default:
+      if (customMode === 'COUNT_CARDS') {
+        return GAME_MODE_STRATEGIES.COUNT_CARDS;
+      }
+      if (customMode === 'WINNER_TAKES_ALL') {
+        return GAME_MODE_STRATEGIES.WINNER_TAKES_ALL;
+      }
+      return GAME_MODE_STRATEGIES.TRADITIONAL;
+  }
+}

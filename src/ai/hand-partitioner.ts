@@ -125,11 +125,11 @@ function evaluateCombinationScore(combo: Combination): number {
     case 'THREE_PAIRS_SEQUENTIAL':
       return 300;
     case 'STRAIGHT':
-      return 30 + combo.length * 15;
+      return 15 + combo.length * 8;
     case 'TRIPLE':
-      return 45;
+      return 40;
     case 'PAIR':
-      return 20;
+      return 22;
     default:
       return 0;
   }
@@ -161,7 +161,11 @@ export function partitionHand(hand: Card[], optimality: number = 1.0): HandParti
       return acc + (isTwo(c) ? 10 : -15);
     }, 0);
 
-    const totalScore = currentScore + trashScore;
+    // Turns-to-Finish Metric: Cực tiểu hóa số lượt đánh cần thiết để xả sạch bài
+    const numberOfTurns = currentCombos.length + remainingCards.length;
+    const turnsEfficiencyBonus = (hand.length - numberOfTurns) * 12 * optimality;
+
+    const totalScore = currentScore + trashScore + turnsEfficiencyBonus;
 
     if (totalScore > bestPartition.totalScore) {
       bestPartition = {

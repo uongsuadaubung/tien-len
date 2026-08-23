@@ -45,7 +45,7 @@ export const XRayInspector: React.FC<XRayInspectorProps> = ({
           </div>
           <div>
             <h2 className="text-xl font-extrabold text-yellow-300 tracking-wide flex items-center gap-2">
-              Bộ Nhớ Soi Bài & Huấn Luyện AI (X-Ray Inspector V2)
+              Bộ Nhớ Soi Bài & Huấn Luyện AI (X-Ray Inspector)
             </h2>
             <p className="text-xs text-yellow-100/70">
               Quan sát bộ nhớ đếm bài chuẩn xác 100% của AI, bản đồ điểm mù đối thủ và phân tích độ an toàn khi ra Heo.

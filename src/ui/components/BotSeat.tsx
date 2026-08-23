@@ -3,7 +3,7 @@ import { Player } from '../../engine/types';
 import { BotConfig } from '../../ai/types';
 
 interface BotSeatProps {
-  player: Player;
+  player?: Player | null;
   botConfig?: BotConfig;
   isCurrentTurn: boolean;
   position: 'left' | 'top' | 'right';
@@ -21,7 +21,9 @@ export const BotSeat: React.FC<BotSeatProps> = ({
   displayCardCount,
   isDealing
 }) => {
-  const cardCount = isDealing && displayCardCount !== undefined ? displayCardCount : player.hand.length;
+  if (!player) return null;
+
+  const cardCount = isDealing && displayCardCount !== undefined ? displayCardCount : (player.hand?.length || 0);
   const visibleCards = Math.min(13, cardCount);
 
   return (

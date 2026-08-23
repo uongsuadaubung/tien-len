@@ -49,7 +49,7 @@ describe('Information Set Monte Carlo Rollout Solver (ISMCTS)', () => {
   test('Bot Cô Sáu (God Mode AI) đưa ra quyết định dựa trên MCTS & Tempo Control mượt mà', () => {
     const hand = parseCards('3S 4D 5C 6H 7D 2H');
     const tracker = new CardTracker(hand, 1.0);
-    const config = BOT_PERSONAS.CO_SAU;
+    const config = BOT_PERSONAS.BOT_ELO_2300;
 
     const decision = makeBotDecision({
       hand,
@@ -58,7 +58,8 @@ describe('Information Set Monte Carlo Rollout Solver (ISMCTS)', () => {
       isLeadMove: true,
       tracker,
       config,
-      remainingPlayerCards: { p0: 6, p2: 6, p3: 6 }
+      remainingPlayerCards: { p0: 6, p2: 6, p3: 6 },
+      nextPlayerId: 'p2'
     });
 
     expect(decision.type).toBe('PLAY');

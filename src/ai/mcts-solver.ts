@@ -1,9 +1,10 @@
 import { Card, Combination } from '../engine/types';
-import { ALL_RANKS, ALL_SUITS, createCard, sortCards } from '../engine/card';
+import { ALL_RANKS, ALL_SUITS, createCard, isTwo, sortCards } from '../engine/card';
 import { identifyCombination } from '../engine/combinations';
 import { CardTracker } from './card-tracker';
 import { isValidMove } from '../engine/validator';
 import { generateCandidateMoves } from './decision-maker';
+import { partitionHand } from './hand-partitioner';
 import { MctsEvaluation } from './types';
 
 /**
@@ -39,8 +40,10 @@ export class MctsSolver {
       }
     }
 
-    // Danh sách đối thủ còn bài
-    const opponentIds = Object.keys(remainingPlayerCards).filter(id => id !== botId);
+    // Danh sách đối thủ còn bài (> 0 lá)
+    const opponentIds = Object.keys(remainingPlayerCards).filter(
+      id => id !== botId && (remainingPlayerCards[id] || 0) > 0
+    );
 
     // Tối ưu hóa: Ưu tiên các tổ hợp nhiều lá trước (Sảnh, Đôi, Sám) và các lá bài nhỏ
     const sortedCandidates = [...candidateMoves].sort((a, b) => {
@@ -84,7 +87,7 @@ export class MctsSolver {
           [botId]: [...botSimHand]
         };
         for (const oppId of opponentIds) {
-          simHandsCopy[oppId] = [...simulatedHands[oppId]];
+          simHandsCopy[oppId] = [...(simulatedHands[oppId] || [])];
         }
 
         // Chạy ván đấu giả lập nhanh
@@ -118,9 +121,11 @@ export class MctsSolver {
     initialLeadCombo: Combination,
     opponentIds: string[]
   ): boolean {
-    if (hands[botId].length === 0) return true;
+    if (!hands[botId] || hands[botId].length === 0) return true;
 
-    const allPlayers = [botId, ...opponentIds];
+    const allPlayers = [botId, ...opponentIds].filter(id => hands[id] && hands[id].length > 0);
+    if (allPlayers.length <= 1) return true;
+
     let currentCombo: Combination | null = initialLeadCombo;
     let turnIdx = 1; // Lượt tiếp theo đến đối thủ đầu tiên
     let consecutivePasses = 0;
@@ -145,11 +150,49 @@ export class MctsSolver {
       let newCombo: Combination | null = null;
 
       if (!currentCombo) {
-        // Mở vòng: Đánh lá nhỏ nhất
-        chosenCards = [playerHand[0]];
-        newCombo = identifyCombination(chosenCards);
+        // Mở vòng: Tìm nhanh Sảnh hoặc Đôi để mở bài
+        let foundCombo = false;
+        const nonTwos = playerHand.filter(c => !isTwo(c));
+
+        // Thử tìm sảnh từ 3-5 lá
+        for (let len = 5; len >= 3 && !foundCombo; len--) {
+          for (let i = 0; i <= nonTwos.length - len; i++) {
+            const straightSample: Card[] = [nonTwos[i]];
+            let curRank = nonTwos[i].rank;
+            for (let j = i + 1; j < nonTwos.length && straightSample.length < len; j++) {
+              if (nonTwos[j].rank === curRank + 1) {
+                straightSample.push(nonTwos[j]);
+                curRank = nonTwos[j].rank;
+              }
+            }
+            if (straightSample.length === len) {
+              chosenCards = straightSample;
+              newCombo = identifyCombination(chosenCards);
+              foundCombo = true;
+              break;
+            }
+          }
+        }
+
+        // Thử tìm đôi
+        if (!foundCombo) {
+          for (let i = 0; i < playerHand.length - 1; i++) {
+            if (playerHand[i].rank === playerHand[i + 1].rank) {
+              chosenCards = [playerHand[i], playerHand[i + 1]];
+              newCombo = identifyCombination(chosenCards);
+              foundCombo = true;
+              break;
+            }
+          }
+        }
+
+        // Đánh rác nhỏ nhất
+        if (!foundCombo) {
+          chosenCards = [playerHand[0]];
+          newCombo = identifyCombination(chosenCards);
+        }
       } else {
-        // Đè bài cùng kiểu
+        // Đè bài theo tổ hợp
         if (currentCombo.type === 'SINGLE') {
           for (let i = 0; i < playerHand.length; i++) {
             if (playerHand[i].weight > currentCombo.highestCard.weight) {
@@ -166,6 +209,24 @@ export class MctsSolver {
                 newCombo = identifyCombination(chosenCards);
                 break;
               }
+            }
+          }
+        } else if (currentCombo.type === 'STRAIGHT') {
+          const nonTwos = playerHand.filter(c => !isTwo(c));
+          const len = currentCombo.length;
+          for (let i = 0; i <= nonTwos.length - len; i++) {
+            const straightSample: Card[] = [nonTwos[i]];
+            let curRank = nonTwos[i].rank;
+            for (let j = i + 1; j < nonTwos.length && straightSample.length < len; j++) {
+              if (nonTwos[j].rank === curRank + 1) {
+                straightSample.push(nonTwos[j]);
+                curRank = nonTwos[j].rank;
+              }
+            }
+            if (straightSample.length === len && straightSample[len - 1].weight > currentCombo.highestCard.weight) {
+              chosenCards = straightSample;
+              newCombo = identifyCombination(chosenCards);
+              break;
             }
           }
         }

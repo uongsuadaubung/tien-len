@@ -67,7 +67,7 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                 const isLeader = leadPlayerId === p.id;
                 const cardCount = isDealing && dealtCounts[p.id] !== undefined ? dealtCounts[p.id] : p.hand.length;
                 const isOneCardLeft = !isDealing && cardCount === 1 && !p.rankPosition;
-                const cfg = p.isBot ? getBotConfig(p.botPersonaId || 'CHU_BAY') : null;
+                const cfg = p.isBot ? getBotConfig(p.botPersonaId || 'BOT_ELO_1150') : null;
 
                 return (
                   <tr
@@ -99,7 +99,7 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                         <div className="flex flex-col min-w-0">
                           <div className="flex items-center gap-1">
                             <span className={`text-[11px] font-bold truncate ${isTurn ? 'text-yellow-200' : 'text-slate-200'}`}>
-                              {p.isBot ? (cfg?.name || p.name) : 'Bạn'}
+                              {p.isBot ? p.name : 'Bạn'}
                             </span>
                             {p.isBot && cfg?.elo && (
                               <span className="text-[8px] font-black text-amber-400 bg-black/60 px-1 rounded border border-yellow-500/20">

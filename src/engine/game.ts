@@ -1,11 +1,37 @@
-import { Card, Combination, GameMode, GameSettings, InstantWinType, PlayedMove, Player, Round } from './types';
-import { compareCards, isRedCard, isTwo, sortCards } from './card';
+import { 
+  Card, 
+  Player, 
+  PlayedMove, 
+  Round, 
+  GameSettings, 
+  InstantWinType, 
+  Combination,
+  GameRules,
+  GameMode,
+  createDefaultGameRules,
+  convertSettingsToGameRules
+} from './types';
+import { isRedCard, isTwo, sortCards } from './card';
 import { checkInstantWin, createDeck, dealCards, shuffleDeck } from './deck';
 import { identifyCombination } from './combinations';
 import { isValidMove } from './validator';
+import { makeBotDecision } from '../ai/decision-maker';
+import { BotConfig } from '../ai/types';
+import { CardTracker } from '../ai/card-tracker';
+
+export interface BotTurnResult {
+  action: 'PLAY' | 'PASS';
+  playerId: string;
+  playedMove?: PlayedMove;
+  isChop?: boolean;
+  choppedPlayerId?: string;
+  penaltyAmount?: number;
+  isGameOver?: boolean;
+}
 
 export class GameEngine {
   public players: Player[];
+  public rules: GameRules;
   public settings: GameSettings;
   public gameNumber: number = 1;
   public isFirstMoveOfGame: boolean = true;
@@ -16,15 +42,37 @@ export class GameEngine {
   public instantWinner: Player | null = null;
   public roundNumber: number = 1;
 
-  constructor(players: Player[], settings?: Partial<GameSettings>) {
+  constructor(players: Player[], rulesOrSettings?: GameRules | Partial<GameSettings>, legacyStrategyId?: string) {
     this.players = players;
+    
+    // Khởi tạo GameRules hợp thành
+    if (rulesOrSettings && 'settlementRule' in (rulesOrSettings as any)) {
+      this.rules = rulesOrSettings as GameRules;
+    } else {
+      this.rules = convertSettingsToGameRules(rulesOrSettings as Partial<GameSettings>);
+    }
+
+    // Ánh xạ sang GameSettings để tương thích với các module đang đọc settings
+    let legacyMode: GameMode = 'TRADITIONAL';
+    if (this.rules.settlementRule === 'CARD_COUNT') legacyMode = 'COUNT_CARDS';
+    else if (this.rules.settlementRule === 'WINNER_TAKES_ALL') legacyMode = 'WINNER_TAKES_ALL';
+
     this.settings = {
-      mode: settings?.mode || 'TRADITIONAL',
-      betAmount: settings?.betAmount || 100,
-      allowFourPairsCutAnytime: settings?.allowFourPairsCutAnytime ?? true,
-      instantWinEnabled: settings?.instantWinEnabled ?? true,
-      soundEnabled: settings?.soundEnabled ?? true,
-      botThinkDelayMs: settings?.botThinkDelayMs ?? 800
+      mode: legacyMode,
+      betAmount: this.rules.table.betAmount,
+      allowFourPairsCutAnytime: this.rules.chopping.allowFourPairsCutAnytime,
+      instantWinEnabled: this.rules.instantWin.enabled,
+      soundEnabled: this.rules.table.soundEnabled,
+      botThinkDelayMs: this.rules.table.botThinkDelayMs,
+      playerCount: this.rules.table.playerCount
+    };
+
+    this.currentRound = {
+      moves: [],
+      leadPlayerId: players[0]?.id || 'p0',
+      currentTurnPlayerId: players[0]?.id || 'p0',
+      passedPlayerIds: [],
+      isFinished: false
     };
   }
 
@@ -33,11 +81,11 @@ export class GameEngine {
   }
 
   public isRoundLeadMove(): boolean {
-    return this.currentRound.moves.length === 0;
+    return !this.currentRound || !this.currentRound.moves || this.currentRound.moves.length === 0;
   }
 
   public getLeadingMove(): PlayedMove | null {
-    if (this.currentRound.moves.length === 0) return null;
+    if (!this.currentRound || !this.currentRound.moves || this.currentRound.moves.length === 0) return null;
     return this.currentRound.moves[this.currentRound.moves.length - 1];
   }
 
@@ -55,7 +103,7 @@ export class GameEngine {
 
     // 1. Xáo bài & chia bài
     const deck = shuffleDeck(createDeck());
-    const hands = dealCards(deck);
+    const hands = dealCards(deck, this.players.length);
 
     this.players.forEach((player, index) => {
       player.hand = hands[index];
@@ -81,15 +129,32 @@ export class GameEngine {
       }
     }
 
-    // 3. Tìm người đi đầu tiên (Mặc định chọn ngẫu nhiên nếu không có ai cầm 3 Bích)
-    let firstPlayerId = this.players[Math.floor(Math.random() * this.players.length)].id;
+    // 3. Tìm người đi đầu tiên (Nếu ván 1 hoặc chưa có người thắng)
+    let firstPlayerId = this.players[0].id;
     if (this.gameNumber === 1 || this.winners.length === 0) {
-      // Ván đầu hoặc ván mới tạo: Tìm người có 3 Bích (3S)
+      let found3Spades = false;
       for (const player of this.players) {
         if (player.hand.some(c => c.rank === 3 && c.suit === 'SPADES')) {
           firstPlayerId = player.id;
+          found3Spades = true;
           break;
         }
+      }
+
+      if (!found3Spades) {
+        // Trong chế độ 2 hoặc 3 người chơi (không có ai cầm 3 Bích), tìm người có lá bài nhỏ nhất
+        let smallestCardWeight = 9999;
+        for (const player of this.players) {
+          const sorted = sortCards(player.hand);
+          if (sorted.length > 0 && sorted[0].weight < smallestCardWeight) {
+            smallestCardWeight = sorted[0].weight;
+            firstPlayerId = player.id;
+          }
+        }
+        // Vì không có lá 3 Bích trên bàn, người đi đầu tiên được tự do đánh lá nhỏ nhất
+        this.isFirstMoveOfGame = false;
+      } else {
+        this.isFirstMoveOfGame = true;
       }
     } else {
       // Ván tiếp theo: Người về nhất ván trước
@@ -97,6 +162,7 @@ export class GameEngine {
       if (prevWinner) {
         firstPlayerId = prevWinner.id;
       }
+      this.isFirstMoveOfGame = false;
     }
 
     // 4. Khởi tạo vòng chơi đầu tiên
@@ -253,28 +319,17 @@ export class GameEngine {
       player.rankPosition = this.winners.length + 1;
       this.winners.push(player);
 
-      // Nếu ở chế độ Đếm Lá: Có 1 người về Nhất là kết thúc ván ngay
-      if (this.settings.mode === 'COUNT_CARDS') {
-        this.isGameOver = true;
-        this.settleCountCardsEndGame(player);
-        return {
-          success: true,
-          isChop,
-          choppedPlayerId,
-          penaltyAmount,
-          isGameOver: true
-        };
-      }
-
-      // Chế độ Truyền Thống: Tiếp tục cho đến khi 3 người hết bài
-      if (this.winners.length === 3) {
-        const lastPlayer = this.players.find(p => p.hand.length > 0);
-        if (lastPlayer) {
-          lastPlayer.rankPosition = 4;
-          this.winners.push(lastPlayer);
+      if (this.checkGameOver()) {
+        // Nếu đánh đến người áp chót (Truyền thống), tự động bổ sung người chơi cuối cùng (về Bét)
+        if (this.winners.length === this.players.length - 1) {
+          const lastPlayer = this.players.find(p => !this.winners.some(w => w.id === p.id));
+          if (lastPlayer) {
+            lastPlayer.rankPosition = this.players.length;
+            this.winners.push(lastPlayer);
+          }
         }
         this.isGameOver = true;
-        this.settleTraditionalEndGame();
+        this.settleEndGame();
         return {
           success: true,
           isChop,
@@ -321,14 +376,137 @@ export class GameEngine {
     return { success: true };
   }
 
+  /**
+   * Thực thi trọn vẹn lượt đi của Bot AI ngay trong GameEngine với cơ chế tự phục hồi, bảo đảm không bao giờ treo
+   */
+  public executeBotTurn(botConfig: BotConfig, tracker: CardTracker): BotTurnResult {
+    const currentPlayer = this.getCurrentPlayer();
+    if (!currentPlayer || !currentPlayer.isBot || currentPlayer.hand.length === 0) {
+      return { action: 'PASS', playerId: currentPlayer?.id || '' };
+    }
+
+    const playerId = currentPlayer.id;
+    const isLead = this.isRoundLeadMove();
+    const leading = this.getLeadingMove();
+    const remainingCardsMap = this.players.reduce((acc, p) => ({ ...acc, [p.id]: p.hand.length }), {});
+    const nextPlayerId = this.getNextActivePlayerId(playerId);
+    const nextPlayer = this.getPlayer(nextPlayerId);
+    const isNextPlayerOneCard = nextPlayer ? nextPlayer.hand.length === 1 : false;
+
+    try {
+      const decision = makeBotDecision({
+        hand: currentPlayer.hand,
+        currentRoundLeadingMove: leading,
+        isFirstMoveOfGame: this.isFirstMoveOfGame,
+        isLeadMove: isLead,
+        tracker,
+        config: { ...botConfig, id: playerId },
+        remainingPlayerCards: remainingCardsMap,
+        isNextPlayerOneCard,
+        nextPlayerId
+      });
+
+      if (decision.type === 'PLAY' && decision.cards && decision.cards.length > 0) {
+        const cardsPlayed = [...decision.cards];
+        const moveRes = this.playMove(playerId, decision.cards);
+        if (moveRes.success) {
+          const combo = identifyCombination(cardsPlayed);
+          const playedMoveInfo: PlayedMove = {
+            playerId,
+            combination: combo || { type: 'SINGLE', cards: cardsPlayed, length: 1, highestCard: cardsPlayed[0] },
+            timestamp: Date.now()
+          };
+          return {
+            action: 'PLAY',
+            playerId,
+            playedMove: playedMoveInfo,
+            isChop: moveRes.isChop,
+            choppedPlayerId: moveRes.choppedPlayerId,
+            penaltyAmount: moveRes.penaltyAmount,
+            isGameOver: this.isGameOver
+          };
+        }
+      } else {
+        const passRes = this.passTurn(playerId);
+        if (passRes.success) {
+          return {
+            action: 'PASS',
+            playerId,
+            isGameOver: this.isGameOver
+          };
+        }
+      }
+    } catch (err) {
+      console.error(`[GameEngine] Lỗi trong tính toán AI Bot (${playerId}):`, err);
+    }
+
+    // Cơ chế cứu hộ khẩn cấp tích hợp sẵn trong Engine
+    return this.executeEmergencyFallback(playerId);
+  }
+
+  private executeEmergencyFallback(playerId: string): BotTurnResult {
+    const player = this.getPlayer(playerId);
+    if (!player || player.hand.length === 0) {
+      return { action: 'PASS', playerId };
+    }
+
+    const isLead = this.isRoundLeadMove();
+    const leading = this.getLeadingMove();
+    const sorted = sortCards(player.hand);
+
+    // 1. Nếu đang cầm cái (Lead move)
+    if (isLead || !leading) {
+      if (this.isFirstMoveOfGame) {
+        const spade3 = player.hand.find(c => c.rank === 3 && c.suit === 'SPADES');
+        if (spade3) {
+          const res = this.playMove(playerId, [spade3]);
+          if (res.success) {
+            return { action: 'PLAY', playerId, playedMove: this.getLeadingMove() || undefined, isGameOver: this.isGameOver };
+          }
+        }
+      }
+      for (const card of sorted) {
+        const res = this.playMove(playerId, [card]);
+        if (res.success) {
+          return { action: 'PLAY', playerId, playedMove: this.getLeadingMove() || undefined, isGameOver: this.isGameOver };
+        }
+      }
+    }
+
+    // 2. Nếu không phải cầm cái (Responding move): Thử bỏ lượt
+    const passRes = this.passTurn(playerId);
+    if (passRes.success) {
+      return { action: 'PASS', playerId, isGameOver: this.isGameOver };
+    }
+
+    // 3. Nếu bỏ lượt thất bại: Thử đánh bài
+    for (const card of sorted) {
+      const res = this.playMove(playerId, [card]);
+      if (res.success) {
+        return { action: 'PLAY', playerId, playedMove: this.getLeadingMove() || undefined, isGameOver: this.isGameOver };
+      }
+    }
+
+    // 4. Cưỡng chế chuyển lượt
+    this.advanceTurn(playerId);
+    return { action: 'PASS', playerId, isGameOver: this.isGameOver };
+  }
+
   public getCurrentPlayer(): Player {
     let player = this.getPlayer(this.currentRound?.currentTurnPlayerId);
     if (player && player.hand.length === 0 && !this.isGameOver) {
-      const nextActiveId = this.getNextActivePlayerId(player.id);
-      this.currentRound.currentTurnPlayerId = nextActiveId;
-      player = this.getPlayer(nextActiveId);
+      const nextId = this.getNextEligiblePlayerId(player.id);
+      this.currentRound.currentTurnPlayerId = nextId;
+      player = this.getPlayer(nextId);
     }
     return player || this.players[0];
+  }
+
+  public checkGameOver(): boolean {
+    if (this.rules.settlementRule === 'CARD_COUNT' || this.rules.settlementRule === 'WINNER_TAKES_ALL') {
+      return this.winners.length >= 1;
+    }
+    return this.winners.length >= this.players.length - 1;
   }
 
   /**
@@ -339,15 +517,15 @@ export class GameEngine {
 
     // Nếu chỉ còn duy nhất 1 người còn bài (hoặc 0 người) -> Kết thúc toàn bộ ván đấu
     if (activeRemainingPlayers.length <= 1) {
-      if (this.winners.length < 4) {
+      if (this.winners.length < this.players.length) {
         const lastPlayer = this.players.find(p => p.hand.length > 0);
         if (lastPlayer && !lastPlayer.rankPosition) {
-          lastPlayer.rankPosition = 4;
+          lastPlayer.rankPosition = this.players.length;
           this.winners.push(lastPlayer);
         }
       }
       this.isGameOver = true;
-      this.settleTraditionalEndGame();
+      this.settleEndGame();
       return;
     }
 
@@ -436,40 +614,38 @@ export class GameEngine {
   }
 
   /**
-   * Tính số tiền phạt cho cú chặt heo/hàng
+   * Tính số tiền phạt cho cú chặt heo/hàng (Áp dụng hệ số chặt từ chopping.multiplier)
    */
   private calculateChopPenalty(target: Combination, candidate: Combination): number {
-    const bet = this.settings.betAmount;
+    const bet = this.rules.table.betAmount;
+    const mult = this.rules.chopping.multiplier || 1;
+    let base = bet;
 
     // Chặt 1 Heo
     if (target.type === 'SINGLE' && isTwo(target.highestCard)) {
-      return isRedCard(target.highestCard) ? bet * 2 : bet * 1;
+      base = isRedCard(target.highestCard) ? bet * 2 : bet * 1;
     }
-
     // Chặt Đôi Heo
-    if (target.type === 'PAIR' && isTwo(target.highestCard)) {
+    else if (target.type === 'PAIR' && isTwo(target.highestCard)) {
       const redCount = target.cards.filter(isRedCard).length;
-      if (redCount === 2) return bet * 4; // 2 heo đỏ
-      if (redCount === 1) return bet * 3; // 1 đỏ 1 đen
-      return bet * 2;                     // 2 heo đen
+      if (redCount === 2) base = bet * 4; // 2 heo đỏ
+      else if (redCount === 1) base = bet * 3; // 1 đỏ 1 đen
+      else base = bet * 2; // 2 heo đen
     }
-
     // Chặt 3 Đôi Thông
-    if (target.type === 'THREE_PAIRS_SEQUENTIAL') {
-      return bet * 3;
+    else if (target.type === 'THREE_PAIRS_SEQUENTIAL') {
+      base = bet * 3;
     }
-
     // Chặt Tứ Quý
-    if (target.type === 'FOUR_OF_A_KIND') {
-      return bet * 4;
+    else if (target.type === 'FOUR_OF_A_KIND') {
+      base = bet * 4;
     }
-
     // Chặt 4 Đôi Thông
-    if (target.type === 'FOUR_PAIRS_SEQUENTIAL') {
-      return bet * 5;
+    else if (target.type === 'FOUR_PAIRS_SEQUENTIAL') {
+      base = bet * 5;
     }
 
-    return bet;
+    return base * mult;
   }
 
   /**
@@ -486,7 +662,7 @@ export class GameEngine {
    */
   public calculateRottenCardsPenalty(hand: Card[]): number {
     let penalty = 0;
-    const bet = this.settings.betAmount;
+    const bet = this.rules.table.betAmount;
 
     // 1. Thối Heo
     for (const card of hand) {
@@ -512,10 +688,26 @@ export class GameEngine {
   }
 
   /**
-   * Tính toán kết quả cho chế độ Đếm Lá (COUNT_CARDS)
+   * Kết toán bàn chơi theo đúng luật settlementRule đã cấu hình
+   */
+  public settleEndGame(): void {
+    if (this.rules.settlementRule === 'CARD_COUNT') {
+      this.settleCountCardsEndGame(this.winners[0]);
+    } else if (this.rules.settlementRule === 'WINNER_TAKES_ALL') {
+      this.settleWinnerTakesAllEndGame(this.winners[0]);
+    } else {
+      this.settleTraditionalEndGame();
+    }
+  }
+
+  /**
+   * Tính toán kết quả cho chế độ Đếm Lá (CARD_COUNT)
    */
   private settleCountCardsEndGame(winner: Player): void {
-    const bet = this.settings.betAmount;
+    if (!winner) return;
+    const bet = this.rules.table.betAmount;
+    const congMult = this.rules.cong.multiplier || 1;
+    const congPenaltyCards = this.rules.cong.penaltyCards || 26;
     let totalWinScore = 0;
 
     for (const player of this.players) {
@@ -524,9 +716,9 @@ export class GameEngine {
       const isCong = this.isPlayerCong(player.id);
       let penalty = 0;
 
-      if (isCong) {
-        // Cóng: Bị phạt đền 26 lá (gấp đôi 13 lá) + thối heo hàng
-        penalty = 26 * bet + this.calculateRottenCardsPenalty(player.hand);
+      if (isCong && this.rules.cong.enabled) {
+        // Cóng: Bị phạt đền congPenaltyCards x bet x congMult + thối heo hàng
+        penalty = congPenaltyCards * bet * congMult + this.calculateRottenCardsPenalty(player.hand);
       } else {
         // Đếm lá: Số lá bài còn lại x cược + thối heo hàng
         penalty = player.hand.length * bet + this.calculateRottenCardsPenalty(player.hand);
@@ -540,10 +732,28 @@ export class GameEngine {
   }
 
   /**
-   * Tính toán kết quả cho chế độ Truyền Thống (TRADITIONAL)
+   * Tính toán kết quả cho chế độ Nhất Ăn Tất (WINNER_TAKES_ALL)
+   */
+  private settleWinnerTakesAllEndGame(winner: Player): void {
+    if (!winner) return;
+    const bet = this.rules.table.betAmount;
+    let totalWinScore = 0;
+
+    for (const player of this.players) {
+      if (player.id === winner.id) continue;
+      const penalty = bet + this.calculateRottenCardsPenalty(player.hand);
+      player.score -= penalty;
+      totalWinScore += penalty;
+    }
+
+    winner.score += totalWinScore;
+  }
+
+  /**
+   * Tính toán kết quả cho chế độ Truyền Thống (TRADITIONAL_RANK_BASED)
    */
   private settleTraditionalEndGame(): void {
-    const bet = this.settings.betAmount;
+    const bet = this.rules.table.betAmount;
     // Thứ tự: Nhất (+3 cược), Nhì (+1 cược), Ba (-1 cược), Bét (-3 cược)
     const [p1, p2, p3, p4] = this.winners;
 
@@ -562,9 +772,10 @@ export class GameEngine {
    * Tính toán kết quả Tới Trắng
    */
   private calculateInstantWinSettlement(winner: Player, instantWinType: InstantWinType): void {
-    const bet = this.settings.betAmount;
-    // Thắng tới trắng: Mỗi nhà đền 26 mức cược
-    const rewardPerPlayer = 26 * bet;
+    const bet = this.rules.table.betAmount;
+    const mult = this.rules.instantWin.payoutMultiplier || 26;
+    // Thắng tới trắng: Mỗi nhà đền mult mức cược
+    const rewardPerPlayer = mult * bet;
     let totalWin = 0;
 
     for (const player of this.players) {

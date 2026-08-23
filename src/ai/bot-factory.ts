@@ -2,376 +2,348 @@ import { BotConfig } from './types';
 
 export const BOT_PERSONAS: Record<string, BotConfig> = {
   // ==========================================
-  // TIER 1: TẬP SỰ / NHẬP MÔN (ELO 850 - 1000)
+  // TIER 1: TẬP SỰ / NOVICE (ELO 850 - 1000)
   // ==========================================
-  BE_NAM: {
-    id: 'BE_NAM',
-    name: 'Bé Năm (Tập sự)',
-    avatar: '🧒',
-    tier: 'Tier 1: Tập Sự',
+  BOT_ELO_850: {
+    id: 'BOT_ELO_850',
+    tier: 'Tier 1: Rookie',
     elo: 850,
-    description: 'Chơi ngây thơ hồn nhiên, có gì đánh nấy, không nhớ bài.',
+    description: 'Chơi ngây thơ hồn nhiên, có bài gì nhỏ nhất đánh nấy, không nhớ bài.',
     memoryDepth: 0.1,
-    riskAppetite: 0.75,
+    riskAppetite: 0.8,
     trapTendency: 0.0,
     baitingTendency: 0.0,
-    antiLeaderAggression: 0.2,
-    handPartitioningOptimality: 0.3,
+    antiLeaderAggression: 1.0, // Cũ: 0.2 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    tempoControl: 0.2,
+    damageControl: 0.2,
+    handPartitioningOptimality: 0.35,
     simulationLookahead: 0,
     mctsSimulations: 0
   },
-  CU_TI: {
-    id: 'CU_TI',
-    name: 'Cu Tí (Ngây thơ)',
-    avatar: '👶',
-    tier: 'Tier 1: Tập Sự',
+  BOT_ELO_900: {
+    id: 'BOT_ELO_900',
+    tier: 'Tier 1: Rookie',
     elo: 900,
     description: 'Thích đánh bài lẻ loi, ít khi gom được sảnh dài.',
     memoryDepth: 0.15,
     riskAppetite: 0.85,
     trapTendency: 0.0,
     baitingTendency: 0.0,
-    antiLeaderAggression: 0.25,
+    antiLeaderAggression: 1.0, // Cũ: 0.2 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    tempoControl: 0.2,
+    damageControl: 0.2,
     handPartitioningOptimality: 0.35,
     simulationLookahead: 0,
     mctsSimulations: 0
   },
-  UT_NHO: {
-    id: 'UT_NHO',
-    name: 'Út Nhỏ (Nhập môn)',
-    avatar: '👧',
-    tier: 'Tier 1: Tập Sự',
+  BOT_ELO_950: {
+    id: 'BOT_ELO_950',
+    tier: 'Tier 1: Rookie',
     elo: 950,
     description: 'Đánh cẩn thận nhưng hay quên bài đã đánh.',
     memoryDepth: 0.2,
-    riskAppetite: 0.6,
+    riskAppetite: 0.75,
     trapTendency: 0.1,
     baitingTendency: 0.0,
-    antiLeaderAggression: 0.3,
+    antiLeaderAggression: 1.0, // Cũ: 0.25 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    tempoControl: 0.25,
+    damageControl: 0.25,
+    handPartitioningOptimality: 0.4,
+    simulationLookahead: 0,
+    mctsSimulations: 0
+  },
+  BOT_ELO_1000: {
+    id: 'BOT_ELO_1000',
+    tier: 'Tier 1: Rookie',
+    elo: 1000,
+    description: 'Bắt đầu biết gom đôi và sảnh nhỏ.',
+    memoryDepth: 0.25,
+    riskAppetite: 0.75,
+    trapTendency: 0.1,
+    baitingTendency: 0.1,
+    antiLeaderAggression: 1.0, // Cũ: 0.25 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    tempoControl: 0.25,
+    damageControl: 0.25,
     handPartitioningOptimality: 0.45,
     simulationLookahead: 0,
     mctsSimulations: 0
   },
-  EM_BA: {
-    id: 'EM_BA',
-    name: 'Em Ba (Học việc)',
-    avatar: '👦',
-    tier: 'Tier 1: Tập Sự',
-    elo: 1000,
-    description: 'Bắt đầu biết giữ đôi, xả rác nhỏ trước.',
-    memoryDepth: 0.25,
-    riskAppetite: 0.7,
-    trapTendency: 0.15,
-    baitingTendency: 0.0,
-    antiLeaderAggression: 0.4,
-    handPartitioningOptimality: 0.5,
-    simulationLookahead: 1,
-    mctsSimulations: 0
-  },
 
   // ==========================================
-  // TIER 2: PHONG TRÀO / NGÀY TẾT (ELO 1150 - 1350)
+  // TIER 2: PHONG TRÀO / CHALLENGER (ELO 1150 - 1350)
   // ==========================================
-  CHU_BAY: {
-    id: 'CHU_BAY',
-    name: 'Chú Bảy (Liều lĩnh)',
-    avatar: '🤠',
-    tier: 'Tier 2: Phong Trào',
+  BOT_ELO_1150: {
+    id: 'BOT_ELO_1150',
+    tier: 'Tier 2: Challenger',
     elo: 1150,
-    description: 'Thích xả heo sớm tranh quyền, phong cách tất tay ngày Tết.',
+    description: 'Thích xả Heo lớn để giành quyền đi đầu sớm, hay bị chặt đè ngược.',
     memoryDepth: 0.4,
-    riskAppetite: 0.9,
-    trapTendency: 0.2,
-    baitingTendency: 0.1,
-    antiLeaderAggression: 0.5,
-    tempoControl: 0.3,
-    handPartitioningOptimality: 0.55,
-    simulationLookahead: 1,
-    mctsSimulations: 0
-  },
-  BA_XI: {
-    id: 'BA_XI',
-    name: 'Anh Ba Xị (Máu lửa)',
-    avatar: '🍻',
-    tier: 'Tier 2: Phong Trào',
-    elo: 1200,
-    description: 'Đánh bài tốc chiến tốc thắng, có đôi là đè liền tay.',
-    memoryDepth: 0.45,
-    riskAppetite: 0.95,
+    riskAppetite: 0.75,
     trapTendency: 0.25,
-    baitingTendency: 0.15,
-    antiLeaderAggression: 0.55,
-    tempoControl: 0.35,
-    handPartitioningOptimality: 0.55,
-    simulationLookahead: 1,
-    mctsSimulations: 0
-  },
-  TU_RUOU: {
-    id: 'TU_RUOU',
-    name: 'Cậu Tư Rượu (Tất tay)',
-    avatar: '🛵',
-    tier: 'Tier 2: Phong Trào',
-    elo: 1250,
-    description: 'Phong cách phóng khoáng, thích đè Heo bằng bộ to.',
-    memoryDepth: 0.45,
-    riskAppetite: 0.9,
-    trapTendency: 0.3,
     baitingTendency: 0.2,
-    antiLeaderAggression: 0.6,
-    tempoControl: 0.35,
+    antiLeaderAggression: 1.0, // Cũ: 0.5 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    tempoControl: 0.45,
+    damageControl: 0.45,
     handPartitioningOptimality: 0.6,
     simulationLookahead: 1,
     mctsSimulations: 0
   },
-  NAM_XOM: {
-    id: 'NAM_XOM',
-    name: 'Bác Năm Xóm (Phong trào)',
-    avatar: '🏡',
-    tier: 'Tier 2: Phong Trào',
+  BOT_ELO_1200: {
+    id: 'BOT_ELO_1200',
+    tier: 'Tier 2: Challenger',
+    elo: 1200,
+    description: 'Chơi ngẫu hứng, có bài là đè không cần tính toán lượt sau.',
+    memoryDepth: 0.4,
+    riskAppetite: 0.8,
+    trapTendency: 0.2,
+    baitingTendency: 0.15,
+    antiLeaderAggression: 1.0, // Cũ: 0.5 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    tempoControl: 0.45,
+    damageControl: 0.45,
+    handPartitioningOptimality: 0.6,
+    simulationLookahead: 1,
+    mctsSimulations: 0
+  },
+  BOT_ELO_1250: {
+    id: 'BOT_ELO_1250',
+    tier: 'Tier 2: Challenger',
+    elo: 1250,
+    description: 'Phong cách phóng khoáng, thích đè Heo bằng bộ to.',
+    memoryDepth: 0.45,
+    riskAppetite: 0.8,
+    trapTendency: 0.3,
+    baitingTendency: 0.2,
+    antiLeaderAggression: 1.0, // Cũ: 0.55 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    tempoControl: 0.5,
+    damageControl: 0.5,
+    handPartitioningOptimality: 0.6,
+    simulationLookahead: 1,
+    mctsSimulations: 0
+  },
+  BOT_ELO_1350: {
+    id: 'BOT_ELO_1350',
+    tier: 'Tier 2: Challenger',
     elo: 1350,
-    description: 'Chơi quen tay nhiều năm, giữ bài khá ổn định.',
+    description: 'Biết canh me lúc đối thủ sơ hở để xả rác.',
     memoryDepth: 0.5,
     riskAppetite: 0.75,
     trapTendency: 0.35,
     baitingTendency: 0.25,
-    antiLeaderAggression: 0.6,
-    tempoControl: 0.4,
+    antiLeaderAggression: 1.0, // Cũ: 0.55 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    tempoControl: 0.55,
+    damageControl: 0.55,
     handPartitioningOptimality: 0.6,
     simulationLookahead: 1,
     mctsSimulations: 0
   },
 
   // ==========================================
-  // TIER 3: KINH NGHIỆM / GIÀ DƠ (ELO 1450 - 1650)
+  // TIER 3: KINH NGHIỆM / VETERAN (ELO 1450 - 1650)
   // ==========================================
-  BAC_TU: {
-    id: 'BAC_TU',
-    name: 'Bác Tư (Cẩn trọng)',
-    avatar: '👴',
-    tier: 'Tier 3: Kinh Nghiệm',
+  BOT_ELO_1450: {
+    id: 'BOT_ELO_1450',
+    tier: 'Tier 3: Veteran',
     elo: 1450,
-    description: 'Giữ heo rất chặt, ưu tiên xả hết rác, kiên nhẫn rình bẫy hàng.',
-    memoryDepth: 0.8,
-    riskAppetite: 0.5,
-    trapTendency: 0.6,
-    baitingTendency: 0.5,
-    antiLeaderAggression: 0.8,
-    tempoControl: 0.65,
-    damageControl: 0.7,
-    handPartitioningOptimality: 0.85,
-    simulationLookahead: 2,
-    mctsSimulations: 0
-  },
-  CAU_UT: {
-    id: 'CAU_UT',
-    name: 'Cậu Út (Kẻ Gài Bẫy)',
-    avatar: '🎭',
-    tier: 'Tier 3: Kinh Nghiệm',
-    elo: 1550,
-    description: 'Chuyên gia ém hàng quý, thích đánh mồi Át/K để câu Heo đối thủ.',
-    memoryDepth: 0.85,
-    riskAppetite: 0.55,
-    trapTendency: 0.7,
-    baitingTendency: 0.85,
-    antiLeaderAggression: 0.85,
+    description: 'Giữ Heo rất chặt, ưu tiên xả hết rác, kiên nhẫn rình bẫy Hàng.',
+    memoryDepth: 0.75,
+    riskAppetite: 0.6,
+    trapTendency: 0.5,
+    baitingTendency: 0.45,
+    antiLeaderAggression: 1.0, // Cũ: 0.75 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
     tempoControl: 0.7,
-    damageControl: 0.65,
-    handPartitioningOptimality: 0.85,
+    damageControl: 0.7,
+    handPartitioningOptimality: 0.75,
     simulationLookahead: 2,
     mctsSimulations: 0
   },
-  CHI_TU: {
-    id: 'CHI_TU',
-    name: 'Chị Tư (Thợ Săn Heo)',
-    avatar: '🏹',
-    tier: 'Tier 3: Kinh Nghiệm',
+  BOT_ELO_1550: {
+    id: 'BOT_ELO_1550',
+    tier: 'Tier 3: Veteran',
+    elo: 1550,
+    description: 'Chuyên gia ém Hàng quý, thích đánh mồi Át/K để câu Heo đối thủ.',
+    memoryDepth: 0.8,
+    riskAppetite: 0.6,
+    trapTendency: 0.6,
+    baitingTendency: 0.6,
+    antiLeaderAggression: 1.0, // Cũ: 0.75 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    tempoControl: 0.75,
+    damageControl: 0.7,
+    handPartitioningOptimality: 0.75,
+    simulationLookahead: 2,
+    mctsSimulations: 0
+  },
+  BOT_ELO_1600: {
+    id: 'BOT_ELO_1600',
+    tier: 'Tier 3: Veteran',
     elo: 1600,
     description: 'Rất giỏi nhớ Heo, chỉ rình Heo Đỏ của đối thủ để xả bài đè chết.',
-    memoryDepth: 0.9,
-    riskAppetite: 0.6,
-    trapTendency: 0.65,
-    baitingTendency: 0.7,
-    antiLeaderAggression: 0.85,
+    memoryDepth: 0.85,
+    riskAppetite: 0.65,
+    trapTendency: 0.6,
+    baitingTendency: 0.6,
+    antiLeaderAggression: 1.0, // Cũ: 0.8 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
     tempoControl: 0.75,
-    damageControl: 0.7,
-    handPartitioningOptimality: 0.9,
+    damageControl: 0.75,
+    handPartitioningOptimality: 0.78,
     simulationLookahead: 2,
     mctsSimulations: 0
   },
-  ANH_SAU: {
-    id: 'ANH_SAU',
-    name: 'Anh Sáu (Lão Luyện)',
-    avatar: '🎣',
-    tier: 'Tier 3: Kinh Nghiệm',
+  BOT_ELO_1650: {
+    id: 'BOT_ELO_1650',
+    tier: 'Tier 3: Veteran',
     elo: 1650,
     description: 'Lối đánh điềm đạm, biết nhử đối thủ ra bài lớn trước.',
-    memoryDepth: 0.88,
-    riskAppetite: 0.6,
-    trapTendency: 0.65,
-    baitingTendency: 0.65,
-    antiLeaderAggression: 0.85,
-    tempoControl: 0.75,
-    damageControl: 0.7,
-    handPartitioningOptimality: 0.9,
+    memoryDepth: 0.85,
+    riskAppetite: 0.65,
+    trapTendency: 0.6,
+    baitingTendency: 0.6,
+    antiLeaderAggression: 1.0, // Cũ: 0.8 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    tempoControl: 0.8,
+    damageControl: 0.75,
+    handPartitioningOptimality: 0.78,
     simulationLookahead: 2,
     mctsSimulations: 0
   },
 
   // ==========================================
-  // TIER 4: CAO THỦ / BÁN CHUYÊN (ELO 1750 - 1950)
+  // TIER 4: CAO THỦ / MASTER (ELO 1750 - 1950)
   // ==========================================
-  CO_BA: {
-    id: 'CO_BA',
-    name: 'Cô Ba (Thần Bài)',
-    avatar: '👑',
-    tier: 'Tier 4: Cao Thủ',
+  BOT_ELO_1750: {
+    id: 'BOT_ELO_1750',
+    tier: 'Tier 4: Master',
     elo: 1750,
-    description: 'Đếm bài chuẩn xác 100%, tính toán xác suất, chuyên gia săn heo.',
-    memoryDepth: 1.0,
+    description: 'Đếm bài chuẩn xác 100%, tính toán xác suất, chuyên gia săn Heo.',
+    memoryDepth: 0.95,
     riskAppetite: 0.65,
-    trapTendency: 0.5,
-    baitingTendency: 0.6,
-    antiLeaderAggression: 0.95,
-    tempoControl: 0.85,
-    damageControl: 0.8,
-    handPartitioningOptimality: 1.0,
-    simulationLookahead: 3,
-    mctsSimulations: 15
-  },
-  ANH_HAI: {
-    id: 'ANH_HAI',
-    name: 'Anh Hai (Chiến Thuật)',
-    avatar: '👨‍🏫',
-    tier: 'Tier 4: Cao Thủ',
-    elo: 1850,
-    description: 'Tính toán số nhịp về bài tối ưu, chuyên gia nhốt đối thủ gần về nhất.',
-    memoryDepth: 1.0,
-    riskAppetite: 0.7,
-    trapTendency: 0.5,
-    baitingTendency: 0.55,
-    antiLeaderAggression: 1.0,
-    tempoControl: 0.9,
-    damageControl: 0.85,
-    handPartitioningOptimality: 1.0,
-    simulationLookahead: 4,
-    mctsSimulations: 20
-  },
-  THAY_BA: {
-    id: 'THAY_BA',
-    name: 'Thầy Giáo Ba (Toán Học)',
-    avatar: '🧠',
-    tier: 'Tier 4: Cao Thủ',
-    elo: 1900,
-    description: 'Mô hình hóa thế bài bằng xác suất, không bao giờ đánh thừa lá.',
-    memoryDepth: 1.0,
-    riskAppetite: 0.7,
-    trapTendency: 0.5,
-    baitingTendency: 0.6,
-    antiLeaderAggression: 1.0,
-    tempoControl: 0.9,
-    damageControl: 0.85,
-    handPartitioningOptimality: 1.0,
-    simulationLookahead: 4,
-    mctsSimulations: 20
-  },
-  BA_SON: {
-    id: 'BA_SON',
-    name: 'Đại Gia Ba Son (Ép Nhịp)',
-    avatar: '💼',
-    tier: 'Tier 4: Cao Thủ',
-    elo: 1950,
-    description: 'Kiểm soát nhịp độ bàn chơi, ép đối thủ xả bài to đúng kế hoạch.',
-    memoryDepth: 1.0,
-    riskAppetite: 0.75,
     trapTendency: 0.55,
     baitingTendency: 0.6,
-    antiLeaderAggression: 1.0,
-    tempoControl: 0.95,
+    antiLeaderAggression: 1.0, // Cũ: 0.9 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    tempoControl: 0.85,
     damageControl: 0.85,
-    handPartitioningOptimality: 1.0,
-    simulationLookahead: 4,
-    mctsSimulations: 20
+    handPartitioningOptimality: 0.85,
+    simulationLookahead: 3,
+    mctsSimulations: 0
+  },
+  BOT_ELO_1850: {
+    id: 'BOT_ELO_1850',
+    tier: 'Tier 4: Master',
+    elo: 1850,
+    description: 'Tính toán số nhịp về bài tối ưu, chuyên gia nhốt đối thủ gần về nhất.',
+    memoryDepth: 0.95,
+    riskAppetite: 0.7,
+    trapTendency: 0.55,
+    baitingTendency: 0.6,
+    antiLeaderAggression: 1.0, // Cũ: 0.9 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    tempoControl: 0.88,
+    damageControl: 0.88,
+    handPartitioningOptimality: 0.85,
+    simulationLookahead: 3,
+    mctsSimulations: 0
+  },
+  BOT_ELO_1900: {
+    id: 'BOT_ELO_1900',
+    tier: 'Tier 4: Master',
+    elo: 1900,
+    description: 'Mô hình hóa thế bài bằng xác suất, không bao giờ đánh thừa lá.',
+    memoryDepth: 0.95,
+    riskAppetite: 0.7,
+    trapTendency: 0.55,
+    baitingTendency: 0.6,
+    antiLeaderAggression: 1.0, // Cũ: 0.9 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    tempoControl: 0.88,
+    damageControl: 0.88,
+    handPartitioningOptimality: 0.85,
+    simulationLookahead: 3,
+    mctsSimulations: 0
+  },
+  BOT_ELO_1950: {
+    id: 'BOT_ELO_1950',
+    tier: 'Tier 4: Master',
+    elo: 1950,
+    description: 'Kiểm soát nhịp độ bàn chơi, ép đối thủ xả bài to đúng kế hoạch.',
+    memoryDepth: 0.95,
+    riskAppetite: 0.7,
+    trapTendency: 0.55,
+    baitingTendency: 0.6,
+    antiLeaderAggression: 1.0, // Cũ: 0.92 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    tempoControl: 0.9,
+    damageControl: 0.9,
+    handPartitioningOptimality: 0.85,
+    simulationLookahead: 3,
+    mctsSimulations: 0
   },
 
   // ==========================================
-  // TIER 5: ĐẠI CAO THỦ / THẦN BÀI TỐI THƯỢNG (ELO 2050 - 2500)
+  // TIER 5: ĐẠI CAO THỦ / MYTHIC (ELO 2050 - 2500)
   // ==========================================
-  BA_NAM: {
-    id: 'BA_NAM',
-    name: 'Bà Năm (Hổ Báo Cực Hạn)',
-    avatar: '🦁',
-    tier: 'Tier 5: Thần Bài',
+  BOT_ELO_2050: {
+    id: 'BOT_ELO_2050',
+    tier: 'Tier 5: Mythic',
     elo: 2050,
     description: 'Có bài to là đè liền tay, thích áp đảo thế trận liên tục cướp cái.',
-    memoryDepth: 0.95,
-    riskAppetite: 0.85,
-    trapTendency: 0.5,
-    baitingTendency: 0.5,
-    antiLeaderAggression: 1.0,
+    memoryDepth: 1.0,
+    riskAppetite: 0.75,
+    trapTendency: 0.6,
+    baitingTendency: 0.6,
+    antiLeaderAggression: 1.0, // Cũ: 1.0
     tempoControl: 0.95,
-    damageControl: 0.85,
-    handPartitioningOptimality: 1.0,
+    damageControl: 0.95,
+    handPartitioningOptimality: 0.9,
     simulationLookahead: 4,
-    mctsSimulations: 25
+    mctsSimulations: 0
   },
-  TRUM_SONG: {
-    id: 'TRUM_SONG',
-    name: 'Trùm Sòng Bạc (Nhìn Thấu)',
-    avatar: '🎩',
-    tier: 'Tier 5: Thần Bài',
+  BOT_ELO_2150: {
+    id: 'BOT_ELO_2150',
+    tier: 'Tier 5: Mythic',
     elo: 2150,
     description: 'Đoán chính xác 95% bài đối thủ, khai thác triệt để mọi điểm mù.',
     memoryDepth: 1.0,
     riskAppetite: 0.7,
-    trapTendency: 0.55,
-    baitingTendency: 0.6,
-    antiLeaderAggression: 1.0,
-    tempoControl: 1.0,
-    damageControl: 0.95,
-    handPartitioningOptimality: 1.0,
+    trapTendency: 0.6,
+    baitingTendency: 0.65,
+    antiLeaderAggression: 1.0, // Cũ: 1.0
+    tempoControl: 0.98,
+    damageControl: 0.98,
+    handPartitioningOptimality: 0.9,
     simulationLookahead: 4,
-    mctsSimulations: 25
+    mctsSimulations: 0
   },
-  CO_SAU: {
-    id: 'CO_SAU',
-    name: 'Cô Sáu (Thần Bài Tối Thượng)',
-    avatar: '👑',
-    tier: 'Tier 5: Thần Bài',
+  BOT_ELO_2300: {
+    id: 'BOT_ELO_2300',
+    tier: 'Tier 5: Mythic',
     elo: 2300,
-    description: 'Chế độ Max Cấu Hình: Chạy mô phỏng Monte Carlo MCTS, kiểm soát nhịp độ, bẫy Heo hoàn hảo.',
+    description: 'Chế độ Max Cấu Hình: Kiểm soát nhịp độ, bẫy Heo hoàn hảo, không để lại sơ hở.',
     memoryDepth: 1.0,
     riskAppetite: 0.7,
-    trapTendency: 0.55,
-    baitingTendency: 0.6,
-    antiLeaderAggression: 1.0,
+    trapTendency: 0.65,
+    baitingTendency: 0.65,
+    antiLeaderAggression: 1.0, // Cũ: 1.0
     tempoControl: 1.0,
     damageControl: 1.0,
-    mctsSimulations: 30,
-    handPartitioningOptimality: 1.0,
-    simulationLookahead: 4
+    handPartitioningOptimality: 0.88,
+    simulationLookahead: 4,
+    mctsSimulations: 0
   },
-  ALPHA_TL: {
-    id: 'ALPHA_TL',
-    name: 'Alpha-Tiến Lên (Siêu Trí Tuệ)',
-    avatar: '🤖',
-    tier: 'Tier 5: Thần Bài',
+  BOT_ELO_2500: {
+    id: 'BOT_ELO_2500',
+    tier: 'Tier 5: Mythic',
     elo: 2500,
-    description: 'Trí tuệ nhân tạo tối cao: Mô phỏng Monte Carlo, tìm đường về đích hoàn hảo.',
+    description: 'Trí tuệ nhân tạo tối cao: Đọc vị đối thủ, giữ bài bọc lót hoàn hảo, dứt điểm cờ tàn chuẩn xác.',
     memoryDepth: 1.0,
-    riskAppetite: 0.75,
-    trapTendency: 0.55,
-    baitingTendency: 0.6,
-    antiLeaderAggression: 1.0,
+    riskAppetite: 0.7,
+    trapTendency: 0.7,
+    baitingTendency: 0.7,
+    antiLeaderAggression: 1.0, // Cũ: 1.0
     tempoControl: 1.0,
     damageControl: 1.0,
-    mctsSimulations: 30,
-    handPartitioningOptimality: 1.0,
-    simulationLookahead: 4
+    handPartitioningOptimality: 0.88,
+    simulationLookahead: 4,
+    mctsSimulations: 0
   }
 };
 
 export function getBotConfig(id: string, customOverrides?: Partial<BotConfig>): BotConfig {
-  const base = BOT_PERSONAS[id] || BOT_PERSONAS.CHU_BAY;
+  const base = BOT_PERSONAS[id] || BOT_PERSONAS.BOT_ELO_1150;
   if (!customOverrides) return base;
   return {
     ...base,
@@ -383,7 +355,7 @@ export function createCustomBotConfig(
   baseId: string,
   overrides: Partial<BotConfig>
 ): BotConfig {
-  const base = BOT_PERSONAS[baseId] || BOT_PERSONAS.CHU_BAY;
+  const base = BOT_PERSONAS[baseId] || BOT_PERSONAS.BOT_ELO_1150;
   return {
     ...base,
     ...overrides
@@ -392,4 +364,122 @@ export function createCustomBotConfig(
 
 export function getAllBotConfigs(): BotConfig[] {
   return Object.values(BOT_PERSONAS);
+}
+
+// ============================================================================
+// DYNAMIC RANDOM BOT IDENTITY GENERATOR (GLOBAL GAMER / ESPORTS IDENTITY)
+// ============================================================================
+
+export const GLOBAL_BOT_NAMES = [
+  'Alex', 'Max', 'Leo', 'Mia', 'Kai', 'Sam', 'Elena', 'Lucas', 'Felix', 'Zane',
+  'Rex', 'Luna', 'Nova', 'Viper', 'Shadow', 'Ace', 'Blaze', 'Phoenix', 'Knight', 'Cyber',
+  'Kuro', 'Ren', 'Kenji', 'Aria', 'Chloe', 'Victor', 'Marcus', 'Sophia', 'Drake', 'Storm',
+  'Frost', 'Raven', 'Titan', 'Ghost', 'Oscar', 'Ryan', 'Zack', 'Hugo', 'Logan', 'Ethan',
+  'Liam', 'Noah', 'Maya', 'Ivy', 'Ruby', 'Stella', 'Diana', 'Clara', 'Serena', 'Axel'
+];
+
+export const GLOBAL_NICKNAMES_BY_TIER: Record<number, string[]> = {
+  1: ['Rookie', 'Novice', 'Apprentice', 'Newbie', 'Starter', 'Junior', 'Cadet'],
+  2: ['Challenger', 'Striker', 'Wildcard', 'Blitzer', 'Gambit', 'Rebel', 'Fighter'],
+  3: ['Veteran', 'Tactician', 'Card Hunter', 'Strategist', 'Sniper', 'Sentinel', 'Tracker'],
+  4: ['Grandmaster', 'Mind Reader', 'Predator', 'Pro Ace', 'Vanguard', 'Executioner', 'Warlock'],
+  5: ['Mythic', 'Overlord', 'Supreme AI', 'Apex Legend', 'Immortal', 'Alpha Mind', 'Zero Defeat']
+};
+
+export const GLOBAL_AVATARS = [
+  '🤠', '🧔', '👨', '👩', '👧', '🧒', '👶', '👴', '👵', '🧓', 
+  '🕶️', '🎩', '👑', '🧠', '💼', '🏹', '🎣', '🤖', '🎭', '🥋', 
+  '🎲', '⚡', '🌪️', '🔥', '🛡️', '⚔️', '💎', '👓'
+];
+
+const TIER_BASE_PERSONAS: Record<number, string[]> = {
+  1: ['BOT_ELO_850', 'BOT_ELO_900', 'BOT_ELO_950', 'BOT_ELO_1000'],
+  2: ['BOT_ELO_1150', 'BOT_ELO_1200', 'BOT_ELO_1250', 'BOT_ELO_1350'],
+  3: ['BOT_ELO_1450', 'BOT_ELO_1550', 'BOT_ELO_1600', 'BOT_ELO_1650'],
+  4: ['BOT_ELO_1750', 'BOT_ELO_1850', 'BOT_ELO_1900', 'BOT_ELO_1950'],
+  5: ['BOT_ELO_2050', 'BOT_ELO_2150', 'BOT_ELO_2300', 'BOT_ELO_2500']
+};
+
+/**
+ * Sinh cấu hình Bot ngẫu nhiên chuẩn Quốc tế / Esports
+ */
+export function generateRandomBotConfig(
+  tier: number = 2,
+  options?: {
+    excludeNames?: string[];
+    excludeAvatars?: string[];
+    baseId?: string;
+  }
+): BotConfig {
+  const normalizedTier = Math.max(1, Math.min(5, tier));
+  const candidateIds = TIER_BASE_PERSONAS[normalizedTier] || TIER_BASE_PERSONAS[2];
+  const chosenBaseId = options?.baseId || candidateIds[Math.floor(Math.random() * candidateIds.length)];
+  const baseConfig = BOT_PERSONAS[chosenBaseId] || BOT_PERSONAS.BOT_ELO_1150;
+
+  const excludeNames = options?.excludeNames || [];
+  const excludeAvatars = options?.excludeAvatars || [];
+
+  // Sinh Gamertag ngẫu nhiên chuẩn quốc tế
+  let generatedName = '';
+  let attempts = 0;
+  while (attempts < 25) {
+    attempts++;
+    const name = GLOBAL_BOT_NAMES[Math.floor(Math.random() * GLOBAL_BOT_NAMES.length)];
+    const titlePool = GLOBAL_NICKNAMES_BY_TIER[normalizedTier] || GLOBAL_NICKNAMES_BY_TIER[2];
+    const title = titlePool[Math.floor(Math.random() * titlePool.length)];
+    const candidateName = `${name} (${title})`;
+    if (!excludeNames.includes(candidateName)) {
+      generatedName = candidateName;
+      break;
+    }
+  }
+  if (!generatedName) {
+    generatedName = `Player #${Math.floor(Math.random() * 9000 + 1000)}`;
+  }
+
+  // Chọn Avatar phù hợp không trùng tại bàn
+  const availableAvatars = GLOBAL_AVATARS.filter(a => !excludeAvatars.includes(a));
+  const chosenAvatar = availableAvatars.length > 0
+    ? availableAvatars[Math.floor(Math.random() * availableAvatars.length)]
+    : (baseConfig.avatar || '🤖');
+
+  return {
+    ...baseConfig,
+    id: `dyn_${chosenBaseId}_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+    name: generatedName,
+    avatar: chosenAvatar,
+    description: `Bot đối thủ Bậc ${baseConfig.tier}. Lối đánh chiến thuật, độc lập.`
+  };
+}
+
+/**
+ * Trả về nhãn định danh chuẩn hóa cho Persona (ví dụ: "Tier 1: Rookie (Elo 850)")
+ */
+export function getBotArchetypeLabel(config: BotConfig): string {
+  return `${config.tier || 'Bot'} (Elo ${config.elo || 1000})`;
+}
+
+/**
+ * Sinh danh sách Bot đối thủ ngẫu nhiên cho một bàn đấu
+ */
+export function getRandomBotConfigsForTable(
+  tiers: number[] = [1, 2, 3],
+  count: number = 3
+): BotConfig[] {
+  const result: BotConfig[] = [];
+  const usedNames: string[] = [];
+  const usedAvatars: string[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const tier = tiers[i % tiers.length] || 2;
+    const bot = generateRandomBotConfig(tier, {
+      excludeNames: usedNames,
+      excludeAvatars: usedAvatars
+    });
+    result.push(bot);
+    usedNames.push(bot.name || '');
+    usedAvatars.push(bot.avatar || '🤖');
+  }
+
+  return result;
 }

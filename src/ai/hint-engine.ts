@@ -18,16 +18,21 @@ export function getOptimalMoveHint(
   isFirstMoveOfGame: boolean,
   isLeadMove: boolean,
   tracker: CardTracker,
-  remainingPlayerCards: Record<string, number>
+  remainingPlayerCards: Record<string, number>,
+  nextPlayerId: string = 'p1',
+  isNextPlayerOneCard?: boolean
 ): MoveHint {
+  const resolvedNextPlayerId = nextPlayerId || Object.keys(remainingPlayerCards)[0] || 'p1';
   const decision = makeBotDecision({
     hand,
     currentRoundLeadingMove: leadingMove,
     isFirstMoveOfGame,
     isLeadMove,
     tracker,
-    config: BOT_PERSONAS.CO_BA,
-    remainingPlayerCards
+    config: BOT_PERSONAS.BOT_ELO_1750,
+    remainingPlayerCards,
+    nextPlayerId: resolvedNextPlayerId,
+    isNextPlayerOneCard: isNextPlayerOneCard ?? (remainingPlayerCards[resolvedNextPlayerId] === 1)
   });
 
   if (decision.type === 'PASS') {

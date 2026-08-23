@@ -63,6 +63,10 @@ export class CardTracker {
     return this.opponentPasses.get(playerId)?.has(type) ?? false;
   }
 
+  public getOpponentWeaknessCombos(playerId: string): Set<CombinationType> {
+    return this.opponentPasses.get(playerId) || new Set();
+  }
+
   public hasOpponentPassedOnStraightLength(playerId: string, length: number): boolean {
     return this.opponentStraightPasses.get(playerId)?.has(length) ?? false;
   }

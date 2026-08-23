@@ -2,8 +2,8 @@ import { Card, Combination, CombinationType, Rank } from '../engine/types';
 
 export interface BotConfig {
   id: string;
-  name: string;
-  avatar: string;
+  name?: string;
+  avatar?: string;
   description: string;
   tier?: string;                       // 'Tier 1: Tập Sự' | 'Tier 2: Phong Trào' | 'Tier 3: Kinh Nghiệm' | 'Tier 4: Cao Thủ' | 'Tier 5: Thần Bài'
   elo?: number;                        // Điểm Elo ước tính (850 -> 2500)

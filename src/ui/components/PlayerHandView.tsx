@@ -1,12 +1,13 @@
 import React from 'react';
 import { Card, Player } from '../../engine/types';
 import { CardView } from './CardView';
-import { Play, SkipForward, Sparkles, Wand2, ArrowUpDown } from 'lucide-react';
+import { Play, SkipForward, Sparkles, Wand2, ArrowUpDown, ArrowDownToLine } from 'lucide-react';
 
 interface PlayerHandViewProps {
-  player: Player;
+  player?: Player;
   selectedCardIds: Set<string>;
   onToggleCardSelect: (cardId: string) => void;
+  onClearCardSelection?: () => void;
   onPlaySelectedCards: () => void;
   onPassTurn: () => void;
   onAutoSort: () => void;
@@ -17,12 +18,14 @@ interface PlayerHandViewProps {
   isLeader: boolean;
   isDealing?: boolean;
   dealtCardsCount?: number;
+  aiHintEnabled?: boolean;
 }
 
 export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
   player,
   selectedCardIds,
   onToggleCardSelect,
+  onClearCardSelection,
   onPlaySelectedCards,
   onPassTurn,
   onAutoSort,
@@ -32,57 +35,79 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
   canPass,
   isLeader,
   isDealing = false,
-  dealtCardsCount
+  dealtCardsCount,
+  aiHintEnabled = false
 }) => {
-  const visibleCardCount = isDealing && dealtCardsCount !== undefined ? dealtCardsCount : player.hand.length;
-  const hand = player.hand.slice(0, visibleCardCount);
+  if (!player) return null;
+
+  const visibleCardCount = isDealing && dealtCardsCount !== undefined ? dealtCardsCount : (player.hand?.length || 0);
+  const hand = (player.hand || []).slice(0, visibleCardCount);
 
   return (
     <div id="seat-p0" className="relative flex flex-col items-center justify-end w-full pb-1 z-30">
       {/* Bảng nút điều khiển hành động (Action Controls) - Ẩn khi đang chia bài */}
-      {!isDealing && isCurrentTurn && (
+      {!isDealing && (isCurrentTurn || selectedCardIds.size > 0) && (
         <div className="flex items-center gap-2 sm:gap-3 mb-1.5 sm:mb-2 bg-black/75 backdrop-blur-md px-4 sm:px-5 py-1.5 sm:py-2 rounded-2xl border-2 border-yellow-500/60 shadow-2xl animate-fade-in">
-          {/* Nút Đánh Bài */}
-          <button
-            onClick={onPlaySelectedCards}
-            disabled={!canPlay}
-            className={`
-              flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-1.5 sm:py-2 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all duration-200 shadow-lg
-              ${canPlay
-                ? 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-red-950 hover:scale-105 shadow-yellow-500/50 cursor-pointer border border-yellow-200'
-                : 'bg-neutral-700/60 text-neutral-400 cursor-not-allowed border border-neutral-600/30'
-              }
-            `}
-          >
-            <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
-            <span>Đánh Bài</span>
-          </button>
+          {/* Các nút hành động khi đến lượt đi */}
+          {isCurrentTurn && (
+            <>
+              {/* Nút Đánh Bài */}
+              <button
+                onClick={onPlaySelectedCards}
+                disabled={!canPlay}
+                className={`
+                  flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-1.5 sm:py-2 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all duration-200 shadow-lg
+                  ${canPlay
+                    ? 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-red-950 hover:scale-105 shadow-yellow-500/50 cursor-pointer border border-yellow-200'
+                    : 'bg-neutral-700/60 text-neutral-400 cursor-not-allowed border border-neutral-600/30'
+                  }
+                `}
+              >
+                <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
+                <span>Đánh Bài</span>
+              </button>
 
-          {/* Nút Bỏ Lượt */}
-          <button
-            onClick={onPassTurn}
-            disabled={!canPass}
-            className={`
-              flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200
-              ${canPass
-                ? 'bg-red-900/80 hover:bg-red-800 text-red-100 border border-red-500/40 hover:scale-105 cursor-pointer shadow-md'
-                : 'bg-neutral-800/40 text-neutral-500 cursor-not-allowed border border-neutral-700/20'
-              }
-            `}
-          >
-            <SkipForward className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-            <span>Bỏ Lượt</span>
-          </button>
+              {/* Nút Bỏ Lượt */}
+              <button
+                onClick={onPassTurn}
+                disabled={!canPass}
+                className={`
+                  flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200
+                  ${canPass
+                    ? 'bg-red-900/80 hover:bg-red-800 text-red-100 border border-red-500/40 hover:scale-105 cursor-pointer shadow-md'
+                    : 'bg-neutral-800/40 text-neutral-500 cursor-not-allowed border border-neutral-700/20'
+                  }
+                `}
+              >
+                <SkipForward className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span>Bỏ Lượt</span>
+              </button>
 
-          {/* Nút Gợi Ý AI */}
-          <button
-            onClick={onGetAiHint}
-            className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-purple-900/80 hover:bg-purple-800 text-purple-100 border border-purple-400/50 hover:scale-105 cursor-pointer font-bold text-xs sm:text-sm shadow-md transition-all duration-200"
-            title="Thần bài gợi ý nước đi tối ưu"
-          >
-            <Wand2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-300" />
-            <span>Gợi Ý AI</span>
-          </button>
+              {/* Nút Gợi Ý AI */}
+              {aiHintEnabled && (
+                <button
+                  onClick={onGetAiHint}
+                  className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-purple-900/80 hover:bg-purple-800 text-purple-100 border border-purple-400/50 hover:scale-105 cursor-pointer font-bold text-xs sm:text-sm shadow-md transition-all duration-200"
+                  title="Thần bài gợi ý nước đi tối ưu"
+                >
+                  <Wand2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-300" />
+                  <span>Gợi Ý AI</span>
+                </button>
+              )}
+            </>
+          )}
+
+          {/* Nút Hạ Bài (Xuất hiện khi có bài đang chọn) */}
+          {selectedCardIds.size > 0 && onClearCardSelection && (
+            <button
+              onClick={onClearCardSelection}
+              className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-amber-950/80 hover:bg-amber-900 text-amber-200 border border-amber-500/50 hover:scale-105 cursor-pointer font-bold text-xs sm:text-sm shadow-md transition-all duration-200 animate-fade-in"
+              title="Hạ toàn bộ các lá bài đang chọn xuống"
+            >
+              <ArrowDownToLine className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+              <span>Hạ Bài {selectedCardIds.size > 1 ? `(${selectedCardIds.size})` : ''}</span>
+            </button>
+          )}
 
           {/* Nút Xếp Bài */}
           <button

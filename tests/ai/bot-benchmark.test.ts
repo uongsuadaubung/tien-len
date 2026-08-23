@@ -8,10 +8,10 @@ import { Player } from '../../src/engine/types';
 describe('AI Bot Benchmark Simulation (100 Ván Đấu Mô Phỏng)', () => {
   test('Mô phỏng 100 ván đấu giữa 4 Bot và đánh giá xếp hạng tỉ lệ thắng', () => {
     const bots = [
-      { player: { id: 'bot1', name: 'Bé Năm (Tập sự)', avatar: '🧒', isBot: true, hand: [], playedCards: [], score: 0, isPassedCurrentRound: false, hasPlayedFirstCard: false }, config: BOT_PERSONAS.BE_NAM },
-      { player: { id: 'bot2', name: 'Chú Bảy (Liều lĩnh)', avatar: '🤠', isBot: true, hand: [], playedCards: [], score: 0, isPassedCurrentRound: false, hasPlayedFirstCard: false }, config: BOT_PERSONAS.CHU_BAY },
-      { player: { id: 'bot3', name: 'Bác Tư (Cẩn trọng)', avatar: '👴', isBot: true, hand: [], playedCards: [], score: 0, isPassedCurrentRound: false, hasPlayedFirstCard: false }, config: BOT_PERSONAS.BAC_TU },
-      { player: { id: 'bot4', name: 'Cô Ba (Thần bài)', avatar: '👑', isBot: true, hand: [], playedCards: [], score: 0, isPassedCurrentRound: false, hasPlayedFirstCard: false }, config: BOT_PERSONAS.CO_BA }
+      { player: { id: 'bot1', name: 'Alex (Rookie)', avatar: '🧒', isBot: true, hand: [], playedCards: [], score: 0, isPassedCurrentRound: false, hasPlayedFirstCard: false }, config: BOT_PERSONAS.BOT_ELO_850 },
+      { player: { id: 'bot2', name: 'Kai (Striker)', avatar: '🤠', isBot: true, hand: [], playedCards: [], score: 0, isPassedCurrentRound: false, hasPlayedFirstCard: false }, config: BOT_PERSONAS.BOT_ELO_1150 },
+      { player: { id: 'bot3', name: 'Marcus (Veteran)', avatar: '👴', isBot: true, hand: [], playedCards: [], score: 0, isPassedCurrentRound: false, hasPlayedFirstCard: false }, config: BOT_PERSONAS.BOT_ELO_1450 },
+      { player: { id: 'bot4', name: 'Sophia (Grandmaster)', avatar: '👑', isBot: true, hand: [], playedCards: [], score: 0, isPassedCurrentRound: false, hasPlayedFirstCard: false }, config: BOT_PERSONAS.BOT_ELO_1750 }
     ];
 
     const winCounts: Record<string, number> = { bot1: 0, bot2: 0, bot3: 0, bot4: 0 };
@@ -58,6 +58,7 @@ describe('AI Bot Benchmark Simulation (100 Ván Đấu Mô Phỏng)', () => {
         }
 
         const isLead = game.isRoundLeadMove();
+        const nextPlayerId = game.getNextActivePlayerId(currentTurnPlayer.id);
 
         const decision = makeBotDecision({
           hand: currentTurnPlayer.hand,
@@ -66,7 +67,8 @@ describe('AI Bot Benchmark Simulation (100 Ván Đấu Mô Phỏng)', () => {
           isLeadMove: isLead,
           tracker,
           config: botObj.config,
-          remainingPlayerCards: remainingCardsMap
+          remainingPlayerCards: remainingCardsMap,
+          nextPlayerId
         });
 
         if (decision.type === 'PLAY' && decision.cards) {
@@ -114,12 +116,12 @@ describe('AI Bot Benchmark Simulation (100 Ván Đấu Mô Phỏng)', () => {
 
   test('Benchmark Độ Trễ Tính Toán (Decision Latency) - Đảm bảo Zero UI Freezing', () => {
     const testBots = [
-      BOT_PERSONAS.BE_NAM,
-      BOT_PERSONAS.CHU_BAY,
-      BOT_PERSONAS.BAC_TU,
-      BOT_PERSONAS.CO_BA,
-      BOT_PERSONAS.CO_SAU,
-      BOT_PERSONAS.ALPHA_TL
+      BOT_PERSONAS.BOT_ELO_850,
+      BOT_PERSONAS.BOT_ELO_1150,
+      BOT_PERSONAS.BOT_ELO_1450,
+      BOT_PERSONAS.BOT_ELO_1750,
+      BOT_PERSONAS.BOT_ELO_2300,
+      BOT_PERSONAS.BOT_ELO_2500
     ];
 
     console.log('\n=========================================');
@@ -153,14 +155,15 @@ describe('AI Bot Benchmark Simulation (100 Ván Đấu Mô Phỏng)', () => {
           isLeadMove: true,
           tracker,
           config: bot,
-          remainingPlayerCards: { p0: 10, p2: 10, p3: 10 }
+          remainingPlayerCards: { p0: 10, p2: 10, p3: 10 },
+          nextPlayerId: 'p2'
         });
       }
 
       const totalTime = performance.now() - start;
       const avgLatencyMs = totalTime / ITERATIONS;
 
-      console.log(`[${bot.tier || 'Tier'}] ${bot.avatar} ${bot.name} (Elo ${bot.elo}): ${avgLatencyMs.toFixed(2)} ms/nước đi`);
+      console.log(`[${bot.tier || 'Tier'}] Archetype ${bot.id} (Elo ${bot.elo}): ${avgLatencyMs.toFixed(2)} ms/nước đi`);
 
       // Độ trễ ra quyết định phải < 60ms để không gây giật lag
       expect(avgLatencyMs).toBeLessThan(60);

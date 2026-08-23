@@ -27,12 +27,16 @@ export function shuffleDeck(deck: Card[]): Card[] {
 }
 
 /**
- * Chia bài cho 4 người chơi (mỗi người 13 lá, đã được sắp xếp tăng dần)
+ * Chia bài cho người chơi (2, 3 hoặc 4 người, mỗi người 13 lá, đã được sắp xếp tăng dần)
  */
-export function dealCards(deck: Card[]): Card[][] {
-  const hands: Card[][] = [[], [], [], []];
-  for (let i = 0; i < 52; i++) {
-    hands[i % 4].push(deck[i]);
+export function dealCards(deck: Card[], playerCount: number = 4): Card[][] {
+  const count = Math.min(4, Math.max(2, playerCount));
+  const hands: Card[][] = [];
+  for (let i = 0; i < count; i++) {
+    hands.push([]);
+  }
+  for (let i = 0; i < count * 13; i++) {
+    hands[i % count].push(deck[i]);
   }
   return hands.map(sortCards);
 }

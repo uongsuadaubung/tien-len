@@ -40,7 +40,52 @@ export type InstantWinType =
   | 'SAME_COLOR_13'
   | 'FIRST_ROUND_FOUR_THREES';
 
-export type GameMode = 'TRADITIONAL' | 'COUNT_CARDS'; // Truyền thống Nhất-Nhì-Ba-Bét vs Đếm lá
+export type GameSettlementRule = 'TRADITIONAL_RANK_BASED' | 'CARD_COUNT' | 'WINNER_TAKES_ALL';
+
+export type GameMode = 'TRADITIONAL' | 'COUNT_CARDS' | 'WINNER_TAKES_ALL' | 'CUSTOM';
+
+export interface ChoppingRules {
+  allowFourPairsCutAnytime: boolean; // 4 đôi thông chặt tự do không cần vòng
+  allowThreePairsCutTwo: boolean;    // 3 đôi thông chặt 1 Heo
+  allowFourOfAKindCutPairsOfTwos: boolean; // Tứ quý chặt Đôi Heo
+  multiplier: number;                // Hệ số nhân tiền phạt chặt (1x chuẩn, 2x sòng bạc ngầm)
+}
+
+export interface CongRules {
+  enabled: boolean;                  // Có phạt Cóng khi người khác về nhất mà chưa đánh được lá nào
+  penaltyCards: number;              // Số lá bài đền khi Cóng (chuẩn: 26 lá)
+  multiplier: number;                // Hệ số nhân phạt Cóng (1x chuẩn, 2x sòng bạc ngầm)
+}
+
+export interface InstantWinRules {
+  enabled: boolean;                  // Cho phép Tới Trắng
+  payoutMultiplier: number;          // Số cược mỗi nhà đền khi Tới Trắng (chuẩn: 26x)
+}
+
+export interface GameFlowRules {
+  firstGameRequireThreeOfSpades: boolean; // Ván đầu tiên bắt buộc đánh lá 3 Bích
+  winnerLeadsNextGame: boolean;           // Người về Nhất ván trước được đi đầu ván sau
+}
+
+export interface TableRules {
+  playerCount: 2 | 3 | 4;            // Số người chơi
+  betAmount: number;                 // Mức cược cơ bản (0 Xu với Ranked)
+  botThinkDelayMs: number;           // Độ trễ suy nghĩ của AI
+  soundEnabled: boolean;
+}
+
+/**
+ * TẬP LUẬT CHƠI HỢP THÀNH (MODULAR COMPOSABLE RULES)
+ * Chứa toàn bộ các module quy tắc độc lập chi phối một ván bài
+ */
+export interface GameRules {
+  settlementRule: GameSettlementRule; // Luật kết thúc ván & tính điểm
+  chopping: ChoppingRules;            // Luật Chặt Heo & Chặt Hàng
+  cong: CongRules;                    // Luật Cóng (Cháy bài)
+  instantWin: InstantWinRules;        // Luật Tới Trắng
+  gameFlow: GameFlowRules;            // Luật Vòng chơi & Quyền đi đầu
+  table: TableRules;                  // Cấu hình Bàn chơi
+}
 
 export interface Player {
   id: string;
@@ -81,6 +126,70 @@ export interface GameSettings {
   instantWinEnabled: boolean;
   soundEnabled: boolean;
   botThinkDelayMs: number;
+  playerCount?: number;              // 2, 3 hoặc 4 người chơi
+}
+
+/**
+ * Hàm khởi tạo Tập Luật mặc định chuẩn mực cho Tiến Lên Miền Nam
+ */
+export function createDefaultGameRules(partial?: Partial<GameRules>): GameRules {
+  return {
+    settlementRule: partial?.settlementRule || 'TRADITIONAL_RANK_BASED',
+    chopping: {
+      allowFourPairsCutAnytime: partial?.chopping?.allowFourPairsCutAnytime ?? true,
+      allowThreePairsCutTwo: partial?.chopping?.allowThreePairsCutTwo ?? true,
+      allowFourOfAKindCutPairsOfTwos: partial?.chopping?.allowFourOfAKindCutPairsOfTwos ?? true,
+      multiplier: partial?.chopping?.multiplier ?? 1
+    },
+    cong: {
+      enabled: partial?.cong?.enabled ?? true,
+      penaltyCards: partial?.cong?.penaltyCards ?? 26,
+      multiplier: partial?.cong?.multiplier ?? 1
+    },
+    instantWin: {
+      enabled: partial?.instantWin?.enabled ?? true,
+      payoutMultiplier: partial?.instantWin?.payoutMultiplier ?? 26
+    },
+    gameFlow: {
+      firstGameRequireThreeOfSpades: partial?.gameFlow?.firstGameRequireThreeOfSpades ?? true,
+      winnerLeadsNextGame: partial?.gameFlow?.winnerLeadsNextGame ?? true
+    },
+    table: {
+      playerCount: (partial?.table?.playerCount ?? 4) as 2 | 3 | 4,
+      betAmount: partial?.table?.betAmount ?? 500,
+      botThinkDelayMs: partial?.table?.botThinkDelayMs ?? 800,
+      soundEnabled: partial?.table?.soundEnabled ?? true
+    }
+  };
+}
+
+/**
+ * Chuyển đổi GameSettings cũ sang GameRules mới
+ */
+export function convertSettingsToGameRules(settings?: Partial<GameSettings>): GameRules {
+  let settlementRule: GameSettlementRule = 'TRADITIONAL_RANK_BASED';
+  if (settings?.mode === 'COUNT_CARDS') settlementRule = 'CARD_COUNT';
+  else if (settings?.mode === 'WINNER_TAKES_ALL') settlementRule = 'WINNER_TAKES_ALL';
+
+  return createDefaultGameRules({
+    settlementRule,
+    chopping: {
+      allowFourPairsCutAnytime: settings?.allowFourPairsCutAnytime ?? true,
+      allowThreePairsCutTwo: true,
+      allowFourOfAKindCutPairsOfTwos: true,
+      multiplier: 1
+    },
+    instantWin: {
+      enabled: settings?.instantWinEnabled ?? true,
+      payoutMultiplier: 26
+    },
+    table: {
+      playerCount: (settings?.playerCount ?? 4) as 2 | 3 | 4,
+      betAmount: settings?.betAmount ?? 500,
+      botThinkDelayMs: settings?.botThinkDelayMs ?? 800,
+      soundEnabled: settings?.soundEnabled ?? true
+    }
+  });
 }
 
 export interface GameHistoryEntry {

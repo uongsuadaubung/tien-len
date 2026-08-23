@@ -2,6 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import { parseCard, parseCards } from '../../src/engine/card';
 import { GameEngine } from '../../src/engine/game';
 import { Player } from '../../src/engine/types';
+import { CardTracker } from '../../src/ai/card-tracker';
+import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 
 function createMockPlayers(): Player[] {
   return [
@@ -239,5 +241,80 @@ describe('Game Flow & Lifecycle Engine', () => {
     expect(game.currentRound.leadPlayerId).toBe('p3');
     expect(game.currentRound.currentTurnPlayerId).toBe('p3');
     expect(game.isRoundLeadMove()).toBe(true);
+  });
+
+  test('GameEngine.executeBotTurn: Bot tự động ra quyết định và tự phục hồi khi có sự cố mà không bị treo', () => {
+    const players = createMockPlayers();
+    players[0].hand = parseCards('4S 5S 6S 7S 8S');
+    players[1].hand = parseCards('3S 9S 10S JS QS'); // p2 là bot có 3S
+    players[2].hand = parseCards('3C 4C 5C 6C 7C');
+    players[3].hand = parseCards('3D 4D 5D 6D 7D');
+
+    const game = new GameEngine(players, { mode: 'TRADITIONAL', betAmount: 100 });
+    game.startCustomGame(1);
+
+    expect(game.getCurrentPlayer().id).toBe('p2');
+    const tracker = new CardTracker(players[1].hand, 1.0);
+    const botConfig = BOT_PERSONAS.BOT_ELO_850;
+
+    // Thực thi bot turn thông qua engine
+    const res = game.executeBotTurn(botConfig, tracker);
+    expect(res.action).toBe('PLAY');
+    expect(res.playerId).toBe('p2');
+    // Lượt kế tiếp được chuyển giao chính xác cho p3
+    expect(game.getCurrentPlayer().id).toBe('p3');
+  });
+
+  test('Ranked Mode / Traditional: Đánh tiếp tục đến khi 3 người hết bài để phân định Nhất, Nhì, Ba, Bét', () => {
+    const players = createMockPlayers();
+    players[0].hand = parseCards('3S 3D'); // p1 về Nhất
+    players[1].hand = parseCards('5S 5D'); // p2 về Nhì
+    players[2].hand = parseCards('7S 7D'); // p3 về Ba
+    players[3].hand = parseCards('9S 9D 10S'); // p4 về Bét
+
+    const game = new GameEngine(players, { mode: 'TRADITIONAL', betAmount: 0 });
+    game.startCustomGame(1);
+
+    // 1. p1 đánh 3S 3D hết bài về Nhất
+    const m1 = game.playMove('p1', parseCards('3S 3D'));
+    expect(m1.success).toBe(true);
+    expect(game.isGameOver).toBe(false); // Ván CHƯA kết thúc
+    expect(game.winners.length).toBe(1);
+    expect(game.winners[0].id).toBe('p1');
+
+    // 2. p2, p3, p4 bỏ lượt trước nước đánh của p1
+    game.passTurn('p2');
+    game.passTurn('p3');
+    game.passTurn('p4');
+
+    // Quyền cái vòng mới chuyển cho p2 (kế tiếp sau p1)
+    expect(game.currentRound.leadPlayerId).toBe('p2');
+    expect(game.currentRound.currentTurnPlayerId).toBe('p2');
+
+    // 3. p2 đánh 5S 5D hết bài về Nhì
+    const m2 = game.playMove('p2', parseCards('5S 5D'));
+    expect(m2.success).toBe(true);
+    expect(game.isGameOver).toBe(false); // Ván CHƯA kết thúc
+    expect(game.winners.length).toBe(2);
+    expect(game.winners[1].id).toBe('p2');
+
+    // p3, p4 bỏ lượt
+    game.passTurn('p3');
+    game.passTurn('p4');
+
+    // Quyền cái vòng mới chuyển cho p3 (kế tiếp sau p2)
+    expect(game.currentRound.leadPlayerId).toBe('p3');
+    expect(game.currentRound.currentTurnPlayerId).toBe('p3');
+
+    // 4. p3 đánh 7S 7D hết bài về Ba
+    const m3 = game.playMove('p3', parseCards('7S 7D'));
+    expect(m3.success).toBe(true);
+    // Khi 3 người đã hết bài, ván kết thúc và p4 tự động về Bét
+    expect(game.isGameOver).toBe(true);
+    expect(game.winners.length).toBe(4);
+    expect(game.winners[0].id).toBe('p1');
+    expect(game.winners[1].id).toBe('p2');
+    expect(game.winners[2].id).toBe('p3');
+    expect(game.winners[3].id).toBe('p4');
   });
 });
