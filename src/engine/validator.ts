@@ -105,7 +105,9 @@ export function isValidMove(
   isFirstMoveOfGame: boolean,
   isLeadMove: boolean,
   hasPassedRound = false,
-  allowFourPairsCutAnytime = true
+  allowFourPairsCutAnytime = true,
+  isFinishingMove = false,
+  prohibitEndingWithTwo = false
 ): ValidationResult {
   if (!cards || cards.length === 0) {
     return { valid: false, reason: 'Chưa chọn lá bài nào' };
@@ -115,6 +117,17 @@ export function isValidMove(
   const combination = identifyCombination(cards);
   if (!combination) {
     return { valid: false, reason: 'Tổ hợp các lá bài không hợp lệ theo luật' };
+  }
+
+  // Ràng buộc luật cấm đánh 2 cuối cùng (Cấm về Heo)
+  if (prohibitEndingWithTwo && isFinishingMove) {
+    const hasTwo = cards.some(isTwo);
+    if (hasTwo) {
+      return {
+        valid: false,
+        reason: 'Luật cấm về bằng lá Heo (2) cuối cùng! Bạn không thể đánh 2 để hết bài.'
+      };
+    }
   }
 
   // Ràng buộc ván đầu tiên: Phải chứa 3 Bích (3S)

@@ -47,7 +47,7 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
     <div id="seat-p0" className="relative flex flex-col items-center justify-end w-full pb-1 z-30">
       {/* Bảng nút điều khiển hành động (Action Controls) - Ẩn khi đang chia bài */}
       {!isDealing && (isCurrentTurn || selectedCardIds.size > 0) && (
-        <div className="flex items-center gap-2 sm:gap-3 mb-1.5 sm:mb-2 bg-black/75 backdrop-blur-md px-4 sm:px-5 py-1.5 sm:py-2 rounded-2xl border-2 border-yellow-500/60 shadow-2xl animate-fade-in">
+        <div className="flex items-center gap-2 sm:gap-3 mb-1.5 sm:mb-2 bg-[#150205]/95 px-4 sm:px-5 py-1.5 sm:py-2 rounded-2xl border-2 border-yellow-500/60 shadow-xl animate-fade-in">
           {/* Các nút hành động khi đến lượt đi */}
           {isCurrentTurn && (
             <>
@@ -151,7 +151,7 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
       </div>
 
       {/* Thông tin người chơi (Bản thân) */}
-      <div className="flex items-center gap-3 mt-1 bg-black/60 backdrop-blur-md px-4 py-1.5 rounded-full border border-yellow-500/40 shadow-lg">
+      <div className="flex items-center gap-3 mt-1 bg-[#150205]/95 px-4 py-1.5 rounded-full border border-yellow-500/40 shadow-md">
         <div className="w-7 h-7 rounded-full bg-red-800 border border-yellow-400 flex items-center justify-center text-sm">
           {player.avatar}
         </div>

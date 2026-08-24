@@ -64,7 +64,8 @@ export class GameEngine {
       instantWinEnabled: this.rules.instantWin.enabled,
       soundEnabled: this.rules.table.soundEnabled,
       botThinkDelayMs: this.rules.table.botThinkDelayMs,
-      playerCount: this.rules.table.playerCount
+      playerCount: this.rules.table.playerCount,
+      prohibitEndingWithTwo: this.rules.gameFlow.prohibitEndingWithTwo
     };
 
     this.currentRound = {
@@ -182,7 +183,7 @@ export class GameEngine {
    */
   public startCustomGame(gameNumber = 1): void {
     this.gameNumber = gameNumber;
-    this.isFirstMoveOfGame = true;
+    this.isFirstMoveOfGame = this.gameNumber === 1 && (this.rules?.gameFlow?.firstGameRequireThreeOfSpades ?? true);
     this.isGameOver = false;
     this.winners = [];
     this.playedCardsInGame = [];
@@ -198,7 +199,7 @@ export class GameEngine {
     });
 
     let firstPlayerId = this.players[0].id;
-    if (this.gameNumber === 1) {
+    if (this.isFirstMoveOfGame) {
       for (const player of this.players) {
         if (player.hand.some(c => c.rank === 3 && c.suit === 'SPADES')) {
           firstPlayerId = player.id;
@@ -254,6 +255,8 @@ export class GameEngine {
     const leadingMove = this.getLeadingMove();
     const targetCombination = leadingMove ? leadingMove.combination : null;
     const isLeadMove = this.isRoundLeadMove();
+    const isFinishingMove = player.hand.length === cards.length;
+    const prohibitEndingWithTwo = this.rules.gameFlow.prohibitEndingWithTwo ?? this.settings.prohibitEndingWithTwo ?? true;
 
     // Thẩm định nước đi với validator
     const validation = isValidMove(
@@ -262,7 +265,9 @@ export class GameEngine {
       this.isFirstMoveOfGame,
       isLeadMove,
       player.isPassedCurrentRound,
-      this.settings.allowFourPairsCutAnytime
+      this.rules.chopping.allowFourPairsCutAnytime,
+      isFinishingMove,
+      prohibitEndingWithTwo
     );
 
     if (!validation.valid || !validation.combination) {
@@ -392,6 +397,7 @@ export class GameEngine {
     const nextPlayerId = this.getNextActivePlayerId(playerId);
     const nextPlayer = this.getPlayer(nextPlayerId);
     const isNextPlayerOneCard = nextPlayer ? nextPlayer.hand.length === 1 : false;
+    const prohibitEndingWithTwo = this.rules.gameFlow.prohibitEndingWithTwo ?? this.settings.prohibitEndingWithTwo ?? true;
 
     try {
       const decision = makeBotDecision({
@@ -403,7 +409,9 @@ export class GameEngine {
         config: { ...botConfig, id: playerId },
         remainingPlayerCards: remainingCardsMap,
         isNextPlayerOneCard,
-        nextPlayerId
+        nextPlayerId,
+        prohibitEndingWithTwo,
+        gameMode: this.activeGameType || this.settings.mode || 'TRADITIONAL'
       });
 
       if (decision.type === 'PLAY' && decision.cards && decision.cards.length > 0) {
@@ -453,6 +461,7 @@ export class GameEngine {
     const isLead = this.isRoundLeadMove();
     const leading = this.getLeadingMove();
     const sorted = sortCards(player.hand);
+    const prohibitEndingWithTwo = this.rules.gameFlow.prohibitEndingWithTwo ?? this.settings.prohibitEndingWithTwo ?? true;
 
     // 1. Nếu đang cầm cái (Lead move)
     if (isLead || !leading) {
@@ -466,10 +475,17 @@ export class GameEngine {
         }
       }
       for (const card of sorted) {
+        if (prohibitEndingWithTwo && player.hand.length === 1 && isTwo(card)) {
+          continue;
+        }
         const res = this.playMove(playerId, [card]);
         if (res.success) {
           return { action: 'PLAY', playerId, playedMove: this.getLeadingMove() || undefined, isGameOver: this.isGameOver };
         }
+      }
+      if (prohibitEndingWithTwo && player.hand.every(isTwo)) {
+        this.advanceTurn(playerId);
+        return { action: 'PASS', playerId, isGameOver: this.isGameOver };
       }
     }
 
@@ -481,6 +497,9 @@ export class GameEngine {
 
     // 3. Nếu bỏ lượt thất bại: Thử đánh bài
     for (const card of sorted) {
+      if (prohibitEndingWithTwo && player.hand.length === 1 && isTwo(card)) {
+        continue;
+      }
       const res = this.playMove(playerId, [card]);
       if (res.success) {
         return { action: 'PLAY', playerId, playedMove: this.getLeadingMove() || undefined, isGameOver: this.isGameOver };
@@ -759,12 +778,46 @@ export class GameEngine {
 
     if (p1 && p2 && p3 && p4) {
       const p4Penalty = this.isPlayerCong(p4.id) ? bet * 6 : bet * 3;
-      const p4Rotten = this.calculateRottenCardsPenalty(p4.hand);
+      let totalRottenPenalty = 0;
 
-      p1.score += p4Penalty + bet * 1;
+      // Phạt thối heo cho tất cả người chơi còn giữ Heo khi ván kết thúc (p2, p3, p4)
+      for (const p of [p2, p3, p4]) {
+        const rotten = this.calculateRottenCardsPenalty(p.hand);
+        if (rotten > 0) {
+          p.score -= rotten;
+          totalRottenPenalty += rotten;
+        }
+      }
+
+      p1.score += p4Penalty + bet * 1 + totalRottenPenalty;
       p2.score += bet * 1;
       p3.score -= bet * 1;
-      p4.score -= (p4Penalty + p4Rotten);
+      p4.score -= p4Penalty;
+    } else if (this.winners.length === 2) {
+      const p1 = this.winners[0];
+      const p2 = this.winners[1];
+      if (p1 && p2) {
+        const p2Penalty = this.isPlayerCong(p2.id) ? bet * 2 : bet * 1;
+        const p2Rotten = this.calculateRottenCardsPenalty(p2.hand);
+        p1.score += p2Penalty + p2Rotten;
+        p2.score -= (p2Penalty + p2Rotten);
+      }
+    } else if (this.winners.length === 3) {
+      const [p1, p2, p3] = this.winners;
+      if (p1 && p2 && p3) {
+        const p3Penalty = this.isPlayerCong(p3.id) ? bet * 4 : bet * 2;
+        let totalRotten = 0;
+        for (const p of [p2, p3]) {
+          const rotten = this.calculateRottenCardsPenalty(p.hand);
+          if (rotten > 0) {
+            p.score -= rotten;
+            totalRotten += rotten;
+          }
+        }
+        p1.score += p3Penalty + totalRotten;
+        p2.score += 0;
+        p3.score -= p3Penalty;
+      }
     }
   }
 

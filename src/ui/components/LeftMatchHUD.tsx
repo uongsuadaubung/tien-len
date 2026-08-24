@@ -34,7 +34,7 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
       }}
     >
       {/* BẢNG TABLE HUD CHÍNH */}
-      <div className="w-[280px] sm:w-[310px] bg-[#1a0205]/95 backdrop-blur-md border-2 border-yellow-500/60 rounded-2xl shadow-2xl p-2.5 text-white flex flex-col gap-2">
+      <div className="w-[280px] sm:w-[310px] bg-[#1a0205] border-2 border-yellow-500/60 rounded-2xl shadow-xl p-2.5 text-white flex flex-col gap-2">
         {/* Header HUD: Ván & Mức Cược */}
         <div className="flex items-center justify-between border-b-2 border-yellow-500/40 pb-1.5 px-0.5">
           <div className="flex items-center gap-1.5">
@@ -167,7 +167,7 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
       {/* NÚT THU GỌN / MỞ RỘNG (TOGGLE BUTTON) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-[#2a060c]/95 hover:bg-[#3a0810] text-yellow-300 border-2 border-l-0 border-yellow-500/50 hover:border-yellow-300 py-3 px-1 rounded-r-xl shadow-2xl transition-all duration-150 cursor-pointer backdrop-blur-md flex items-center justify-center"
+        className="bg-[#2a060c] hover:bg-[#3a0810] text-yellow-300 border-2 border-l-0 border-yellow-500/50 hover:border-yellow-300 py-3 px-1 rounded-r-xl shadow-xl transition-all duration-150 cursor-pointer flex items-center justify-center"
         title={isOpen ? 'Thu gọn bảng HUD' : 'Mở rộng bảng HUD'}
       >
         {isOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}

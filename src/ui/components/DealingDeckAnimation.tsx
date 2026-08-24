@@ -252,7 +252,7 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
       <div className="absolute -bottom-8 pointer-events-auto z-50">
         <button
           onClick={handleSkip}
-          className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-black/85 hover:bg-black text-yellow-300 border-2 border-yellow-500/70 hover:border-yellow-300 text-xs font-black shadow-2xl transition-all duration-150 hover:scale-105 cursor-pointer backdrop-blur-md"
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-black/90 hover:bg-black text-yellow-300 border-2 border-yellow-500/70 hover:border-yellow-300 text-xs font-black shadow-xl transition-all duration-150 hover:scale-105 cursor-pointer"
         >
           <FastForward className="w-4 h-4 text-yellow-400" />
           <span>Bỏ qua ⏭</span>
@@ -260,7 +260,7 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
       </div>
 
       {/* Trạng thái chia bài */}
-      <div className="absolute -top-8 bg-black/70 backdrop-blur-md px-4 py-1 rounded-full border border-yellow-500/40 text-yellow-200 text-xs font-extrabold flex items-center gap-1.5 shadow-xl">
+      <div className="absolute -top-8 bg-[#1a0205] px-4 py-1 rounded-full border border-yellow-500/40 text-yellow-200 text-xs font-extrabold flex items-center gap-1.5 shadow-md">
         <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
         <span>{isShuffling ? 'Đang xào bài Tết...' : 'Đang chia bài 4 người...'}</span>
       </div>

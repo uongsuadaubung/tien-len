@@ -20,7 +20,9 @@ export function getOptimalMoveHint(
   tracker: CardTracker,
   remainingPlayerCards: Record<string, number>,
   nextPlayerId: string = 'p1',
-  isNextPlayerOneCard?: boolean
+  isNextPlayerOneCard?: boolean,
+  prohibitEndingWithTwo?: boolean,
+  gameMode?: string
 ): MoveHint {
   const resolvedNextPlayerId = nextPlayerId || Object.keys(remainingPlayerCards)[0] || 'p1';
   const decision = makeBotDecision({
@@ -32,7 +34,9 @@ export function getOptimalMoveHint(
     config: BOT_PERSONAS.BOT_ELO_1750,
     remainingPlayerCards,
     nextPlayerId: resolvedNextPlayerId,
-    isNextPlayerOneCard: isNextPlayerOneCard ?? (remainingPlayerCards[resolvedNextPlayerId] === 1)
+    isNextPlayerOneCard: isNextPlayerOneCard ?? (remainingPlayerCards[resolvedNextPlayerId] === 1),
+    prohibitEndingWithTwo,
+    gameMode
   });
 
   if (decision.type === 'PASS') {

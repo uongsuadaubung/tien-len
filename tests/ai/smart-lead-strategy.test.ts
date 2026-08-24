@@ -1,0 +1,160 @@
+import { describe, test, expect, beforeEach } from 'bun:test';
+import { CardTracker } from '../../src/ai/card-tracker';
+import { makeBotDecision } from '../../src/ai/decision-maker';
+import { BOT_PERSONAS } from '../../src/ai/bot-factory';
+import { createCard } from '../../src/engine/card';
+import { Card } from '../../src/engine/types';
+
+describe('Chiến Thuật Ra Bài Cầm Cái & Mở Màn 3 Bích Chuẩn Tiến Lên Miền Nam', () => {
+  let tracker: CardTracker;
+
+  beforeEach(() => {
+    tracker = new CardTracker();
+  });
+
+  test('1. Mở màn 3 Bích: Bot có 3 Bích nằm trong 3 Đôi Thông (334455) KHÔNG ĐƯỢC xả cả 3 Đôi Thông', () => {
+    // Bot có 3 Đôi Thông [334455] chứa 3♠, kèm theo một số bài khác
+    const hand: Card[] = [
+      createCard(3, 'SPADES'),
+      createCard(3, 'HEARTS'),
+      createCard(4, 'SPADES'),
+      createCard(4, 'HEARTS'),
+      createCard(5, 'SPADES'),
+      createCard(5, 'HEARTS'),
+      createCard(8, 'CLUBS'),
+      createCard(9, 'DIAMONDS'),
+      createCard(10, 'SPADES'),
+      createCard(11, 'HEARTS'),
+      createCard(12, 'DIAMONDS'),
+      createCard(13, 'SPADES'),
+      createCard(15, 'HEARTS')
+    ];
+
+    const decision = makeBotDecision({
+      hand,
+      currentRoundLeadingMove: null,
+      isFirstMoveOfGame: true, // Lượt đầu tiên bắt buộc chứa 3 Bích
+      isLeadMove: true,
+      tracker,
+      config: BOT_PERSONAS.BOT_ELO_1750,
+      remainingPlayerCards: { p0: 13, p1: 13, p2: 13, p3: 13 },
+      nextPlayerId: 'p1'
+    });
+
+    expect(decision.type).toBe('PLAY');
+    // Tuyệt đối không đánh 3 Đôi Thông (6 lá)
+    expect(decision.combination?.type).not.toBe('THREE_PAIRS_SEQUENTIAL');
+    expect(decision.cards?.length).toBeLessThanOrEqual(3);
+    // Bắt buộc phải chứa 3 Bích
+    expect(decision.cards?.some(c => c.rank === 3 && c.suit === 'SPADES')).toBe(true);
+  });
+
+  test('2. Cầm cái đầu vòng: Bot có rác nhỏ (3♠, 4♦) và Đôi Heo (2♠, 2♥) phải tẩu rác nhỏ trước, KHÔNG đánh Đôi Heo trước', () => {
+    const hand: Card[] = [
+      createCard(3, 'SPADES'),
+      createCard(4, 'DIAMONDS'),
+      createCard(7, 'SPADES'),
+      createCard(8, 'CLUBS'),
+      createCard(9, 'HEARTS'),
+      createCard(10, 'DIAMONDS'),
+      createCard(11, 'SPADES'),
+      createCard(15, 'SPADES'),
+      createCard(15, 'HEARTS')
+    ];
+
+    const decision = makeBotDecision({
+      hand,
+      currentRoundLeadingMove: null,
+      isFirstMoveOfGame: false,
+      isLeadMove: true,
+      tracker,
+      config: BOT_PERSONAS.BOT_ELO_1750,
+      remainingPlayerCards: { p0: 9, p1: 9, p2: 9, p3: 9 },
+      nextPlayerId: 'p1'
+    });
+
+    expect(decision.type).toBe('PLAY');
+    // Không được xả Heo / Đôi Heo
+    expect(decision.cards?.some(c => c.rank === 15)).toBe(false);
+    // Phải đánh rác nhỏ (ví dụ 3 hoặc 4)
+    expect(decision.combination?.type).toBe('SINGLE');
+    expect(decision.cards?.[0].rank).toBeLessThanOrEqual(7);
+  });
+
+  test('3. Giữ Hàng Chặt phục kích: Bot có Tứ Quý 8 và các bài rác khác khi Cầm Cái phải tẩu rác, KHÔNG xả Tứ Quý bừa bãi', () => {
+    const hand: Card[] = [
+      createCard(3, 'SPADES'),
+      createCard(5, 'DIAMONDS'),
+      createCard(8, 'SPADES'),
+      createCard(8, 'CLUBS'),
+      createCard(8, 'DIAMONDS'),
+      createCard(8, 'HEARTS'), // Tứ Quý 8
+      createCard(10, 'SPADES'),
+      createCard(12, 'HEARTS'),
+      createCard(15, 'DIAMONDS')
+    ];
+
+    const decision = makeBotDecision({
+      hand,
+      currentRoundLeadingMove: null,
+      isFirstMoveOfGame: false,
+      isLeadMove: true,
+      tracker,
+      config: BOT_PERSONAS.BOT_ELO_1750,
+      remainingPlayerCards: { p0: 9, p1: 9, p2: 9, p3: 9 },
+      nextPlayerId: 'p1'
+    });
+
+    expect(decision.type).toBe('PLAY');
+    // Tuyệt đối không đánh Tứ Quý 8 khi cầm cái đầu vòng có rác
+    expect(decision.combination?.type).not.toBe('FOUR_OF_A_KIND');
+    expect(decision.cards?.length).toBe(1);
+    expect(decision.cards?.[0].rank).toBe(3); // Tẩu lá 3 nhỏ nhất
+  });
+
+  test('4. Luật Cấm 2 Cuối: Bot có [3♠ rác + 2♥ Heo] khi cầm cái cờ tàn đánh 2♥ trước để về 3♠ (tránh thối 2)', () => {
+    const hand: Card[] = [
+      createCard(3, 'SPADES'),
+      createCard(15, 'HEARTS')
+    ];
+
+    const decision = makeBotDecision({
+      hand,
+      currentRoundLeadingMove: null,
+      isFirstMoveOfGame: false,
+      isLeadMove: true,
+      tracker,
+      config: BOT_PERSONAS.BOT_ELO_1750,
+      remainingPlayerCards: { p0: 2, p1: 2, p2: 2, p3: 2 },
+      nextPlayerId: 'p1',
+      prohibitEndingWithTwo: true
+    });
+
+    expect(decision.type).toBe('PLAY');
+    // Với luật cấm 2 cuối, khi chỉ còn 2 lá [3♠, 2♥], bắt buộc đánh 2♥ trước để về 3♠ (nếu đánh 3 trước sẽ thối 2)
+    expect(decision.cards?.[0].rank).toBe(15);
+  });
+
+  test('5. Luật Thông Thường (Không Cấm 2): Bot có [3♠ rác + 2♥ Heo] khi Cầm Cái đánh 3♠ trước, giữ 2♥ chốt hạ', () => {
+    const hand: Card[] = [
+      createCard(3, 'SPADES'),
+      createCard(15, 'HEARTS')
+    ];
+
+    const decision = makeBotDecision({
+      hand,
+      currentRoundLeadingMove: null,
+      isFirstMoveOfGame: false,
+      isLeadMove: true,
+      tracker,
+      config: BOT_PERSONAS.BOT_ELO_1750,
+      remainingPlayerCards: { p0: 2, p1: 2, p2: 2, p3: 2 },
+      nextPlayerId: 'p1',
+      prohibitEndingWithTwo: false // Luật truyền thống
+    });
+
+    expect(decision.type).toBe('PLAY');
+    // Không cấm 2 cuối -> Đánh 3♠ trước, giữ 2♥ chốt hạ về nhất
+    expect(decision.cards?.[0].rank).toBe(3);
+  });
+});

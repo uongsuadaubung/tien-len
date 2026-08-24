@@ -77,7 +77,7 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(220,38,38,0.15),transparent_50%)] pointer-events-none" />
 
       {/* HEADER: THÔNG TIN PROFILE, TIỀN VÀNG & RANK ELO */}
-      <header className="relative z-10 w-full max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3 bg-black/60 backdrop-blur-xl p-3 sm:p-4 rounded-3xl border border-yellow-500/30 shadow-2xl">
+      <header className="relative z-10 w-full max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3 bg-[#180205] p-3 sm:p-4 rounded-3xl border border-yellow-500/40 shadow-xl">
         {/* Profile Người Chơi */}
         <div className="flex items-center gap-3">
           <div className="relative">

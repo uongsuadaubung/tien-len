@@ -186,15 +186,22 @@ export class MctsSolver {
           }
         }
 
-        // Đánh rác nhỏ nhất
+        // Đánh rác nhỏ nhất (tránh đánh Heo nếu đó là lá duy nhất còn lại)
         if (!foundCombo) {
-          chosenCards = [playerHand[0]];
-          newCombo = identifyCombination(chosenCards);
+          const nonTwos = playerHand.filter(c => !isTwo(c));
+          if (nonTwos.length > 0) {
+            chosenCards = [nonTwos[0]];
+            newCombo = identifyCombination(chosenCards);
+          } else if (playerHand.length > 1) {
+            chosenCards = [playerHand[0]];
+            newCombo = identifyCombination(chosenCards);
+          }
         }
       } else {
         // Đè bài theo tổ hợp
         if (currentCombo.type === 'SINGLE') {
           for (let i = 0; i < playerHand.length; i++) {
+            if (playerHand.length === 1 && isTwo(playerHand[i])) continue; // Cấm về bằng Heo
             if (playerHand[i].weight > currentCombo.highestCard.weight) {
               chosenCards = [playerHand[i]];
               newCombo = identifyCombination(chosenCards);

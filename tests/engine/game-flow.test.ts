@@ -133,7 +133,7 @@ describe('Game Flow & Lifecycle Engine', () => {
 
   test('Phạt chặt Heo tức thì (Chặt Heo được nhận tiền trực tiếp)', () => {
     const players = createMockPlayers();
-    players[0].hand = parseCards('3S 2H');
+    players[0].hand = parseCards('3S 2H KS');
     players[1].hand = parseCards('4S 4D 5S 5D 6S 6D'); // 3 đôi thông
     players[2].hand = parseCards('7S 8S 9S');
     players[3].hand = parseCards('10S JS QS');

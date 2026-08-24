@@ -55,7 +55,7 @@ function createMockPlayers(): Player[] {
 describe('Edge Cases & Advanced Tien Len Rules', () => {
   test('4 Đôi Thông có quyền Chặt Tự Do kể cả khi đã Bỏ Lượt trước đó', () => {
     const players = createMockPlayers();
-    players[0].hand = parseCards('3S 2H');
+    players[0].hand = parseCards('3S 2H KS');
     players[1].hand = parseCards('4S 4D 5S 5D 6S 6D 7S 7D'); // 4 đôi thông
     players[2].hand = parseCards('8S 9S 10S');
     players[3].hand = parseCards('JS QS KS');
@@ -85,7 +85,7 @@ describe('Edge Cases & Advanced Tien Len Rules', () => {
 
   test('Chặt Chồng: Heo -> 3 Đôi Thông -> Tứ Quý -> 4 Đôi Thông', () => {
     const players = createMockPlayers();
-    players[0].hand = parseCards('3S 2H');
+    players[0].hand = parseCards('3S 2H KS');
     players[1].hand = parseCards('4S 4D 5S 5D 6S 6D'); // 3 đôi thông
     players[2].hand = parseCards('7S 7C 7D 7H');       // Tứ quý 7
     players[3].hand = parseCards('8S 8D 9S 9D 10S 10D JS JD'); // 4 đôi thông

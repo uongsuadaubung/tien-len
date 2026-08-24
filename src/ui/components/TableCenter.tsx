@@ -69,7 +69,7 @@ export const TableCenter: React.FC<TableCenterProps> = ({
               />
             ))}
           </div>
-          <div className="mt-2 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-yellow-500/40 text-yellow-300 text-xs font-semibold flex items-center gap-1.5 shadow-lg">
+          <div className="mt-2 bg-[#150205]/95 px-3 py-1 rounded-full border border-yellow-500/40 text-yellow-300 text-xs font-semibold flex items-center gap-1.5 shadow-md">
             <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
             <span>
               {currentMove.combination.type === 'SINGLE' && 'Lá Rác'}
@@ -83,7 +83,7 @@ export const TableCenter: React.FC<TableCenterProps> = ({
           </div>
         </div>
       ) : !isDealing ? (
-        <div className="flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-red-950/30 border border-yellow-500/20 backdrop-blur-xs">
+        <div className="flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-[#180306]/95 border border-yellow-500/20 shadow-md">
           <div className="text-yellow-400 font-extrabold text-sm tracking-wider uppercase">
             {isLeadMove ? 'Vòng Mới Bắt Đầu' : 'Bàn Đang Trống'}
           </div>

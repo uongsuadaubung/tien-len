@@ -26,6 +26,7 @@ export interface GameModeDefinition {
     botThinkDelayMs: number;
     betAmount: number;
     playerCount: 2 | 3 | 4;
+    prohibitEndingWithTwo: boolean;
   };
   defaultBotPersonaIds: [string, string, string]; // Mặc định cho 3 ghế (hoặc lấy 1, 2 tùy playerCount)
   allowedCustomizations: {
@@ -73,7 +74,8 @@ export const GAME_MODE_REGISTRY: GameModeDefinition[] = [
       instantWinEnabled: true,
       botThinkDelayMs: 850,
       betAmount: 500,
-      playerCount: 4
+      playerCount: 4,
+      prohibitEndingWithTwo: true
     },
     defaultBotPersonaIds: ['BOT_ELO_850', 'BOT_ELO_1150', 'BOT_ELO_1750'],
     allowedCustomizations: {
@@ -105,7 +107,8 @@ export const GAME_MODE_REGISTRY: GameModeDefinition[] = [
       instantWinEnabled: true,
       botThinkDelayMs: 700,
       betAmount: 500,
-      playerCount: 4
+      playerCount: 4,
+      prohibitEndingWithTwo: true
     },
     defaultBotPersonaIds: ['BOT_ELO_1200', 'BOT_ELO_1350', 'BOT_ELO_1250'],
     allowedCustomizations: {
@@ -137,7 +140,8 @@ export const GAME_MODE_REGISTRY: GameModeDefinition[] = [
       instantWinEnabled: true,
       botThinkDelayMs: 800,
       betAmount: 1000,
-      playerCount: 4
+      playerCount: 4,
+      prohibitEndingWithTwo: true
     },
     defaultBotPersonaIds: ['BOT_ELO_1950', 'BOT_ELO_2050', 'BOT_ELO_2150'],
     allowedCustomizations: {
@@ -169,7 +173,8 @@ export const GAME_MODE_REGISTRY: GameModeDefinition[] = [
       instantWinEnabled: true,
       botThinkDelayMs: 650,
       betAmount: 1000,
-      playerCount: 2
+      playerCount: 2,
+      prohibitEndingWithTwo: true
     },
     defaultBotPersonaIds: ['BOT_ELO_2500', 'BOT_ELO_2300', 'BOT_ELO_2150'],
     allowedCustomizations: {
@@ -201,7 +206,8 @@ export const GAME_MODE_REGISTRY: GameModeDefinition[] = [
       instantWinEnabled: true,
       botThinkDelayMs: 850,
       betAmount: 500,
-      playerCount: 4
+      playerCount: 4,
+      prohibitEndingWithTwo: true
     },
     defaultBotPersonaIds: ['BOT_ELO_850', 'BOT_ELO_1150', 'BOT_ELO_1750'],
     allowedCustomizations: {

@@ -148,7 +148,8 @@ const DEFAULT_GAME_SETTINGS: GameSettings = {
   allowFourPairsCutAnytime: true,
   instantWinEnabled: true,
   soundEnabled: true,
-  botThinkDelayMs: 850
+  botThinkDelayMs: 850,
+  prohibitEndingWithTwo: true
 };
 
 export const useGameStore = create<GameState>((set) => ({

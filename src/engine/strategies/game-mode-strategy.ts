@@ -165,7 +165,8 @@ function createMatchSetupResult(
     allowFourPairsCutAnytime: rules.chopping.allowFourPairsCutAnytime,
     instantWinEnabled: rules.instantWin.enabled,
     soundEnabled: rules.table.soundEnabled,
-    botThinkDelayMs: rules.table.botThinkDelayMs
+    botThinkDelayMs: rules.table.botThinkDelayMs,
+    prohibitEndingWithTwo: rules.gameFlow.prohibitEndingWithTwo
   };
 
   const initialPlayers = buildInitialPlayers(context.profile, bConfigs, botPersonaIds, rules.table.playerCount);

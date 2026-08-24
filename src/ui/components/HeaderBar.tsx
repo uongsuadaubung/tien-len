@@ -47,7 +47,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   }[activeGameType];
 
   return (
-    <header className="relative z-40 w-full flex items-center justify-between px-3 sm:px-6 py-2.5 bg-[#24060a]/90 backdrop-blur-md border-b-2 border-yellow-500/50 shadow-xl">
+    <header className="relative z-40 w-full flex items-center justify-between px-3 sm:px-6 py-2.5 bg-[#200408] border-b-2 border-yellow-500/50 shadow-lg">
       {/* Nút Về Sảnh & Tiêu đề */}
       <div className="flex items-center gap-2 sm:gap-3">
         <button

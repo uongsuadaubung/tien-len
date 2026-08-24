@@ -65,6 +65,7 @@ export interface InstantWinRules {
 export interface GameFlowRules {
   firstGameRequireThreeOfSpades: boolean; // Ván đầu tiên bắt buộc đánh lá 3 Bích
   winnerLeadsNextGame: boolean;           // Người về Nhất ván trước được đi đầu ván sau
+  prohibitEndingWithTwo: boolean;         // Cấm đánh 2 cuối cùng (Cấm về Heo, kèm luật thối Heo)
 }
 
 export interface TableRules {
@@ -127,6 +128,7 @@ export interface GameSettings {
   soundEnabled: boolean;
   botThinkDelayMs: number;
   playerCount?: number;              // 2, 3 hoặc 4 người chơi
+  prohibitEndingWithTwo?: boolean;   // Cấm đánh 2 cuối cùng (Cấm về Heo)
 }
 
 /**
@@ -152,7 +154,8 @@ export function createDefaultGameRules(partial?: Partial<GameRules>): GameRules 
     },
     gameFlow: {
       firstGameRequireThreeOfSpades: partial?.gameFlow?.firstGameRequireThreeOfSpades ?? true,
-      winnerLeadsNextGame: partial?.gameFlow?.winnerLeadsNextGame ?? true
+      winnerLeadsNextGame: partial?.gameFlow?.winnerLeadsNextGame ?? true,
+      prohibitEndingWithTwo: partial?.gameFlow?.prohibitEndingWithTwo ?? true
     },
     table: {
       playerCount: (partial?.table?.playerCount ?? 4) as 2 | 3 | 4,
@@ -182,6 +185,11 @@ export function convertSettingsToGameRules(settings?: Partial<GameSettings>): Ga
     instantWin: {
       enabled: settings?.instantWinEnabled ?? true,
       payoutMultiplier: 26
+    },
+    gameFlow: {
+      firstGameRequireThreeOfSpades: true,
+      winnerLeadsNextGame: true,
+      prohibitEndingWithTwo: settings?.prohibitEndingWithTwo ?? true
     },
     table: {
       playerCount: (settings?.playerCount ?? 4) as 2 | 3 | 4,

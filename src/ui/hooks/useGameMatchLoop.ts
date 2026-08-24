@@ -107,7 +107,8 @@ export function useGameMatchLoop() {
       tracker,
       remainingCounts,
       nextPlayerId,
-      isNextPlayerOneCard
+      isNextPlayerOneCard,
+      engine.rules.gameFlow.prohibitEndingWithTwo
     );
     setCurrentHint(hint);
   }, [setCurrentHint]);
