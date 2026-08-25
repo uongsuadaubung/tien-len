@@ -10,7 +10,7 @@ Hệ thống được thiết kế theo mô hình kiến trúc phân lớp sạc
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
 │                               1. PRESENTATION LAYER (UI / UX)                            │
-│  - React 18 Components (LobbyHub, GameTableScreen, TableCenter, PlayerHandView, BotSeat) │
+│  - React 19 Components (LobbyHub, GameTableScreen, TableCenter, PlayerHandView, BotSeat) │
 │  - Web Audio API Sound Manager (Nhạc nền Tết, hiệu ứng đập bài, chặt heo, lật bài)       │
 │  - Hardware-Accelerated Vanilla CSS (3D Card Transform, GPU Compositor Layering)         │
 └───────────────────────────────────────────┬──────────────────────────────────────────────┘
@@ -52,15 +52,15 @@ Hệ thống được thiết kế theo mô hình kiến trúc phân lớp sạc
 ### 2.1. Composite Rule Strategy Pattern & Chain of Responsibility
 Hệ thống sử dụng mẫu thiết kế **Rule-First Strategy** để AI có thể tự động thích ứng với bất kỳ tổ hợp luật nào đang hoạt động:
 
-#### A. Composite Rule Strategy Manager ([`src/ai/rule-strategies.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/ai/rule-strategies.ts))
+#### A. Composite Rule Strategy Manager ([`src/ai/rule-strategies.ts`](../src/ai/rule-strategies.ts))
 Phân rã hệ thống luật thành 5 module chiến lược độc lập:
 1. **`SettlementRuleStrategy`**: Điều phối chính sách ra bài và đỡ bài theo cách tính tiền (`CARD_COUNT`, `TRADITIONAL_RANK_BASED`, `WINNER_TAKES_ALL`).
 2. **`CongRuleStrategy`**: Kích hoạt trạng thái **Thoát Cóng Khẩn Cấp (`EMERGENCY_UNFREEZE`)** khi Bot chưa ra lá bài nào (`hasPlayedFirstCard === false`) và có đối thủ sắp về ($\le 3$ lá).
 3. **`ChoppingRuleStrategy`**: Điều chỉnh hệ số rủi ro Chặt Heo và điểm gài bẫy phục kích theo `chopping.multiplier` và luật 4 đôi thông tự do.
-4. **`GameFlowRuleStrategy`**: Bảo toàn hàng ở lượt mở màn 3 Bích, xử lý cờ tàn Cấm 2 cuối (tránh thối Heo), và chống đền bài khi người kế tiếp báo 1 lá.
+4. **`GameFlowRuleStrategy`**: Bảo toàn hàng ở lượt mở màn 3 Bích, xử lý cờ tàn Cấm 2 cuối (tránh thối Heo), thưởng Ăn 3 Bích cuối cùng (+500 điểm) và chống đền bài khi người kế tiếp báo 1 lá.
 5. **`TableScaleRuleStrategy`**: Tối ưu hóa Solo 1v1 (thưởng lớn cướp cái để giữ 100% nhịp độ) vs Bàn 3-4 người.
 
-#### B. AI Bot Decision Chain ([`src/ai/decision-maker.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/ai/decision-maker.ts))
+#### B. AI Bot Decision Chain ([`src/ai/decision-maker.ts`](../src/ai/decision-maker.ts))
 Chuỗi 5 tầng xử lý quyết định tuần tự:
 1. **`EmergencyRuleHandler`**: Xử lý các tình huống can thiệp khẩn cấp (Thoát Cóng, Chống đền bài, Cấm 2 cuối cờ tàn, Mở màn 3 Bích) ở mức ưu tiên số 1.
 2. **`EndgameSolverHandler`**: Nhận diện và thực thi nước đi dứt điểm ván đấu ngay lập tức (Instant Win / 2-card endgame).
@@ -71,7 +71,7 @@ Chuỗi 5 tầng xử lý quyết định tuần tự:
 ---
 
 ### 2.2. Strategy Pattern (Mẫu Chiến Lược Chế Độ Chơi Bàn Đấu)
-Vận hành tại [`src/engine/strategies/game-mode-strategy.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/engine/strategies/game-mode-strategy.ts), đóng gói cấu hình bàn đấu (`setupMatch`) và kết toán kinh tế (`settleMatch`):
+Vận hành tại [`src/engine/strategies/game-mode-strategy.ts`](../src/engine/strategies/game-mode-strategy.ts), đóng gói cấu hình bàn đấu (`setupMatch`) và kết toán kinh tế (`settleMatch`):
 
 | Strategy | Kết Thúc Ván | Cách Tính Tiền / Phạt | Elo Rating |
 | :--- | :--- | :--- | :--- |
@@ -84,16 +84,23 @@ Vận hành tại [`src/engine/strategies/game-mode-strategy.ts`](file:///c:/Use
 
 ---
 
-### 2.3. Observer / Pub-Sub Event Bus Pattern
-Triển khai tại [`src/engine/events/game-event-bus.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/engine/events/game-event-bus.ts):
+### 2.3. Builder Pattern (Mẫu Xây Dựng Cấu Hình Luật Bài)
+Triển khai tại [`src/engine/rules-builder.ts`](../src/engine/rules-builder.ts) và [`src/ai/rule-strategies.ts`](../src/ai/rule-strategies.ts):
+- **`GameRulesBuilder`**: Cung cấp Fluent API tuần tự từng bước (`setSettlementRule`, `configureChopping`, `configureCong`, `configureGameFlow`, `configureTable`), đảm bảo mọi thuộc tính luôn có giá trị mặc định chuẩn xác và không chứa trường `undefined`.
+- **Strategy Builders**: Cho phép khởi tạo độc lập các Rule Strategy Evaluator cho AI layer.
+
+---
+
+### 2.4. Observer / Pub-Sub Event Bus Pattern
+Triển khai tại [`src/engine/events/game-event-bus.ts`](../src/engine/events/game-event-bus.ts):
 - Phân tách hoàn toàn (decoupling) giữa Logic Game và Giao diện UI / Hệ thống Nhiệm Vụ.
 - Khi GameEngine phát ra sự kiện (`CARD_PLAYED`, `CHOP_EXECUTED`, `MATCH_COMPLETED`, `INSTANT_WIN`), các subscriber tự động nhận payload và phản hồi độc lập.
 
 ---
 
-### 2.4. Specification Pattern (Bộ Thẩm Định Nhiệm Vụ & Thành Tựu)
-Triển khai tại [`src/engine/quests.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/engine/quests.ts):
-- Đóng gói từng điều kiện hoàn thành nhiệm vụ thành các Evaluator chuyên biệt.
+### 2.5. Specification Pattern (Bộ Thẩm Định Nhiệm Vụ & Thành Tựu)
+Triển khai tại [`src/engine/evaluators/progress-evaluators.ts`](../src/engine/evaluators/progress-evaluators.ts):
+- Đóng gói từng điều kiện hoàn thành nhiệm vụ thành các Evaluator chuyên biệt (`WinThreeMatchesEvaluator`, `ChopRedTwoEvaluator`, `MillionaireAchievementEvaluator`).
 
 ---
 
@@ -115,7 +122,9 @@ Sử dụng **Zustand** cho kiến trúc State mỏng, hiệu năng cao:
 
 ---
 
-## 5. BẢO MẬT & TÍNH TOÀN VẸN VÁN BÀI (INTEGRITY & FAIR PLAY)
+## 5. CHUẨN HÓA BẢO ĐẢM AN TOÀN KIỂU DỮ LIỆU (STRICT TYPE SAFETY)
 
-- **Nguyên Tắc Trí Tuệ Độc Lập (Self-Interested Bot Principle)**: Mỗi Bot là một thực thể độc lập tối ưu hóa lợi ích cá nhân, tuyệt đối không có cơ chế "thông đồng" (collusion).
-- **Che Dấu Thông Tin (Imperfect Information Game)**: CardTracker của Bot chỉ ghi nhận các lá bài đã công khai trên bàn đấu và trong tay của chính nó, hoàn toàn không gian lận đọc trước bài úp của đối thủ.
+- **Cấm `any`**: Sử dụng kiểu dữ liệu chi tiết, union types hoặc generics chặt chẽ.
+- **Cấm Ép Kiểu `as Type`**: Sử dụng runtime validation, discriminated unions và type narrowing.
+- **Không Tham Số Optional Trong Luật**: Toàn bộ các model cấu hình bàn chơi, tham số kinh tế và sự kiện đều bắt buộc truyền tường minh.
+- **Quản Lý Bàn 3 Bot Bằng Tuple**: Sử dụng kiểu Tuple `readonly [string, string, string]` để đảm bảo tính toàn vẹn 100% của danh sách đối thủ.

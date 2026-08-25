@@ -3,7 +3,7 @@ import { createCard } from '../../src/engine/card';
 import { GameEngine } from '../../src/engine/game';
 import { calculateCountCardsSettlement, calculateWinnerTakesAllSettlement, calculateTraditionalSettlement } from '../../src/engine/economy';
 import { Player, createDefaultGameRules, GameRulesBuilder } from '../../src/engine/types';
-import { GameFlowRuleStrategyBuilder } from '../../src/ai/rule-strategies';
+import { GameFlowRuleStrategyBuilder, RuleDecisionContext } from '../../src/ai/rule-strategies';
 import { CardTracker } from '../../src/ai/card-tracker';
 
 describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)', () => {
@@ -240,7 +240,7 @@ describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)',
         isChop: false
       };
 
-      const context = {
+      const context: RuleDecisionContext = {
         hand: [card3S],
         currentRoundLeadingMove: null,
         isFirstMoveOfGame: false,
@@ -248,7 +248,15 @@ describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)',
         tracker,
         remainingPlayerCards: { p1: 5, p2: 6, p3: 7 },
         nextPlayerId: 'p1',
-        rules
+        hasPlayedFirstCard: true,
+        isNextPlayerOneCard: false,
+        prohibitEndingWithTwo: true,
+        rules,
+        handPartitioningOptimality: 0.8,
+        antiLeaderAggression: 0.8,
+        tempoControl: 0.5,
+        trapTendency: 0.5,
+        riskAppetite: 0.5
       };
 
       // handSize = 1
@@ -273,7 +281,7 @@ describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)',
         isChop: false
       };
 
-      const context = {
+      const context: RuleDecisionContext = {
         hand: [card3S, card2H, card4D], // Có Heo Cơ và bài ít lá
         currentRoundLeadingMove: null,
         isFirstMoveOfGame: false,
@@ -281,7 +289,15 @@ describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)',
         tracker,
         remainingPlayerCards: { p1: 5, p2: 6, p3: 7 },
         nextPlayerId: 'p1',
-        rules
+        hasPlayedFirstCard: true,
+        isNextPlayerOneCard: false,
+        prohibitEndingWithTwo: true,
+        rules,
+        handPartitioningOptimality: 0.8,
+        antiLeaderAggression: 0.8,
+        tempoControl: 0.5,
+        trapTendency: 0.5,
+        riskAppetite: 0.5
       };
 
       // handSize = 3 (chưa phải kết liễu) -> chiến lược giảm điểm để om 3♠

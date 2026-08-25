@@ -1,15 +1,31 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
 import { CardTracker } from '../../src/ai/card-tracker';
-import { makeBotDecision } from '../../src/ai/decision-maker';
+import { makeBotDecision, DecisionContext } from '../../src/ai/decision-maker';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { createCard } from '../../src/engine/card';
-import { Card } from '../../src/engine/types';
+import { Card, createDefaultGameRules } from '../../src/engine/types';
 
 describe('Chiến Thuật Ra Bài Cầm Cái & Mở Màn 3 Bích Chuẩn Tiến Lên Miền Nam', () => {
   let tracker: CardTracker;
 
   beforeEach(() => {
     tracker = new CardTracker();
+  });
+
+  const createMockDecisionContext = (partial: Partial<DecisionContext> & { hand: Card[] }): DecisionContext => ({
+    hand: partial.hand,
+    currentRoundLeadingMove: partial.currentRoundLeadingMove ?? null,
+    isFirstMoveOfGame: partial.isFirstMoveOfGame ?? false,
+    isLeadMove: partial.isLeadMove ?? false,
+    tracker: partial.tracker ?? tracker,
+    config: partial.config ?? BOT_PERSONAS.BOT_ELO_1750,
+    remainingPlayerCards: partial.remainingPlayerCards ?? { p0: 9, p1: 9, p2: 9, p3: 9 },
+    nextPlayerId: partial.nextPlayerId ?? 'p1',
+    rules: partial.rules ?? createDefaultGameRules(),
+    hasPlayedFirstCard: partial.hasPlayedFirstCard ?? true,
+    isNextPlayerOneCard: partial.isNextPlayerOneCard ?? false,
+    prohibitEndingWithTwo: partial.prohibitEndingWithTwo ?? true,
+    gameMode: partial.gameMode ?? 'TRADITIONAL'
   });
 
   test('1. Mở màn 3 Bích: Bot có 3 Bích nằm trong 3 Đôi Thông (334455) KHÔNG ĐƯỢC xả cả 3 Đôi Thông', () => {
@@ -30,7 +46,7 @@ describe('Chiến Thuật Ra Bài Cầm Cái & Mở Màn 3 Bích Chuẩn Tiến 
       createCard(15, 'HEARTS')
     ];
 
-    const decision = makeBotDecision({
+    const decision = makeBotDecision(createMockDecisionContext({
       hand,
       currentRoundLeadingMove: null,
       isFirstMoveOfGame: true, // Lượt đầu tiên bắt buộc chứa 3 Bích
@@ -39,7 +55,7 @@ describe('Chiến Thuật Ra Bài Cầm Cái & Mở Màn 3 Bích Chuẩn Tiến 
       config: BOT_PERSONAS.BOT_ELO_1750,
       remainingPlayerCards: { p0: 13, p1: 13, p2: 13, p3: 13 },
       nextPlayerId: 'p1'
-    });
+    }));
 
     expect(decision.type).toBe('PLAY');
     // Tuyệt đối không đánh 3 Đôi Thông (6 lá)
@@ -62,16 +78,15 @@ describe('Chiến Thuật Ra Bài Cầm Cái & Mở Màn 3 Bích Chuẩn Tiến 
       createCard(15, 'HEARTS')
     ];
 
-    const decision = makeBotDecision({
+    const decision = makeBotDecision(createMockDecisionContext({
       hand,
       currentRoundLeadingMove: null,
-      isFirstMoveOfGame: false,
       isLeadMove: true,
       tracker,
       config: BOT_PERSONAS.BOT_ELO_1750,
       remainingPlayerCards: { p0: 9, p1: 9, p2: 9, p3: 9 },
       nextPlayerId: 'p1'
-    });
+    }));
 
     expect(decision.type).toBe('PLAY');
     // Không được xả Heo / Đôi Heo
@@ -94,16 +109,15 @@ describe('Chiến Thuật Ra Bài Cầm Cái & Mở Màn 3 Bích Chuẩn Tiến 
       createCard(15, 'DIAMONDS')
     ];
 
-    const decision = makeBotDecision({
+    const decision = makeBotDecision(createMockDecisionContext({
       hand,
       currentRoundLeadingMove: null,
-      isFirstMoveOfGame: false,
       isLeadMove: true,
       tracker,
       config: BOT_PERSONAS.BOT_ELO_1750,
       remainingPlayerCards: { p0: 9, p1: 9, p2: 9, p3: 9 },
       nextPlayerId: 'p1'
-    });
+    }));
 
     expect(decision.type).toBe('PLAY');
     // Tuyệt đối không đánh Tứ Quý 8 khi cầm cái đầu vòng có rác
@@ -118,17 +132,16 @@ describe('Chiến Thuật Ra Bài Cầm Cái & Mở Màn 3 Bích Chuẩn Tiến 
       createCard(15, 'HEARTS')
     ];
 
-    const decision = makeBotDecision({
+    const decision = makeBotDecision(createMockDecisionContext({
       hand,
       currentRoundLeadingMove: null,
-      isFirstMoveOfGame: false,
       isLeadMove: true,
       tracker,
       config: BOT_PERSONAS.BOT_ELO_1750,
       remainingPlayerCards: { p0: 2, p1: 2, p2: 2, p3: 2 },
       nextPlayerId: 'p1',
       prohibitEndingWithTwo: true
-    });
+    }));
 
     expect(decision.type).toBe('PLAY');
     // Với luật cấm 2 cuối, khi chỉ còn 2 lá [3♠, 2♥], bắt buộc đánh 2♥ trước để về 3♠ (nếu đánh 3 trước sẽ thối 2)
@@ -141,17 +154,16 @@ describe('Chiến Thuật Ra Bài Cầm Cái & Mở Màn 3 Bích Chuẩn Tiến 
       createCard(15, 'HEARTS')
     ];
 
-    const decision = makeBotDecision({
+    const decision = makeBotDecision(createMockDecisionContext({
       hand,
       currentRoundLeadingMove: null,
-      isFirstMoveOfGame: false,
       isLeadMove: true,
       tracker,
       config: BOT_PERSONAS.BOT_ELO_1750,
       remainingPlayerCards: { p0: 2, p1: 2, p2: 2, p3: 2 },
       nextPlayerId: 'p1',
       prohibitEndingWithTwo: false // Luật truyền thống
-    });
+    }));
 
     expect(decision.type).toBe('PLAY');
     // Không cấm 2 cuối -> Đánh 3♠ trước, giữ 2♥ chốt hạ về nhất

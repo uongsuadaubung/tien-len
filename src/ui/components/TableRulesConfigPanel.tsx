@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GameMode } from '../../engine/types';
+import { GameMode, PlayerCount } from '../../engine/types';
 import { 
   ShieldAlert, 
   Flame, 
@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 export interface TableConfigState {
-  playerCount: 2 | 3 | 4;
+  playerCount: PlayerCount;
   mode: GameMode;
   betAmount: number;
   choppingMultiplier: number;
@@ -27,6 +27,18 @@ export interface TableConfigState {
   congEnabled: boolean;
   botThinkDelayMs: number;
 }
+
+const PLAYER_COUNT_OPTIONS: readonly { count: PlayerCount; label: string; desc: string }[] = [
+  { count: 2, label: 'Solo 1v1 (2 Người)', desc: '1 Bạn vs 1 Bot' },
+  { count: 3, label: 'Bàn 3 Người', desc: '1 Bạn vs 2 Bot' },
+  { count: 4, label: 'Bàn 4 Người (Chuẩn)', desc: '1 Bạn vs 3 Bot' }
+];
+
+const GAME_MODE_TABS: readonly { mode: GameMode; label: string }[] = [
+  { mode: 'COUNT_CARDS', label: '⚡ Đếm Lá' },
+  { mode: 'WINNER_TAKES_ALL', label: '👑 Nhất Ăn Tất' },
+  { mode: 'TRADITIONAL', label: '🎖️ Truyền Thống' }
+];
 
 interface TableRulesConfigPanelProps {
   playerCoins: number;
@@ -220,15 +232,11 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
           </span>
         </div>
         <div className="grid grid-cols-3 gap-3">
-          {[
-            { count: 2, label: 'Solo 1v1 (2 Người)', desc: '1 Bạn vs 1 Bot' },
-            { count: 3, label: 'Bàn 3 Người', desc: '1 Bạn vs 2 Bot' },
-            { count: 4, label: 'Bàn 4 Người (Chuẩn)', desc: '1 Bạn vs 3 Bot' }
-          ].map(item => (
+          {PLAYER_COUNT_OPTIONS.map(item => (
             <button
               key={item.count}
               type="button"
-              onClick={() => onChange({ playerCount: item.count as 2 | 3 | 4 })}
+              onClick={() => onChange({ playerCount: item.count })}
               className={`p-3.5 rounded-2xl border text-center transition-all cursor-pointer ${
                 config.playerCount === item.count
                   ? 'bg-gradient-to-b from-yellow-500/25 to-amber-950/40 border-yellow-400 text-yellow-200 shadow-lg font-black ring-1 ring-yellow-400/50 scale-[1.02]'
@@ -258,17 +266,13 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
 
         {/* 3 Nút Chuyển Tab Chế Độ Cực Kỳ Tinh Gọn */}
         <div className="grid grid-cols-3 gap-2">
-          {[
-            { mode: 'COUNT_CARDS', label: '⚡ Đếm Lá' },
-            { mode: 'WINNER_TAKES_ALL', label: '👑 Nhất Ăn Tất' },
-            { mode: 'TRADITIONAL', label: '🎖️ Truyền Thống' }
-          ].map(tab => {
+          {GAME_MODE_TABS.map(tab => {
             const isSelected = config.mode === tab.mode;
             return (
               <button
                 key={tab.mode}
                 type="button"
-                onClick={() => onChange({ mode: tab.mode as GameMode })}
+                onClick={() => onChange({ mode: tab.mode })}
                 className={`py-2.5 px-2 rounded-2xl text-xs font-black transition-all cursor-pointer border text-center ${
                   isSelected
                     ? 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-red-950 border-yellow-200 shadow-lg scale-[1.02] ring-1 ring-yellow-300'
@@ -283,7 +287,13 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
 
         {/* KHUNG HUD TRÌNH DIỄN CHI TIẾT QUY TẮC ĐƯỢC CHỌN (HERO CARD) */}
         {(() => {
-          const ruleInfoMap = {
+          const ruleInfoMap: Record<GameMode, {
+            title: string;
+            badge: string;
+            desc: string;
+            maxWin: string;
+            maxLoss: string;
+          }> = {
             COUNT_CARDS: {
               title: '⚡ Đếm Lá Sát Phạt',
               badge: `${(config.betAmount * currentMultiplier).toLocaleString()} Xu/lá`,
@@ -304,6 +314,13 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
               desc: 'Các người chơi đánh tiếp tục cho đến người áp chót để phân định thứ hạng Nhất, Nhì, Ba, Bét và chia tiền cược tương ứng.',
               maxWin: `+${((activeBotCount >= 3 ? 2 : activeBotCount >= 2 ? 2 : 1) * config.betAmount * currentMultiplier).toLocaleString()} Xu`,
               maxLoss: `-${((activeBotCount >= 3 ? 2 : activeBotCount >= 2 ? 2 : 1) * config.betAmount * currentMultiplier).toLocaleString()} Xu (Bét)`
+            },
+            CUSTOM: {
+              title: '🛠️ Tùy Chỉnh Nâng Cao',
+              badge: 'Tự do cấu hình',
+              desc: 'Tự do kết hợp các nhóm quy tắc chặt, cóng, tới trắng và vòng chơi theo sở thích riêng.',
+              maxWin: `+${(activeBotCount * 13 * config.betAmount * currentMultiplier).toLocaleString()} Xu`,
+              maxLoss: `-${congPenaltyAmount.toLocaleString()} Xu`
             }
           };
 

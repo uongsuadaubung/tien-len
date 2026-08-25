@@ -4,7 +4,9 @@ import {
   Player, 
   GameRules, 
   createDefaultGameRules,
-  GameRulesBuilder
+  GameRulesBuilder,
+  normalizePlayerCount,
+  DeepPartial
 } from '../types';
 import { 
   calculateCountCardsSettlement, 
@@ -22,7 +24,7 @@ import { PlayerProfile } from '../storage';
  */
 export interface MatchSetupContext {
   profile: PlayerProfile;
-  customRules?: Partial<GameRules>;
+  customRules?: DeepPartial<GameRules>;
   customSettings?: Partial<GameSettings>;
   customBotPersonaIds?: [string, string, string];
   customBotConfigs?: [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>];
@@ -173,7 +175,9 @@ function createMatchSetupResult(
     instantWinEnabled: rules.instantWin.enabled,
     soundEnabled: rules.table.soundEnabled,
     botThinkDelayMs: rules.table.botThinkDelayMs,
-    prohibitEndingWithTwo: rules.gameFlow.prohibitEndingWithTwo
+    prohibitEndingWithTwo: rules.gameFlow.prohibitEndingWithTwo,
+    threeSpadesEndingBonus: rules.gameFlow.threeSpadesEndingBonus,
+    cascadeChopEnabled: rules.chopping.cascadeMultiplier
   };
 
   const initialPlayers = buildInitialPlayers(context.profile, bConfigs, botPersonaIds, rules.table.playerCount, rules.table.betAmount);
@@ -213,7 +217,7 @@ export class TraditionalModeStrategy implements GameModeStrategy {
   readonly isFreeToPlay = false;
 
   setupMatch(context: MatchSetupContext): MatchSetupResult {
-    const playerCount = (context.playerCount ?? context.customRules?.table?.playerCount ?? context.customSettings?.playerCount ?? 4) as 2 | 3 | 4;
+    const playerCount = normalizePlayerCount(context.playerCount ?? context.customRules?.table?.playerCount ?? context.customSettings?.playerCount);
     const betAmount = context.customRules?.table?.betAmount ?? context.customSettings?.betAmount ?? 100;
 
     const rules = GameRulesBuilder.traditional()
@@ -316,7 +320,7 @@ export class CountCardsModeStrategy implements GameModeStrategy {
   readonly isFreeToPlay = false;
 
   setupMatch(context: MatchSetupContext): MatchSetupResult {
-    const playerCount = (context.playerCount ?? context.customRules?.table?.playerCount ?? context.customSettings?.playerCount ?? 4) as 2 | 3 | 4;
+    const playerCount = normalizePlayerCount(context.playerCount ?? context.customRules?.table?.playerCount ?? context.customSettings?.playerCount);
     const betAmount = context.customRules?.table?.betAmount ?? context.customSettings?.betAmount ?? 100;
 
     const rules = GameRulesBuilder.countCards()
@@ -473,7 +477,7 @@ export class WinnerTakesAllModeStrategy implements GameModeStrategy {
   readonly isFreeToPlay = false;
 
   setupMatch(context: MatchSetupContext): MatchSetupResult {
-    const playerCount = (context.playerCount ?? context.customRules?.table?.playerCount ?? context.customSettings?.playerCount ?? 4) as 2 | 3 | 4;
+    const playerCount = normalizePlayerCount(context.playerCount ?? context.customRules?.table?.playerCount ?? context.customSettings?.playerCount);
     const betAmount = context.customRules?.table?.betAmount ?? context.customSettings?.betAmount ?? 100;
 
     const rules = GameRulesBuilder.winnerTakesAll()

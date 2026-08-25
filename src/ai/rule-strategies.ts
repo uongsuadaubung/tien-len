@@ -14,7 +14,7 @@
  * ============================================================================
  */
 
-import { Card, Combination, GameRules, PlayedMove, createDefaultGameRules } from '../engine/types';
+import { Card, ChoppingRules, Combination, CongRules, GameFlowRules, GameRules, GameRulesBuilder, PlayedMove, TableRules, createDefaultGameRules } from '../engine/types';
 import { isTwo, sortCards } from '../engine/card';
 import { CardTracker } from './card-tracker';
 import { partitionHand } from './hand-partitioner';
@@ -33,15 +33,15 @@ export interface RuleDecisionContext {
   tracker: CardTracker;
   remainingPlayerCards: Record<string, number>;
   nextPlayerId: string;
-  hasPlayedFirstCard?: boolean;
-  isNextPlayerOneCard?: boolean;
-  prohibitEndingWithTwo?: boolean;
+  hasPlayedFirstCard: boolean;
+  isNextPlayerOneCard: boolean;
+  prohibitEndingWithTwo: boolean;
   rules: GameRules;
-  handPartitioningOptimality?: number;
-  antiLeaderAggression?: number;
-  tempoControl?: number;
-  trapTendency?: number;
-  riskAppetite?: number;
+  handPartitioningOptimality: number;
+  antiLeaderAggression: number;
+  tempoControl: number;
+  trapTendency: number;
+  riskAppetite: number;
 }
 
 export interface RuleLeadPolicy {
@@ -654,12 +654,9 @@ export function resolveCompositeRuleStrategy(
       break;
 
     case 'UNDERGROUND':
-      defaultRules = createDefaultGameRules({
-        settlementRule: 'CARD_COUNT',
-        chopping: { allowFourPairsCutAnytime: true, allowThreePairsCutTwo: true, allowFourOfAKindCutPairsOfTwos: true, multiplier: 2 },
-        cong: { enabled: true, penaltyCards: 26, multiplier: 2 },
-        table: { playerCount: 4, betAmount: 1000, botThinkDelayMs: 700, soundEnabled: true }
-      });
+      defaultRules = GameRulesBuilder.underground()
+        .withTable(t => t.playerCount(4).betAmount(1000).botThinkDelayMs(700).soundEnabled(true))
+        .build();
       break;
 
     case 'WINNER_TAKES_ALL':

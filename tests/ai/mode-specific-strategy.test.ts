@@ -3,7 +3,7 @@ import { CardTracker } from '../../src/ai/card-tracker';
 import { makeBotDecision } from '../../src/ai/decision-maker';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { createCard } from '../../src/engine/card';
-import { Card } from '../../src/engine/types';
+import { Card, createDefaultGameRules } from '../../src/engine/types';
 import { resolveAIModePolicy, CountCardsAIModePolicy, TraditionalAIModePolicy, WinnerTakesAllAIModePolicy } from '../../src/ai/mode-policies';
 
 describe('Chiến Thuật AI Thích Ứng Theo Từng Chế Độ Chơi (Mode-Specific AI Strategies)', () => {
@@ -43,6 +43,10 @@ describe('Chiến Thuật AI Thích Ứng Theo Từng Chế Độ Chơi (Mode-Sp
       config: BOT_PERSONAS.BOT_ELO_1750,
       remainingPlayerCards: { p0: 8, p1: 8, p2: 8, p3: 8 },
       nextPlayerId: 'p1',
+      rules: createDefaultGameRules({ settlementRule: 'CARD_COUNT' }),
+      hasPlayedFirstCard: true,
+      isNextPlayerOneCard: false,
+      prohibitEndingWithTwo: true,
       gameMode: 'COUNT_CARDS' // Chế độ Đếm Lá
     });
 
@@ -74,6 +78,10 @@ describe('Chiến Thuật AI Thích Ứng Theo Từng Chế Độ Chơi (Mode-Sp
       config: BOT_PERSONAS.BOT_ELO_1750,
       remainingPlayerCards: { p0: 8, p1: 8, p2: 8, p3: 8 },
       nextPlayerId: 'p1',
+      rules: createDefaultGameRules({ settlementRule: 'TRADITIONAL_RANK_BASED' }),
+      hasPlayedFirstCard: true,
+      isNextPlayerOneCard: false,
+      prohibitEndingWithTwo: true,
       gameMode: 'TRADITIONAL' // Chế độ Truyền Thống
     });
 
@@ -102,6 +110,10 @@ describe('Chiến Thuật AI Thích Ứng Theo Từng Chế Độ Chơi (Mode-Sp
       config: BOT_PERSONAS.BOT_ELO_1750,
       remainingPlayerCards: { p0: 6, p1: 6, p2: 6, p3: 6 },
       nextPlayerId: 'p1',
+      rules: createDefaultGameRules({ settlementRule: 'CARD_COUNT' }),
+      hasPlayedFirstCard: true,
+      isNextPlayerOneCard: false,
+      prohibitEndingWithTwo: true,
       gameMode: 'UNDERGROUND' // Chế độ Sòng Bạc Ngầm
     });
 

@@ -18,13 +18,16 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
     elo: 1200,
     campaignUnlockedChapter: 1,
     campaignChapterWins: {},
+    dailyReliefClaimedCount: 0,
+    lastDailyResetTimestamp: Date.now(),
     stats: {
       gamesPlayed: 10,
       wins: 5,
       currentStreak: 1,
       highestStreak: 3,
       totalEarned: 2000,
-      chopsDone: 2
+      chopsDone: 2,
+      congsGiven: 0
     },
     dailyQuests: [],
     achievements: []

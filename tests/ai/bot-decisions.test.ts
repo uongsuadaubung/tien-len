@@ -3,15 +3,32 @@ import { parseCard, parseCards } from '../../src/engine/card';
 import { identifyCombination } from '../../src/engine/combinations';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { CardTracker } from '../../src/ai/card-tracker';
-import { makeBotDecision } from '../../src/ai/decision-maker';
+import { makeBotDecision, DecisionContext } from '../../src/ai/decision-maker';
+import { createDefaultGameRules, Card } from '../../src/engine/types';
 
 describe('AI Bot Decision Maker', () => {
+  const createMockDecisionContext = (partial: Partial<DecisionContext> & { hand: Card[] }): DecisionContext => ({
+    hand: partial.hand,
+    currentRoundLeadingMove: partial.currentRoundLeadingMove ?? null,
+    isFirstMoveOfGame: partial.isFirstMoveOfGame ?? false,
+    isLeadMove: partial.isLeadMove ?? false,
+    tracker: partial.tracker ?? new CardTracker(),
+    config: partial.config ?? BOT_PERSONAS.BOT_ELO_1750,
+    remainingPlayerCards: partial.remainingPlayerCards ?? { p1: 10, p2: 10, p3: 10 },
+    nextPlayerId: partial.nextPlayerId ?? 'p1',
+    rules: partial.rules ?? createDefaultGameRules({ gameFlow: { prohibitEndingWithTwo: false } }),
+    hasPlayedFirstCard: partial.hasPlayedFirstCard ?? true,
+    isNextPlayerOneCard: partial.isNextPlayerOneCard ?? false,
+    prohibitEndingWithTwo: partial.prohibitEndingWithTwo ?? false,
+    gameMode: partial.gameMode ?? 'TRADITIONAL'
+  });
+
   test('Ván 1: Bot tự động chọn nước đi hợp lệ có chứa quân 3♠', () => {
     const hand = parseCards('3S 4S 5S 9S 9D 2H');
     const tracker = new CardTracker(hand, 1.0);
     const config = BOT_PERSONAS.BOT_ELO_1750;
 
-    const decision = makeBotDecision({
+    const decision = makeBotDecision(createMockDecisionContext({
       hand,
       currentRoundLeadingMove: null,
       isFirstMoveOfGame: true,
@@ -20,7 +37,7 @@ describe('AI Bot Decision Maker', () => {
       config,
       remainingPlayerCards: { p1: 13, p2: 13, p3: 13 },
       nextPlayerId: 'p1'
-    });
+    }));
 
     expect(decision.type).toBe('PLAY');
     expect(decision.cards?.some(c => c.rank === 3 && c.suit === 'SPADES')).toBe(true);
@@ -37,16 +54,15 @@ describe('AI Bot Decision Maker', () => {
       timestamp: Date.now()
     };
 
-    const decision = makeBotDecision({
+    const decision = makeBotDecision(createMockDecisionContext({
       hand,
       currentRoundLeadingMove: targetMove,
-      isFirstMoveOfGame: false,
       isLeadMove: false,
       tracker,
       config,
       remainingPlayerCards: { p1: 5, p2: 10, p3: 10 },
       nextPlayerId: 'p2'
-    });
+    }));
 
     expect(decision.type).toBe('PLAY');
     expect(decision.cards?.length).toBe(6); // đánh 3 đôi thông
@@ -64,16 +80,15 @@ describe('AI Bot Decision Maker', () => {
       timestamp: Date.now()
     };
 
-    const decision = makeBotDecision({
+    const decision = makeBotDecision(createMockDecisionContext({
       hand,
       currentRoundLeadingMove: targetMove,
-      isFirstMoveOfGame: false,
       isLeadMove: false,
       tracker,
       config,
       remainingPlayerCards: { p1: 10, p2: 10, p3: 10 },
       nextPlayerId: 'p2'
-    });
+    }));
 
     expect(decision.type).toBe('PASS');
   });
@@ -84,16 +99,15 @@ describe('AI Bot Decision Maker', () => {
     const tracker = new CardTracker(hand, 1.0);
     const config = BOT_PERSONAS.BOT_ELO_1550;
 
-    const decision = makeBotDecision({
+    const decision = makeBotDecision(createMockDecisionContext({
       hand,
       currentRoundLeadingMove: null,
-      isFirstMoveOfGame: false,
       isLeadMove: true,
       tracker,
       config,
       remainingPlayerCards: { p1: 10, p2: 10, p3: 10 },
       nextPlayerId: 'p1'
-    });
+    }));
 
     expect(decision.type).toBe('PLAY');
     // Bot chọn đánh lá Át (AH) làm mồi nhử Heo
@@ -107,16 +121,15 @@ describe('AI Bot Decision Maker', () => {
     const tracker = new CardTracker(hand, 1.0);
     const config = BOT_PERSONAS.BOT_ELO_1850;
 
-    const decision = makeBotDecision({
+    const decision = makeBotDecision(createMockDecisionContext({
       hand,
       currentRoundLeadingMove: null,
-      isFirstMoveOfGame: false,
       isLeadMove: true,
       tracker,
       config,
       remainingPlayerCards: { p1: 5, p2: 5, p3: 5 },
       nextPlayerId: 'p1'
-    });
+    }));
 
     expect(decision.type).toBe('PLAY');
     // Đánh sảnh 3-4-5 trước, để lại 2H chắc chắn về Nhất
@@ -136,16 +149,15 @@ describe('AI Bot Decision Maker', () => {
       timestamp: Date.now()
     };
 
-    const decision = makeBotDecision({
+    const decision = makeBotDecision(createMockDecisionContext({
       hand,
       currentRoundLeadingMove: targetMove,
-      isFirstMoveOfGame: false,
       isLeadMove: false,
       tracker,
       config,
       remainingPlayerCards: { p1: 1, p2: 8, p3: 8 }, // p1 chỉ còn 1 lá sắp về!
       nextPlayerId: 'p3'
-    });
+    }));
 
     expect(decision.type).toBe('PLAY');
     // Bot đè bài ngay lập tức để không cho p1 giành lượt
@@ -164,16 +176,15 @@ describe('AI Bot Decision Maker', () => {
       timestamp: Date.now()
     };
 
-    const decision = makeBotDecision({
+    const decision = makeBotDecision(createMockDecisionContext({
       hand,
       currentRoundLeadingMove: targetMove,
-      isFirstMoveOfGame: false,
       isLeadMove: false,
       tracker,
       config,
       remainingPlayerCards: { p0: 10, p2: 10, p3: 10 },
       nextPlayerId: 'p3'
-    });
+    }));
 
     // Bot có thể đánh 8S/9C/10D/KD đè hoặc PASS, nhưng TUYỆT ĐỐI KHÔNG được xả 2H
     if (decision.type === 'PLAY') {
@@ -186,16 +197,15 @@ describe('AI Bot Decision Maker', () => {
     const tracker = new CardTracker(hand, 0.1);
     const config = BOT_PERSONAS.BOT_ELO_850;
 
-    const decision = makeBotDecision({
+    const decision = makeBotDecision(createMockDecisionContext({
       hand,
       currentRoundLeadingMove: null,
-      isFirstMoveOfGame: false,
       isLeadMove: true,
       tracker,
       config,
       remainingPlayerCards: { p0: 8, p2: 8, p3: 8 },
       nextPlayerId: 'p2'
-    });
+    }));
 
     expect(decision.type).toBe('PLAY');
     // Đánh Sảnh 3-4-5 hoặc rác 3S, TUYỆT ĐỐI không đánh 2H khi còn bài khác
@@ -207,16 +217,15 @@ describe('AI Bot Decision Maker', () => {
     const tracker = new CardTracker(hand, 1.0);
     const config = BOT_PERSONAS.BOT_ELO_1850;
 
-    const decision = makeBotDecision({
+    const decision = makeBotDecision(createMockDecisionContext({
       hand,
       currentRoundLeadingMove: null,
-      isFirstMoveOfGame: false,
       isLeadMove: true,
       tracker,
       config,
       remainingPlayerCards: { p0: 5, p2: 5, p3: 5 },
       nextPlayerId: 'p2'
-    });
+    }));
 
     expect(decision.type).toBe('PLAY');
     expect(decision.combination?.type).toBe('PAIR');
@@ -228,16 +237,15 @@ describe('AI Bot Decision Maker', () => {
     const tracker = new CardTracker(hand, 1.0);
     const config = BOT_PERSONAS.BOT_ELO_1950;
 
-    const decision = makeBotDecision({
+    const decision = makeBotDecision(createMockDecisionContext({
       hand,
       currentRoundLeadingMove: null,
-      isFirstMoveOfGame: false,
       isLeadMove: true,
       tracker,
       config,
       remainingPlayerCards: { p0: 5, p2: 5, p3: 5 },
       nextPlayerId: 'p2'
-    });
+    }));
 
     expect(decision.type).toBe('PLAY');
     expect(decision.combination?.type).toBe('STRAIGHT');
@@ -253,16 +261,15 @@ describe('AI Bot Decision Maker', () => {
     // Đối thủ p1 (người kế tiếp) từng bỏ lượt khi đánh Đôi
     tracker.recordPass('p1', 'PAIR');
 
-    const decision = makeBotDecision({
+    const decision = makeBotDecision(createMockDecisionContext({
       hand,
       currentRoundLeadingMove: null,
-      isFirstMoveOfGame: false,
       isLeadMove: true,
       tracker,
       config,
       remainingPlayerCards: { p0: 8, p1: 2, p3: 8 },
       nextPlayerId: 'p1' // Người kế tiếp là p1
-    });
+    }));
 
     expect(decision.type).toBe('PLAY');
     expect(decision.combination?.type).toBe('PAIR');
@@ -279,16 +286,15 @@ describe('AI Bot Decision Maker', () => {
       timestamp: Date.now()
     };
 
-    const decision = makeBotDecision({
+    const decision = makeBotDecision(createMockDecisionContext({
       hand,
       currentRoundLeadingMove: targetMove,
-      isFirstMoveOfGame: false,
       isLeadMove: false,
       tracker,
       config,
       remainingPlayerCards: { p0: 8, p2: 8, p3: 8 },
       nextPlayerId: 'p3'
-    });
+    }));
 
     expect(decision.type).toBe('PLAY');
     // Bot chọn 6S thay vì lãng phí KH
@@ -300,16 +306,15 @@ describe('AI Bot Decision Maker', () => {
     const tracker = new CardTracker(hand, 0.5);
     const config = BOT_PERSONAS.BOT_ELO_850; // Kể cả Rookie bot
 
-    const decision = makeBotDecision({
+    const decision = makeBotDecision(createMockDecisionContext({
       hand,
       currentRoundLeadingMove: null,
-      isFirstMoveOfGame: false,
       isLeadMove: true,
       tracker,
       config,
       remainingPlayerCards: { p0: 8, p1: 1, p2: 8 },
       nextPlayerId: 'p1' // Người kế tiếp chính là người báo 1 lá!
-    });
+    }));
 
     expect(decision.type).toBe('PLAY');
     expect(decision.cards?.length).toBe(1);
@@ -321,16 +326,15 @@ describe('AI Bot Decision Maker', () => {
     const tracker = new CardTracker(hand, 0.5);
     const config = BOT_PERSONAS.BOT_ELO_850;
 
-    const decision = makeBotDecision({
+    const decision = makeBotDecision(createMockDecisionContext({
       hand,
       currentRoundLeadingMove: null,
-      isFirstMoveOfGame: false,
       isLeadMove: true,
       tracker,
       config,
       remainingPlayerCards: { p0: 8, p1: 6, p2: 1 }, // Người báo 1 lá là p2 (không phải người kế tiếp p1)
       nextPlayerId: 'p1' // Người kế tiếp p1 có 6 lá
-    });
+    }));
 
     expect(decision.type).toBe('PLAY');
     expect(decision.cards?.length).toBe(1);

@@ -18,6 +18,12 @@ interface FlyingCard {
   rot: number;
 }
 
+interface FlyingCardStyle extends React.CSSProperties {
+  '--dx': string;
+  '--dy': string;
+  '--rot': string;
+}
+
 export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
   isDealing,
   playerCount = 4,
@@ -231,21 +237,24 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
         )}
 
         {/* CÁC LÁ BÀI BAY CHÍNH XÁC TỪ CỖ BÀI VỀ TÂM TỪNG GHẾ */}
-        {flyingCards.map(fc => (
-          <div
-            key={fc.id}
-            className="fly-card-to-seat card-back-premium shadow-2xl pointer-events-none"
-            style={{
-              '--dx': `${fc.dx}px`,
-              '--dy': `${fc.dy}px`,
-              '--rot': `${fc.rot}deg`
-            } as React.CSSProperties}
-          >
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="text-yellow-300 text-xs drop-shadow">🎴</span>
+        {flyingCards.map(fc => {
+          const fcStyle: FlyingCardStyle = {
+            '--dx': `${fc.dx}px`,
+            '--dy': `${fc.dy}px`,
+            '--rot': `${fc.rot}deg`
+          };
+          return (
+            <div
+              key={fc.id}
+              className="fly-card-to-seat card-back-premium shadow-2xl pointer-events-none"
+              style={fcStyle}
+            >
+              <div className="w-full h-full flex items-center justify-center">
+                <span className="text-yellow-300 text-xs drop-shadow">🎴</span>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Nút Bỏ qua Chia Bài (Skip Deal) */}

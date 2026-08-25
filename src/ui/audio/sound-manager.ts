@@ -1,3 +1,9 @@
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext;
+  }
+}
+
 /**
  * Web Audio API Synthesizer - Tạo hiệu ứng âm thanh chân thực không cần file ngoài
  */
@@ -7,8 +13,10 @@ class SoundManager {
 
   private initCtx() {
     if (!this.ctx && typeof window !== 'undefined') {
-      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      this.ctx = new AudioCtx();
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        this.ctx = new AudioCtx();
+      }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume();

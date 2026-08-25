@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "lint": "eslint src/",
     "test": "bun test",
     "benchmark": "bun test tests/ai/bot-benchmark.test.ts"
   },
@@ -24,7 +25,10 @@
     "@types/canvas-confetti": "^1.9.0",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
+    "@typescript-eslint/eslint-plugin": "^8.68.0",
+    "@typescript-eslint/parser": "^8.68.0",
     "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^10.9.1",
     "typescript": "^5.7.3",
     "vite": "^6.2.0"
   }

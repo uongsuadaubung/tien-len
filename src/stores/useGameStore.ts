@@ -1,5 +1,15 @@
 import { create } from 'zustand';
-import { Player, PlayedMove, InstantWinType, GameRules, GameSettings, createDefaultGameRules } from '../engine/types';
+import { 
+  Player, 
+  PlayedMove, 
+  InstantWinType, 
+  GameRules, 
+  GameSettings, 
+  createDefaultGameRules,
+  BotPersonaIdTuple,
+  CustomBotConfigTuple,
+  updateTupleAt
+} from '../engine/types';
 import { BotConfig } from '../ai/types';
 import { CampaignChapter } from '../engine/campaign';
 import { MoveHint } from '../ai/hint-engine';
@@ -20,8 +30,8 @@ interface GameState {
   currentScreen: ScreenType;
   activeGameType: ActiveGameType;
   playerCount: number;
-  botPersonaIds: [string, string, string];
-  customBotConfigs: [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>];
+  botPersonaIds: BotPersonaIdTuple;
+  customBotConfigs: CustomBotConfigTuple<BotConfig>;
   currentCampaignChapter: CampaignChapter | null;
   gameNumber: number;
 
@@ -195,16 +205,16 @@ export const useGameStore = create<GameState>((set) => ({
   setActiveGameType: (type) => set({ activeGameType: type }),
   setPlayerCount: (count) => set({ playerCount: count }),
   setBotPersonaIds: (ids) => set({ botPersonaIds: ids }),
-  updateBotPersonaAt: (index, personaId) => set((state) => {
-    const updated: [string, string, string] = [...state.botPersonaIds];
-    updated[index] = personaId;
-    return { botPersonaIds: updated };
-  }),
+  updateBotPersonaAt: (index, personaId) => set((state) => ({
+    botPersonaIds: updateTupleAt(state.botPersonaIds, index, personaId)
+  })),
   setCustomBotConfigs: (configs) => set({ customBotConfigs: configs }),
   updateCustomBotConfigAt: (index, config) => set((state) => {
-    const updated = [...state.customBotConfigs] as [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>];
-    updated[index] = { ...updated[index], ...config };
-    return { customBotConfigs: updated };
+    const currentConfig = state.customBotConfigs[index] || {};
+    const mergedConfig = { ...currentConfig, ...config };
+    return {
+      customBotConfigs: updateTupleAt(state.customBotConfigs, index, mergedConfig)
+    };
   }),
   setCurrentCampaignChapter: (chapter) => set({ currentCampaignChapter: chapter }),
   setGameNumber: (num) => set((state) => ({

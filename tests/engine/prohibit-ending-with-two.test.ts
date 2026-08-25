@@ -2,10 +2,10 @@ import { describe, test, expect } from 'bun:test';
 import { createCard } from '../../src/engine/card';
 import { isValidMove } from '../../src/engine/validator';
 import { GameEngine } from '../../src/engine/game';
-import { makeBotDecision } from '../../src/ai/decision-maker';
+import { makeBotDecision, DecisionContext } from '../../src/ai/decision-maker';
 import { CardTracker } from '../../src/ai/card-tracker';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
-import { Player, createDefaultGameRules } from '../../src/engine/types';
+import { Player, createDefaultGameRules, Card, PlayedMove } from '../../src/engine/types';
 
 describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 & Rotten 2 Rules)', () => {
   describe('1. Validator Thẩm Định Nước Đi Hợp Lệ', () => {
@@ -200,23 +200,35 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
   });
 
   describe('3. Trí Tuệ Bot AI Thích Ứng Với Luật Cấm 2 Cuối', () => {
+    const createMockDecisionContext = (partial: Partial<DecisionContext> & { hand: Card[]; currentRoundLeadingMove?: PlayedMove | null }): DecisionContext => ({
+      hand: partial.hand,
+      currentRoundLeadingMove: partial.currentRoundLeadingMove ?? null,
+      isFirstMoveOfGame: partial.isFirstMoveOfGame ?? false,
+      isLeadMove: partial.isLeadMove ?? false,
+      tracker: partial.tracker ?? new CardTracker(),
+      config: partial.config ?? BOT_PERSONAS.BOT_ELO_1850,
+      remainingPlayerCards: partial.remainingPlayerCards ?? { bot1: 2, p0: 5, bot2: 6, bot3: 7 },
+      nextPlayerId: partial.nextPlayerId ?? 'p0',
+      rules: partial.rules ?? createDefaultGameRules(),
+      hasPlayedFirstCard: partial.hasPlayedFirstCard ?? true,
+      isNextPlayerOneCard: partial.isNextPlayerOneCard ?? false,
+      prohibitEndingWithTwo: partial.prohibitEndingWithTwo ?? true,
+      gameMode: partial.gameMode ?? 'TRADITIONAL'
+    });
+
     test('Bot có 2 lá [3♠, 2♥] chủ động đánh 2♥ trước khi đang cầm cái để về bằng 3♠', () => {
       const card3S = createCard(3, 'SPADES');
       const card2H = createCard(15, 'HEARTS');
       const botHand = [card3S, card2H];
       const tracker = new CardTracker();
 
-      const decision = makeBotDecision({
+      const decision = makeBotDecision(createMockDecisionContext({
         hand: botHand,
         currentRoundLeadingMove: null,
-        isFirstMoveOfGame: false,
         isLeadMove: true,
         tracker,
-        config: BOT_PERSONAS.BOT_ELO_1850,
-        remainingPlayerCards: { bot1: 2, p0: 5, bot2: 6, bot3: 7 },
-        nextPlayerId: 'p0',
-        prohibitEndingWithTwo: true
-      });
+        remainingPlayerCards: { bot1: 2, p0: 5, bot2: 6, bot3: 7 }
+      }));
 
       expect(decision.type).toBe('PLAY');
       expect(decision.cards).toBeDefined();
@@ -231,17 +243,13 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
       const botHand = [card2H];
       const tracker = new CardTracker();
 
-      const decision = makeBotDecision({
+      const decision = makeBotDecision(createMockDecisionContext({
         hand: botHand,
         currentRoundLeadingMove: null,
-        isFirstMoveOfGame: false,
         isLeadMove: true,
         tracker,
-        config: BOT_PERSONAS.BOT_ELO_1850,
-        remainingPlayerCards: { bot1: 1, p0: 5, bot2: 6, bot3: 7 },
-        nextPlayerId: 'p0',
-        prohibitEndingWithTwo: true
-      });
+        remainingPlayerCards: { bot1: 1, p0: 5, bot2: 6, bot3: 7 }
+      }));
 
       expect(decision.type).toBe('PASS');
     });
@@ -253,17 +261,13 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
       const botHand = [card4S, card4H, card2D];
       const tracker = new CardTracker();
 
-      const decision = makeBotDecision({
+      const decision = makeBotDecision(createMockDecisionContext({
         hand: botHand,
         currentRoundLeadingMove: null,
-        isFirstMoveOfGame: false,
         isLeadMove: true,
         tracker,
-        config: BOT_PERSONAS.BOT_ELO_1850,
-        remainingPlayerCards: { bot1: 3, p0: 5, bot2: 6, bot3: 7 },
-        nextPlayerId: 'p0',
-        prohibitEndingWithTwo: true
-      });
+        remainingPlayerCards: { bot1: 3, p0: 5, bot2: 6, bot3: 7 }
+      }));
 
       expect(decision.type).toBe('PLAY');
       expect(decision.cards).toBeDefined();
@@ -284,17 +288,13 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
         timestamp: Date.now()
       };
 
-      const decision = makeBotDecision({
+      const decision = makeBotDecision(createMockDecisionContext({
         hand: botHand,
         currentRoundLeadingMove: leadingMove,
-        isFirstMoveOfGame: false,
         isLeadMove: false,
         tracker,
-        config: BOT_PERSONAS.BOT_ELO_1850,
-        remainingPlayerCards: { bot1: 2, p0: 5, bot2: 6, bot3: 7 },
-        nextPlayerId: 'p0',
-        prohibitEndingWithTwo: true
-      });
+        remainingPlayerCards: { bot1: 2, p0: 5, bot2: 6, bot3: 7 }
+      }));
 
       expect(decision.type).toBe('PLAY');
       expect(decision.cards).toBeDefined();
@@ -311,17 +311,13 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
       const botHand = [card3S, card2S, card2C, card2D, card2H];
       const tracker = new CardTracker();
 
-      const decision = makeBotDecision({
+      const decision = makeBotDecision(createMockDecisionContext({
         hand: botHand,
         currentRoundLeadingMove: null,
-        isFirstMoveOfGame: false,
         isLeadMove: true,
         tracker,
-        config: BOT_PERSONAS.BOT_ELO_1850,
-        remainingPlayerCards: { bot1: 5, p0: 5, bot2: 6, bot3: 7 },
-        nextPlayerId: 'p0',
-        prohibitEndingWithTwo: true
-      });
+        remainingPlayerCards: { bot1: 5, p0: 5, bot2: 6, bot3: 7 }
+      }));
 
       expect(decision.type).toBe('PLAY');
       expect(decision.cards).toBeDefined();
@@ -334,17 +330,13 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
       const botHand = [createCard(5, 'SPADES'), createCard(5, 'CLUBS'), createCard(5, 'HEARTS'), createCard(15, 'DIAMONDS')];
       const tracker = new CardTracker();
 
-      const decision = makeBotDecision({
+      const decision = makeBotDecision(createMockDecisionContext({
         hand: botHand,
         currentRoundLeadingMove: null,
-        isFirstMoveOfGame: false,
         isLeadMove: true,
         tracker,
-        config: BOT_PERSONAS.BOT_ELO_1850,
-        remainingPlayerCards: { bot1: 4, p0: 5, bot2: 6, bot3: 7 },
-        nextPlayerId: 'p0',
-        prohibitEndingWithTwo: true
-      });
+        remainingPlayerCards: { bot1: 4, p0: 5, bot2: 6, bot3: 7 }
+      }));
 
       expect(decision.type).toBe('PLAY');
       expect(decision.cards!.length).toBe(1);
@@ -355,17 +347,13 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
       const botHand = [createCard(3, 'SPADES'), createCard(4, 'CLUBS'), createCard(5, 'HEARTS'), createCard(6, 'DIAMONDS'), createCard(15, 'HEARTS')];
       const tracker = new CardTracker();
 
-      const decision = makeBotDecision({
+      const decision = makeBotDecision(createMockDecisionContext({
         hand: botHand,
         currentRoundLeadingMove: null,
-        isFirstMoveOfGame: false,
         isLeadMove: true,
         tracker,
-        config: BOT_PERSONAS.BOT_ELO_1850,
-        remainingPlayerCards: { bot1: 5, p0: 5, bot2: 6, bot3: 7 },
-        nextPlayerId: 'p0',
-        prohibitEndingWithTwo: true
-      });
+        remainingPlayerCards: { bot1: 5, p0: 5, bot2: 6, bot3: 7 }
+      }));
 
       expect(decision.type).toBe('PLAY');
       expect(decision.cards!.length).toBe(1);
@@ -376,17 +364,13 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
       const botHand = [createCard(7, 'SPADES'), createCard(7, 'CLUBS'), createCard(7, 'DIAMONDS'), createCard(7, 'HEARTS'), createCard(15, 'HEARTS')];
       const tracker = new CardTracker();
 
-      const decision = makeBotDecision({
+      const decision = makeBotDecision(createMockDecisionContext({
         hand: botHand,
         currentRoundLeadingMove: null,
-        isFirstMoveOfGame: false,
         isLeadMove: true,
         tracker,
-        config: BOT_PERSONAS.BOT_ELO_1850,
-        remainingPlayerCards: { bot1: 5, p0: 5, bot2: 6, bot3: 7 },
-        nextPlayerId: 'p0',
-        prohibitEndingWithTwo: true
-      });
+        remainingPlayerCards: { bot1: 5, p0: 5, bot2: 6, bot3: 7 }
+      }));
 
       expect(decision.type).toBe('PLAY');
       expect(decision.cards!.length).toBe(1);
@@ -397,17 +381,13 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
       const botHand = [createCard(3, 'SPADES'), createCard(15, 'SPADES'), createCard(15, 'HEARTS')];
       const tracker = new CardTracker();
 
-      const decision = makeBotDecision({
+      const decision = makeBotDecision(createMockDecisionContext({
         hand: botHand,
         currentRoundLeadingMove: null,
-        isFirstMoveOfGame: false,
         isLeadMove: true,
         tracker,
-        config: BOT_PERSONAS.BOT_ELO_1850,
-        remainingPlayerCards: { bot1: 3, p0: 5, bot2: 6, bot3: 7 },
-        nextPlayerId: 'p0',
-        prohibitEndingWithTwo: true
-      });
+        remainingPlayerCards: { bot1: 3, p0: 5, bot2: 6, bot3: 7 }
+      }));
 
       expect(decision.type).toBe('PLAY');
       expect(decision.cards!.length).toBe(2);
@@ -419,17 +399,13 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
       const botHand = [createCard(4, 'SPADES'), createCard(4, 'HEARTS'), createCard(15, 'SPADES'), createCard(15, 'HEARTS')];
       const tracker = new CardTracker();
 
-      const decision = makeBotDecision({
+      const decision = makeBotDecision(createMockDecisionContext({
         hand: botHand,
         currentRoundLeadingMove: null,
-        isFirstMoveOfGame: false,
         isLeadMove: true,
         tracker,
-        config: BOT_PERSONAS.BOT_ELO_1850,
-        remainingPlayerCards: { bot1: 4, p0: 5, bot2: 6, bot3: 7 },
-        nextPlayerId: 'p0',
-        prohibitEndingWithTwo: true
-      });
+        remainingPlayerCards: { bot1: 4, p0: 5, bot2: 6, bot3: 7 }
+      }));
 
       expect(decision.type).toBe('PLAY');
       expect(decision.cards!.length).toBe(2);
@@ -441,17 +417,13 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
       const botHand = [createCard(3, 'SPADES'), createCard(4, 'CLUBS'), createCard(5, 'HEARTS'), createCard(15, 'SPADES'), createCard(15, 'HEARTS')];
       const tracker = new CardTracker();
 
-      const decision = makeBotDecision({
+      const decision = makeBotDecision(createMockDecisionContext({
         hand: botHand,
         currentRoundLeadingMove: null,
-        isFirstMoveOfGame: false,
         isLeadMove: true,
         tracker,
-        config: BOT_PERSONAS.BOT_ELO_1850,
-        remainingPlayerCards: { bot1: 5, p0: 5, bot2: 6, bot3: 7 },
-        nextPlayerId: 'p0',
-        prohibitEndingWithTwo: true
-      });
+        remainingPlayerCards: { bot1: 5, p0: 5, bot2: 6, bot3: 7 }
+      }));
 
       expect(decision.type).toBe('PLAY');
       expect(decision.cards!.length).toBe(2);
@@ -463,17 +435,13 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
       const botHand = [createCard(3, 'SPADES'), createCard(15, 'SPADES'), createCard(15, 'CLUBS'), createCard(15, 'HEARTS')];
       const tracker = new CardTracker();
 
-      const decision = makeBotDecision({
+      const decision = makeBotDecision(createMockDecisionContext({
         hand: botHand,
         currentRoundLeadingMove: null,
-        isFirstMoveOfGame: false,
         isLeadMove: true,
         tracker,
-        config: BOT_PERSONAS.BOT_ELO_1850,
-        remainingPlayerCards: { bot1: 4, p0: 5, bot2: 6, bot3: 7 },
-        nextPlayerId: 'p0',
-        prohibitEndingWithTwo: true
-      });
+        remainingPlayerCards: { bot1: 4, p0: 5, bot2: 6, bot3: 7 }
+      }));
 
       expect(decision.type).toBe('PLAY');
       expect(decision.cards!.length).toBe(3);
@@ -485,17 +453,13 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
       const botHand = [createCard(4, 'SPADES'), createCard(4, 'HEARTS'), createCard(15, 'SPADES'), createCard(15, 'CLUBS'), createCard(15, 'HEARTS')];
       const tracker = new CardTracker();
 
-      const decision = makeBotDecision({
+      const decision = makeBotDecision(createMockDecisionContext({
         hand: botHand,
         currentRoundLeadingMove: null,
-        isFirstMoveOfGame: false,
         isLeadMove: true,
         tracker,
-        config: BOT_PERSONAS.BOT_ELO_1850,
-        remainingPlayerCards: { bot1: 5, p0: 5, bot2: 6, bot3: 7 },
-        nextPlayerId: 'p0',
-        prohibitEndingWithTwo: true
-      });
+        remainingPlayerCards: { bot1: 5, p0: 5, bot2: 6, bot3: 7 }
+      }));
 
       expect(decision.type).toBe('PLAY');
       expect(decision.cards!.length).toBe(3);
@@ -507,17 +471,13 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
       const botHand = [createCard(4, 'SPADES'), createCard(4, 'HEARTS'), createCard(15, 'SPADES'), createCard(15, 'CLUBS'), createCard(15, 'DIAMONDS'), createCard(15, 'HEARTS')];
       const tracker = new CardTracker();
 
-      const decision = makeBotDecision({
+      const decision = makeBotDecision(createMockDecisionContext({
         hand: botHand,
         currentRoundLeadingMove: null,
-        isFirstMoveOfGame: false,
         isLeadMove: true,
         tracker,
-        config: BOT_PERSONAS.BOT_ELO_1850,
-        remainingPlayerCards: { bot1: 6, p0: 5, bot2: 6, bot3: 7 },
-        nextPlayerId: 'p0',
-        prohibitEndingWithTwo: true
-      });
+        remainingPlayerCards: { bot1: 6, p0: 5, bot2: 6, bot3: 7 }
+      }));
 
       expect(decision.type).toBe('PLAY');
       expect(decision.cards!.length).toBe(4);
@@ -532,17 +492,13 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
       ];
       const tracker = new CardTracker();
 
-      const decision = makeBotDecision({
+      const decision = makeBotDecision(createMockDecisionContext({
         hand: botHand,
         currentRoundLeadingMove: null,
-        isFirstMoveOfGame: false,
         isLeadMove: true,
         tracker,
-        config: BOT_PERSONAS.BOT_ELO_1850,
-        remainingPlayerCards: { bot1: 8, p0: 5, bot2: 6, bot3: 7 },
-        nextPlayerId: 'p0',
-        prohibitEndingWithTwo: true
-      });
+        remainingPlayerCards: { bot1: 8, p0: 5, bot2: 6, bot3: 7 }
+      }));
 
       expect(decision.type).toBe('PLAY');
       expect(decision.cards!.length).toBe(4);

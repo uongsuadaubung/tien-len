@@ -61,7 +61,7 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
     // Map GameMode to GameSettlementRule
     let settlementRule: GameSettlementRule = 'CARD_COUNT';
     if (config.mode === 'WINNER_TAKES_ALL') settlementRule = 'WINNER_TAKES_ALL';
-    else if (config.mode === 'TRADITIONAL') settlementRule = 'TRADITIONAL';
+    else if (config.mode === 'TRADITIONAL') settlementRule = 'TRADITIONAL_RANK_BASED';
 
     onStartGame({
       playerCount: config.playerCount,

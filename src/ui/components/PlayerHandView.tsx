@@ -3,6 +3,10 @@ import { Card, Player } from '../../engine/types';
 import { CardView } from './CardView';
 import { Play, SkipForward, Sparkles, Wand2, ArrowUpDown, ArrowDownToLine } from 'lucide-react';
 
+interface HandCardStyle extends React.CSSProperties {
+  '--rot-deg'?: string;
+}
+
 interface PlayerHandViewProps {
   player?: Player;
   selectedCardIds: Set<string>;
@@ -126,15 +130,16 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
         {hand.map((card, index) => {
           const isSelected = selectedCardIds.has(card.id);
           const rot = (index - (hand.length - 1) / 2) * 2;
+          const cardStyle: HandCardStyle = {
+            zIndex: 10 + index,
+            '--rot-deg': `${rot}deg`,
+            animationDelay: `${index * 25}ms`
+          };
           return (
             <div
               key={card.id}
               className="zingplay-card-fan"
-              style={{
-                zIndex: 10 + index,
-                ['--rot-deg' as string]: `${rot}deg`,
-                animationDelay: `${index * 25}ms`
-              }}
+              style={cardStyle}
             >
               <CardView
                 card={card}

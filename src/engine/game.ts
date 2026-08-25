@@ -9,7 +9,8 @@ import {
   GameRules,
   GameMode,
   createDefaultGameRules,
-  convertSettingsToGameRules
+  convertSettingsToGameRules,
+  isGameRules
 } from './types';
 import { isRedCard, isTwo, sortCards } from './card';
 import { checkInstantWin, createDeck, dealCards, shuffleDeck } from './deck';
@@ -19,6 +20,19 @@ import { makeBotDecision } from '../ai/decision-maker';
 import { BotConfig } from '../ai/types';
 import { CardTracker } from '../ai/card-tracker';
 
+export interface PlayMoveResult {
+  success: boolean;
+  isChop?: boolean;
+  choppedPlayerId?: string;
+  penaltyAmount?: number;
+  isCascadeChop?: boolean;
+  chopChainCount?: number;
+  chopChainTotalAmount?: number;
+  playedMove?: PlayedMove;
+  error?: string;
+  isGameOver?: boolean;
+}
+
 export interface BotTurnResult {
   action: 'PLAY' | 'PASS';
   playerId: string;
@@ -26,6 +40,9 @@ export interface BotTurnResult {
   isChop?: boolean;
   choppedPlayerId?: string;
   penaltyAmount?: number;
+  isCascadeChop?: boolean;
+  chopChainCount?: number;
+  chopChainTotalAmount?: number;
   isGameOver?: boolean;
 }
 
@@ -46,10 +63,10 @@ export class GameEngine {
     this.players = players;
     
     // Khởi tạo GameRules hợp thành
-    if (rulesOrSettings && 'settlementRule' in (rulesOrSettings as any)) {
-      this.rules = rulesOrSettings as GameRules;
+    if (isGameRules(rulesOrSettings)) {
+      this.rules = rulesOrSettings;
     } else {
-      this.rules = convertSettingsToGameRules(rulesOrSettings as Partial<GameSettings>);
+      this.rules = convertSettingsToGameRules(rulesOrSettings);
     }
 
     // Ánh xạ sang GameSettings để tương thích với các module đang đọc settings
@@ -243,14 +260,7 @@ export class GameEngine {
   public playMove(
     playerId: string,
     cards: Card[]
-  ): {
-    success: boolean;
-    isChop?: boolean;
-    choppedPlayerId?: string;
-    penaltyAmount?: number;
-    error?: string;
-    isGameOver?: boolean;
-  } {
+  ): PlayMoveResult {
     const player = this.getPlayer(playerId);
     if (!player) return { success: false, error: 'Không tìm thấy người chơi' };
 
@@ -503,7 +513,7 @@ export class GameEngine {
         rules: this.rules,
         hasPlayedFirstCard: currentPlayer.hasPlayedFirstCard,
         prohibitEndingWithTwo,
-        gameMode: this.activeGameType || this.settings.mode || 'TRADITIONAL'
+        gameMode: this.settings.mode || 'TRADITIONAL'
       });
 
       if (decision.type === 'PLAY' && decision.cards && decision.cards.length > 0) {
@@ -523,6 +533,9 @@ export class GameEngine {
             isChop: moveRes.isChop,
             choppedPlayerId: moveRes.choppedPlayerId,
             penaltyAmount: moveRes.penaltyAmount,
+            isCascadeChop: moveRes.isCascadeChop,
+            chopChainCount: moveRes.chopChainCount,
+            chopChainTotalAmount: moveRes.chopChainTotalAmount,
             isGameOver: this.isGameOver
           };
         }

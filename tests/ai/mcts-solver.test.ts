@@ -5,6 +5,7 @@ import { CardTracker } from '../../src/ai/card-tracker';
 import { MctsSolver } from '../../src/ai/mcts-solver';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { makeBotDecision } from '../../src/ai/decision-maker';
+import { createDefaultGameRules } from '../../src/engine/types';
 
 describe('Information Set Monte Carlo Rollout Solver (ISMCTS)', () => {
   test('Chạy mô phỏng Rollout cho danh sách nước đi ứng viên và trả về Win Rate', () => {
@@ -59,7 +60,12 @@ describe('Information Set Monte Carlo Rollout Solver (ISMCTS)', () => {
       tracker,
       config,
       remainingPlayerCards: { p0: 6, p2: 6, p3: 6 },
-      nextPlayerId: 'p2'
+      nextPlayerId: 'p2',
+      rules: createDefaultGameRules(),
+      hasPlayedFirstCard: true,
+      isNextPlayerOneCard: false,
+      prohibitEndingWithTwo: true,
+      gameMode: 'TRADITIONAL'
     });
 
     expect(decision.type).toBe('PLAY');

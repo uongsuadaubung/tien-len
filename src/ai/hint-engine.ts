@@ -1,4 +1,4 @@
-import { Card, GameRules, PlayedMove } from '../engine/types';
+import { Card, GameRules, PlayedMove, createDefaultGameRules } from '../engine/types';
 import { BOT_PERSONAS } from './bot-factory';
 import { CardTracker } from './card-tracker';
 import { makeBotDecision } from './decision-maker';
@@ -37,10 +37,10 @@ export function getOptimalMoveHint(
     remainingPlayerCards,
     nextPlayerId: resolvedNextPlayerId,
     isNextPlayerOneCard: isNextPlayerOneCard ?? (remainingPlayerCards[resolvedNextPlayerId] === 1),
-    prohibitEndingWithTwo,
-    gameMode,
-    rules,
-    hasPlayedFirstCard
+    prohibitEndingWithTwo: prohibitEndingWithTwo ?? true,
+    gameMode: gameMode ?? 'TRADITIONAL',
+    rules: rules ?? createDefaultGameRules(),
+    hasPlayedFirstCard: hasPlayedFirstCard ?? true
   });
 
   if (decision.type === 'PASS') {

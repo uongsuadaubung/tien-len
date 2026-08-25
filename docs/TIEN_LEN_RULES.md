@@ -81,7 +81,7 @@
   - Heo Đỏ ($2\diamondsuit, 2\heartsuit$): Phạt $1.0 \times \text{Mức cược}$.
   - Tứ Quý / Đôi Thông: Phạt $2.0 \times \text{Mức cược}$.
 
-### 5.2. Luật 4 Đôi Thông Cắt Tự Do (`freeCutFourPairs`)
+### 5.2. Luật 4 Đôi Thông Cắt Tự Do (`allowFourPairsCutAnytime`)
 - Người sở hữu 4 Đôi Thông có quyền nhảy cóc chặt 1 Heo, Đôi Heo, 3 Đôi Thông, Tứ Quý hoặc 4 Đôi Thông nhỏ hơn vào bất kỳ thời điểm nào trong ván mà **không cần theo vòng đánh**.
 
 ### 5.3. Tới Trắng Tức Thì (Instant Win)
@@ -97,6 +97,13 @@ Xử thắng ngay sau khi chia bài mà không cần đánh ván đấu:
 - Khi người chơi kế tiếp chỉ còn đúng **1 lá bài trên tay** (báo 1 lá):
   - Người đi trước nếu đánh lá đơn (Single) bắt buộc phải đánh lá bài **LỚN NHẤT** trên tay (Át, Heo hoặc lá to nhất có thể) để chặn đầu.
   - Nếu người đi trước cố tình đánh lá bài nhỏ để người 1 lá về Nhất, người đi trước sẽ bị xử **Đền Bài** (phải trả toàn bộ tiền phạt thay cho cả bàn).
+
+### 5.5. Luật Về 3 Bích Cuối Cùng (`threeSpadesEndingBonus` / Ăn 3 Bích)
+- **Định nghĩa**: Ở các ván thứ 2 trở đi (không áp dụng ván đầu vì ván đầu bắt buộc ra 3 Bích trước), nếu người chơi về Nhất bằng **lá đơn 3 Bích ($3\spadesuit$)** ở nước đi dứt điểm, người đó kích hoạt chiến thắng **Ăn 3 Bích**.
+- **Cơ chế nhân thưởng kinh tế**:
+  - **Đếm Lá / Thế Giới Ngầm**: Nhân đôi ($2\times$) toàn bộ số tiền phạt đếm lá từ tất cả người thua.
+  - **Nhất Ăn Tất**: Mỗi người thua mất gấp đôi tiền cược cho người về Nhất.
+  - **Truyền Thống**: Nhân đôi ($2\times$) tiền thắng Nhất từ các người thua.
 
 ---
 

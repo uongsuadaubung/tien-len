@@ -1,10 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { GameEventBus, GameEvent } from '../../src/engine/events/game-event-bus';
+import { GameEventBus, GameEvent, MatchCompletedEvent } from '../../src/engine/events/game-event-bus';
 import { 
   evaluateDailyQuests, 
   evaluateAchievements,
   WinThreeMatchesEvaluator,
-  UndergroundMasterEvaluator,
   ChopRedTwoEvaluator,
   MillionaireAchievementEvaluator
 } from '../../src/engine/evaluators/progress-evaluators';
@@ -16,11 +15,11 @@ import {
   StraightRecognizer 
 } from '../../src/engine/combinations';
 import { parseCards } from '../../src/engine/card';
+import { createDefaultGameRules } from '../../src/engine/types';
 import { 
   makeBotDecision, 
   buildBotDecisionChain, 
   EndgameSolverHandler, 
-  AntiLeaderInterceptHandler, 
   DecisionContext 
 } from '../../src/ai/decision-maker';
 import { CardTracker } from '../../src/ai/card-tracker';
@@ -107,12 +106,12 @@ describe('Design Patterns Architecture Unit Tests (Kiểm Thử Mẫu Thiết K�
       const bus = GameEventBus.getInstance();
       bus.clear();
 
-      let receivedEvent: GameEvent | null = null;
+      let receivedWinnerId = '';
       const unsubscribe = bus.subscribe('MATCH_COMPLETED', (ev) => {
-        receivedEvent = ev;
+        receivedWinnerId = ev.winnerPlayerId;
       });
 
-      const sampleEvent: GameEvent = {
+      const sampleEvent: MatchCompletedEvent = {
         type: 'MATCH_COMPLETED',
         activeGameType: 'QUICK',
         winnerPlayerId: 'p0',
@@ -121,18 +120,18 @@ describe('Design Patterns Architecture Unit Tests (Kiểm Thử Mẫu Thiết K�
         allPlayers: [],
         payouts: { p0: 5000 },
         humanNetCoins: 5000,
-        totalHumanCoins: 55000
+        totalHumanCoins: 55000,
+        betAmount: 5000
       };
 
       bus.publish(sampleEvent);
-      expect(receivedEvent).not.toBeNull();
-      expect((receivedEvent as any)?.winnerPlayerId).toBe('p0');
+      expect(receivedWinnerId).toBe('p0');
 
       // Hủy đăng ký
       unsubscribe();
-      receivedEvent = null;
+      receivedWinnerId = '';
       bus.publish(sampleEvent);
-      expect(receivedEvent).toBeNull();
+      expect(receivedWinnerId).toBe('');
     });
   });
 
@@ -178,6 +177,7 @@ describe('Design Patterns Architecture Unit Tests (Kiểm Thử Mẫu Thiết K�
           winners: [],
           allPlayers: [],
           payouts: {},
+          betAmount: 5000,
           humanNetCoins: 950000,
           totalHumanCoins: 1000000 // Đạt 1 triệu xu
         }
@@ -225,7 +225,12 @@ describe('Design Patterns Architecture Unit Tests (Kiểm Thử Mẫu Thiết K�
         tracker: new CardTracker(hand, 1.0),
         config: BOT_PERSONAS.BOT_ELO_2500,
         remainingPlayerCards: { p0: 5, p1: 4, p2: 8, p3: 10 },
-        nextPlayerId: 'p0'
+        nextPlayerId: 'p0',
+        rules: createDefaultGameRules(),
+        hasPlayedFirstCard: true,
+        isNextPlayerOneCard: false,
+        prohibitEndingWithTwo: true,
+        gameMode: 'TRADITIONAL'
       };
 
       const decision = makeBotDecision(context);
@@ -244,7 +249,12 @@ describe('Design Patterns Architecture Unit Tests (Kiểm Thử Mẫu Thiết K�
         tracker: new CardTracker(hand, 1.0),
         config: BOT_PERSONAS.BOT_ELO_2500,
         remainingPlayerCards: { p0: 1, p1: 5, p2: 6, p3: 8 }, // p0 chỉ còn 1 lá!
-        nextPlayerId: 'p0'
+        nextPlayerId: 'p0',
+        rules: createDefaultGameRules(),
+        hasPlayedFirstCard: true,
+        isNextPlayerOneCard: true,
+        prohibitEndingWithTwo: true,
+        gameMode: 'TRADITIONAL'
       };
 
       const decision = makeBotDecision(context);

@@ -36,6 +36,27 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
   const c2S = createCard(15, 'SPADES');
   const c2H = createCard(15, 'HEARTS');
 
+  function createMockRuleDecisionContext(partial?: Partial<RuleDecisionContext>): RuleDecisionContext {
+    return {
+      hand: partial?.hand || [],
+      currentRoundLeadingMove: partial?.currentRoundLeadingMove ?? null,
+      isFirstMoveOfGame: partial?.isFirstMoveOfGame ?? false,
+      isLeadMove: partial?.isLeadMove ?? false,
+      tracker: partial?.tracker || new CardTracker(),
+      remainingPlayerCards: partial?.remainingPlayerCards || { p0: 5, p1: 5 },
+      nextPlayerId: partial?.nextPlayerId || 'p1',
+      hasPlayedFirstCard: partial?.hasPlayedFirstCard ?? true,
+      isNextPlayerOneCard: partial?.isNextPlayerOneCard ?? false,
+      prohibitEndingWithTwo: partial?.prohibitEndingWithTwo ?? true,
+      rules: partial?.rules || createDefaultGameRules(),
+      handPartitioningOptimality: partial?.handPartitioningOptimality ?? 0.8,
+      antiLeaderAggression: partial?.antiLeaderAggression ?? 0.8,
+      tempoControl: partial?.tempoControl ?? 0.5,
+      trapTendency: partial?.trapTendency ?? 0.5,
+      riskAppetite: partial?.riskAppetite ?? 0.5
+    };
+  }
+
   // ==========================================================================
   // 1. SETTLEMENT RULE STRATEGIES
   // ==========================================================================
@@ -108,21 +129,17 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
       const tracker = new CardTracker();
 
       const defaultRules = createDefaultGameRules();
-      const context: RuleDecisionContext = {
+      const context = createMockRuleDecisionContext({
         hand: [c3S, c3D, c4S, c7S, cAS],
         currentRoundLeadingMove: {
           playerId: 'p1',
           combination: { type: 'SINGLE', cards: [c4C], highestCard: c4C, length: 1 },
           timestamp: Date.now()
         },
-        isFirstMoveOfGame: false,
-        isLeadMove: false,
-        tracker,
         remainingPlayerCards: { p0: 5, p1: 2, p2: 8, p3: 9 }, // p1 còn 2 lá!
-        nextPlayerId: 'p1',
         hasPlayedFirstCard: false, // CHƯA RA ĐƯỢC LÁ NÀO
         rules: defaultRules
-      };
+      });
 
       const validMoves: ValidMoveInfo[] = [
         { cards: [c7S], combination: { type: 'SINGLE', cards: [c7S], highestCard: c7S, length: 1 }, isChop: false },
@@ -145,17 +162,12 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
       const tracker = new CardTracker();
 
       const defaultRules = createDefaultGameRules();
-      const context: RuleDecisionContext = {
+      const context = createMockRuleDecisionContext({
         hand: [c7S, cAS],
-        currentRoundLeadingMove: null,
-        isFirstMoveOfGame: false,
-        isLeadMove: false,
-        tracker,
         remainingPlayerCards: { p0: 2, p1: 1 },
-        nextPlayerId: 'p1',
         hasPlayedFirstCard: true, // ĐÃ RA BÀI RỒI
         rules: defaultRules
-      };
+      });
 
       const validMoves: ValidMoveInfo[] = [
         { cards: [cAS], combination: { type: 'SINGLE', cards: [cAS], highestCard: cAS, length: 1 }, isChop: false }
@@ -211,18 +223,14 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
 
       const defaultRules = createDefaultGameRules();
       // Tay cầm [3S, 2H]: còn 1 rác + 1 heo
-      const context: RuleDecisionContext = {
+      const context = createMockRuleDecisionContext({
         hand: [c3S, c2H],
-        currentRoundLeadingMove: null,
-        isFirstMoveOfGame: false,
         isLeadMove: true,
-        tracker,
         remainingPlayerCards: { p0: 2, p1: 4, p2: 5, p3: 6 },
-        nextPlayerId: 'p1',
         hasPlayedFirstCard: true,
         prohibitEndingWithTwo: true,
         rules: defaultRules
-      };
+      });
 
       const validMoves: ValidMoveInfo[] = [
         { cards: [c3S], combination: { type: 'SINGLE', cards: [c3S], highestCard: c3S, length: 1 }, isChop: false },
@@ -243,17 +251,13 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
       const tracker = new CardTracker();
 
       const defaultRules = createDefaultGameRules();
-      const context: RuleDecisionContext = {
+      const context = createMockRuleDecisionContext({
         hand: [c4S, c7S, cAS],
-        currentRoundLeadingMove: null,
-        isFirstMoveOfGame: false,
         isLeadMove: true,
-        tracker,
         remainingPlayerCards: { p0: 3, p1: 1, p2: 5, p3: 6 }, // p1 (kế tiếp) còn 1 lá
-        nextPlayerId: 'p1',
         hasPlayedFirstCard: true,
         rules: defaultRules
-      };
+      });
 
       const validMoves: ValidMoveInfo[] = [
         { cards: [c4S], combination: { type: 'SINGLE', cards: [c4S], highestCard: c4S, length: 1 }, isChop: false },
@@ -285,17 +289,12 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
         isChop: false
       };
 
-      const context: RuleDecisionContext = {
+      const context = createMockRuleDecisionContext({
         hand: [cAS],
-        currentRoundLeadingMove: null,
-        isFirstMoveOfGame: false,
-        isLeadMove: false,
-        tracker: new CardTracker(),
         remainingPlayerCards: { p0: 5, p1: 5 },
-        nextPlayerId: 'p1',
         rules: createDefaultGameRules({ table: { playerCount: 2, betAmount: 500, botThinkDelayMs: 650, soundEnabled: true } }),
         antiLeaderAggression: 1.0
-      };
+      });
 
       const bonus = table1v1.getRespondingScoreModifier(moveAS, 5, null, context);
       expect(bonus).toBe(90); // Thưởng lớn cho 1v1
@@ -352,7 +351,10 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
         remainingPlayerCards: { p0: 5, p1: 6, p2: 7, p3: 8 },
         nextPlayerId: 'p1',
         rules: customRules,
-        hasPlayedFirstCard: true
+        hasPlayedFirstCard: true,
+        isNextPlayerOneCard: false,
+        prohibitEndingWithTwo: true,
+        gameMode: 'COUNT_CARDS'
       });
 
       expect(decision.type).toBe('PLAY');

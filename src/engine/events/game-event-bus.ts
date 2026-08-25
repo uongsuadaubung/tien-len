@@ -54,6 +54,7 @@ export interface MatchCompletedEvent {
   payouts: Record<string, number>;
   humanNetCoins: number;
   totalHumanCoins: number;
+  betAmount: number;
 }
 
 export interface CoinsChangedEvent {
@@ -72,14 +73,29 @@ export type GameEvent =
   | MatchCompletedEvent
   | CoinsChangedEvent;
 
+export type GameEventMap = {
+  CARD_PLAYED: CardPlayedEvent;
+  TURN_PASSED: TurnPassedEvent;
+  ROUND_WON: RoundWonEvent;
+  CHOP_EXECUTED: ChopExecutedEvent;
+  INSTANT_WIN: InstantWinEvent;
+  MATCH_COMPLETED: MatchCompletedEvent;
+  COINS_CHANGED: CoinsChangedEvent;
+};
+
 export type EventListener<T extends GameEvent = GameEvent> = (event: T) => void;
+type GenericEventListener = (event: GameEvent) => void;
+
+function isMatchingEvent<K extends GameEventType>(eventType: K, event: GameEvent): event is GameEventMap[K] {
+  return event.type === eventType;
+}
 
 /**
  * Event Bus triển khai Observer Pattern cho toàn bộ sự kiện ván đấu
  */
 export class GameEventBus {
   private static instance: GameEventBus;
-  private listeners: Map<GameEventType, Set<EventListener<any>>> = new Map();
+  private listeners: Map<GameEventType, Set<GenericEventListener>> = new Map();
 
   public static getInstance(): GameEventBus {
     if (!GameEventBus.instance) {
@@ -89,18 +105,23 @@ export class GameEventBus {
   }
 
   /**
-   * Đăng ký lắng nghe sự kiện (Subscribe)
+   * Đăng ký lắng nghe sự kiện (Subscribe) với kiểu dữ liệu chính xác cho từng loại sự kiện
    */
-  public subscribe<T extends GameEvent>(eventType: GameEventType, listener: EventListener<T>): () => void {
+  public subscribe<K extends GameEventType>(eventType: K, listener: (event: GameEventMap[K]) => void): () => void {
     if (!this.listeners.has(eventType)) {
       this.listeners.set(eventType, new Set());
     }
     const set = this.listeners.get(eventType)!;
-    set.add(listener as EventListener<any>);
+    const genericListener: GenericEventListener = (event) => {
+      if (isMatchingEvent(eventType, event)) {
+        listener(event);
+      }
+    };
+    set.add(genericListener);
 
     // Trả về hàm Unsubscribe tiện lợi
     return () => {
-      set.delete(listener as EventListener<any>);
+      set.delete(genericListener);
     };
   }
 

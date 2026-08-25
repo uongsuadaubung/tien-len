@@ -64,11 +64,9 @@ export function checkInstantWin(hand: Card[], isFirstGame = false): InstantWinTy
   }
 
   // 3. Sảnh Rồng (Dãy liên tiếp từ 3 tới A = 12 lá hoặc 3 tới 2 = 13 lá)
-  const uniqueRanks = Array.from(new Set(sorted.map(c => c.rank)));
-  // Kiểm tra có đủ các rank từ 3 (3) đến 14 (A) không
-  const hasDragon3ToA = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14].every(r =>
-    uniqueRanks.includes(r as Rank)
-  );
+  const uniqueRanks = new Set(sorted.map(c => c.rank));
+  const DRAGON_RANKS: readonly Rank[] = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
+  const hasDragon3ToA = DRAGON_RANKS.every(r => uniqueRanks.has(r));
   if (hasDragon3ToA) {
     return 'DRAGON_STRAIGHT';
   }
@@ -81,15 +79,13 @@ export function checkInstantWin(hand: Card[], isFirstGame = false): InstantWinTy
   }
 
   // Gom các đôi trong tay bài để kiểm tra 5 đôi thông & 6 đôi bất kỳ
-  const rankCounts: Record<number, number> = {};
+  const rankCounts = new Map<Rank, number>();
   for (const card of sorted) {
-    rankCounts[card.rank] = (rankCounts[card.rank] || 0) + 1;
+    rankCounts.set(card.rank, (rankCounts.get(card.rank) || 0) + 1);
   }
 
   const pairRanks: Rank[] = [];
-  for (const rankStr in rankCounts) {
-    const rank = Number(rankStr) as Rank;
-    const count = rankCounts[rank];
+  for (const [rank, count] of rankCounts.entries()) {
     if (count >= 2) pairRanks.push(rank);
     if (count === 4) pairRanks.push(rank); // Tứ quý tính là 2 đôi
   }

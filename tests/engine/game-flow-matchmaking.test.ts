@@ -119,13 +119,16 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
       elo: 1350,
       campaignUnlockedChapter: 1,
       campaignChapterWins: {},
+      dailyReliefClaimedCount: 0,
+      lastDailyResetTimestamp: Date.now(),
       stats: {
         gamesPlayed: 10,
         wins: 6,
         currentStreak: 2,
         highestStreak: 3,
         totalEarned: 1000,
-        chopsDone: 2
+        chopsDone: 2,
+        congsGiven: 0
       },
       dailyQuests: [],
       achievements: []

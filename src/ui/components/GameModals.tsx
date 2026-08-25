@@ -17,6 +17,7 @@ import { F5PenaltyNoticeModal } from './F5PenaltyNoticeModal';
 import { NameSetupModal } from './NameSetupModal';
 import { CardTracker } from '../../ai/card-tracker';
 import { CampaignChapter } from '../../engine/campaign';
+import { normalizePlayerCount } from '../../engine/types';
 
 interface GameModalsProps {
   player0Tracker?: CardTracker;
@@ -149,11 +150,11 @@ export const GameModals: React.FC<GameModalsProps> = ({
         initialConfig={{
           selectedModeId: gameSettings.mode === 'COUNT_CARDS' ? 'COUNT_CARDS' : gameSettings.mode === 'WINNER_TAKES_ALL' ? 'WINNER_TAKES_ALL' : 'TRADITIONAL',
           settings: gameSettings,
-          playerCount: playerCount,
+          playerCount: normalizePlayerCount(playerCount),
           botPersonaIds: botPersonaIds,
           customBotConfigs: customBotConfigs
         }}
-        onStartGame={onStartCustomGame}
+        onStartCustomGame={onStartCustomGame}
       />
 
       {/* 7. Settings Modal */}

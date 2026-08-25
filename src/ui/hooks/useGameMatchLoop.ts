@@ -276,7 +276,8 @@ export function useGameMatchLoop() {
       allPlayers: engine.players,
       payouts: settlement.payouts,
       humanNetCoins: humanNetEarned,
-      totalHumanCoins: nextCoins
+      totalHumanCoins: nextCoins,
+      betAmount: engine.rules.table.betAmount
     };
 
     const finalQuests = evaluateDailyQuests([matchCompletedEvent], updatedProfile.dailyQuests, updatedProfile);
@@ -379,8 +380,8 @@ export function useGameMatchLoop() {
     // 4. Giữ lại số tiền của các người chơi nếu là ván tiếp theo trong cùng bàn VÀ thay thế Bot nếu Bot cháy túi
     let initialPlayers = setup.initialPlayers;
     const replacedBanners: string[] = [];
-    const currentPersonaIds = [...botPersonaIds] as [string, string, string];
-    const currentConfigs = [...customBotConfigs] as [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>];
+    const currentPersonaIds = botPersonaIds;
+    const currentConfigs = customBotConfigs;
 
     if (!isRanked && effectiveGameNumber > 1 && engineRef.current) {
       const prevEngine = engineRef.current;

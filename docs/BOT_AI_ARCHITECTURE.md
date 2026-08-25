@@ -6,10 +6,10 @@
 ## 1. TỔNG QUAN KIẾN TRÚC (SYSTEM ARCHITECTURE)
 
 Hệ thống Bot AI của Tiến Lên Miền Nam được xây dựng theo kiến trúc hướng module, phân lớp sạch và tích hợp các Mẫu Thiết Kế Phần Mềm (Design Patterns) kinh điển:
-- **Composite Rule Strategy Pattern**: Thay vì gán AI cứng nhắc theo từng Chế độ chơi (Game Mode), hệ thống phân tích tập hợp các Rule đang **BẬT (active)** trong [`GameRules`](file:///c:/Users/kien.hm/Desktop/tien-len/src/engine/types.ts) để tự động tổng hợp chính sách ra bài, điểm điều chỉnh đỡ bài, rủi ro chặt và các hành vi khẩn cấp.
+- **Composite Rule Strategy Pattern**: Thay vì gán AI cứng nhắc theo từng Chế độ chơi (Game Mode), hệ thống phân tích tập hợp các Rule đang **BẬT (active)** trong [`GameRules`](../src/engine/types.ts) để tự động tổng hợp chính sách ra bài, điểm điều chỉnh đỡ bài, rủi ro chặt và các hành vi khẩn cấp.
 - **Chain of Responsibility Pattern**: Chuỗi xử lý quyết định tuần tự 5 tầng ưu tiên cao xuống thấp:
   $$\text{EmergencyRuleHandler} \longrightarrow \text{EndgameSolverHandler} \longrightarrow \text{LeadMoveHeuristicHandler} \longrightarrow \text{RespondingMoveHeuristicHandler} \longrightarrow \text{FallbackDecisionHandler}$$
-- **Factory Pattern**: [`BotFactory`](file:///c:/Users/kien.hm/Desktop/tien-len/src/ai/bot-factory.ts) khởi tạo 18 Personas đa dạng thuộc 5 Bậc Elo (850 - 2500 Elo).
+- **Factory Pattern**: [`BotFactory`](../src/ai/bot-factory.ts) khởi tạo 18 Personas đa dạng thuộc 5 Bậc Elo (850 - 2500 Elo).
 - **MCTS Solver (Monte Carlo Tree Search)**: Cung cấp khả năng mô phỏng cây ván đấu sâu cho các Bot bậc Thần Bài (Tier 5).
 
 ```
@@ -25,6 +25,7 @@ Hệ thống Bot AI của Tiến Lên Miền Nam được xây dựng theo kiế
 │  - Số lá đối thủ (RemainingCards)  - Nước đi dẫn đầu vòng (CurrentRoundLeadingMove)    │
 │  - nextPlayerId (Người kế tiếp)   - hasPlayedFirstCard (Kiểm tra nguy cơ Cóng)        │
 │  - rules: GameRules (Tập luật)    - prohibitEndingWithTwo (Luật Cấm 2 Cuối)           │
+│  - isNextPlayerOneCard (Báo 1 lá) - gameMode: string (Chế độ chơi hiện tại)           │
 └──────────────────────────────────────────┬─────────────────────────────────────────────┘
                                            │
                                            ▼
@@ -75,9 +76,9 @@ Hệ thống Bot AI của Tiến Lên Miền Nam được xây dựng theo kiế
 
 ---
 
-## 2. HỆ THỐNG 5 MODULE RULE STRATEGIES ([`rule-strategies.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/ai/rule-strategies.ts))
+## 2. HỆ THỐNG 5 MODULE RULE STRATEGIES ([`rule-strategies.ts`](../src/ai/rule-strategies.ts))
 
-Mỗi quy tắc trong [`GameRules`](file:///c:/Users/kien.hm/Desktop/tien-len/src/engine/types.ts) được ánh xạ thành một `RuleStrategyEvaluator` độc lập:
+Mỗi quy tắc trong [`GameRules`](../src/engine/types.ts) được ánh xạ thành một `RuleStrategyEvaluator` độc lập:
 
 ### 2.1. `SettlementRuleStrategy` (Quy Tắc Tính Tiền & Thứ Hạng)
 - **`CARD_COUNT` (Đếm Lá / Sòng Bạc Ngầm)**:
@@ -106,6 +107,7 @@ Mỗi quy tắc trong [`GameRules`](file:///c:/Users/kien.hm/Desktop/tien-len/sr
 ### 2.4. `GameFlowRuleStrategy` (Quy Tắc Vòng Đấu & Cờ Tàn)
 - **`firstGameRequireThreeOfSpades`**: Bắt buộc chứa $3\spadesuit$, bảo vệ tuyệt đối Hàng (3 đôi thông, 4 đôi thông, tứ quý).
 - **`prohibitEndingWithTwo` (Cấm 2 Cuối Cùng)**: Khi cờ tàn còn tổ hợp Heo + 1 lượt bài thường dứt điểm, ép xả Heo trước để kết liễu bằng bài thường, ngăn ngừa 100% nguy cơ Thối Heo.
+- **`threeSpadesEndingBonus` (Ăn 3 Bích Cuối Cùng)**: Thưởng cực đại ($+500$ điểm) khi lá đơn $3\spadesuit$ là nước đi kết liễu ván đấu; tự động giữ lại $3\spadesuit$ khi bài có Heo Cơ và thế thắng áp đảo.
 - **`antiLeaderDefense` (Chống Đền Bài)**: Khi người kế tiếp báo 1 lá, ép ra Bộ hoặc lá rác to nhất (A, 2) để chặn đầu.
 
 ### 2.5. `TableScaleRuleStrategy` (Quy Mô Bàn Đấu)
@@ -116,11 +118,11 @@ Mỗi quy tắc trong [`GameRules`](file:///c:/Users/kien.hm/Desktop/tien-len/sr
 
 ## 3. CÁC PHÂN HỆ THUẬT TOÁN HỖ TRỢ
 
-### 3.1. Phân Hệ Phân Rã Bài Tối Ưu ([`hand-partitioner.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/ai/hand-partitioner.ts))
+### 3.1. Phân Hệ Phân Rã Bài Tối Ưu ([`hand-partitioner.ts`](../src/ai/hand-partitioner.ts))
 Thuật toán giải bài toán phân hoạch tập hợp $H \subseteq \text{Deck}$ thành danh sách tổ hợp $C$ và rác $T$ sao cho tổng điểm cực đại:
 $$\max \text{Score}(P) = \sum_{c \in C} \text{Score}_{\text{combo}}(c) + \sum_{t \in T} \text{Score}_{\text{trash}}(t)$$
 
-### 3.2. Phân Hệ Theo Dõi & Đếm Bài ([`card-tracker.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/ai/card-tracker.ts))
+### 3.2. Phân Hệ Theo Dõi & Đếm Bài ([`card-tracker.ts`](../src/ai/card-tracker.ts))
 1. **Đếm Heo & Hàng Quý**: Theo dõi 4 lá Heo và nguy cơ Tứ Quý / Đôi Thông.
 2. **Bayesian Pass Inference**: Ghi nhận đối thủ bỏ lượt theo loại tổ hợp và độ dài sảnh.
 3. **Báo Cáo An Toàn Heo (`TwoSafetyReport`)**: Đánh giá chỉ số rủi ro ra Heo.
@@ -152,9 +154,9 @@ $$\max \text{Score}(P) = \sum_{c \in C} \text{Score}_{\text{combo}}(c) + \sum_{t
 
 ## 5. ĐỘ BAO PHỦ KIỂM THỬ TỰ ĐỘNG (TEST COVERAGE)
 
-- **155/155 tests PASS 100%** qua 23 files kiểm thử chuyên sâu (`bun test`).
+- **194/194 tests PASS 100%** qua 28 files kiểm thử chuyên sâu (`bun test`).
 - Bao phủ trọn vẹn:
   1. Từng Rule Strategy độc lập và tổ hợp Composite Rules tùy biến.
   2. Thoát Cóng khẩn cấp (`EMERGENCY_UNFREEZE`).
-  3. Cờ tàn Cấm 2 cuối & Chống đền bài khi báo 1 lá.
-  4. Ma trận đấu 5 bậc Elo (200 ván ngẫu nhiên).
+  3. Cờ tàn Cấm 2 cuối, Ăn 3 Bích về cuối & Chống đền bài khi báo 1 lá.
+  4. Ma trận đấu 5 bậc Elo và benchmark độ trễ ra quyết định ($\le 60\text{ms}$).

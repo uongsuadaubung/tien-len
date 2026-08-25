@@ -3,7 +3,8 @@ import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { CardTracker } from '../../src/ai/card-tracker';
 import { makeBotDecision } from '../../src/ai/decision-maker';
 import { GameEngine } from '../../src/engine/game';
-import { Player } from '../../src/engine/types';
+import { Player, createDefaultGameRules } from '../../src/engine/types';
+import { parseCards } from '../../src/engine/card';
 
 describe('AI Bot Benchmark Simulation (100 Ván Đấu Mô Phỏng)', () => {
   test('Mô phỏng 100 ván đấu giữa 4 Bot và đánh giá xếp hạng tỉ lệ thắng', () => {
@@ -68,7 +69,12 @@ describe('AI Bot Benchmark Simulation (100 Ván Đấu Mô Phỏng)', () => {
           tracker,
           config: botObj.config,
           remainingPlayerCards: remainingCardsMap,
-          nextPlayerId
+          nextPlayerId,
+          rules: game.rules,
+          hasPlayedFirstCard: currentTurnPlayer.hasPlayedFirstCard,
+          isNextPlayerOneCard: remainingCardsMap[nextPlayerId] === 1,
+          prohibitEndingWithTwo: game.rules.gameFlow.prohibitEndingWithTwo,
+          gameMode: game.settings.mode
         });
 
         if (decision.type === 'PLAY' && decision.cards) {
@@ -128,20 +134,7 @@ describe('AI Bot Benchmark Simulation (100 Ván Đấu Mô Phỏng)', () => {
     console.log('--- BENCHMARK ĐỘ TRỄ TÍNH TOÁN RA QUYẾT ĐỊNH ---');
 
     for (const bot of testBots) {
-      const hand = [
-        { id: '3S', rank: 3, suit: 'SPADES', weight: 30 },
-        { id: '4S', rank: 4, suit: 'SPADES', weight: 40 },
-        { id: '5S', rank: 5, suit: 'SPADES', weight: 50 },
-        { id: '7H', rank: 7, suit: 'HEARTS', weight: 73 },
-        { id: '8D', rank: 8, suit: 'DIAMONDS', weight: 82 },
-        { id: '9C', rank: 9, suit: 'CLUBS', weight: 91 },
-        { id: '10H', rank: 10, suit: 'HEARTS', weight: 103 },
-        { id: 'JD', rank: 11, suit: 'DIAMONDS', weight: 112 },
-        { id: 'QH', rank: 12, suit: 'HEARTS', weight: 123 },
-        { id: 'KD', rank: 13, suit: 'DIAMONDS', weight: 132 },
-        { id: 'AH', rank: 14, suit: 'HEARTS', weight: 143 },
-        { id: '2H', rank: 15, suit: 'HEARTS', weight: 153 }
-      ] as any[];
+      const hand = parseCards('3S 4C 5S 7H 8D 9C 10H JD QH KD AH 2H');
 
       const tracker = new CardTracker(hand, bot.memoryDepth);
       const start = performance.now();
@@ -156,7 +149,12 @@ describe('AI Bot Benchmark Simulation (100 Ván Đấu Mô Phỏng)', () => {
           tracker,
           config: bot,
           remainingPlayerCards: { p0: 10, p2: 10, p3: 10 },
-          nextPlayerId: 'p2'
+          nextPlayerId: 'p2',
+          rules: createDefaultGameRules(),
+          hasPlayedFirstCard: true,
+          isNextPlayerOneCard: false,
+          prohibitEndingWithTwo: true,
+          gameMode: 'TRADITIONAL'
         });
       }
 

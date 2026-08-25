@@ -1,4 +1,4 @@
-import { Card, Combination, GameRules, PlayedMove } from '../engine/types';
+import { Card, Combination, GameRules, PlayedMove, createDefaultGameRules } from '../engine/types';
 import { compareCards, isTwo, sortCards } from '../engine/card';
 import { identifyCombination } from '../engine/combinations';
 import { isValidMove } from '../engine/validator';
@@ -24,11 +24,11 @@ export interface DecisionContext {
   config: BotConfig;
   remainingPlayerCards: Record<string, number>;
   nextPlayerId: string; // BẮT BUỘC: ID người chơi kế tiếp theo chiều kim đồng hồ
-  rules?: GameRules;    // MỚI: Toàn bộ tập luật active chi phối ván đấu
-  hasPlayedFirstCard?: boolean; // MỚI: Trạng thái đã ra lá bài nào chưa (dùng cho luật Cóng)
-  isNextPlayerOneCard?: boolean;
-  prohibitEndingWithTwo?: boolean;
-  gameMode?: string;    // Chế độ chơi (hỗ trợ tương thích ngược)
+  rules: GameRules;    // BẮT BUỘC: Toàn bộ tập luật active chi phối ván đấu
+  hasPlayedFirstCard: boolean; // BẮT BUỘC: Trạng thái đã ra lá bài nào chưa (dùng cho luật Cóng)
+  isNextPlayerOneCard: boolean;
+  prohibitEndingWithTwo: boolean;
+  gameMode: string;    // Chế độ chơi
   mctsMap?: Map<string, number>;
   compositeRuleStrategy?: CompositeRuleStrategy;
 }
@@ -528,7 +528,7 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
       hasPlayedFirstCard: context.hasPlayedFirstCard,
       isNextPlayerOneCard: context.isNextPlayerOneCard,
       prohibitEndingWithTwo: context.prohibitEndingWithTwo,
-      rules: compositeStrategy ? compositeStrategy.rules : (context.rules || {} as any),
+      rules: compositeStrategy ? compositeStrategy.rules : (context.rules || createDefaultGameRules()),
       handPartitioningOptimality: config.handPartitioningOptimality,
       antiLeaderAggression: config.antiLeaderAggression,
       tempoControl: config.tempoControl,

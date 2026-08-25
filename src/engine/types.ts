@@ -70,8 +70,26 @@ export interface GameFlowRules {
   threeSpadesEndingBonus: boolean;        // Về 3 Bích cuối cùng (từ ván 2+) được x2 tiền thưởng cả làng
 }
 
+export type PlayerCount = 2 | 3 | 4;
+
+export function normalizePlayerCount(count?: number): PlayerCount {
+  if (count === 2 || count === 3 || count === 4) return count;
+  return 4;
+}
+
+export type BotPersonaIdTuple = [string, string, string];
+export type CustomBotConfigTuple<T = Record<string, unknown>> = [Partial<T>, Partial<T>, Partial<T>];
+
+export function updateTupleAt<T>(tuple: [T, T, T], index: number, value: T): [T, T, T] {
+  return [
+    index === 0 ? value : tuple[0],
+    index === 1 ? value : tuple[1],
+    index === 2 ? value : tuple[2]
+  ];
+}
+
 export interface TableRules {
-  playerCount: 2 | 3 | 4;            // Số người chơi
+  playerCount: PlayerCount;          // Số người chơi
   betAmount: number;                 // Mức cược cơ bản (0 Xu với Ranked)
   botThinkDelayMs: number;           // Độ trễ suy nghĩ của AI
   soundEnabled: boolean;
@@ -88,6 +106,14 @@ export interface GameRules {
   instantWin: InstantWinRules;        // Luật Tới Trắng
   gameFlow: GameFlowRules;            // Luật Vòng chơi & Quyền đi đầu
   table: TableRules;                  // Cấu hình Bàn chơi
+}
+
+/**
+ * Type Guard xác định một đối tượng có phải là GameRules chuẩn không
+ */
+export function isGameRules(obj: unknown): obj is GameRules {
+  if (typeof obj !== 'object' || obj === null) return false;
+  return 'settlementRule' in obj && 'chopping' in obj && 'table' in obj;
 }
 
 export interface Player {
@@ -132,16 +158,20 @@ export interface GameSettings {
   instantWinEnabled: boolean;
   soundEnabled: boolean;
   botThinkDelayMs: number;
-  playerCount: 2 | 3 | 4;            // 2, 3 hoặc 4 người chơi
+  playerCount: PlayerCount;          // 2, 3 hoặc 4 người chơi
   prohibitEndingWithTwo: boolean;    // Cấm đánh 2 cuối cùng (Cấm về Heo)
   threeSpadesEndingBonus: boolean;   // Về 3 Bích cuối cùng x2 tiền thưởng cả làng
   cascadeChopEnabled: boolean;       // Chặt chồng tích lũy tiền phạt
 }
 
+export type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
 /**
  * Hàm khởi tạo Tập Luật mặc định chuẩn mực cho Tiến Lên Miền Nam
  */
-export function createDefaultGameRules(partial?: Partial<GameRules>): GameRules {
+export function createDefaultGameRules(partial?: DeepPartial<GameRules>): GameRules {
   return {
     settlementRule: partial?.settlementRule || 'TRADITIONAL_RANK_BASED',
     chopping: {
@@ -167,7 +197,7 @@ export function createDefaultGameRules(partial?: Partial<GameRules>): GameRules 
       threeSpadesEndingBonus: partial?.gameFlow?.threeSpadesEndingBonus ?? true
     },
     table: {
-      playerCount: (partial?.table?.playerCount ?? 4) as 2 | 3 | 4,
+      playerCount: normalizePlayerCount(partial?.table?.playerCount),
       betAmount: partial?.table?.betAmount ?? 500,
       botThinkDelayMs: partial?.table?.botThinkDelayMs ?? 800,
       soundEnabled: partial?.table?.soundEnabled ?? true
@@ -203,7 +233,7 @@ export function convertSettingsToGameRules(settings?: Partial<GameSettings>): Ga
       threeSpadesEndingBonus: settings?.threeSpadesEndingBonus ?? true
     },
     table: {
-      playerCount: (settings?.playerCount ?? 4) as 2 | 3 | 4,
+      playerCount: normalizePlayerCount(settings?.playerCount),
       betAmount: settings?.betAmount ?? 500,
       botThinkDelayMs: settings?.botThinkDelayMs ?? 800,
       soundEnabled: settings?.soundEnabled ?? true
@@ -365,7 +395,7 @@ export class TableRulesBuilder {
     };
   }
 
-  public playerCount(count: 2 | 3 | 4): this {
+  public playerCount(count: PlayerCount): this {
     this.config.playerCount = count;
     return this;
   }

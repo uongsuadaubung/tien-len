@@ -86,7 +86,7 @@ export const XRayInspector: React.FC<XRayInspectorProps> = ({
           <p className="text-xs text-yellow-100/70 mb-3">
             {twoSafety.isSafe
               ? 'Tất cả các Rank bài đều đã có lá xuất hiện trên bàn. Không còn bất kỳ nguy cơ Tứ Quý nào!'
-              : `Còn ${twoSafety.dangerousFourOfAKindRanks.length} rank có nguy cơ Tứ Quý còn nguyên (${twoSafety.dangerousFourOfAKindRanks.map(r => (RANK_NAMES as Record<number, string>)[r] || String(r)).join(', ')}).`}
+              : `Còn ${twoSafety.dangerousFourOfAKindRanks.length} rank có nguy cơ Tứ Quý còn nguyên (${twoSafety.dangerousFourOfAKindRanks.map(r => RANK_NAMES[r] || String(r)).join(', ')}).`}
           </p>
           <div className="w-full bg-neutral-800 h-2.5 rounded-full overflow-hidden border border-neutral-700">
             <div
