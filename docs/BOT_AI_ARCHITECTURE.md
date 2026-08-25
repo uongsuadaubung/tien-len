@@ -181,10 +181,11 @@ Hệ thống xây dựng mô hình hành vi đối thủ thích ứng qua nhiề
 
 ## 8. ĐỘ BAO PHỦ KIỂM THỬ TỰ ĐỘNG (TEST COVERAGE)
 
-- **207/207 tests PASS 100%** qua 31 files kiểm thử chuyên sâu (`bun test`).
+- **216/216 tests PASS 100%** qua 34 files kiểm thử chuyên sâu (`bun test` / `bun run test:coverage`).
 - Bao phủ trọn vẹn:
   1. Từng Rule Strategy độc lập và tổ hợp Composite Rules tùy biến.
   2. Thoát Cóng khẩn cấp (`EMERGENCY_UNFREEZE`).
   3. Cờ tàn Cấm 2 cuối, Ăn 3 Bích về cuối & Chống đền bài khi báo 1 lá.
-  4. Phân hệ Opponent Profiler, CFR Regret Matching & Scaled ISMCTS Engine.
-  5. Ma trận đấu 5 bậc Elo và benchmark độ trễ ra quyết định ($\le 60\text{ms}$).
+  4. Phân hệ Opponent Profiler, CFR Regret Matching & Multi-threaded Scaled ISMCTS Engine.
+  5. Kiểm thử thuộc tính bất biến (Property-Based Fuzzing 1000+ ván ngẫu nhiên).
+  6. Tích hợp Zustand Stores, Audio Manager và ma trận benchmark độ trễ ra quyết định ($\le 60\text{ms}$).

@@ -92,11 +92,15 @@ bun run lint
 ```
 > Kiểm tra toàn diện với ESLint, tuân thủ nghiêm ngặt quy tắc cấm `any` và cấm ép kiểu `as`.
 
-### 4. Kiểm Thử Đơn Vị (Unit Testing)
+### 4. Kiểm Thử Đơn Vị & Báo Cáo Bao Phủ (Unit Testing & Coverage)
 ```bash
+# Chạy toàn bộ 216 bài kiểm thử (34 test suites)
 bun test
+
+# Chạy kiểm thử kèm bảng thống kê Code Coverage chi tiết
+bun run test:coverage
 ```
-> Chạy **207 bài test** (31 test suites) bao phủ toàn bộ Engine, AI Decision Maker, Opponent Profiler, CFR Solver, Scaled MCTS, Strategy Rules, Validator, EventBus, Quests và Bot Benchmark.
+> Bao phủ toàn diện Engine, AI Decision Maker, Opponent Profiler, CFR Solver, Multi-threaded MCTS, Strategy Rules, Validator, EventBus, Quests, Zustand Stores, Audio Manager và Fuzzing Invariants 1000+ ván.
 
 ### 5. Đóng Gói Ứng Dụng (Production Build)
 ```bash

@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "lint": "eslint src/",
     "test": "bun test",
+    "test:coverage": "bun test --coverage",
     "benchmark": "bun test tests/ai/bot-benchmark.test.ts"
   },
   "dependencies": {
