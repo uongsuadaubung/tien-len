@@ -157,6 +157,20 @@ export class CardTracker {
   }
 
   /**
+   * Tính toán xác suất (0.0 -> 1.0) có Tứ Quý hoặc Hàng Chặt ẩn ngoài bàn:
+   * Càng nhiều lượt trôi qua mà một Rank hoàn toàn chưa lộ diện lá nào thì xác suất đang nằm trong tay đối thủ càng cao.
+   */
+  public getBombProbability(): number {
+    const dangerousRanks = this.getDangerousFourOfAKindRanks();
+    if (dangerousRanks.length === 0) return 0.0;
+
+    const playedRatio = this.playedCards.size / 52;
+    // Càng nhiều bài đã ra trên bàn mà rank vẫn 0 lá -> xác suất gom tứ quý càng cao
+    const probability = Math.min(1.0, dangerousRanks.length * 0.25 * (1 + playedRatio));
+    return probability;
+  }
+
+  /**
    * Kiểm tra xem lá bài này có đang là lá to nhất còn lại trên toàn bộ ván đấu hay không
    */
   public isStrongestRemainingSingle(card: Card): boolean {

@@ -13,9 +13,15 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     riskAppetite: 0.8,
     trapTendency: 0.0,
     baitingTendency: 0.0,
-    antiLeaderAggression: 1.0, // Cũ: 0.2 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    antiLeaderAggression: 1.0,
     tempoControl: 0.2,
     damageControl: 0.2,
+    turnsToWinLookahead: 0.0,
+    dynamicHandSacrifice: 0.0,
+    bombInferenceRate: 0.0,
+    semiCooperativeCooperation: 0.0,
+    positionalAwareness: 0.0,
+    inMatchAdaptationRate: 0.0,
     handPartitioningOptimality: 0.35,
     simulationLookahead: 0,
     mctsSimulations: 0
@@ -29,9 +35,15 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     riskAppetite: 0.85,
     trapTendency: 0.0,
     baitingTendency: 0.0,
-    antiLeaderAggression: 1.0, // Cũ: 0.2 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    antiLeaderAggression: 1.0,
     tempoControl: 0.2,
     damageControl: 0.2,
+    turnsToWinLookahead: 0.0,
+    dynamicHandSacrifice: 0.0,
+    bombInferenceRate: 0.0,
+    semiCooperativeCooperation: 0.0,
+    positionalAwareness: 0.0,
+    inMatchAdaptationRate: 0.0,
     handPartitioningOptimality: 0.35,
     simulationLookahead: 0,
     mctsSimulations: 0
@@ -45,9 +57,15 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     riskAppetite: 0.75,
     trapTendency: 0.1,
     baitingTendency: 0.0,
-    antiLeaderAggression: 1.0, // Cũ: 0.25 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    antiLeaderAggression: 1.0,
     tempoControl: 0.25,
     damageControl: 0.25,
+    turnsToWinLookahead: 0.0,
+    dynamicHandSacrifice: 0.0,
+    bombInferenceRate: 0.0,
+    semiCooperativeCooperation: 0.0,
+    positionalAwareness: 0.0,
+    inMatchAdaptationRate: 0.0,
     handPartitioningOptimality: 0.4,
     simulationLookahead: 0,
     mctsSimulations: 0
@@ -60,10 +78,16 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     memoryDepth: 0.25,
     riskAppetite: 0.75,
     trapTendency: 0.1,
-    baitingTendency: 0.1,
-    antiLeaderAggression: 1.0, // Cũ: 0.25 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    baitingTendency: 0.0,
+    antiLeaderAggression: 1.0,
     tempoControl: 0.25,
     damageControl: 0.25,
+    turnsToWinLookahead: 0.0,
+    dynamicHandSacrifice: 0.0,
+    bombInferenceRate: 0.0,
+    semiCooperativeCooperation: 0.0,
+    positionalAwareness: 0.0,
+    inMatchAdaptationRate: 0.0,
     handPartitioningOptimality: 0.45,
     simulationLookahead: 0,
     mctsSimulations: 0
@@ -80,10 +104,16 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     memoryDepth: 0.4,
     riskAppetite: 0.75,
     trapTendency: 0.25,
-    baitingTendency: 0.2,
-    antiLeaderAggression: 1.0, // Cũ: 0.5 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    baitingTendency: 0.1,
+    antiLeaderAggression: 1.0,
     tempoControl: 0.45,
     damageControl: 0.45,
+    turnsToWinLookahead: 0.3,
+    dynamicHandSacrifice: 0.4,
+    bombInferenceRate: 0.0,
+    semiCooperativeCooperation: 0.0,
+    positionalAwareness: 0.3,
+    inMatchAdaptationRate: 0.2,
     handPartitioningOptimality: 0.6,
     simulationLookahead: 1,
     mctsSimulations: 0
@@ -96,10 +126,16 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     memoryDepth: 0.4,
     riskAppetite: 0.8,
     trapTendency: 0.2,
-    baitingTendency: 0.15,
-    antiLeaderAggression: 1.0, // Cũ: 0.5 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    baitingTendency: 0.1,
+    antiLeaderAggression: 1.0,
     tempoControl: 0.45,
     damageControl: 0.45,
+    turnsToWinLookahead: 0.3,
+    dynamicHandSacrifice: 0.4,
+    bombInferenceRate: 0.0,
+    semiCooperativeCooperation: 0.0,
+    positionalAwareness: 0.3,
+    inMatchAdaptationRate: 0.2,
     handPartitioningOptimality: 0.6,
     simulationLookahead: 1,
     mctsSimulations: 0
@@ -112,10 +148,16 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     memoryDepth: 0.45,
     riskAppetite: 0.8,
     trapTendency: 0.3,
-    baitingTendency: 0.2,
-    antiLeaderAggression: 1.0, // Cũ: 0.55 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    baitingTendency: 0.15,
+    antiLeaderAggression: 1.0,
     tempoControl: 0.5,
     damageControl: 0.5,
+    turnsToWinLookahead: 0.3,
+    dynamicHandSacrifice: 0.4,
+    bombInferenceRate: 0.0,
+    semiCooperativeCooperation: 0.0,
+    positionalAwareness: 0.35,
+    inMatchAdaptationRate: 0.25,
     handPartitioningOptimality: 0.6,
     simulationLookahead: 1,
     mctsSimulations: 0
@@ -128,10 +170,16 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     memoryDepth: 0.5,
     riskAppetite: 0.75,
     trapTendency: 0.35,
-    baitingTendency: 0.25,
-    antiLeaderAggression: 1.0, // Cũ: 0.55 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    baitingTendency: 0.2,
+    antiLeaderAggression: 1.0,
     tempoControl: 0.55,
     damageControl: 0.55,
+    turnsToWinLookahead: 0.35,
+    dynamicHandSacrifice: 0.45,
+    bombInferenceRate: 0.1,
+    semiCooperativeCooperation: 0.0,
+    positionalAwareness: 0.35,
+    inMatchAdaptationRate: 0.25,
     handPartitioningOptimality: 0.6,
     simulationLookahead: 1,
     mctsSimulations: 0
@@ -148,10 +196,16 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     memoryDepth: 0.75,
     riskAppetite: 0.6,
     trapTendency: 0.5,
-    baitingTendency: 0.45,
-    antiLeaderAggression: 1.0, // Cũ: 0.75 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    baitingTendency: 0.4,
+    antiLeaderAggression: 1.0,
     tempoControl: 0.7,
     damageControl: 0.7,
+    turnsToWinLookahead: 0.6,
+    dynamicHandSacrifice: 0.65,
+    bombInferenceRate: 0.5,
+    semiCooperativeCooperation: 0.5,
+    positionalAwareness: 0.6,
+    inMatchAdaptationRate: 0.6,
     handPartitioningOptimality: 0.75,
     simulationLookahead: 2,
     mctsSimulations: 0
@@ -164,10 +218,16 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     memoryDepth: 0.8,
     riskAppetite: 0.6,
     trapTendency: 0.6,
-    baitingTendency: 0.6,
-    antiLeaderAggression: 1.0, // Cũ: 0.75 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    baitingTendency: 0.45,
+    antiLeaderAggression: 1.0,
     tempoControl: 0.75,
     damageControl: 0.7,
+    turnsToWinLookahead: 0.65,
+    dynamicHandSacrifice: 0.7,
+    bombInferenceRate: 0.5,
+    semiCooperativeCooperation: 0.5,
+    positionalAwareness: 0.65,
+    inMatchAdaptationRate: 0.6,
     handPartitioningOptimality: 0.75,
     simulationLookahead: 2,
     mctsSimulations: 0
@@ -180,10 +240,16 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     memoryDepth: 0.85,
     riskAppetite: 0.65,
     trapTendency: 0.6,
-    baitingTendency: 0.6,
-    antiLeaderAggression: 1.0, // Cũ: 0.8 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    baitingTendency: 0.5,
+    antiLeaderAggression: 1.0,
     tempoControl: 0.75,
     damageControl: 0.75,
+    turnsToWinLookahead: 0.65,
+    dynamicHandSacrifice: 0.7,
+    bombInferenceRate: 0.55,
+    semiCooperativeCooperation: 0.5,
+    positionalAwareness: 0.65,
+    inMatchAdaptationRate: 0.65,
     handPartitioningOptimality: 0.78,
     simulationLookahead: 2,
     mctsSimulations: 0
@@ -196,10 +262,16 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     memoryDepth: 0.85,
     riskAppetite: 0.65,
     trapTendency: 0.6,
-    baitingTendency: 0.6,
-    antiLeaderAggression: 1.0, // Cũ: 0.8 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    baitingTendency: 0.5,
+    antiLeaderAggression: 1.0,
     tempoControl: 0.8,
     damageControl: 0.75,
+    turnsToWinLookahead: 0.7,
+    dynamicHandSacrifice: 0.7,
+    bombInferenceRate: 0.6,
+    semiCooperativeCooperation: 0.5,
+    positionalAwareness: 0.68,
+    inMatchAdaptationRate: 0.65,
     handPartitioningOptimality: 0.78,
     simulationLookahead: 2,
     mctsSimulations: 0
@@ -216,10 +288,16 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     memoryDepth: 0.95,
     riskAppetite: 0.65,
     trapTendency: 0.55,
-    baitingTendency: 0.6,
-    antiLeaderAggression: 1.0, // Cũ: 0.9 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    baitingTendency: 0.75,
+    antiLeaderAggression: 1.0,
     tempoControl: 0.85,
     damageControl: 0.85,
+    turnsToWinLookahead: 0.85,
+    dynamicHandSacrifice: 0.88,
+    bombInferenceRate: 0.85,
+    semiCooperativeCooperation: 0.8,
+    positionalAwareness: 0.85,
+    inMatchAdaptationRate: 0.85,
     handPartitioningOptimality: 0.85,
     simulationLookahead: 3,
     mctsSimulations: 0
@@ -232,10 +310,16 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     memoryDepth: 0.95,
     riskAppetite: 0.7,
     trapTendency: 0.55,
-    baitingTendency: 0.6,
-    antiLeaderAggression: 1.0, // Cũ: 0.9 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    baitingTendency: 0.8,
+    antiLeaderAggression: 1.0,
     tempoControl: 0.88,
     damageControl: 0.88,
+    turnsToWinLookahead: 0.85,
+    dynamicHandSacrifice: 0.9,
+    bombInferenceRate: 0.85,
+    semiCooperativeCooperation: 0.8,
+    positionalAwareness: 0.88,
+    inMatchAdaptationRate: 0.85,
     handPartitioningOptimality: 0.85,
     simulationLookahead: 3,
     mctsSimulations: 0
@@ -248,10 +332,16 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     memoryDepth: 0.95,
     riskAppetite: 0.7,
     trapTendency: 0.55,
-    baitingTendency: 0.6,
-    antiLeaderAggression: 1.0, // Cũ: 0.9 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    baitingTendency: 0.8,
+    antiLeaderAggression: 1.0,
     tempoControl: 0.88,
     damageControl: 0.88,
+    turnsToWinLookahead: 0.85,
+    dynamicHandSacrifice: 0.9,
+    bombInferenceRate: 0.85,
+    semiCooperativeCooperation: 0.8,
+    positionalAwareness: 0.88,
+    inMatchAdaptationRate: 0.88,
     handPartitioningOptimality: 0.85,
     simulationLookahead: 3,
     mctsSimulations: 0
@@ -264,10 +354,16 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     memoryDepth: 0.95,
     riskAppetite: 0.7,
     trapTendency: 0.55,
-    baitingTendency: 0.6,
-    antiLeaderAggression: 1.0, // Cũ: 0.92 (Mặc định bật tất cả là 1 để chặn người báo 1 lá)
+    baitingTendency: 0.8,
+    antiLeaderAggression: 1.0,
     tempoControl: 0.9,
     damageControl: 0.9,
+    turnsToWinLookahead: 0.9,
+    dynamicHandSacrifice: 0.92,
+    bombInferenceRate: 0.88,
+    semiCooperativeCooperation: 0.8,
+    positionalAwareness: 0.9,
+    inMatchAdaptationRate: 0.9,
     handPartitioningOptimality: 0.85,
     simulationLookahead: 3,
     mctsSimulations: 0
@@ -284,10 +380,16 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     memoryDepth: 1.0,
     riskAppetite: 0.75,
     trapTendency: 0.6,
-    baitingTendency: 0.6,
-    antiLeaderAggression: 1.0, // Cũ: 1.0
+    baitingTendency: 0.9,
+    antiLeaderAggression: 1.0,
     tempoControl: 0.95,
     damageControl: 0.95,
+    turnsToWinLookahead: 0.95,
+    dynamicHandSacrifice: 0.95,
+    bombInferenceRate: 0.95,
+    semiCooperativeCooperation: 1.0,
+    positionalAwareness: 0.95,
+    inMatchAdaptationRate: 0.95,
     handPartitioningOptimality: 0.9,
     simulationLookahead: 4,
     mctsSimulations: 0
@@ -300,10 +402,16 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     memoryDepth: 1.0,
     riskAppetite: 0.7,
     trapTendency: 0.6,
-    baitingTendency: 0.65,
-    antiLeaderAggression: 1.0, // Cũ: 1.0
+    baitingTendency: 0.95,
+    antiLeaderAggression: 1.0,
     tempoControl: 0.98,
     damageControl: 0.98,
+    turnsToWinLookahead: 1.0,
+    dynamicHandSacrifice: 1.0,
+    bombInferenceRate: 1.0,
+    semiCooperativeCooperation: 1.0,
+    positionalAwareness: 1.0,
+    inMatchAdaptationRate: 1.0,
     handPartitioningOptimality: 0.9,
     simulationLookahead: 4,
     mctsSimulations: 0
@@ -316,10 +424,16 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     memoryDepth: 1.0,
     riskAppetite: 0.7,
     trapTendency: 0.65,
-    baitingTendency: 0.65,
-    antiLeaderAggression: 1.0, // Cũ: 1.0
+    baitingTendency: 1.0,
+    antiLeaderAggression: 1.0,
     tempoControl: 1.0,
     damageControl: 1.0,
+    turnsToWinLookahead: 1.0,
+    dynamicHandSacrifice: 1.0,
+    bombInferenceRate: 1.0,
+    semiCooperativeCooperation: 1.0,
+    positionalAwareness: 1.0,
+    inMatchAdaptationRate: 1.0,
     handPartitioningOptimality: 0.88,
     simulationLookahead: 4,
     mctsSimulations: 0
@@ -332,10 +446,16 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
     memoryDepth: 1.0,
     riskAppetite: 0.7,
     trapTendency: 0.7,
-    baitingTendency: 0.7,
-    antiLeaderAggression: 1.0, // Cũ: 1.0
+    baitingTendency: 1.0,
+    antiLeaderAggression: 1.0,
     tempoControl: 1.0,
     damageControl: 1.0,
+    turnsToWinLookahead: 1.0,
+    dynamicHandSacrifice: 1.0,
+    bombInferenceRate: 1.0,
+    semiCooperativeCooperation: 1.0,
+    positionalAwareness: 1.0,
+    inMatchAdaptationRate: 1.0,
     handPartitioningOptimality: 0.88,
     simulationLookahead: 4,
     mctsSimulations: 0
@@ -343,7 +463,14 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
 };
 
 export function getBotConfig(id: string, customOverrides?: Partial<BotConfig>): BotConfig {
-  const base = BOT_PERSONAS[id] || BOT_PERSONAS.BOT_ELO_1150;
+  let baseKey = id;
+  if (id && id.startsWith('dyn_')) {
+    const match = id.match(/BOT_ELO_\d+/);
+    if (match) {
+      baseKey = match[0];
+    }
+  }
+  const base = BOT_PERSONAS[baseKey] || BOT_PERSONAS[id] || BOT_PERSONAS.BOT_ELO_1150;
   if (!customOverrides) return base;
   return {
     ...base,
@@ -355,7 +482,14 @@ export function createCustomBotConfig(
   baseId: string,
   overrides: Partial<BotConfig>
 ): BotConfig {
-  const base = BOT_PERSONAS[baseId] || BOT_PERSONAS.BOT_ELO_1150;
+  let baseKey = baseId;
+  if (baseId && baseId.startsWith('dyn_')) {
+    const match = baseId.match(/BOT_ELO_\d+/);
+    if (match) {
+      baseKey = match[0];
+    }
+  }
+  const base = BOT_PERSONAS[baseKey] || BOT_PERSONAS[baseId] || BOT_PERSONAS.BOT_ELO_1150;
   return {
     ...base,
     ...overrides
@@ -469,12 +603,24 @@ export function getRandomBotConfigsForTable(
   const result: BotConfig[] = [];
   const usedNames: string[] = [];
   const usedAvatars: string[] = [];
+  const usedPersonas: string[] = [];
+
+  // Trộn ngẫu nhiên danh sách tiers để 3 ghế ngồi nhận các bậc rank khác nhau
+  const shuffledTiers = [...tiers].sort(() => Math.random() - 0.5);
 
   for (let i = 0; i < count; i++) {
-    const tier = tiers[i % tiers.length] || 2;
+    const tier = shuffledTiers[i % shuffledTiers.length] || (Math.floor(Math.random() * 5) + 1);
+    const candidatePool = (TIER_BASE_PERSONAS[tier] || TIER_BASE_PERSONAS[2]).filter(id => !usedPersonas.includes(id));
+    const chosenBaseId = candidatePool.length > 0
+      ? candidatePool[Math.floor(Math.random() * candidatePool.length)]
+      : (TIER_BASE_PERSONAS[tier] || TIER_BASE_PERSONAS[2])[Math.floor(Math.random() * (TIER_BASE_PERSONAS[tier] || TIER_BASE_PERSONAS[2]).length)];
+
+    usedPersonas.push(chosenBaseId);
+
     const bot = generateRandomBotConfig(tier, {
       excludeNames: usedNames,
-      excludeAvatars: usedAvatars
+      excludeAvatars: usedAvatars,
+      baseId: chosenBaseId
     });
     result.push(bot);
     usedNames.push(bot.name || '');
