@@ -11,6 +11,8 @@ interface TableCenterProps {
     chopperName: string;
     targetName: string;
     amount: number;
+    isCascade?: boolean;
+    chainCount?: number;
   } | null;
   isDealing?: boolean;
 }
@@ -23,14 +25,13 @@ export const TableCenter: React.FC<TableCenterProps> = ({
 }) => {
   const getSlideAnimationClass = (playerId?: string) => {
     switch (playerId) {
-      case 'p0':
-        return 'card-slide-p0'; // Người chơi: trượt từ dưới lên
       case 'p1':
-        return 'card-slide-p1'; // Bot 1 (Bé Năm): trượt từ trái sang
+        return 'card-slide-p1';
       case 'p2':
-        return 'card-slide-p2'; // Bot 2 (Chú Bảy): trượt từ trên xuống
+        return 'card-slide-p2';
       case 'p3':
-        return 'card-slide-p3'; // Bot 3 (Cô Ba): trượt từ phải sang
+        return 'card-slide-p3';
+      case 'p0':
       default:
         return 'card-slide-p0';
     }
@@ -40,11 +41,15 @@ export const TableCenter: React.FC<TableCenterProps> = ({
     <div className="relative flex flex-col items-center justify-center min-h-[160px] w-full">
       {/* Thông báo Chặt Heo / Chặt Hàng nổ bùng */}
       {chopNotification?.visible && (
-        <div className="absolute -top-12 z-50 chop-badge px-6 py-2 rounded-full flex items-center gap-2 text-white font-black text-lg animate-bounce">
-          <Flame className="w-6 h-6 text-yellow-300 fill-yellow-400" />
-          <span>CHẶT ĐẸP!</span>
+        <div className={`absolute -top-12 z-50 px-6 py-2 rounded-full flex items-center gap-2 text-white font-black text-lg animate-bounce shadow-2xl ${
+          chopNotification.isCascade 
+            ? 'bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 border-2 border-yellow-300 shadow-orange-500/60 ring-4 ring-orange-500/30' 
+            : 'chop-badge'
+        }`}>
+          <Flame className="w-6 h-6 text-yellow-300 fill-yellow-400 animate-pulse" />
+          <span>{chopNotification.isCascade ? `🔥 CHẶT ĐÈ LIÊN HOÀN (x${chopNotification.chainCount || 2})!` : 'CHẶT ĐẸP!'}</span>
           <span className="text-yellow-200 text-sm font-bold">
-            ({chopNotification.chopperName} +{chopNotification.amount}🧧 từ {chopNotification.targetName})
+            ({chopNotification.chopperName} +{chopNotification.amount.toLocaleString()}🧧 từ {chopNotification.targetName})
           </span>
         </div>
       )}

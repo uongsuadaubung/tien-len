@@ -21,6 +21,8 @@ export interface TableConfigState {
   choppingMultiplier: number;
   prohibitEndingWithTwo: boolean;
   allowFourPairsCutAnytime: boolean;
+  threeSpadesEndingBonus?: boolean;
+  cascadeChopEnabled?: boolean;
   instantWinEnabled?: boolean;
   congEnabled?: boolean;
   botThinkDelayMs?: number;
@@ -585,6 +587,64 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
             }`}>
               <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
                 config.allowFourPairsCutAnytime ? 'translate-x-5' : 'translate-x-0'
+              }`} />
+            </div>
+          </div>
+
+          {/* Về 3 Bích Cuối Cùng (Ăn Ba Bích) */}
+          <div 
+            onClick={() => onChange({ threeSpadesEndingBonus: config.threeSpadesEndingBonus !== false ? false : true })}
+            className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer ${
+              config.threeSpadesEndingBonus !== false 
+                ? 'bg-amber-950/30 border-yellow-500/60 shadow-sm' 
+                : 'bg-neutral-900/80 border-neutral-800 hover:border-neutral-700'
+            }`}
+          >
+            <div className="flex items-start gap-2.5 pr-2">
+              <Sparkles className="w-4 h-4 text-yellow-300 mt-0.5 flex-shrink-0" />
+              <div>
+                <div className="text-xs font-bold text-white">
+                  Về 3 Bích Cuối Cùng
+                </div>
+                <div className="text-[10px] text-neutral-400 mt-0.5 leading-tight">
+                  Từ ván 2+, đánh lá đơn 3♠ cuối cùng để về Nhất nhận <strong className="text-yellow-300">gấp đôi (x2)</strong> tiền thắng cả làng
+                </div>
+              </div>
+            </div>
+            <div className={`w-10 h-5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
+              config.threeSpadesEndingBonus !== false ? 'bg-yellow-500' : 'bg-neutral-700'
+            }`}>
+              <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                config.threeSpadesEndingBonus !== false ? 'translate-x-5' : 'translate-x-0'
+              }`} />
+            </div>
+          </div>
+
+          {/* Chặt Chồng Tích Lũy (Chop Cascade) */}
+          <div 
+            onClick={() => onChange({ cascadeChopEnabled: config.cascadeChopEnabled !== false ? false : true })}
+            className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all cursor-pointer ${
+              config.cascadeChopEnabled !== false 
+                ? 'bg-amber-950/30 border-yellow-500/60 shadow-sm' 
+                : 'bg-neutral-900/80 border-neutral-800 hover:border-neutral-700'
+            }`}
+          >
+            <div className="flex items-start gap-2.5 pr-2">
+              <Flame className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
+              <div>
+                <div className="text-xs font-bold text-white">
+                  Chặt Chồng Tích Lũy
+                </div>
+                <div className="text-[10px] text-neutral-400 mt-0.5 leading-tight">
+                  Tiền phạt chặt đè cộng dồn liên hoàn • Người bị chặt cuối đền toàn bộ chuỗi cho người chặt chót
+                </div>
+              </div>
+            </div>
+            <div className={`w-10 h-5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
+              config.cascadeChopEnabled !== false ? 'bg-yellow-500' : 'bg-neutral-700'
+            }`}>
+              <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                config.cascadeChopEnabled !== false ? 'translate-x-5' : 'translate-x-0'
               }`} />
             </div>
           </div>

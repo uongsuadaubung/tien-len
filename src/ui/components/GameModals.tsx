@@ -91,6 +91,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
     winners,
     currentHint,
     instantWinType,
+    isThreeSpadesWin,
     matchPayouts,
     loanDeductionAmount,
     lastEloDelta
@@ -192,6 +193,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
         allPlayers={players}
         betAmount={gameSettings.betAmount}
         instantWinType={instantWinType}
+        isThreeSpadesWin={isThreeSpadesWin}
         payouts={matchPayouts}
         loanDeduction={loanDeductionAmount}
         eloDelta={lastEloDelta}

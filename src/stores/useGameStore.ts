@@ -12,6 +12,8 @@ export interface ChopNotificationData {
   chopperName: string;
   targetName: string;
   amount: number;
+  isCascade?: boolean;
+  chainCount?: number;
 }
 
 interface GameState {
@@ -41,6 +43,7 @@ interface GameState {
   winners: Player[];
   isGameOver: boolean;
   instantWinType?: InstantWinType;
+  isThreeSpadesWin: boolean;
 
   // Player Hand Interaction
   selectedCardIds: Set<string>;
@@ -78,6 +81,7 @@ interface GameState {
   setWinners: (winners: Player[]) => void;
   setIsGameOver: (gameOver: boolean) => void;
   setInstantWinType: (type?: InstantWinType) => void;
+  setIsThreeSpadesWin: (win: boolean) => void;
 
   setSelectedCardIds: (idsOrUpdater: Set<string> | ((prev: Set<string>) => Set<string>)) => void;
   toggleCardSelect: (cardId: string) => void;
@@ -176,6 +180,7 @@ export const useGameStore = create<GameState>((set) => ({
   winners: [],
   isGameOver: false,
   instantWinType: undefined,
+  isThreeSpadesWin: false,
 
   selectedCardIds: new Set<string>(),
   currentHint: null,
@@ -226,6 +231,7 @@ export const useGameStore = create<GameState>((set) => ({
   setWinners: (winners) => set({ winners }),
   setIsGameOver: (gameOver) => set({ isGameOver: gameOver }),
   setInstantWinType: (type) => set({ instantWinType: type }),
+  setIsThreeSpadesWin: (win) => set({ isThreeSpadesWin: win }),
 
   setSelectedCardIds: (idsOrUpdater) => set((state) => ({
     selectedCardIds: typeof idsOrUpdater === 'function' ? idsOrUpdater(state.selectedCardIds) : idsOrUpdater

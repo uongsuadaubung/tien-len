@@ -91,6 +91,7 @@ export class GameEngine {
   }
 
   public lastWinnerId?: string;
+  public isThreeSpadesWin: boolean = false;
 
   /**
    * Khởi tạo ván bài mới
@@ -104,6 +105,7 @@ export class GameEngine {
     this.gameNumber = gameNumber;
     this.isFirstMoveOfGame = this.gameNumber === 1;
     this.isGameOver = false;
+    this.isThreeSpadesWin = false;
     this.playedCardsInGame = [];
     this.instantWinner = null;
     this.roundNumber = 1;
@@ -300,20 +302,65 @@ export class GameEngine {
     // Ván 1: Đã đánh ra 3S ở lượt đầu
     this.isFirstMoveOfGame = false;
 
-    // 2. Xử lý Chặt Heo & Chặt Hàng (Phạt tức thì)
+    // 2. Xử lý Chặt Heo & Chặt Hàng (Phạt tức thì & Chặt Chồng Tích Lũy)
     let isChop = false;
+    let isCascadeChop = false;
+    let chopChainCount = 0;
+    let chopChainTotalAmount = 0;
     let choppedPlayerId: string | undefined;
     let penaltyAmount = 0;
 
     if (validation.isChop && leadingMove) {
       isChop = true;
       choppedPlayerId = leadingMove.playerId;
-      penaltyAmount = this.calculateChopPenalty(leadingMove.combination, validation.combination);
+      const basePenalty = this.calculateChopPenalty(leadingMove.combination, validation.combination);
+      const isCascadeRuleActive = this.rules.chopping.cascadeMultiplier ?? this.settings.cascadeChopEnabled ?? true;
 
-      const choppedPlayer = this.getPlayer(choppedPlayerId);
-      if (choppedPlayer) {
-        choppedPlayer.score -= penaltyAmount;
-        player.score += penaltyAmount;
+      const prevChopMoves = this.currentRound.moves.filter(m => m.isChop);
+
+      if (isCascadeRuleActive && prevChopMoves.length > 0) {
+        // CHẶT CHỒNG TÍCH LŨY (Chop Cascade Stack):
+        isCascadeChop = true;
+        chopChainCount = prevChopMoves.length + 1;
+
+        // Hoàn trả lại tiền phạt cho người bị chặt ở bước trước (giải thoát)
+        const lastChopMove = prevChopMoves[prevChopMoves.length - 1];
+        if (lastChopMove && lastChopMove.choppedPlayerId) {
+          const previousVictim = this.getPlayer(lastChopMove.choppedPlayerId);
+          const previousChopper = this.getPlayer(lastChopMove.playerId);
+          const previousAmount = lastChopMove.penaltyAmount || 0;
+
+          if (previousVictim && previousChopper) {
+            // Hoàn lại tiền cho previousVictim, trừ lại từ previousChopper
+            previousVictim.score += previousAmount;
+            previousChopper.score -= previousAmount;
+          }
+
+          // Tổng tiền phạt tích lũy = Tiền chuỗi trước + Tiền chặt đè mới
+          penaltyAmount = previousAmount + basePenalty;
+        } else {
+          penaltyAmount = basePenalty;
+        }
+
+        chopChainTotalAmount = penaltyAmount;
+
+        // Người bị chặt đè hiện tại (choppedPlayerId) đền TOÀN BỘ chuỗi tích lũy cho người chặt mới (player)
+        const choppedPlayer = this.getPlayer(choppedPlayerId);
+        if (choppedPlayer) {
+          choppedPlayer.score -= penaltyAmount;
+          player.score += penaltyAmount;
+        }
+      } else {
+        // Chặt đơn lẻ thông thường
+        penaltyAmount = basePenalty;
+        chopChainCount = 1;
+        chopChainTotalAmount = basePenalty;
+
+        const choppedPlayer = this.getPlayer(choppedPlayerId);
+        if (choppedPlayer) {
+          choppedPlayer.score -= penaltyAmount;
+          player.score += penaltyAmount;
+        }
       }
     }
 
@@ -324,7 +371,10 @@ export class GameEngine {
       timestamp: Date.now(),
       isChop,
       choppedPlayerId,
-      penaltyAmount
+      penaltyAmount,
+      isCascadeChop,
+      chopChainCount,
+      chopChainTotalAmount
     };
 
     this.currentRound.moves.push(playedMoveRecord);
@@ -339,6 +389,20 @@ export class GameEngine {
     if (player.hand.length === 0) {
       player.rankPosition = this.winners.length + 1;
       this.winners.push(player);
+
+      // Kiểm tra Về 3 Bích Cuối Cùng (Ăn Ba Bích):
+      // Chỉ kích hoạt khi người về Nhất đánh lá ĐƠN 3 Bích và không phải ván 1 bắt buộc 3 Bích đi đầu
+      const isThreeSpadesEndingEnabled = this.rules.gameFlow.threeSpadesEndingBonus ?? this.settings.threeSpadesEndingBonus ?? true;
+      if (
+        player.rankPosition === 1 &&
+        isThreeSpadesEndingEnabled &&
+        this.gameNumber > 1 &&
+        cards.length === 1 &&
+        cards[0].rank === 3 &&
+        cards[0].suit === 'SPADES'
+      ) {
+        this.isThreeSpadesWin = true;
+      }
 
       if (this.checkGameOver()) {
         // Nếu đánh đến người áp chót (Truyền thống), tự động bổ sung người chơi cuối cùng (về Bét)
@@ -356,6 +420,10 @@ export class GameEngine {
           isChop,
           choppedPlayerId,
           penaltyAmount,
+          isCascadeChop,
+          chopChainCount,
+          chopChainTotalAmount,
+          playedMove: playedMoveRecord,
           isGameOver: true
         };
       }
@@ -369,6 +437,10 @@ export class GameEngine {
       isChop,
       choppedPlayerId,
       penaltyAmount,
+      isCascadeChop,
+      chopChainCount,
+      chopChainTotalAmount,
+      playedMove: playedMoveRecord,
       isGameOver: this.isGameOver
     };
   }
@@ -748,6 +820,7 @@ export class GameEngine {
     const bet = this.rules.table.betAmount;
     const congMult = this.rules.cong.multiplier || 1;
     const congPenaltyCards = this.rules.cong.penaltyCards || 26;
+    const threeSpadesMultiplier = this.isThreeSpadesWin ? 2 : 1;
     let totalWinScore = 0;
 
     for (const player of this.players) {
@@ -764,6 +837,8 @@ export class GameEngine {
         penalty = player.hand.length * bet + this.calculateRottenCardsPenalty(player.hand);
       }
 
+      penalty *= threeSpadesMultiplier;
+
       player.score -= penalty;
       totalWinScore += penalty;
     }
@@ -777,11 +852,13 @@ export class GameEngine {
   private settleWinnerTakesAllEndGame(winner: Player): void {
     if (!winner) return;
     const bet = this.rules.table.betAmount;
+    const threeSpadesMultiplier = this.isThreeSpadesWin ? 2 : 1;
     let totalWinScore = 0;
 
     for (const player of this.players) {
       if (player.id === winner.id) continue;
-      const penalty = bet + this.calculateRottenCardsPenalty(player.hand);
+      let penalty = bet + this.calculateRottenCardsPenalty(player.hand);
+      penalty *= threeSpadesMultiplier;
       player.score -= penalty;
       totalWinScore += penalty;
     }
@@ -794,23 +871,25 @@ export class GameEngine {
    */
   private settleTraditionalEndGame(): void {
     const bet = this.rules.table.betAmount;
+    const threeSpadesMultiplier = this.isThreeSpadesWin ? 2 : 1;
     // Thứ tự: Nhất (+3 cược), Nhì (+1 cược), Ba (-1 cược), Bét (-3 cược)
     const [p1, p2, p3, p4] = this.winners;
 
     if (p1 && p2 && p3 && p4) {
-      const p4Penalty = this.isPlayerCong(p4.id) ? bet * 6 : bet * 3;
+      const p4Penalty = (this.isPlayerCong(p4.id) ? bet * 6 : bet * 3) * threeSpadesMultiplier;
       let totalRottenPenalty = 0;
 
       // Phạt thối heo cho tất cả người chơi còn giữ Heo khi ván kết thúc (p2, p3, p4)
       for (const p of [p2, p3, p4]) {
-        const rotten = this.calculateRottenCardsPenalty(p.hand);
+        let rotten = this.calculateRottenCardsPenalty(p.hand);
         if (rotten > 0) {
+          rotten *= threeSpadesMultiplier;
           p.score -= rotten;
           totalRottenPenalty += rotten;
         }
       }
 
-      p1.score += p4Penalty + bet * 1 + totalRottenPenalty;
+      p1.score += p4Penalty + bet * 1 * threeSpadesMultiplier + totalRottenPenalty;
       p2.score += bet * 1;
       p3.score -= bet * 1;
       p4.score -= p4Penalty;
@@ -818,20 +897,20 @@ export class GameEngine {
       const p1 = this.winners[0];
       const p2 = this.winners[1];
       if (p1 && p2) {
-        const p2Penalty = this.isPlayerCong(p2.id) ? bet * 2 : bet * 1;
-        const p2Rotten = this.calculateRottenCardsPenalty(p2.hand);
+        let p2Penalty = (this.isPlayerCong(p2.id) ? bet * 2 : bet * 1) * threeSpadesMultiplier;
+        let p2Rotten = this.calculateRottenCardsPenalty(p2.hand) * threeSpadesMultiplier;
         p1.score += p2Penalty + p2Rotten;
         p2.score -= (p2Penalty + p2Rotten);
       }
     } else if (this.winners.length === 3) {
       const [p1, p2, p3] = this.winners;
       if (p1 && p2 && p3) {
-        const p3Penalty = this.isPlayerCong(p3.id) ? bet * 4 : bet * 2;
+        const p3Penalty = (this.isPlayerCong(p3.id) ? bet * 4 : bet * 2) * threeSpadesMultiplier;
         let totalRotten = 0;
         for (const p of [p2, p3]) {
-          const rotten = this.calculateRottenCardsPenalty(p.hand);
+          let rotten = this.calculateRottenCardsPenalty(p.hand);
           if (rotten > 0) {
-            p.score -= rotten;
+            rotten *= threeSpadesMultiplier;
             totalRotten += rotten;
           }
         }

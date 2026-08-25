@@ -53,6 +53,7 @@ export interface MatchSettlementContext {
   isBankLoanActive?: boolean;
   campaignReward?: number;
   penaltyMultiplier?: number;
+  isThreeSpadesWin?: boolean;
 }
 
 /**
@@ -239,7 +240,8 @@ export class TraditionalModeStrategy implements GameModeStrategy {
       context.players,
       context.winners,
       context.betAmount,
-      context.penaltyMultiplier || 1
+      context.penaltyMultiplier || 1,
+      context.isThreeSpadesWin || false
     );
 
     return {
@@ -355,7 +357,8 @@ export class CountCardsModeStrategy implements GameModeStrategy {
       context.players,
       winnerFirst.id,
       context.betAmount,
-      context.penaltyMultiplier || 1
+      context.penaltyMultiplier || 1,
+      context.isThreeSpadesWin || false
     );
 
     return {
@@ -411,7 +414,8 @@ export class UndergroundModeStrategy implements GameModeStrategy {
       context.players,
       winnerFirst.id,
       context.betAmount,
-      context.penaltyMultiplier || 2
+      context.penaltyMultiplier || 2,
+      context.isThreeSpadesWin || false
     );
 
     let loanDeduction = 0;
@@ -530,7 +534,8 @@ export class WinnerTakesAllModeStrategy implements GameModeStrategy {
       context.players,
       winnerFirst.id,
       context.betAmount,
-      context.penaltyMultiplier || 1
+      context.penaltyMultiplier || 1,
+      context.isThreeSpadesWin || false
     );
 
     return {

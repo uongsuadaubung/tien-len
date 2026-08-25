@@ -74,6 +74,7 @@ export function useGameMatchLoop() {
     setWinners,
     setIsGameOver,
     setInstantWinType,
+    setIsThreeSpadesWin,
     setSelectedCardIds,
     clearCardSelection,
     setCurrentHint,
@@ -92,9 +93,22 @@ export function useGameMatchLoop() {
   const replacedBotBannersRef = useRef<string[]>([]);
 
   // Kích hoạt thông báo Chặt Heo/Hàng
-  const triggerChopAlert = useCallback((chopperName: string, targetName: string, amount: number) => {
+  const triggerChopAlert = useCallback((
+    chopperName: string, 
+    targetName: string, 
+    amount: number,
+    isCascade?: boolean,
+    chainCount?: number
+  ) => {
     soundManager.playChop();
-    setChopNotification({ visible: true, chopperName, targetName, amount });
+    setChopNotification({ 
+      visible: true, 
+      chopperName, 
+      targetName, 
+      amount,
+      isCascade,
+      chainCount
+    });
     setTimeout(() => {
       setChopNotification(null);
     }, UI_TIMINGS.CHOP_ALERT_DURATION_MS);
@@ -178,9 +192,11 @@ export function useGameMatchLoop() {
       playerElo: currentElo,
       isBankLoanActive,
       campaignReward: currentCampaignChapter?.rewardCoins,
-      penaltyMultiplier: engine.rules.chopping.multiplier || engine.rules.cong.multiplier || 1
+      penaltyMultiplier: engine.rules.chopping.multiplier || engine.rules.cong.multiplier || 1,
+      isThreeSpadesWin: engine.isThreeSpadesWin
     });
 
+    setIsThreeSpadesWin(engine.isThreeSpadesWin);
     setMatchPayouts(settlement.payouts);
     setLoanDeductionAmount(settlement.loanDeduction);
     setLastEloDelta(settlement.eloDelta);
@@ -297,6 +313,7 @@ export function useGameMatchLoop() {
     setWinners([]);
     setIsGameOver(false);
     setInstantWinType(undefined);
+    setIsThreeSpadesWin(false);
 
     const isRanked = activeGameType === 'RANKED';
     const effectiveGameNumber = isRanked ? 1 : nextGameNumber;
@@ -605,7 +622,13 @@ export function useGameMatchLoop() {
         if (result.isChop && result.choppedPlayerId) {
           const chopped = engine.getPlayer(result.choppedPlayerId);
           const penalty = result.penaltyAmount || 0;
-          triggerChopAlertRef.current(currentPlayer.name, chopped?.name || 'Đối thủ', penalty);
+          triggerChopAlertRef.current(
+            currentPlayer.name, 
+            chopped?.name || 'Đối thủ', 
+            penalty,
+            result.isCascadeChop,
+            result.chopChainCount
+          );
         }
       } else {
         soundManager.playPass();
@@ -644,7 +667,13 @@ export function useGameMatchLoop() {
       if (moveRes.isChop && moveRes.choppedPlayerId) {
         const chopped = engine.getPlayer(moveRes.choppedPlayerId);
         const penalty = moveRes.penaltyAmount || 0;
-        triggerChopAlert(profile.name, chopped?.name || 'Bot', penalty);
+        triggerChopAlert(
+          profile.name, 
+          chopped?.name || 'Bot', 
+          penalty,
+          moveRes.isCascadeChop,
+          moveRes.chopChainCount
+        );
 
         const chopEvent: ChopExecutedEvent = {
           type: 'CHOP_EXECUTED',

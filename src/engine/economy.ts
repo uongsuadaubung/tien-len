@@ -141,16 +141,25 @@ export function calculateCongPenalty(betAmount: number, isUnderground: boolean |
  * - Người thua bị phạt: (Số lá còn lại × Cược × Mult) + Thối heo/hàng + Cóng.
  * - Người về Nhất ăn trọn số tiền phạt này.
  */
+/**
+ * Tính toán kết quả cho chế độ Đếm Lá (Card-Count / Sát Phạt)
+ * - Ván dừng khi 1 người về Nhất.
+ * - Người thua bị phạt: (Số lá còn lại × Cược × Mult) + Thối heo/hàng + Cóng.
+ * - Nếu Về 3 Bích (isThreeSpadesWin), toàn bộ tiền phạt từ người thua được nhân 2.
+ * - Người về Nhất ăn trọn số tiền phạt này.
+ */
 export function calculateCountCardsSettlement(
   players: Player[],
   winnerId: string,
   betAmount: number,
-  isUnderground: boolean | number = false
+  isUnderground: boolean | number = false,
+  isThreeSpadesWin: boolean = false
 ): Record<string, number> {
   const payouts: Record<string, number> = {};
   players.forEach(p => { payouts[p.id] = 0; });
 
   const mult = getMultiplier(isUnderground);
+  const threeSpadesMultiplier = isThreeSpadesWin ? 2 : 1;
   let totalWinnerEarn = 0;
 
   for (const player of players) {
@@ -167,6 +176,9 @@ export function calculateCountCardsSettlement(
       const rotten = calculateRottenPenalty(player.hand, betAmount, mult);
       lossAmount += rotten;
 
+      // Áp dụng nhân đôi nếu người về Nhất về bằng lá 3 Bích
+      lossAmount *= threeSpadesMultiplier;
+
       payouts[player.id] = -lossAmount;
       totalWinnerEarn += lossAmount;
     }
@@ -179,18 +191,21 @@ export function calculateCountCardsSettlement(
 /**
  * Tính toán kết quả cho chế độ Nhất Ăn Tất (Winner-Takes-All)
  * - Mỗi người thua mất 1 mức cược cơ bản × mult + Thối heo/hàng + Cóng.
+ * - Nếu Về 3 Bích (isThreeSpadesWin), toàn bộ tiền phạt từ người thua được nhân 2.
  * - Người về Nhất ăn trọn.
  */
 export function calculateWinnerTakesAllSettlement(
   players: Player[],
   winnerId: string,
   betAmount: number,
-  isUnderground: boolean | number = false
+  isUnderground: boolean | number = false,
+  isThreeSpadesWin: boolean = false
 ): Record<string, number> {
   const payouts: Record<string, number> = {};
   players.forEach(p => { payouts[p.id] = 0; });
 
   const mult = getMultiplier(isUnderground);
+  const threeSpadesMultiplier = isThreeSpadesWin ? 2 : 1;
   let totalWinnerEarn = 0;
 
   for (const player of players) {
@@ -203,6 +218,9 @@ export function calculateWinnerTakesAllSettlement(
 
       const rotten = calculateRottenPenalty(player.hand, betAmount, mult);
       lossAmount += rotten;
+
+      // Áp dụng nhân đôi nếu người về Nhất về bằng lá 3 Bích
+      lossAmount *= threeSpadesMultiplier;
 
       payouts[player.id] = -lossAmount;
       totalWinnerEarn += lossAmount;
@@ -220,32 +238,35 @@ export function calculateTraditionalSettlement(
   players: Player[],
   winners: Player[],
   betAmount: number,
-  isUnderground: boolean | number = false
+  isUnderground: boolean | number = false,
+  isThreeSpadesWin: boolean = false
 ): Record<string, number> {
   const payouts: Record<string, number> = {};
   players.forEach(p => { payouts[p.id] = 0; });
   const mult = getMultiplier(isUnderground);
+  const threeSpadesMultiplier = isThreeSpadesWin ? 2 : 1;
 
   if (winners.length === 4) {
-    payouts[winners[0].id] = betAmount * 3 * mult;
+    payouts[winners[0].id] = betAmount * 3 * mult * threeSpadesMultiplier;
     payouts[winners[1].id] = betAmount * 1 * mult;
     payouts[winners[2].id] = -betAmount * 1 * mult;
-    payouts[winners[3].id] = -betAmount * 3 * mult;
+    payouts[winners[3].id] = -betAmount * 3 * mult * threeSpadesMultiplier;
   } else if (winners.length === 3) {
-    payouts[winners[0].id] = betAmount * 2 * mult;
+    payouts[winners[0].id] = betAmount * 2 * mult * threeSpadesMultiplier;
     payouts[winners[1].id] = 0;
-    payouts[winners[2].id] = -betAmount * 2 * mult;
+    payouts[winners[2].id] = -betAmount * 2 * mult * threeSpadesMultiplier;
   } else if (winners.length === 2) {
-    payouts[winners[0].id] = betAmount * 1 * mult;
-    payouts[winners[1].id] = -betAmount * 1 * mult;
+    payouts[winners[0].id] = betAmount * 1 * mult * threeSpadesMultiplier;
+    payouts[winners[1].id] = -betAmount * 1 * mult * threeSpadesMultiplier;
   }
 
   // Thối heo / thối hàng cho những người không về Nhất
   const winnerFirst = winners[0];
   for (const player of players) {
     if (player.id !== winnerFirst?.id && player.hand.length > 0) {
-      const rotten = calculateRottenPenalty(player.hand, betAmount, mult);
+      let rotten = calculateRottenPenalty(player.hand, betAmount, mult);
       if (rotten > 0) {
+        rotten *= threeSpadesMultiplier;
         payouts[player.id] = (payouts[player.id] || 0) - rotten;
         if (winnerFirst) {
           payouts[winnerFirst.id] = (payouts[winnerFirst.id] || 0) + rotten;
@@ -253,7 +274,8 @@ export function calculateTraditionalSettlement(
       }
 
       if (player.hand.length === 13 && !player.hasPlayedFirstCard) {
-        const cong = calculateCongPenalty(betAmount, mult);
+        let cong = calculateCongPenalty(betAmount, mult);
+        cong *= threeSpadesMultiplier;
         payouts[player.id] = (payouts[player.id] || 0) - cong;
         if (winnerFirst) {
           payouts[winnerFirst.id] = (payouts[winnerFirst.id] || 0) + cong;

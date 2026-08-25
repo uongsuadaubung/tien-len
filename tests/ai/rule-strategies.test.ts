@@ -158,13 +158,18 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
   // ==========================================================================
   describe('3. Chopping & Trap Strategy (Chặt Heo & Gài Bẫy)', () => {
     it('Tăng hệ số rủi ro Chặt khi multiplier = 2 và 4 đôi thông chặt tự do bật', () => {
-      const choppingNormal = new ChoppingRuleStrategy(false, 1);
+      const choppingNormal = new ChoppingRuleStrategy(false, 1, false);
       expect(choppingNormal.getChoppingRiskFactor()).toBe(1.0);
 
-      const choppingUnderground = new ChoppingRuleStrategy(true, 2);
+      const choppingUnderground = new ChoppingRuleStrategy(true, 2, false);
       // multiplier = 2 * 1.25 (allowFourPairsCutAnytime) = 2.5
       expect(choppingUnderground.getChoppingRiskFactor()).toBe(2.5);
       expect(choppingUnderground.getTrapScoreModifier()).toBe(40);
+
+      const choppingCascade = new ChoppingRuleStrategy(true, 2, true);
+      // 2 * 1.25 * 1.2 = 3.0
+      expect(choppingCascade.getChoppingRiskFactor()).toBe(3.0);
+      expect(choppingCascade.getTrapScoreModifier()).toBe(65);
     });
   });
 
@@ -272,7 +277,13 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
       const customRules = createDefaultGameRules({
         settlementRule: 'CARD_COUNT',
         cong: { enabled: true, penaltyCards: 26, multiplier: 2 },
-        chopping: { allowFourPairsCutAnytime: true, allowThreePairsCutTwo: true, allowFourOfAKindCutPairsOfTwos: true, multiplier: 2 },
+        chopping: { 
+          allowFourPairsCutAnytime: true, 
+          allowThreePairsCutTwo: true, 
+          allowFourOfAKindCutPairsOfTwos: true, 
+          multiplier: 2,
+          cascadeMultiplier: true
+        },
         table: { playerCount: 2, betAmount: 1000, botThinkDelayMs: 700, soundEnabled: true }
       });
 
@@ -283,9 +294,9 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
       expect(leadPolicy.preferLongestComboFirst).toBe(true);
       expect(leadPolicy.aggressiveFinisherPush).toBe(true);
 
-      // Chopping risk factor được nhân theo hệ số x2 và 4 đôi thông
-      expect(composite.getChoppingRiskFactor()).toBe(2.5);
-      expect(composite.getTrapTendencyBonus()).toBe(40);
+      // Chopping risk factor được nhân theo hệ số x2, 4 đôi thông và chặt chồng tích lũy
+      expect(composite.getChoppingRiskFactor()).toBe(3.0);
+      expect(composite.getTrapTendencyBonus()).toBe(65);
     });
 
     it('Bot Decision Maker sử dụng Rule Strategy để đưa ra quyết định chính xác', () => {

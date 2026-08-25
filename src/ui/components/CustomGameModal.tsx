@@ -59,7 +59,9 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
     instantWinEnabled: initialConfig?.settings?.instantWinEnabled ?? true,
     soundEnabled: initialConfig?.settings?.soundEnabled ?? true,
     botThinkDelayMs: initialConfig?.settings?.botThinkDelayMs ?? 850,
-    prohibitEndingWithTwo: initialConfig?.settings?.prohibitEndingWithTwo ?? true
+    prohibitEndingWithTwo: initialConfig?.settings?.prohibitEndingWithTwo ?? true,
+    threeSpadesEndingBonus: initialConfig?.settings?.threeSpadesEndingBonus ?? true,
+    cascadeChopEnabled: initialConfig?.settings?.cascadeChopEnabled ?? true
   });
 
   const [botPersonaIds, setBotPersonaIds] = useState<[string, string, string]>(

@@ -250,7 +250,8 @@ export class ChoppingRuleStrategy implements RuleStrategyEvaluator {
 
   constructor(
     private readonly allowFourPairsCutAnytime: boolean,
-    private readonly multiplier: number = 1
+    private readonly multiplier: number = 1,
+    private readonly cascadeMultiplier: boolean = true
   ) {}
 
   getChoppingRiskFactor(): number {
@@ -259,18 +260,24 @@ export class ChoppingRuleStrategy implements RuleStrategyEvaluator {
     if (this.allowFourPairsCutAnytime) {
       factor *= 1.25;
     }
+    if (this.cascadeMultiplier) {
+      factor *= 1.2;
+    }
     return factor;
   }
 
   getTrapScoreModifier(): number {
-    // Khi tiền phạt chặt cao, tăng ham muốn phục kích / gài bẫy
-    return (this.multiplier - 1) * 40;
+    // Khi tiền phạt chặt cao hoặc có chặt chồng, tăng ham muốn phục kích / gài bẫy
+    let bonus = (this.multiplier - 1) * 40;
+    if (this.cascadeMultiplier) bonus += 25;
+    return bonus;
   }
 
   getRespondingScoreModifier(
     move: ValidMoveInfo,
     _handSize: number,
-    targetMove: PlayedMove | null
+    targetMove: PlayedMove | null,
+    context?: RuleDecisionContext
   ): number {
     let bonus = 0;
     if (move.isChop) {
@@ -278,6 +285,19 @@ export class ChoppingRuleStrategy implements RuleStrategyEvaluator {
       bonus += 150 * this.multiplier;
       if (targetMove && targetMove.combination.cards.some(isTwo)) {
         bonus += 50 * this.multiplier;
+      }
+
+      // Nếu là chặt đè trong chuỗi chặt chồng (Counter-Chop): Thưởng cực lớn vì thu trọn hũ đền
+      if (this.cascadeMultiplier && targetMove?.isChop) {
+        bonus += 200 * this.multiplier;
+      }
+
+      // Cảnh giác chặt Heo khi có nguy cơ bị đối thủ khác đè chuỗi
+      if (this.cascadeMultiplier && targetMove && targetMove.combination.cards.some(isTwo) && context?.tracker) {
+        const twoSafety = context.tracker.getTwoSafetyReport();
+        if (twoSafety.riskScore > 60) {
+          bonus -= (twoSafety.riskScore - 50) * (1 - (context.riskAppetite || 0.5)) * 0.8;
+        }
       }
     }
     return bonus;
@@ -293,7 +313,8 @@ export class GameFlowRuleStrategy implements RuleStrategyEvaluator {
 
   constructor(
     private readonly prohibitEndingWithTwo: boolean,
-    private readonly firstGameRequireThreeOfSpades: boolean
+    private readonly firstGameRequireThreeOfSpades: boolean,
+    private readonly threeSpadesEndingBonus: boolean = true
   ) {}
 
   evaluateEmergency(context: RuleDecisionContext, validMoves: ValidMoveInfo[]): RuleEmergencyAction | null {
@@ -413,6 +434,54 @@ export class GameFlowRuleStrategy implements RuleStrategyEvaluator {
 
     return null;
   }
+
+  getLeadScoreModifier(
+    move: ValidMoveInfo,
+    handSize: number,
+    context: RuleDecisionContext
+  ): number {
+    const isThreeBonusEnabled = context.rules?.gameFlow?.threeSpadesEndingBonus ?? this.threeSpadesEndingBonus;
+    if (!isThreeBonusEnabled || context.isFirstMoveOfGame) return 0;
+
+    const isSingleThreeSpades =
+      move.combination.type === 'SINGLE' &&
+      move.cards[0]?.rank === 3 &&
+      move.cards[0]?.suit === 'SPADES';
+
+    if (isSingleThreeSpades) {
+      if (handSize === 1) {
+        // Nước đi về đích bằng 3 Bích thắng x2: Thưởng điểm tuyệt đối!
+        return 500;
+      }
+
+      // Khi còn nhiều bài, nếu bài có khả năng kiểm soát vòng đấu cao (có Heo Cơ, bộ mạnh)
+      // Bot cao thủ sẽ chủ động giữ 3 Bích lại làm lá kết liễu
+      const hasDominantTwo = context.hand.some(c => c.rank === 15 && c.suit === 'HEARTS');
+      const partition = partitionHand(context.hand, 1.0);
+      const totalTurns = partition.combinations.length + partition.trashCards.length;
+
+      if (hasDominantTwo && totalTurns <= 3) {
+        return -120; // Giữ lại 3 Bích để dứt điểm
+      }
+    }
+
+    return 0;
+  }
+
+  getRespondingScoreModifier(
+    _move: ValidMoveInfo,
+    _handSize: number,
+    _targetMove: PlayedMove | null,
+    context: RuleDecisionContext
+  ): number {
+    // Nếu có đối thủ còn 1 lá bài và 3 Bích chưa từng xuất hiện trên bàn,
+    // Bot tăng cường tính cảnh giác không cho đối thủ về bài dễ dàng
+    const isOpponentOneCard = Object.values(context.remainingPlayerCards).some(c => c === 1);
+    if (isOpponentOneCard && !context.isFirstMoveOfGame) {
+      return 40 * (context.antiLeaderAggression || 0.8);
+    }
+    return 0;
+  }
 }
 
 // ============================================================================
@@ -490,7 +559,8 @@ export class CompositeRuleStrategy {
     this.evaluators.push(
       new ChoppingRuleStrategy(
         rules.chopping.allowFourPairsCutAnytime,
-        rules.chopping.multiplier
+        rules.chopping.multiplier,
+        rules.chopping.cascadeMultiplier ?? true
       )
     );
 
@@ -498,7 +568,8 @@ export class CompositeRuleStrategy {
     this.evaluators.push(
       new GameFlowRuleStrategy(
         rules.gameFlow.prohibitEndingWithTwo,
-        rules.gameFlow.firstGameRequireThreeOfSpades
+        rules.gameFlow.firstGameRequireThreeOfSpades,
+        rules.gameFlow.threeSpadesEndingBonus ?? true
       )
     );
 

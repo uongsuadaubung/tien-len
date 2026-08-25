@@ -17,6 +17,7 @@ interface VictoryModalProps {
   allPlayers: Player[];
   betAmount: number;
   instantWinType?: string;
+  isThreeSpadesWin?: boolean;
   payouts?: Record<string, number>;
   loanDeduction?: number;
   eloDelta?: number;
@@ -41,6 +42,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   allPlayers,
   betAmount,
   instantWinType,
+  isThreeSpadesWin = false,
   payouts,
   loanDeduction = 0,
   eloDelta = 0,
@@ -322,6 +324,18 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     primaryBtnIcon = <RefreshCw className="w-4 h-4" />;
   }
 
+  // 7. XỬ LÝ ĐẶC BIỆT KHI VỀ 3 BÍCH HOÀNG GIA (3♠ LAST CARD WIN)
+  if (isThreeSpadesWin) {
+    modalIcon = '👑';
+    if (isHumanWinner) {
+      modalTitle = '👑 VỀ 3 BÍCH HOÀNG GIA - THẮNG X2!';
+      modalSubtitle = 'Tuyệt đỉnh thần bài! Bạn đã kết liễu ván đấu bằng lá đơn 3♠ và nhân đôi toàn bộ tiền thắng!';
+    } else {
+      modalTitle = `👑 ${winner.name.toUpperCase()} VỀ 3 BÍCH!`;
+      modalSubtitle = `Đấu thủ ${winner.name} đã kết liễu bằng lá đơn 3♠ và nhận gấp đôi toàn bộ tiền thắng cả làng!`;
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fade-in select-none">
       <div className={`relative w-full max-w-lg bg-gradient-to-b ${isDefeatModal ? 'from-[#2a0e05] via-[#1c0804] to-black border-2 border-orange-500/70' : isUnderground ? 'from-[#1f1604] via-[#120d02] to-black border-2 border-amber-500/80' : isRanked ? 'from-[#071326] via-[#040a17] to-black border-2 border-blue-500/70' : 'from-[#24060a] via-[#1a0407] to-black border-2 border-yellow-500/80'} rounded-3xl p-5 sm:p-6 shadow-2xl text-white text-center`}>
@@ -345,6 +359,17 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         <p className="text-xs sm:text-sm font-semibold text-yellow-100/80 mt-1 mb-4">
           {modalSubtitle}
         </p>
+
+        {/* BANNER HIỆU ỨNG VỀ 3 BÍCH HOÀNG GIA */}
+        {isThreeSpadesWin && (
+          <div className="mb-4 p-2.5 rounded-2xl bg-gradient-to-r from-yellow-500/20 via-amber-500/30 to-yellow-500/20 border border-yellow-400/60 shadow-lg flex items-center justify-center gap-2 animate-pulse">
+            <Sparkles className="w-4 h-4 text-yellow-300" />
+            <span className="text-xs font-black text-yellow-200 uppercase tracking-wider">
+              ⚡ Luật Về 3 Bích Kích Hoạt: Thưởng x2 Tiền Cả Làng!
+            </span>
+            <Sparkles className="w-4 h-4 text-yellow-300" />
+          </div>
+        )}
 
         {/* THỐNG KÊ BIẾN ĐỘNG TIỀN & TIẾN ĐỘ / ELO CHUYÊN BIỆT */}
         <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-4">

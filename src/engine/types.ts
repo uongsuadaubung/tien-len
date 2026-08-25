@@ -49,6 +49,7 @@ export interface ChoppingRules {
   allowThreePairsCutTwo: boolean;    // 3 đôi thông chặt 1 Heo
   allowFourOfAKindCutPairsOfTwos: boolean; // Tứ quý chặt Đôi Heo
   multiplier: number;                // Hệ số nhân tiền phạt chặt (1x chuẩn, 2x sòng bạc ngầm)
+  cascadeMultiplier?: boolean;       // Chặt chồng tích lũy (Chuỗi chặt đè người sau đền toàn bộ cho người chót)
 }
 
 export interface CongRules {
@@ -66,6 +67,7 @@ export interface GameFlowRules {
   firstGameRequireThreeOfSpades: boolean; // Ván đầu tiên bắt buộc đánh lá 3 Bích
   winnerLeadsNextGame: boolean;           // Người về Nhất ván trước được đi đầu ván sau
   prohibitEndingWithTwo: boolean;         // Cấm đánh 2 cuối cùng (Cấm về Heo, kèm luật thối Heo)
+  threeSpadesEndingBonus?: boolean;       // Về 3 Bích cuối cùng (từ ván 2+) được x2 tiền thưởng cả làng
 }
 
 export interface TableRules {
@@ -110,6 +112,9 @@ export interface PlayedMove {
   isChop?: boolean;            // Có phải là một cú chặt heo/hàng không
   choppedPlayerId?: string;    // Người bị chặt
   penaltyAmount?: number;      // Tiền/điểm phạt của cú chặt
+  isCascadeChop?: boolean;     // Có phải là cú chặt đè trong chuỗi chặt chồng không
+  chopChainCount?: number;     // Số lần chặt liên tiếp trong chuỗi (2, 3, 4...)
+  chopChainTotalAmount?: number; // Tổng số tiền tích lũy của chuỗi chặt
 }
 
 export interface Round {
@@ -129,6 +134,8 @@ export interface GameSettings {
   botThinkDelayMs: number;
   playerCount?: number;              // 2, 3 hoặc 4 người chơi
   prohibitEndingWithTwo?: boolean;   // Cấm đánh 2 cuối cùng (Cấm về Heo)
+  threeSpadesEndingBonus?: boolean;  // Về 3 Bích cuối cùng x2 tiền thưởng cả làng
+  cascadeChopEnabled?: boolean;      // Chặt chồng tích lũy tiền phạt
 }
 
 /**
@@ -141,7 +148,8 @@ export function createDefaultGameRules(partial?: Partial<GameRules>): GameRules 
       allowFourPairsCutAnytime: partial?.chopping?.allowFourPairsCutAnytime ?? true,
       allowThreePairsCutTwo: partial?.chopping?.allowThreePairsCutTwo ?? true,
       allowFourOfAKindCutPairsOfTwos: partial?.chopping?.allowFourOfAKindCutPairsOfTwos ?? true,
-      multiplier: partial?.chopping?.multiplier ?? 1
+      multiplier: partial?.chopping?.multiplier ?? 1,
+      cascadeMultiplier: partial?.chopping?.cascadeMultiplier ?? true
     },
     cong: {
       enabled: partial?.cong?.enabled ?? true,
@@ -155,7 +163,8 @@ export function createDefaultGameRules(partial?: Partial<GameRules>): GameRules 
     gameFlow: {
       firstGameRequireThreeOfSpades: partial?.gameFlow?.firstGameRequireThreeOfSpades ?? true,
       winnerLeadsNextGame: partial?.gameFlow?.winnerLeadsNextGame ?? true,
-      prohibitEndingWithTwo: partial?.gameFlow?.prohibitEndingWithTwo ?? true
+      prohibitEndingWithTwo: partial?.gameFlow?.prohibitEndingWithTwo ?? true,
+      threeSpadesEndingBonus: partial?.gameFlow?.threeSpadesEndingBonus ?? true
     },
     table: {
       playerCount: (partial?.table?.playerCount ?? 4) as 2 | 3 | 4,
@@ -180,7 +189,8 @@ export function convertSettingsToGameRules(settings?: Partial<GameSettings>): Ga
       allowFourPairsCutAnytime: settings?.allowFourPairsCutAnytime ?? true,
       allowThreePairsCutTwo: true,
       allowFourOfAKindCutPairsOfTwos: true,
-      multiplier: 1
+      multiplier: 1,
+      cascadeMultiplier: settings?.cascadeChopEnabled ?? true
     },
     instantWin: {
       enabled: settings?.instantWinEnabled ?? true,
@@ -189,7 +199,8 @@ export function convertSettingsToGameRules(settings?: Partial<GameSettings>): Ga
     gameFlow: {
       firstGameRequireThreeOfSpades: true,
       winnerLeadsNextGame: true,
-      prohibitEndingWithTwo: settings?.prohibitEndingWithTwo ?? true
+      prohibitEndingWithTwo: settings?.prohibitEndingWithTwo ?? true,
+      threeSpadesEndingBonus: settings?.threeSpadesEndingBonus ?? true
     },
     table: {
       playerCount: (settings?.playerCount ?? 4) as 2 | 3 | 4,

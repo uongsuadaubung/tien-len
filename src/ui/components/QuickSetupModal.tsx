@@ -11,6 +11,8 @@ export interface QuickSetupConfig {
   congEnabled: boolean;
   prohibitEndingWithTwo: boolean;
   allowFourPairsCutAnytime: boolean;
+  threeSpadesEndingBonus?: boolean;
+  cascadeChopEnabled?: boolean;
 }
 
 interface QuickSetupModalProps {
@@ -33,7 +35,9 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
     choppingMultiplier: 1,
     congEnabled: true,
     prohibitEndingWithTwo: true,
-    allowFourPairsCutAnytime: true
+    allowFourPairsCutAnytime: true,
+    threeSpadesEndingBonus: true,
+    cascadeChopEnabled: true
   });
 
   if (!isOpen) return null;
@@ -64,7 +68,9 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
       choppingMultiplier: config.choppingMultiplier,
       congEnabled: config.congEnabled ?? true,
       prohibitEndingWithTwo: config.prohibitEndingWithTwo,
-      allowFourPairsCutAnytime: config.allowFourPairsCutAnytime
+      allowFourPairsCutAnytime: config.allowFourPairsCutAnytime,
+      threeSpadesEndingBonus: config.threeSpadesEndingBonus ?? true,
+      cascadeChopEnabled: config.cascadeChopEnabled ?? true
     });
   };
 
