@@ -13,6 +13,7 @@ import {
   clearActiveMatchSession, 
   savePlayerProfile 
 } from '../engine/storage';
+import { GameRulesBuilder } from '../engine/types';
 
 // Stores
 import { useModalStore } from '../stores/useModalStore';
@@ -118,29 +119,31 @@ export const App: React.FC = () => {
     // Ghép Bot hoàn toàn ngẫu nhiên từ kho 18+ Bot Personas
     const randomBots = getRandomBotConfigsForTable([1, 2, 3, 4, 5], 3);
 
+    const customRules = new GameRulesBuilder()
+      .withSettlement(config.settlementRule)
+      .withChopping(c => c
+        .multiplier(config.choppingMultiplier)
+        .allowFourPairsCutAnytime(config.allowFourPairsCutAnytime)
+        .allowThreePairsCutTwo(true)
+        .allowFourOfAKindCutPairsOfTwos(true)
+      )
+      .withCong(cg => cg
+        .enabled(config.congEnabled)
+        .penaltyCards(config.congEnabled ? 26 : 0)
+        .multiplier(config.choppingMultiplier)
+      )
+      .withGameFlow(f => f
+        .prohibitEndingWithTwo(config.prohibitEndingWithTwo)
+      )
+      .withTable(t => t
+        .playerCount(config.playerCount)
+        .betAmount(config.betAmount)
+      )
+      .build();
+
     startNewGame(1, {
       playerCount: config.playerCount,
-      customRules: {
-        settlementRule: config.settlementRule,
-        chopping: {
-          multiplier: config.choppingMultiplier,
-          allowFourPairsCutAnytime: config.allowFourPairsCutAnytime,
-          allowThreePairsCutTwo: true,
-          allowFourOfAKindCutPairsOfTwos: true
-        },
-        cong: {
-          multiplier: config.choppingMultiplier,
-          penaltyCards: config.congEnabled ? 26 : 0,
-          enabled: config.congEnabled
-        },
-        gameFlow: {
-          prohibitEndingWithTwo: config.prohibitEndingWithTwo
-        },
-        table: {
-          playerCount: config.playerCount,
-          betAmount: config.betAmount
-        }
-      },
+      customRules,
       customBotPersonaIds: [
         randomBots[0]?.id || 'BOT_ELO_850',
         randomBots[1]?.id || 'BOT_ELO_1150',

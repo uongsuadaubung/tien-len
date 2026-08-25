@@ -65,7 +65,9 @@ export class GameEngine {
       soundEnabled: this.rules.table.soundEnabled,
       botThinkDelayMs: this.rules.table.botThinkDelayMs,
       playerCount: this.rules.table.playerCount,
-      prohibitEndingWithTwo: this.rules.gameFlow.prohibitEndingWithTwo
+      prohibitEndingWithTwo: this.rules.gameFlow.prohibitEndingWithTwo,
+      threeSpadesEndingBonus: this.rules.gameFlow.threeSpadesEndingBonus,
+      cascadeChopEnabled: this.rules.chopping.cascadeMultiplier
     };
 
     this.currentRound = {
@@ -274,7 +276,7 @@ export class GameEngine {
     const targetCombination = leadingMove ? leadingMove.combination : null;
     const isLeadMove = this.isRoundLeadMove();
     const isFinishingMove = player.hand.length === cards.length;
-    const prohibitEndingWithTwo = this.rules.gameFlow.prohibitEndingWithTwo ?? this.settings.prohibitEndingWithTwo ?? true;
+    const prohibitEndingWithTwo = this.rules.gameFlow.prohibitEndingWithTwo;
 
     // Thẩm định nước đi với validator
     const validation = isValidMove(
@@ -314,7 +316,7 @@ export class GameEngine {
       isChop = true;
       choppedPlayerId = leadingMove.playerId;
       const basePenalty = this.calculateChopPenalty(leadingMove.combination, validation.combination);
-      const isCascadeRuleActive = this.rules.chopping.cascadeMultiplier ?? this.settings.cascadeChopEnabled ?? true;
+      const isCascadeRuleActive = this.rules.chopping.cascadeMultiplier;
 
       const prevChopMoves = this.currentRound.moves.filter(m => m.isChop);
 
@@ -392,7 +394,7 @@ export class GameEngine {
 
       // Kiểm tra Về 3 Bích Cuối Cùng (Ăn Ba Bích):
       // Chỉ kích hoạt khi người về Nhất đánh lá ĐƠN 3 Bích và không phải ván 1 bắt buộc 3 Bích đi đầu
-      const isThreeSpadesEndingEnabled = this.rules.gameFlow.threeSpadesEndingBonus ?? this.settings.threeSpadesEndingBonus ?? true;
+      const isThreeSpadesEndingEnabled = this.rules.gameFlow.threeSpadesEndingBonus;
       if (
         player.rankPosition === 1 &&
         isThreeSpadesEndingEnabled &&
@@ -485,7 +487,7 @@ export class GameEngine {
     const nextPlayerId = this.getNextActivePlayerId(playerId);
     const nextPlayer = this.getPlayer(nextPlayerId);
     const isNextPlayerOneCard = nextPlayer ? nextPlayer.hand.length === 1 : false;
-    const prohibitEndingWithTwo = this.rules.gameFlow.prohibitEndingWithTwo ?? this.settings.prohibitEndingWithTwo ?? true;
+    const prohibitEndingWithTwo = this.rules.gameFlow.prohibitEndingWithTwo;
 
     try {
       const decision = makeBotDecision({
@@ -551,7 +553,7 @@ export class GameEngine {
     const isLead = this.isRoundLeadMove();
     const leading = this.getLeadingMove();
     const sorted = sortCards(player.hand);
-    const prohibitEndingWithTwo = this.rules.gameFlow.prohibitEndingWithTwo ?? this.settings.prohibitEndingWithTwo ?? true;
+    const prohibitEndingWithTwo = this.rules.gameFlow.prohibitEndingWithTwo;
 
     // 1. Nếu đang cầm cái (Lead move)
     if (isLead || !leading) {

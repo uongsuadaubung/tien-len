@@ -182,14 +182,10 @@ export class WinnerTakesAllSettlementStrategy implements RuleStrategyEvaluator {
 export class CongRuleStrategy implements RuleStrategyEvaluator {
   readonly ruleName = 'Cong & Anti-Freeze Protection';
 
-  constructor(
-    private readonly enabled: boolean,
-    private readonly penaltyCards: number = 26,
-    private readonly multiplier: number = 1
-  ) {}
+  constructor(public readonly config: CongRules) {}
 
   evaluateEmergency(context: RuleDecisionContext, validMoves: ValidMoveInfo[]): RuleEmergencyAction | null {
-    if (!this.enabled || validMoves.length === 0) return null;
+    if (!this.config.enabled || validMoves.length === 0) return null;
 
     // Chỉ kích hoạt khi Bot CHƯA RA ĐƯỢC LÁ BÀI NÀO
     if (context.hasPlayedFirstCard === true) return null;
@@ -214,7 +210,7 @@ export class CongRuleStrategy implements RuleStrategyEvaluator {
         type: 'PLAY',
         cards: chosenMove.cards,
         combination: chosenMove.combination,
-        reason: `Cảnh báo Cóng (Phạt ${this.penaltyCards * this.multiplier} lá): Bằng mọi giá đánh ${chosenMove.combination.type} để Thoát Cóng!`
+        reason: `Cảnh báo Cóng (Phạt ${this.config.penaltyCards * this.config.multiplier} lá): Bằng mọi giá đánh ${chosenMove.combination.type} để Thoát Cóng!`
       };
     }
 
@@ -227,7 +223,7 @@ export class CongRuleStrategy implements RuleStrategyEvaluator {
     _targetMove: PlayedMove | null,
     context: RuleDecisionContext
   ): number {
-    if (!this.enabled || context.hasPlayedFirstCard === true) return 0;
+    if (!this.config.enabled || context.hasPlayedFirstCard === true) return 0;
 
     // Khi chưa ra lá nào, tăng điểm muốn đánh bài để sớm có lá trên bàn
     const minOpponentCards = Math.min(
@@ -235,9 +231,9 @@ export class CongRuleStrategy implements RuleStrategyEvaluator {
     );
 
     if (minOpponentCards <= 5) {
-      return 60 * this.multiplier;
+      return 60 * this.config.multiplier;
     }
-    return 20 * this.multiplier;
+    return 20 * this.config.multiplier;
   }
 }
 
@@ -248,19 +244,15 @@ export class CongRuleStrategy implements RuleStrategyEvaluator {
 export class ChoppingRuleStrategy implements RuleStrategyEvaluator {
   readonly ruleName = 'Chopping & Trapping Strategy';
 
-  constructor(
-    private readonly allowFourPairsCutAnytime: boolean,
-    private readonly multiplier: number = 1,
-    private readonly cascadeMultiplier: boolean = true
-  ) {}
+  constructor(public readonly config: ChoppingRules) {}
 
   getChoppingRiskFactor(): number {
     // Hệ số nhân rủi ro chặt: Nếu multiplier = 2 (Thế giới ngầm) hoặc 4 đôi thông chặt tự do -> tăng cảnh giác
-    let factor = this.multiplier;
-    if (this.allowFourPairsCutAnytime) {
+    let factor = this.config.multiplier;
+    if (this.config.allowFourPairsCutAnytime) {
       factor *= 1.25;
     }
-    if (this.cascadeMultiplier) {
+    if (this.config.cascadeMultiplier) {
       factor *= 1.2;
     }
     return factor;
@@ -268,8 +260,8 @@ export class ChoppingRuleStrategy implements RuleStrategyEvaluator {
 
   getTrapScoreModifier(): number {
     // Khi tiền phạt chặt cao hoặc có chặt chồng, tăng ham muốn phục kích / gài bẫy
-    let bonus = (this.multiplier - 1) * 40;
-    if (this.cascadeMultiplier) bonus += 25;
+    let bonus = (this.config.multiplier - 1) * 40;
+    if (this.config.cascadeMultiplier) bonus += 25;
     return bonus;
   }
 
@@ -282,18 +274,18 @@ export class ChoppingRuleStrategy implements RuleStrategyEvaluator {
     let bonus = 0;
     if (move.isChop) {
       // Thưởng lớn khi chặt thành công, nhân theo hệ số phạt chặt
-      bonus += 150 * this.multiplier;
+      bonus += 150 * this.config.multiplier;
       if (targetMove && targetMove.combination.cards.some(isTwo)) {
-        bonus += 50 * this.multiplier;
+        bonus += 50 * this.config.multiplier;
       }
 
       // Nếu là chặt đè trong chuỗi chặt chồng (Counter-Chop): Thưởng cực lớn vì thu trọn hũ đền
-      if (this.cascadeMultiplier && targetMove?.isChop) {
-        bonus += 200 * this.multiplier;
+      if (this.config.cascadeMultiplier && targetMove?.isChop) {
+        bonus += 200 * this.config.multiplier;
       }
 
       // Cảnh giác chặt Heo khi có nguy cơ bị đối thủ khác đè chuỗi
-      if (this.cascadeMultiplier && targetMove && targetMove.combination.cards.some(isTwo) && context?.tracker) {
+      if (this.config.cascadeMultiplier && targetMove && targetMove.combination.cards.some(isTwo) && context?.tracker) {
         const twoSafety = context.tracker.getTwoSafetyReport();
         if (twoSafety.riskScore > 60) {
           bonus -= (twoSafety.riskScore - 50) * (1 - (context.riskAppetite || 0.5)) * 0.8;
@@ -311,11 +303,7 @@ export class ChoppingRuleStrategy implements RuleStrategyEvaluator {
 export class GameFlowRuleStrategy implements RuleStrategyEvaluator {
   readonly ruleName = 'GameFlow & Endgame Flow';
 
-  constructor(
-    private readonly prohibitEndingWithTwo: boolean,
-    private readonly firstGameRequireThreeOfSpades: boolean,
-    private readonly threeSpadesEndingBonus: boolean = true
-  ) {}
+  constructor(public readonly config: GameFlowRules) {}
 
   evaluateEmergency(context: RuleDecisionContext, validMoves: ValidMoveInfo[]): RuleEmergencyAction | null {
     const { hand, isLeadMove, remainingPlayerCards, nextPlayerId, isFirstMoveOfGame } = context;
@@ -323,7 +311,7 @@ export class GameFlowRuleStrategy implements RuleStrategyEvaluator {
     // ------------------------------------------------------------------------
     // A. LUẬT MỞ MÀN 3 BÍCH (Ván đầu tiên)
     // ------------------------------------------------------------------------
-    if (this.firstGameRequireThreeOfSpades && isFirstMoveOfGame && isLeadMove) {
+    if (this.config.firstGameRequireThreeOfSpades && isFirstMoveOfGame && isLeadMove) {
       const threeSpadeMoves = validMoves.filter(m => m.cards.some(c => c.rank === 3 && c.suit === 'SPADES'));
       if (threeSpadeMoves.length > 0) {
         // Tuyệt đối không phá hàng chặt (3 Đôi Thông, 4 Đôi Thông, Tứ Quý) chỉ để đánh 3 Bích
@@ -404,7 +392,7 @@ export class GameFlowRuleStrategy implements RuleStrategyEvaluator {
     // ------------------------------------------------------------------------
     const isProhibitTwo = context.prohibitEndingWithTwo !== undefined
       ? context.prohibitEndingWithTwo
-      : this.prohibitEndingWithTwo;
+      : this.config.prohibitEndingWithTwo;
 
     if (isProhibitTwo && isLeadMove) {
       const twos = hand.filter(isTwo);
@@ -440,7 +428,7 @@ export class GameFlowRuleStrategy implements RuleStrategyEvaluator {
     handSize: number,
     context: RuleDecisionContext
   ): number {
-    const isThreeBonusEnabled = context.rules?.gameFlow?.threeSpadesEndingBonus ?? this.threeSpadesEndingBonus;
+    const isThreeBonusEnabled = context.rules?.gameFlow?.threeSpadesEndingBonus ?? this.config.threeSpadesEndingBonus;
     if (!isThreeBonusEnabled || context.isFirstMoveOfGame) return 0;
 
     const isSingleThreeSpades =
@@ -491,10 +479,10 @@ export class GameFlowRuleStrategy implements RuleStrategyEvaluator {
 export class TableScaleRuleStrategy implements RuleStrategyEvaluator {
   readonly ruleName = 'Table Scale Strategy';
 
-  constructor(private readonly playerCount: number = 4) {}
+  constructor(public readonly config: TableRules) {}
 
   contributeLeadPolicy(currentPolicy: Partial<RuleLeadPolicy>): Partial<RuleLeadPolicy> {
-    if (this.playerCount === 2) {
+    if (this.config.playerCount === 2) {
       // Trong Solo 1v1: Kiểm soát nhịp độ tuyệt đối, đẩy nhanh tốc độ kết liễu
       return {
         ...currentPolicy,
@@ -510,7 +498,7 @@ export class TableScaleRuleStrategy implements RuleStrategyEvaluator {
     _targetMove: PlayedMove | null,
     context: RuleDecisionContext
   ): number {
-    if (this.playerCount === 2) {
+    if (this.config.playerCount === 2) {
       // Trong Solo 1v1: Đè bài thành công là 100% cướp được cái -> Tăng điểm mạnh
       return 90 * (context.antiLeaderAggression || 0.8);
     }
@@ -547,36 +535,16 @@ export class CompositeRuleStrategy {
     }
 
     // 2. Cong Evaluator
-    this.evaluators.push(
-      new CongRuleStrategy(
-        rules.cong.enabled,
-        rules.cong.penaltyCards,
-        rules.cong.multiplier
-      )
-    );
+    this.evaluators.push(new CongRuleStrategy(rules.cong));
 
     // 3. Chopping Evaluator
-    this.evaluators.push(
-      new ChoppingRuleStrategy(
-        rules.chopping.allowFourPairsCutAnytime,
-        rules.chopping.multiplier,
-        rules.chopping.cascadeMultiplier ?? true
-      )
-    );
+    this.evaluators.push(new ChoppingRuleStrategy(rules.chopping));
 
     // 4. GameFlow Evaluator
-    this.evaluators.push(
-      new GameFlowRuleStrategy(
-        rules.gameFlow.prohibitEndingWithTwo,
-        rules.gameFlow.firstGameRequireThreeOfSpades,
-        rules.gameFlow.threeSpadesEndingBonus ?? true
-      )
-    );
+    this.evaluators.push(new GameFlowRuleStrategy(rules.gameFlow));
 
     // 5. Table Scale Evaluator
-    this.evaluators.push(
-      new TableScaleRuleStrategy(rules.table.playerCount)
-    );
+    this.evaluators.push(new TableScaleRuleStrategy(rules.table));
   }
 
   /**
@@ -734,4 +702,157 @@ export function resolveCompositeRuleStrategy(
   }
 
   return new CompositeRuleStrategy(defaultRules);
+}
+
+// ============================================================================
+// BUILDERS FOR RULE STRATEGIES (BUILDER PATTERN)
+// ============================================================================
+
+export class ChoppingRuleStrategyBuilder {
+  private _allowFourPairsCutAnytime: boolean = true;
+  private _multiplier: number = 1;
+  private _cascadeMultiplier: boolean = true;
+
+  public allowFourPairsCutAnytime(allow: boolean): this {
+    this._allowFourPairsCutAnytime = allow;
+    return this;
+  }
+
+  public multiplier(multiplier: number): this {
+    this._multiplier = multiplier;
+    return this;
+  }
+
+  public cascadeMultiplier(cascade: boolean): this {
+    this._cascadeMultiplier = cascade;
+    return this;
+  }
+
+  public build(): ChoppingRuleStrategy {
+    return new ChoppingRuleStrategy({
+      allowFourPairsCutAnytime: this._allowFourPairsCutAnytime,
+      allowThreePairsCutTwo: true,
+      allowFourOfAKindCutPairsOfTwos: true,
+      multiplier: this._multiplier,
+      cascadeMultiplier: this._cascadeMultiplier
+    });
+  }
+}
+
+export class CongRuleStrategyBuilder {
+  private _enabled: boolean = true;
+  private _penaltyCards: number = 26;
+  private _multiplier: number = 1;
+
+  public enabled(enabled: boolean): this {
+    this._enabled = enabled;
+    return this;
+  }
+
+  public penaltyCards(cards: number): this {
+    this._penaltyCards = cards;
+    return this;
+  }
+
+  public multiplier(multiplier: number): this {
+    this._multiplier = multiplier;
+    return this;
+  }
+
+  public build(): CongRuleStrategy {
+    return new CongRuleStrategy({
+      enabled: this._enabled,
+      penaltyCards: this._penaltyCards,
+      multiplier: this._multiplier
+    });
+  }
+}
+
+export class GameFlowRuleStrategyBuilder {
+  private _prohibitEndingWithTwo: boolean = true;
+  private _firstGameRequireThreeOfSpades: boolean = true;
+  private _threeSpadesEndingBonus: boolean = true;
+  private _winnerLeadsNextGame: boolean = true;
+
+  public prohibitEndingWithTwo(prohibit: boolean): this {
+    this._prohibitEndingWithTwo = prohibit;
+    return this;
+  }
+
+  public firstGameRequireThreeOfSpades(require: boolean): this {
+    this._firstGameRequireThreeOfSpades = require;
+    return this;
+  }
+
+  public threeSpadesEndingBonus(bonus: boolean): this {
+    this._threeSpadesEndingBonus = bonus;
+    return this;
+  }
+
+  public winnerLeadsNextGame(winnerLeads: boolean): this {
+    this._winnerLeadsNextGame = winnerLeads;
+    return this;
+  }
+
+  public build(): GameFlowRuleStrategy {
+    return new GameFlowRuleStrategy({
+      prohibitEndingWithTwo: this._prohibitEndingWithTwo,
+      firstGameRequireThreeOfSpades: this._firstGameRequireThreeOfSpades,
+      threeSpadesEndingBonus: this._threeSpadesEndingBonus,
+      winnerLeadsNextGame: this._winnerLeadsNextGame
+    });
+  }
+}
+
+export class TableScaleRuleStrategyBuilder {
+  private _playerCount: 2 | 3 | 4 = 4;
+  private _betAmount: number = 500;
+  private _botThinkDelayMs: number = 800;
+  private _soundEnabled: boolean = true;
+
+  public playerCount(count: 2 | 3 | 4): this {
+    this._playerCount = count;
+    return this;
+  }
+
+  public betAmount(amount: number): this {
+    this._betAmount = amount;
+    return this;
+  }
+
+  public botThinkDelayMs(delayMs: number): this {
+    this._botThinkDelayMs = delayMs;
+    return this;
+  }
+
+  public soundEnabled(enabled: boolean): this {
+    this._soundEnabled = enabled;
+    return this;
+  }
+
+  public build(): TableScaleRuleStrategy {
+    return new TableScaleRuleStrategy({
+      playerCount: this._playerCount,
+      betAmount: this._betAmount,
+      botThinkDelayMs: this._botThinkDelayMs,
+      soundEnabled: this._soundEnabled
+    });
+  }
+}
+
+export class CompositeRuleStrategyBuilder {
+  private _rules: GameRules;
+
+  constructor(baseRules?: GameRules) {
+    this._rules = baseRules || createDefaultGameRules();
+  }
+
+  public setRules(rules: GameRules): this {
+    this._rules = rules;
+    return this;
+  }
+
+  public build(): CompositeRuleStrategy {
+    return new CompositeRuleStrategy(this._rules);
+  }
 }

@@ -21,11 +21,11 @@ export interface TableConfigState {
   choppingMultiplier: number;
   prohibitEndingWithTwo: boolean;
   allowFourPairsCutAnytime: boolean;
-  threeSpadesEndingBonus?: boolean;
-  cascadeChopEnabled?: boolean;
-  instantWinEnabled?: boolean;
-  congEnabled?: boolean;
-  botThinkDelayMs?: number;
+  threeSpadesEndingBonus: boolean;
+  cascadeChopEnabled: boolean;
+  instantWinEnabled: boolean;
+  congEnabled: boolean;
+  botThinkDelayMs: number;
 }
 
 interface TableRulesConfigPanelProps {

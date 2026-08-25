@@ -3,7 +3,8 @@ import {
   GameSettings, 
   Player, 
   GameRules, 
-  createDefaultGameRules 
+  createDefaultGameRules,
+  GameRulesBuilder
 } from '../types';
 import { 
   calculateCountCardsSettlement, 
@@ -215,21 +216,18 @@ export class TraditionalModeStrategy implements GameModeStrategy {
     const playerCount = (context.playerCount ?? context.customRules?.table?.playerCount ?? context.customSettings?.playerCount ?? 4) as 2 | 3 | 4;
     const betAmount = context.customRules?.table?.betAmount ?? context.customSettings?.betAmount ?? 100;
 
-    const rules = createDefaultGameRules({
-      settlementRule: context.customRules?.settlementRule || 'TRADITIONAL_RANK_BASED',
-      chopping: {
-        allowFourPairsCutAnytime: context.customRules?.chopping?.allowFourPairsCutAnytime ?? context.customSettings?.allowFourPairsCutAnytime ?? true,
-        allowThreePairsCutTwo: true,
-        allowFourOfAKindCutPairsOfTwos: true,
-        multiplier: context.customRules?.chopping?.multiplier ?? 1
-      },
-      table: {
-        playerCount,
-        betAmount,
-        botThinkDelayMs: context.customRules?.table?.botThinkDelayMs ?? context.customSettings?.botThinkDelayMs ?? 850,
-        soundEnabled: true
-      }
-    });
+    const rules = GameRulesBuilder.traditional()
+      .withSettlement(context.customRules?.settlementRule || 'TRADITIONAL_RANK_BASED')
+      .withChopping(c => c
+        .allowFourPairsCutAnytime(context.customRules?.chopping?.allowFourPairsCutAnytime ?? context.customSettings?.allowFourPairsCutAnytime ?? true)
+        .multiplier(context.customRules?.chopping?.multiplier ?? 1)
+      )
+      .withTable(t => t
+        .playerCount(playerCount)
+        .betAmount(betAmount)
+        .botThinkDelayMs(context.customRules?.table?.botThinkDelayMs ?? context.customSettings?.botThinkDelayMs ?? 850)
+      )
+      .build();
 
     const defaultBots = getRandomBotConfigsForTable([1, 2, 3], 3);
     return createMatchSetupResult(context, rules, defaultBots);
@@ -265,15 +263,13 @@ export class RankedModeStrategy implements GameModeStrategy {
 
   setupMatch(context: MatchSetupContext): MatchSetupResult {
     const matchedBots = matchmakeRankedOpponents(context.profile.elo);
-    const rules = createDefaultGameRules({
-      settlementRule: 'TRADITIONAL_RANK_BASED',
-      table: {
-        playerCount: 4,
-        betAmount: 0,
-        botThinkDelayMs: 850,
-        soundEnabled: true
-      }
-    });
+    const rules = GameRulesBuilder.traditional()
+      .withTable(t => t
+        .playerCount(4)
+        .betAmount(0)
+        .botThinkDelayMs(850)
+      )
+      .build();
 
     const rankedContext: MatchSetupContext = {
       ...context,
@@ -323,29 +319,25 @@ export class CountCardsModeStrategy implements GameModeStrategy {
     const playerCount = (context.playerCount ?? context.customRules?.table?.playerCount ?? context.customSettings?.playerCount ?? 4) as 2 | 3 | 4;
     const betAmount = context.customRules?.table?.betAmount ?? context.customSettings?.betAmount ?? 100;
 
-    const rules = createDefaultGameRules({
-      settlementRule: 'CARD_COUNT',
-      chopping: {
-        allowFourPairsCutAnytime: context.customRules?.chopping?.allowFourPairsCutAnytime ?? context.customSettings?.allowFourPairsCutAnytime ?? true,
-        allowThreePairsCutTwo: true,
-        allowFourOfAKindCutPairsOfTwos: true,
-        multiplier: context.customRules?.chopping?.multiplier ?? 1
-      },
-      cong: {
-        enabled: context.customRules?.cong?.enabled ?? true,
-        penaltyCards: context.customRules?.cong?.penaltyCards ?? 26,
-        multiplier: context.customRules?.cong?.multiplier ?? 1
-      },
-      gameFlow: {
-        prohibitEndingWithTwo: context.customRules?.gameFlow?.prohibitEndingWithTwo ?? true
-      },
-      table: {
-        playerCount,
-        betAmount,
-        botThinkDelayMs: context.customRules?.table?.botThinkDelayMs ?? context.customSettings?.botThinkDelayMs ?? 850,
-        soundEnabled: true
-      }
-    });
+    const rules = GameRulesBuilder.countCards()
+      .withChopping(c => c
+        .allowFourPairsCutAnytime(context.customRules?.chopping?.allowFourPairsCutAnytime ?? context.customSettings?.allowFourPairsCutAnytime ?? true)
+        .multiplier(context.customRules?.chopping?.multiplier ?? 1)
+      )
+      .withCong(cg => cg
+        .enabled(context.customRules?.cong?.enabled ?? true)
+        .penaltyCards(context.customRules?.cong?.penaltyCards ?? 26)
+        .multiplier(context.customRules?.cong?.multiplier ?? 1)
+      )
+      .withGameFlow(f => f
+        .prohibitEndingWithTwo(context.customRules?.gameFlow?.prohibitEndingWithTwo ?? true)
+      )
+      .withTable(t => t
+        .playerCount(playerCount)
+        .betAmount(betAmount)
+        .botThinkDelayMs(context.customRules?.table?.botThinkDelayMs ?? context.customSettings?.botThinkDelayMs ?? 850)
+      )
+      .build();
 
     const defaultBots = getRandomBotConfigsForTable([1, 2, 3], 3);
     return createMatchSetupResult(context, rules, defaultBots);
@@ -383,26 +375,12 @@ export class UndergroundModeStrategy implements GameModeStrategy {
   setupMatch(context: MatchSetupContext): MatchSetupResult {
     const betAmount = context.undergroundBetAmount ?? context.customRules?.table?.betAmount ?? context.customSettings?.betAmount ?? 500;
 
-    const rules = createDefaultGameRules({
-      settlementRule: 'CARD_COUNT',
-      chopping: {
-        allowFourPairsCutAnytime: true,
-        allowThreePairsCutTwo: true,
-        allowFourOfAKindCutPairsOfTwos: true,
-        multiplier: 2 // Sát phạt x2
-      },
-      cong: {
-        enabled: true,
-        penaltyCards: 26,
-        multiplier: 2 // Phạt Cóng x2 (52 lá)
-      },
-      table: {
-        playerCount: 4,
-        betAmount,
-        botThinkDelayMs: 850,
-        soundEnabled: true
-      }
-    });
+    const rules = GameRulesBuilder.underground()
+      .withTable(t => t
+        .betAmount(betAmount)
+        .botThinkDelayMs(850)
+      )
+      .build();
 
     const defaultBots = getRandomBotConfigsForTable([3, 4, 5], 3);
     return createMatchSetupResult(context, rules, defaultBots);
@@ -448,15 +426,13 @@ export class CampaignModeStrategy implements GameModeStrategy {
     const chapter = context.campaignChapter;
     const betAmount = chapter?.betAmount ?? 100;
 
-    const rules = createDefaultGameRules({
-      settlementRule: 'CARD_COUNT',
-      table: {
-        playerCount: 4,
-        betAmount,
-        botThinkDelayMs: 850,
-        soundEnabled: true
-      }
-    });
+    const rules = GameRulesBuilder.countCards()
+      .withTable(t => t
+        .playerCount(4)
+        .betAmount(betAmount)
+        .botThinkDelayMs(850)
+      )
+      .build();
 
     const defaultBots = chapter ? chapter.bots : getRandomBotConfigsForTable([1, 2, 3], 3);
     return createMatchSetupResult(context, rules, defaultBots);
@@ -500,29 +476,25 @@ export class WinnerTakesAllModeStrategy implements GameModeStrategy {
     const playerCount = (context.playerCount ?? context.customRules?.table?.playerCount ?? context.customSettings?.playerCount ?? 4) as 2 | 3 | 4;
     const betAmount = context.customRules?.table?.betAmount ?? context.customSettings?.betAmount ?? 100;
 
-    const rules = createDefaultGameRules({
-      settlementRule: 'WINNER_TAKES_ALL',
-      chopping: {
-        allowFourPairsCutAnytime: context.customRules?.chopping?.allowFourPairsCutAnytime ?? context.customSettings?.allowFourPairsCutAnytime ?? true,
-        allowThreePairsCutTwo: true,
-        allowFourOfAKindCutPairsOfTwos: true,
-        multiplier: context.customRules?.chopping?.multiplier ?? 1
-      },
-      cong: {
-        enabled: context.customRules?.cong?.enabled ?? true,
-        penaltyCards: context.customRules?.cong?.penaltyCards ?? 26,
-        multiplier: context.customRules?.cong?.multiplier ?? 1
-      },
-      gameFlow: {
-        prohibitEndingWithTwo: context.customRules?.gameFlow?.prohibitEndingWithTwo ?? true
-      },
-      table: {
-        playerCount,
-        betAmount,
-        botThinkDelayMs: context.customRules?.table?.botThinkDelayMs ?? context.customSettings?.botThinkDelayMs ?? 850,
-        soundEnabled: true
-      }
-    });
+    const rules = GameRulesBuilder.winnerTakesAll()
+      .withChopping(c => c
+        .allowFourPairsCutAnytime(context.customRules?.chopping?.allowFourPairsCutAnytime ?? context.customSettings?.allowFourPairsCutAnytime ?? true)
+        .multiplier(context.customRules?.chopping?.multiplier ?? 1)
+      )
+      .withCong(cg => cg
+        .enabled(context.customRules?.cong?.enabled ?? true)
+        .penaltyCards(context.customRules?.cong?.penaltyCards ?? 26)
+        .multiplier(context.customRules?.cong?.multiplier ?? 1)
+      )
+      .withGameFlow(f => f
+        .prohibitEndingWithTwo(context.customRules?.gameFlow?.prohibitEndingWithTwo ?? true)
+      )
+      .withTable(t => t
+        .playerCount(playerCount)
+        .betAmount(betAmount)
+        .botThinkDelayMs(context.customRules?.table?.botThinkDelayMs ?? context.customSettings?.botThinkDelayMs ?? 850)
+      )
+      .build();
 
     const defaultBots = getRandomBotConfigsForTable([2, 3, 4], 3);
     return createMatchSetupResult(context, rules, defaultBots);

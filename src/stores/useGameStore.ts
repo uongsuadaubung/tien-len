@@ -153,7 +153,9 @@ const DEFAULT_GAME_SETTINGS: GameSettings = {
   instantWinEnabled: true,
   soundEnabled: true,
   botThinkDelayMs: 850,
-  prohibitEndingWithTwo: true
+  prohibitEndingWithTwo: true,
+  threeSpadesEndingBonus: true,
+  cascadeChopEnabled: true
 };
 
 export const useGameStore = create<GameState>((set) => ({

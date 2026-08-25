@@ -49,7 +49,7 @@ export interface ChoppingRules {
   allowThreePairsCutTwo: boolean;    // 3 đôi thông chặt 1 Heo
   allowFourOfAKindCutPairsOfTwos: boolean; // Tứ quý chặt Đôi Heo
   multiplier: number;                // Hệ số nhân tiền phạt chặt (1x chuẩn, 2x sòng bạc ngầm)
-  cascadeMultiplier?: boolean;       // Chặt chồng tích lũy (Chuỗi chặt đè người sau đền toàn bộ cho người chót)
+  cascadeMultiplier: boolean;        // Chặt chồng tích lũy (Chuỗi chặt đè người sau đền toàn bộ cho người chót)
 }
 
 export interface CongRules {
@@ -67,7 +67,7 @@ export interface GameFlowRules {
   firstGameRequireThreeOfSpades: boolean; // Ván đầu tiên bắt buộc đánh lá 3 Bích
   winnerLeadsNextGame: boolean;           // Người về Nhất ván trước được đi đầu ván sau
   prohibitEndingWithTwo: boolean;         // Cấm đánh 2 cuối cùng (Cấm về Heo, kèm luật thối Heo)
-  threeSpadesEndingBonus?: boolean;       // Về 3 Bích cuối cùng (từ ván 2+) được x2 tiền thưởng cả làng
+  threeSpadesEndingBonus: boolean;        // Về 3 Bích cuối cùng (từ ván 2+) được x2 tiền thưởng cả làng
 }
 
 export interface TableRules {
@@ -132,10 +132,10 @@ export interface GameSettings {
   instantWinEnabled: boolean;
   soundEnabled: boolean;
   botThinkDelayMs: number;
-  playerCount?: number;              // 2, 3 hoặc 4 người chơi
-  prohibitEndingWithTwo?: boolean;   // Cấm đánh 2 cuối cùng (Cấm về Heo)
-  threeSpadesEndingBonus?: boolean;  // Về 3 Bích cuối cùng x2 tiền thưởng cả làng
-  cascadeChopEnabled?: boolean;      // Chặt chồng tích lũy tiền phạt
+  playerCount: 2 | 3 | 4;            // 2, 3 hoặc 4 người chơi
+  prohibitEndingWithTwo: boolean;    // Cấm đánh 2 cuối cùng (Cấm về Heo)
+  threeSpadesEndingBonus: boolean;   // Về 3 Bích cuối cùng x2 tiền thưởng cả làng
+  cascadeChopEnabled: boolean;       // Chặt chồng tích lũy tiền phạt
 }
 
 /**
@@ -176,7 +176,7 @@ export function createDefaultGameRules(partial?: Partial<GameRules>): GameRules 
 }
 
 /**
- * Chuyển đổi GameSettings cũ sang GameRules mới
+ * Chuyển đổi GameSettings sang GameRules
  */
 export function convertSettingsToGameRules(settings?: Partial<GameSettings>): GameRules {
   let settlementRule: GameSettlementRule = 'TRADITIONAL_RANK_BASED';
@@ -209,6 +209,294 @@ export function convertSettingsToGameRules(settings?: Partial<GameSettings>): Ga
       soundEnabled: settings?.soundEnabled ?? true
     }
   });
+}
+
+/**
+ * ============================================================================
+ * DOMAIN SUB-BUILDERS (CÁC BUILDER CHUYÊN BIỆT CHO TỪNG NHÓM LUẬT)
+ * ============================================================================
+ */
+
+export class ChoppingRulesBuilder {
+  private config: ChoppingRules;
+
+  constructor(initial?: ChoppingRules) {
+    this.config = initial ? { ...initial } : {
+      allowFourPairsCutAnytime: true,
+      allowThreePairsCutTwo: true,
+      allowFourOfAKindCutPairsOfTwos: true,
+      multiplier: 1,
+      cascadeMultiplier: true
+    };
+  }
+
+  public allowFourPairsCutAnytime(allow: boolean): this {
+    this.config.allowFourPairsCutAnytime = allow;
+    return this;
+  }
+
+  public allowThreePairsCutTwo(allow: boolean): this {
+    this.config.allowThreePairsCutTwo = allow;
+    return this;
+  }
+
+  public allowFourOfAKindCutPairsOfTwos(allow: boolean): this {
+    this.config.allowFourOfAKindCutPairsOfTwos = allow;
+    return this;
+  }
+
+  public multiplier(multiplier: number): this {
+    this.config.multiplier = multiplier;
+    return this;
+  }
+
+  public cascadeMultiplier(cascade: boolean): this {
+    this.config.cascadeMultiplier = cascade;
+    return this;
+  }
+
+  public build(): ChoppingRules {
+    return { ...this.config };
+  }
+}
+
+export class CongRulesBuilder {
+  private config: CongRules;
+
+  constructor(initial?: CongRules) {
+    this.config = initial ? { ...initial } : {
+      enabled: true,
+      penaltyCards: 26,
+      multiplier: 1
+    };
+  }
+
+  public enabled(enabled: boolean): this {
+    this.config.enabled = enabled;
+    return this;
+  }
+
+  public penaltyCards(cards: number): this {
+    this.config.penaltyCards = cards;
+    return this;
+  }
+
+  public multiplier(multiplier: number): this {
+    this.config.multiplier = multiplier;
+    return this;
+  }
+
+  public build(): CongRules {
+    return { ...this.config };
+  }
+}
+
+export class InstantWinRulesBuilder {
+  private config: InstantWinRules;
+
+  constructor(initial?: InstantWinRules) {
+    this.config = initial ? { ...initial } : {
+      enabled: true,
+      payoutMultiplier: 26
+    };
+  }
+
+  public enabled(enabled: boolean): this {
+    this.config.enabled = enabled;
+    return this;
+  }
+
+  public payoutMultiplier(multiplier: number): this {
+    this.config.payoutMultiplier = multiplier;
+    return this;
+  }
+
+  public build(): InstantWinRules {
+    return { ...this.config };
+  }
+}
+
+export class GameFlowRulesBuilder {
+  private config: GameFlowRules;
+
+  constructor(initial?: GameFlowRules) {
+    this.config = initial ? { ...initial } : {
+      firstGameRequireThreeOfSpades: true,
+      winnerLeadsNextGame: true,
+      prohibitEndingWithTwo: true,
+      threeSpadesEndingBonus: true
+    };
+  }
+
+  public firstGameRequireThreeOfSpades(require: boolean): this {
+    this.config.firstGameRequireThreeOfSpades = require;
+    return this;
+  }
+
+  public winnerLeadsNextGame(winnerLeads: boolean): this {
+    this.config.winnerLeadsNextGame = winnerLeads;
+    return this;
+  }
+
+  public prohibitEndingWithTwo(prohibit: boolean): this {
+    this.config.prohibitEndingWithTwo = prohibit;
+    return this;
+  }
+
+  public threeSpadesEndingBonus(bonus: boolean): this {
+    this.config.threeSpadesEndingBonus = bonus;
+    return this;
+  }
+
+  public build(): GameFlowRules {
+    return { ...this.config };
+  }
+}
+
+export class TableRulesBuilder {
+  private config: TableRules;
+
+  constructor(initial?: TableRules) {
+    this.config = initial ? { ...initial } : {
+      playerCount: 4,
+      betAmount: 500,
+      botThinkDelayMs: 800,
+      soundEnabled: true
+    };
+  }
+
+  public playerCount(count: 2 | 3 | 4): this {
+    this.config.playerCount = count;
+    return this;
+  }
+
+  public betAmount(amount: number): this {
+    this.config.betAmount = amount;
+    return this;
+  }
+
+  public botThinkDelayMs(delayMs: number): this {
+    this.config.botThinkDelayMs = delayMs;
+    return this;
+  }
+
+  public soundEnabled(enabled: boolean): this {
+    this.config.soundEnabled = enabled;
+    return this;
+  }
+
+  public build(): TableRules {
+    return { ...this.config };
+  }
+}
+
+/**
+ * ============================================================================
+ * COMPOSITE GAMERULES BUILDER (NESTED SCOPED BUILDER & PRESET FACTORY)
+ * ============================================================================
+ */
+export class GameRulesBuilder {
+  private rules: GameRules;
+
+  constructor(baseRules?: GameRules) {
+    this.rules = baseRules ? JSON.parse(JSON.stringify(baseRules)) : createDefaultGameRules();
+  }
+
+  // --- PRESET FACTORY METHODS ---
+
+  public static traditional(): GameRulesBuilder {
+    return new GameRulesBuilder(createDefaultGameRules({
+      settlementRule: 'TRADITIONAL_RANK_BASED',
+      table: { playerCount: 4, betAmount: 500, botThinkDelayMs: 850, soundEnabled: true }
+    }));
+  }
+
+  public static countCards(): GameRulesBuilder {
+    return new GameRulesBuilder(createDefaultGameRules({
+      settlementRule: 'CARD_COUNT',
+      table: { playerCount: 4, betAmount: 500, botThinkDelayMs: 750, soundEnabled: true }
+    }));
+  }
+
+  public static underground(): GameRulesBuilder {
+    return new GameRulesBuilder(createDefaultGameRules({
+      settlementRule: 'CARD_COUNT',
+      chopping: { allowFourPairsCutAnytime: true, allowThreePairsCutTwo: true, allowFourOfAKindCutPairsOfTwos: true, multiplier: 2, cascadeMultiplier: true },
+      cong: { enabled: true, penaltyCards: 26, multiplier: 2 },
+      table: { playerCount: 4, betAmount: 1000, botThinkDelayMs: 700, soundEnabled: true }
+    }));
+  }
+
+  public static winnerTakesAll(): GameRulesBuilder {
+    return new GameRulesBuilder(createDefaultGameRules({
+      settlementRule: 'WINNER_TAKES_ALL',
+      table: { playerCount: 4, betAmount: 1000, botThinkDelayMs: 800, soundEnabled: true }
+    }));
+  }
+
+  public static solo1v1(): GameRulesBuilder {
+    return new GameRulesBuilder(createDefaultGameRules({
+      settlementRule: 'CARD_COUNT',
+      table: { playerCount: 2, betAmount: 1000, botThinkDelayMs: 650, soundEnabled: true }
+    }));
+  }
+
+  public static fromPreset(preset: GameMode | 'UNDERGROUND' | 'SOLO_1V1'): GameRulesBuilder {
+    switch (preset) {
+      case 'COUNT_CARDS': return GameRulesBuilder.countCards();
+      case 'UNDERGROUND': return GameRulesBuilder.underground();
+      case 'WINNER_TAKES_ALL': return GameRulesBuilder.winnerTakesAll();
+      case 'SOLO_1V1': return GameRulesBuilder.solo1v1();
+      case 'TRADITIONAL':
+      default: return GameRulesBuilder.traditional();
+    }
+  }
+
+  // --- NESTED DOMAIN SUB-BUILDERS (SCOPED LAMBDA CONFIGURATION) ---
+
+  public withSettlement(settlementRule: GameSettlementRule): this {
+    this.rules.settlementRule = settlementRule;
+    return this;
+  }
+
+  public withChopping(fn: (builder: ChoppingRulesBuilder) => ChoppingRulesBuilder | void): this {
+    const sub = new ChoppingRulesBuilder(this.rules.chopping);
+    const result = fn(sub);
+    this.rules.chopping = (result || sub).build();
+    return this;
+  }
+
+  public withCong(fn: (builder: CongRulesBuilder) => CongRulesBuilder | void): this {
+    const sub = new CongRulesBuilder(this.rules.cong);
+    const result = fn(sub);
+    this.rules.cong = (result || sub).build();
+    return this;
+  }
+
+  public withInstantWin(fn: (builder: InstantWinRulesBuilder) => InstantWinRulesBuilder | void): this {
+    const sub = new InstantWinRulesBuilder(this.rules.instantWin);
+    const result = fn(sub);
+    this.rules.instantWin = (result || sub).build();
+    return this;
+  }
+
+  public withGameFlow(fn: (builder: GameFlowRulesBuilder) => GameFlowRulesBuilder | void): this {
+    const sub = new GameFlowRulesBuilder(this.rules.gameFlow);
+    const result = fn(sub);
+    this.rules.gameFlow = (result || sub).build();
+    return this;
+  }
+
+  public withTable(fn: (builder: TableRulesBuilder) => TableRulesBuilder | void): this {
+    const sub = new TableRulesBuilder(this.rules.table);
+    const result = fn(sub);
+    this.rules.table = (result || sub).build();
+    return this;
+  }
+
+  public build(): GameRules {
+    return JSON.parse(JSON.stringify(this.rules));
+  }
 }
 
 export interface GameHistoryEntry {

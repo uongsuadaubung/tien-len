@@ -2,8 +2,8 @@ import { describe, test, expect } from 'bun:test';
 import { createCard } from '../../src/engine/card';
 import { GameEngine } from '../../src/engine/game';
 import { calculateCountCardsSettlement, calculateWinnerTakesAllSettlement, calculateTraditionalSettlement } from '../../src/engine/economy';
-import { Player, createDefaultGameRules } from '../../src/engine/types';
-import { GameFlowRuleStrategy } from '../../src/ai/rule-strategies';
+import { Player, createDefaultGameRules, GameRulesBuilder } from '../../src/engine/types';
+import { GameFlowRuleStrategyBuilder } from '../../src/ai/rule-strategies';
 import { CardTracker } from '../../src/ai/card-tracker';
 
 describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)', () => {
@@ -65,14 +65,15 @@ describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)',
   describe('1. GameEngine Nhận Diện Về 3 Bích Cuối Cùng', () => {
     test('Kích hoạt isThreeSpadesWin khi đánh lá đơn 3♠ về Nhất ở ván thứ 2+', () => {
       const players = createTestPlayers();
-      const rules = createDefaultGameRules({
-        gameFlow: {
-          firstGameRequireThreeOfSpades: true,
-          winnerLeadsNextGame: true,
-          prohibitEndingWithTwo: true,
-          threeSpadesEndingBonus: true
-        }
-      });
+      const rules = new GameRulesBuilder()
+        .withInstantWin(w => w.enabled(false))
+        .withGameFlow(f => f
+          .firstGameRequireThreeOfSpades(true)
+          .winnerLeadsNextGame(true)
+          .prohibitEndingWithTwo(true)
+          .threeSpadesEndingBonus(true)
+        )
+        .build();
 
       const game = new GameEngine(players, rules);
       game.startNewGame(2, 'p0'); // Ván thứ 2, p0 đi trước
@@ -90,14 +91,15 @@ describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)',
 
     test('Không kích hoạt isThreeSpadesWin ở ván đầu tiên (gameNumber = 1)', () => {
       const players = createTestPlayers();
-      const rules = createDefaultGameRules({
-        gameFlow: {
-          firstGameRequireThreeOfSpades: true,
-          winnerLeadsNextGame: true,
-          prohibitEndingWithTwo: true,
-          threeSpadesEndingBonus: true
-        }
-      });
+      const rules = new GameRulesBuilder()
+        .withInstantWin(w => w.enabled(false))
+        .withGameFlow(f => f
+          .firstGameRequireThreeOfSpades(true)
+          .winnerLeadsNextGame(true)
+          .prohibitEndingWithTwo(true)
+          .threeSpadesEndingBonus(true)
+        )
+        .build();
 
       const game = new GameEngine(players, rules);
       game.startNewGame(1); // Ván 1
@@ -115,14 +117,15 @@ describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)',
 
     test('Không kích hoạt isThreeSpadesWin nếu kết thúc bằng Đôi 3 chứa 3♠ (phải là lá đơn)', () => {
       const players = createTestPlayers();
-      const rules = createDefaultGameRules({
-        gameFlow: {
-          firstGameRequireThreeOfSpades: true,
-          winnerLeadsNextGame: true,
-          prohibitEndingWithTwo: true,
-          threeSpadesEndingBonus: true
-        }
-      });
+      const rules = new GameRulesBuilder()
+        .withInstantWin(w => w.enabled(false))
+        .withGameFlow(f => f
+          .firstGameRequireThreeOfSpades(true)
+          .winnerLeadsNextGame(true)
+          .prohibitEndingWithTwo(true)
+          .threeSpadesEndingBonus(true)
+        )
+        .build();
 
       const game = new GameEngine(players, rules);
       game.startNewGame(2, 'p0');
@@ -141,14 +144,15 @@ describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)',
 
     test('Không kích hoạt isThreeSpadesWin nếu luật threeSpadesEndingBonus bị tắt', () => {
       const players = createTestPlayers();
-      const rules = createDefaultGameRules({
-        gameFlow: {
-          firstGameRequireThreeOfSpades: true,
-          winnerLeadsNextGame: true,
-          prohibitEndingWithTwo: true,
-          threeSpadesEndingBonus: false // Tắt luật
-        }
-      });
+      const rules = new GameRulesBuilder()
+        .withInstantWin(w => w.enabled(false))
+        .withGameFlow(f => f
+          .firstGameRequireThreeOfSpades(true)
+          .winnerLeadsNextGame(true)
+          .prohibitEndingWithTwo(true)
+          .threeSpadesEndingBonus(false)
+        )
+        .build();
 
       const game = new GameEngine(players, rules);
       game.startNewGame(2, 'p0');
@@ -220,16 +224,15 @@ describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)',
 
   describe('3. AI Bot Heuristics & Quyết Định Chiến Thuật', () => {
     test('GameFlowRuleStrategy thưởng điểm cực đại (+500) khi lá đơn 3♠ là lá kết liễu', () => {
-      const strategy = new GameFlowRuleStrategy(true, true, true);
+      const strategy = new GameFlowRuleStrategyBuilder()
+        .prohibitEndingWithTwo(true)
+        .firstGameRequireThreeOfSpades(true)
+        .threeSpadesEndingBonus(true)
+        .build();
       const tracker = new CardTracker();
-      const rules = createDefaultGameRules({
-        gameFlow: {
-          firstGameRequireThreeOfSpades: true,
-          winnerLeadsNextGame: true,
-          prohibitEndingWithTwo: true,
-          threeSpadesEndingBonus: true
-        }
-      });
+      const rules = new GameRulesBuilder()
+        .withGameFlow(f => f.prohibitEndingWithTwo(true).threeSpadesEndingBonus(true))
+        .build();
 
       const move = {
         cards: [card3S],
@@ -254,16 +257,15 @@ describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)',
     });
 
     test('GameFlowRuleStrategy giữ lại lá 3♠ khi bài có Heo Cơ và thế thắng áp đảo', () => {
-      const strategy = new GameFlowRuleStrategy(true, true, true);
+      const strategy = new GameFlowRuleStrategyBuilder()
+        .prohibitEndingWithTwo(true)
+        .firstGameRequireThreeOfSpades(true)
+        .threeSpadesEndingBonus(true)
+        .build();
       const tracker = new CardTracker();
-      const rules = createDefaultGameRules({
-        gameFlow: {
-          firstGameRequireThreeOfSpades: true,
-          winnerLeadsNextGame: true,
-          prohibitEndingWithTwo: true,
-          threeSpadesEndingBonus: true
-        }
-      });
+      const rules = new GameRulesBuilder()
+        .withGameFlow(f => f.prohibitEndingWithTwo(true).threeSpadesEndingBonus(true))
+        .build();
 
       const move = {
         cards: [card3S],

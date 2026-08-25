@@ -54,7 +54,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
   const [settings, setSettings] = useState<GameSettings>({
     mode: initialConfig?.settings?.mode || 'COUNT_CARDS',
     betAmount: initialBet,
-    choppingMultiplier: initialConfig?.settings?.choppingMultiplier || 1,
+    playerCount: (initialConfig?.playerCount || 4) as 2 | 3 | 4,
     allowFourPairsCutAnytime: initialConfig?.settings?.allowFourPairsCutAnytime ?? true,
     instantWinEnabled: initialConfig?.settings?.instantWinEnabled ?? true,
     soundEnabled: initialConfig?.settings?.soundEnabled ?? true,

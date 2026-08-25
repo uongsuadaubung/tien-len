@@ -1,8 +1,8 @@
 import { describe, test, expect } from 'bun:test';
 import { createCard } from '../../src/engine/card';
 import { GameEngine } from '../../src/engine/game';
-import { Player, createDefaultGameRules } from '../../src/engine/types';
-import { ChoppingRuleStrategy } from '../../src/ai/rule-strategies';
+import { Player, createDefaultGameRules, GameRulesBuilder } from '../../src/engine/types';
+import { ChoppingRuleStrategyBuilder } from '../../src/ai/rule-strategies';
 
 describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạc Chuẩn)', () => {
   const card2S = createCard(15, 'SPADES'); // Heo Đen (1x)
@@ -84,16 +84,11 @@ describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạ
   describe('1. Vòng Chặt Đơn Lẻ (Single Chop)', () => {
     test('A đánh Heo Đen (2♠), B chặt bằng 3 Đôi Thông: A đền B theo đúng biểu giá', () => {
       const players = createTestPlayers();
-      const rules = createDefaultGameRules({
-        chopping: {
-          allowFourPairsCutAnytime: true,
-          allowThreePairsCutTwo: true,
-          allowFourOfAKindCutPairsOfTwos: true,
-          multiplier: 1,
-          cascadeMultiplier: true
-        },
-        table: { betAmount: 1000, playerCount: 4, botThinkDelayMs: 0, soundEnabled: false }
-      });
+      const rules = new GameRulesBuilder()
+        .withInstantWin(w => w.enabled(false))
+        .withChopping(c => c.cascadeMultiplier(true))
+        .withTable(t => t.betAmount(1000).playerCount(4).botThinkDelayMs(0).soundEnabled(false))
+        .build();
 
       const game = new GameEngine(players, rules);
       game.startNewGame(2, 'p0');
@@ -122,16 +117,11 @@ describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạ
   describe('2. Chặt Chồng Liên Hoàn 2 Cấp (2-Step Cascade Chop)', () => {
     test('A đánh Heo (2♠) -> B chặt bằng 3 Đôi Thông -> C chặt đè bằng Tứ Quý: A được giải thoát, B đền toàn bộ cho C', () => {
       const players = createTestPlayers();
-      const rules = createDefaultGameRules({
-        chopping: {
-          allowFourPairsCutAnytime: true,
-          allowThreePairsCutTwo: true,
-          allowFourOfAKindCutPairsOfTwos: true,
-          multiplier: 1,
-          cascadeMultiplier: true
-        },
-        table: { betAmount: 1000, playerCount: 4, botThinkDelayMs: 0, soundEnabled: false }
-      });
+      const rules = new GameRulesBuilder()
+        .withInstantWin(w => w.enabled(false))
+        .withChopping(c => c.cascadeMultiplier(true))
+        .withTable(t => t.betAmount(1000).playerCount(4).botThinkDelayMs(0).soundEnabled(false))
+        .build();
 
       const game = new GameEngine(players, rules);
       game.startNewGame(2, 'p0');
@@ -170,16 +160,11 @@ describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạ
   describe('3. Chặt Chồng Liên Hoàn 3 Cấp (3-Step Cascade Chop - Nổ Hũ Khổng Lồ)', () => {
     test('A đánh 2♠ -> B chặt 3 Đôi Thông -> C chặt Tứ Quý -> D chặt 4 Đôi Thông: A & B giải thoát, C đền toàn bộ chuỗi cho D', () => {
       const players = createTestPlayers();
-      const rules = createDefaultGameRules({
-        chopping: {
-          allowFourPairsCutAnytime: true,
-          allowThreePairsCutTwo: true,
-          allowFourOfAKindCutPairsOfTwos: true,
-          multiplier: 1,
-          cascadeMultiplier: true
-        },
-        table: { betAmount: 1000, playerCount: 4, botThinkDelayMs: 0, soundEnabled: false }
-      });
+      const rules = new GameRulesBuilder()
+        .withInstantWin(w => w.enabled(false))
+        .withChopping(c => c.cascadeMultiplier(true))
+        .withTable(t => t.betAmount(1000).playerCount(4).botThinkDelayMs(0).soundEnabled(false))
+        .build();
 
       const game = new GameEngine(players, rules);
       game.startNewGame(2, 'p0');
@@ -220,16 +205,11 @@ describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạ
   describe('4. Tắt Luật Chặt Chồng (cascadeMultiplier = false)', () => {
     test('Khi tắt luật chặt chồng, mỗi lần chặt phạt độc lập giữa 2 người, không giải thoát người trước', () => {
       const players = createTestPlayers();
-      const rules = createDefaultGameRules({
-        chopping: {
-          allowFourPairsCutAnytime: true,
-          allowThreePairsCutTwo: true,
-          allowFourOfAKindCutPairsOfTwos: true,
-          multiplier: 1,
-          cascadeMultiplier: false // TẮT CHẶT CHỒNG
-        },
-        table: { betAmount: 1000, playerCount: 4, botThinkDelayMs: 0, soundEnabled: false }
-      });
+      const rules = new GameRulesBuilder()
+        .withInstantWin(w => w.enabled(false))
+        .withChopping(c => c.cascadeMultiplier(false))
+        .withTable(t => t.betAmount(1000).playerCount(4).botThinkDelayMs(0).soundEnabled(false))
+        .build();
 
       const game = new GameEngine(players, rules);
       game.startNewGame(2, 'p0');
@@ -253,7 +233,11 @@ describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạ
 
   describe('5. Trí Tuệ Bot AI Phản Ứng Với Luật Chặt Chồng', () => {
     test('ChoppingRuleStrategy tăng điểm thưởng cực lớn khi chặt đè thành công (Counter-Chop)', () => {
-      const strategy = new ChoppingRuleStrategy(true, 1, true);
+      const strategy = new ChoppingRuleStrategyBuilder()
+        .allowFourPairsCutAnytime(true)
+        .multiplier(1)
+        .cascadeMultiplier(true)
+        .build();
 
       const move = {
         cards: fourOfAKind,

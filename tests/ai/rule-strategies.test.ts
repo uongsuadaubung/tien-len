@@ -1,17 +1,22 @@
 import { describe, expect, it } from 'bun:test';
-import { Card, Combination, createDefaultGameRules } from '../../src/engine/types';
+import { Card, Combination, createDefaultGameRules, GameRulesBuilder } from '../../src/engine/types';
 import { createCard } from '../../src/engine/card';
 import { CardTracker } from '../../src/ai/card-tracker';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { makeBotDecision } from '../../src/ai/decision-maker';
 import { 
   ChoppingRuleStrategy, 
+  ChoppingRuleStrategyBuilder,
   CompositeRuleStrategy, 
+  CompositeRuleStrategyBuilder,
   CongRuleStrategy, 
+  CongRuleStrategyBuilder,
   CountCardsSettlementStrategy, 
   GameFlowRuleStrategy, 
+  GameFlowRuleStrategyBuilder,
   RuleDecisionContext, 
   TableScaleRuleStrategy, 
+  TableScaleRuleStrategyBuilder,
   TraditionalSettlementStrategy, 
   type ValidMoveInfo, 
   WinnerTakesAllSettlementStrategy, 
@@ -95,7 +100,11 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
   // ==========================================================================
   describe('2. Cong & Anti-Freeze Strategy (Thoát Cóng Khẩn Cấp)', () => {
     it('Kích hoạt EMERGENCY_UNFREEZE khi Bot chưa ra được lá nào và có đối thủ sắp về (<= 3 lá)', () => {
-      const congStrategy = new CongRuleStrategy(true, 26, 1);
+      const congStrategy = new CongRuleStrategyBuilder()
+        .enabled(true)
+        .penaltyCards(26)
+        .multiplier(1)
+        .build();
       const tracker = new CardTracker();
 
       const defaultRules = createDefaultGameRules();
@@ -128,7 +137,11 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
     });
 
     it('KHÔNG kích hoạt Thoát Cóng nếu Bot đã từng ra bài thành công (hasPlayedFirstCard === true)', () => {
-      const congStrategy = new CongRuleStrategy(true, 26, 1);
+      const congStrategy = new CongRuleStrategyBuilder()
+        .enabled(true)
+        .penaltyCards(26)
+        .multiplier(1)
+        .build();
       const tracker = new CardTracker();
 
       const defaultRules = createDefaultGameRules();
@@ -158,15 +171,27 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
   // ==========================================================================
   describe('3. Chopping & Trap Strategy (Chặt Heo & Gài Bẫy)', () => {
     it('Tăng hệ số rủi ro Chặt khi multiplier = 2 và 4 đôi thông chặt tự do bật', () => {
-      const choppingNormal = new ChoppingRuleStrategy(false, 1, false);
+      const choppingNormal = new ChoppingRuleStrategyBuilder()
+        .allowFourPairsCutAnytime(false)
+        .multiplier(1)
+        .cascadeMultiplier(false)
+        .build();
       expect(choppingNormal.getChoppingRiskFactor()).toBe(1.0);
 
-      const choppingUnderground = new ChoppingRuleStrategy(true, 2, false);
+      const choppingUnderground = new ChoppingRuleStrategyBuilder()
+        .allowFourPairsCutAnytime(true)
+        .multiplier(2)
+        .cascadeMultiplier(false)
+        .build();
       // multiplier = 2 * 1.25 (allowFourPairsCutAnytime) = 2.5
       expect(choppingUnderground.getChoppingRiskFactor()).toBe(2.5);
       expect(choppingUnderground.getTrapScoreModifier()).toBe(40);
 
-      const choppingCascade = new ChoppingRuleStrategy(true, 2, true);
+      const choppingCascade = new ChoppingRuleStrategyBuilder()
+        .allowFourPairsCutAnytime(true)
+        .multiplier(2)
+        .cascadeMultiplier(true)
+        .build();
       // 2 * 1.25 * 1.2 = 3.0
       expect(choppingCascade.getChoppingRiskFactor()).toBe(3.0);
       expect(choppingCascade.getTrapScoreModifier()).toBe(65);
@@ -178,7 +203,10 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
   // ==========================================================================
   describe('4. GameFlow & Endgame Strategy (Cờ Tàn & Vòng Đấu)', () => {
     it('Luật Cấm 2 Cuối: Xả Heo trước khi còn 1 lượt bài thường để tránh thối Heo', () => {
-      const gameFlowStrategy = new GameFlowRuleStrategy(true, true);
+      const gameFlowStrategy = new GameFlowRuleStrategyBuilder()
+        .prohibitEndingWithTwo(true)
+        .firstGameRequireThreeOfSpades(true)
+        .build();
       const tracker = new CardTracker();
 
       const defaultRules = createDefaultGameRules();
@@ -208,7 +236,10 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
     });
 
     it('Luật Chống Đền Bài: Khi người kế tiếp báo 1 lá, bắt buộc đánh bài to nhất để chặn đầu', () => {
-      const gameFlowStrategy = new GameFlowRuleStrategy(true, true);
+      const gameFlowStrategy = new GameFlowRuleStrategyBuilder()
+        .prohibitEndingWithTwo(true)
+        .firstGameRequireThreeOfSpades(true)
+        .build();
       const tracker = new CardTracker();
 
       const defaultRules = createDefaultGameRules();
@@ -242,7 +273,9 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
   // ==========================================================================
   describe('5. Table Scale Strategy (Quy Mô Bàn 1v1 vs Bàn 4 Người)', () => {
     it('Solo 1v1 (playerCount === 2): Tăng mạnh điểm thưởng cướp cái do chắc chắn giữ lượt đi', () => {
-      const table1v1 = new TableScaleRuleStrategy(2);
+      const table1v1 = new TableScaleRuleStrategyBuilder()
+        .playerCount(2)
+        .build();
       const leadPolicy = table1v1.contributeLeadPolicy({});
       expect(leadPolicy.aggressiveFinisherPush).toBe(true);
 
@@ -326,6 +359,124 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
       // Phải chọn xả Sảnh dài trước theo luật Đếm Lá
       expect(decision.combination?.type).toBe('STRAIGHT');
       expect(decision.cards?.length).toBe(4);
+    });
+  });
+
+  // ==========================================================================
+  // 7. BUILDER PATTERN TESTS FOR RULE STRATEGIES & GAMERULES
+  // ==========================================================================
+  describe('7. Builder Pattern For Rule Strategies & GameRules', () => {
+    it('ChoppingRuleStrategyBuilder khởi tạo chiến lược chặt tường minh', () => {
+      const strategy = new ChoppingRuleStrategyBuilder()
+        .allowFourPairsCutAnytime(true)
+        .multiplier(2)
+        .cascadeMultiplier(true)
+        .build();
+
+      expect(strategy.getChoppingRiskFactor()).toBe(3.0);
+      expect(strategy.getTrapScoreModifier()).toBe(65);
+    });
+
+    it('CongRuleStrategyBuilder khởi tạo chiến lược cóng tường minh', () => {
+      const strategy = new CongRuleStrategyBuilder()
+        .enabled(true)
+        .penaltyCards(26)
+        .multiplier(2)
+        .build();
+
+      expect(strategy.ruleName).toContain('Cong');
+    });
+
+    it('GameFlowRuleStrategyBuilder khởi tạo chiến lược vòng chơi tường minh', () => {
+      const strategy = new GameFlowRuleStrategyBuilder()
+        .prohibitEndingWithTwo(true)
+        .firstGameRequireThreeOfSpades(true)
+        .threeSpadesEndingBonus(true)
+        .build();
+
+      expect(strategy.ruleName).toContain('GameFlow');
+    });
+
+    it('TableScaleRuleStrategyBuilder khởi tạo quy mô bàn chơi tường minh', () => {
+      const strategy = new TableScaleRuleStrategyBuilder()
+        .playerCount(2)
+        .build();
+
+      expect(strategy.ruleName).toContain('Table Scale');
+    });
+
+    it('GameRulesBuilder xây dựng cấu hình GameRules hoàn chỉnh không có trường undefined', () => {
+      const rules = new GameRulesBuilder()
+        .withSettlement('CARD_COUNT')
+        .withTable(t => t.playerCount(4).betAmount(1000))
+        .withChopping(c => c.cascadeMultiplier(true))
+        .withGameFlow(f => f.prohibitEndingWithTwo(true).threeSpadesEndingBonus(true))
+        .withCong(cg => cg.multiplier(2))
+        .build();
+
+      expect(rules.settlementRule).toBe('CARD_COUNT');
+      expect(rules.table.playerCount).toBe(4);
+      expect(rules.table.betAmount).toBe(1000);
+      expect(rules.chopping.cascadeMultiplier).toBe(true);
+      expect(rules.gameFlow.prohibitEndingWithTwo).toBe(true);
+      expect(rules.gameFlow.threeSpadesEndingBonus).toBe(true);
+      expect(rules.cong.multiplier).toBe(2);
+
+      const composite = new CompositeRuleStrategyBuilder(rules).build();
+      expect(composite.rules.settlementRule).toBe('CARD_COUNT');
+    });
+
+    it('GameRulesBuilder hỗ trợ Nested Domain Sub-Builders theo từng nhóm nghiệp vụ', () => {
+      const customRules = new GameRulesBuilder()
+        .withSettlement('CARD_COUNT')
+        .withChopping(c => c
+          .allowFourPairsCutAnytime(true)
+          .multiplier(2)
+          .cascadeMultiplier(true)
+        )
+        .withCong(cg => cg
+          .enabled(true)
+          .penaltyCards(26)
+          .multiplier(2)
+        )
+        .withGameFlow(f => f
+          .prohibitEndingWithTwo(true)
+          .threeSpadesEndingBonus(true)
+          .firstGameRequireThreeOfSpades(true)
+        )
+        .withInstantWin(w => w
+          .enabled(true)
+          .payoutMultiplier(26)
+        )
+        .withTable(t => t
+          .playerCount(4)
+          .betAmount(2000)
+          .botThinkDelayMs(600)
+        )
+        .build();
+
+      expect(customRules.settlementRule).toBe('CARD_COUNT');
+      expect(customRules.chopping.multiplier).toBe(2);
+      expect(customRules.chopping.cascadeMultiplier).toBe(true);
+      expect(customRules.cong.multiplier).toBe(2);
+      expect(customRules.gameFlow.threeSpadesEndingBonus).toBe(true);
+      expect(customRules.table.betAmount).toBe(2000);
+      expect(customRules.table.botThinkDelayMs).toBe(600);
+    });
+
+    it('GameRulesBuilder hỗ trợ Preset Profiles kế thừa và ghi đè linh hoạt', () => {
+      const undergroundCustom = GameRulesBuilder.underground()
+        .withTable(t => t.betAmount(5000))
+        .withGameFlow(f => f.threeSpadesEndingBonus(true))
+        .build();
+
+      expect(undergroundCustom.settlementRule).toBe('CARD_COUNT');
+      expect(undergroundCustom.chopping.multiplier).toBe(2);
+      expect(undergroundCustom.table.betAmount).toBe(5000);
+      expect(undergroundCustom.gameFlow.threeSpadesEndingBonus).toBe(true);
+
+      const soloRules = GameRulesBuilder.fromPreset('SOLO_1V1').build();
+      expect(soloRules.table.playerCount).toBe(2);
     });
   });
 });

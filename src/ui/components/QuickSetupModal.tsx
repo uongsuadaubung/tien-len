@@ -11,8 +11,8 @@ export interface QuickSetupConfig {
   congEnabled: boolean;
   prohibitEndingWithTwo: boolean;
   allowFourPairsCutAnytime: boolean;
-  threeSpadesEndingBonus?: boolean;
-  cascadeChopEnabled?: boolean;
+  threeSpadesEndingBonus: boolean;
+  cascadeChopEnabled: boolean;
 }
 
 interface QuickSetupModalProps {
@@ -37,7 +37,9 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
     prohibitEndingWithTwo: true,
     allowFourPairsCutAnytime: true,
     threeSpadesEndingBonus: true,
-    cascadeChopEnabled: true
+    cascadeChopEnabled: true,
+    instantWinEnabled: true,
+    botThinkDelayMs: 800
   });
 
   if (!isOpen) return null;
