@@ -72,4 +72,28 @@ describe('Opponent Dynamic Profiler (Hồ Sơ Đọc Vị Đối Thủ Dài Hạ
     const restored = profiler.getProfile('player_saved');
     expect(restored.gamesObserved).toBe(1);
   });
+
+  it('6. Lưu trữ dài hạn thói quen Người chơi (p0) và bảo toàn qua các lần reset bàn', () => {
+    profiler.clearAll();
+
+    const twoHearts = createCard(15, 'HEARTS');
+    const twoCombo = identifyCombination([twoHearts])!;
+    
+    // Người chơi p0 giữ 2 đến cờ tàn (2 lá)
+    profiler.recordCardPlay('p0', [twoHearts], twoCombo, 2, false);
+    const p0Updated = profiler.finalizeMatchForPlayer('p0', []);
+    expect(p0Updated.gamesObserved).toBe(1);
+    expect(p0Updated.heoGreedRate).toBeGreaterThan(0.5);
+
+    // Thêm bot p1
+    profiler.recordChop('p1');
+    profiler.finalizeMatchForPlayer('p1', []);
+    expect(profiler.getProfile('p1').gamesObserved).toBe(1);
+
+    // Khi kết thúc bàn/về sảnh, reset() xóa bot p1 nhưng BẢO TOÀN thói quen p0
+    profiler.reset('p0');
+    expect(profiler.getAllProfiles()['p1']).toBeUndefined();
+    expect(profiler.getProfile('p0').gamesObserved).toBe(1);
+    expect(profiler.getProfile('p0').heoGreedRate).toBe(p0Updated.heoGreedRate);
+  });
 });

@@ -138,6 +138,7 @@ export function savePlayerProfile(profile: PlayerProfile): void {
 export function resetPlayerProfile(): PlayerProfile {
   try {
     removeStorageItem(STORAGE_KEY);
+    removeStorageItem(HUMAN_BEHAVIOR_PROFILE_KEY);
   } catch (e) {
     console.error('Lỗi khi xóa profile:', e);
   }
@@ -187,4 +188,38 @@ export function clearActiveMatchSession(): void {
     console.error('Lỗi khi xóa ActiveMatchSession:', e);
   }
 }
+
+// ============================================================================
+// HỒ SƠ TÂM LÝ & THÓI QUEN NGƯỜI CHƠI (LONG-TERM PLAYER BEHAVIOR PROFILE)
+// ============================================================================
+
+const HUMAN_BEHAVIOR_PROFILE_KEY = 'TIEN_LEN_HUMAN_PLAYER_BEHAVIOR_PROFILE_V1';
+
+export function saveHumanBehaviorProfile(profile: unknown): void {
+  try {
+    setStorageItem(HUMAN_BEHAVIOR_PROFILE_KEY, JSON.stringify(profile));
+  } catch (e) {
+    console.error('Lỗi khi lưu HumanBehaviorProfile:', e);
+  }
+}
+
+export function loadHumanBehaviorProfile(): unknown {
+  try {
+    const raw = getStorageItem(HUMAN_BEHAVIOR_PROFILE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error('Lỗi khi đọc HumanBehaviorProfile:', e);
+    return null;
+  }
+}
+
+export function clearHumanBehaviorProfile(): void {
+  try {
+    removeStorageItem(HUMAN_BEHAVIOR_PROFILE_KEY);
+  } catch (e) {
+    console.error('Lỗi khi xóa HumanBehaviorProfile:', e);
+  }
+}
+
 

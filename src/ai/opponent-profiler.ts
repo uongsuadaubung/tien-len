@@ -1,5 +1,10 @@
 import { Card, Combination, CombinationType } from '../engine/types';
 import { isTwo } from '../engine/card';
+import { 
+  saveHumanBehaviorProfile, 
+  loadHumanBehaviorProfile, 
+  clearHumanBehaviorProfile 
+} from '../engine/storage';
 
 export interface OpponentBehaviorProfile {
   readonly playerId: string;
@@ -76,6 +81,10 @@ export class OpponentProfiler {
   private profiles = new Map<string, OpponentBehaviorProfile>();
   private sessionActions = new Map<string, PlayerActionRecord[]>();
 
+  private constructor() {
+    this.loadPersistentProfiles();
+  }
+
   public static getInstance(): OpponentProfiler {
     if (!OpponentProfiler.instance) {
       OpponentProfiler.instance = new OpponentProfiler();
@@ -83,10 +92,24 @@ export class OpponentProfiler {
     return OpponentProfiler.instance;
   }
 
+  private loadPersistentProfiles(): void {
+    const savedHuman = loadHumanBehaviorProfile();
+    if (savedHuman && isOpponentBehaviorProfile(savedHuman)) {
+      this.profiles.set('p0', savedHuman);
+    }
+  }
+
   public getProfile(playerId: string): OpponentBehaviorProfile {
     const existing = this.profiles.get(playerId);
     if (existing) {
       return existing;
+    }
+    if (playerId === 'p0') {
+      const savedHuman = loadHumanBehaviorProfile();
+      if (savedHuman && isOpponentBehaviorProfile(savedHuman)) {
+        this.profiles.set('p0', savedHuman);
+        return savedHuman;
+      }
     }
     const defaultProf = createDefaultOpponentProfile(playerId);
     this.profiles.set(playerId, defaultProf);
@@ -232,6 +255,9 @@ export class OpponentProfiler {
     };
 
     this.profiles.set(playerId, updatedProfile);
+    if (playerId === 'p0') {
+      saveHumanBehaviorProfile(updatedProfile);
+    }
     return updatedProfile;
   }
 
@@ -258,8 +284,24 @@ export class OpponentProfiler {
     }
   }
 
-  public reset(): void {
+  /**
+   * Đặt lại bộ nhớ phiên (xóa hành vi của các bot đối thủ khi đổi bàn, nhưng bảo toàn hồ sơ người chơi dài hạn)
+   */
+  public reset(keepPlayerId: string = 'p0'): void {
+    this.sessionActions.clear();
+    const humanProf = this.profiles.get(keepPlayerId) || loadHumanBehaviorProfile();
+    this.profiles.clear();
+    if (humanProf && isOpponentBehaviorProfile(humanProf)) {
+      this.profiles.set(keepPlayerId, humanProf);
+    }
+  }
+
+  /**
+   * Xóa sạch toàn bộ bộ nhớ và LocalStorage
+   */
+  public clearAll(): void {
     this.profiles.clear();
     this.sessionActions.clear();
+    clearHumanBehaviorProfile();
   }
 }

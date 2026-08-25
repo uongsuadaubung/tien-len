@@ -22,8 +22,9 @@ describe('Zustand State Stores Integration Tests (Kiểm Thử Tích Hợp State
     userStore.deductCoins(2000);
     expect(useUserStore.getState().profile.coins).toBe(initialCoins + 3000);
 
+    const initialElo = userStore.profile.elo;
     userStore.updateElo(25);
-    expect(useUserStore.getState().profile.elo).toBe(1225);
+    expect(useUserStore.getState().profile.elo).toBe(initialElo + 25);
 
     userStore.takeLoan(10000);
     expect(useUserStore.getState().profile.loans).toBe(10000);

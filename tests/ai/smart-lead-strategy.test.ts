@@ -169,4 +169,39 @@ describe('Chiến Thuật Ra Bài Cầm Cái & Mở Màn 3 Bích Chuẩn Tiến 
     // Không cấm 2 cuối -> Đánh 3♠ trước, giữ 2♥ chốt hạ về nhất
     expect(decision.cards?.[0].rank).toBe(3);
   });
+
+  test('6. Đếm Lá (COUNT_CARDS): Bot có 3 con 2, nhiều đôi và rác nhỏ -> Bắt buộc tẩu rác nhỏ trước, KHÔNG được xả 3 con 2', () => {
+    // Bài cực mạnh: Sám 2 [2♠ 2♣ 2♦], Đôi 4 [4♠ 4♥], Đôi 7 [7♣ 7♦], rác 3♠, 6♦, 9♣
+    const hand: Card[] = [
+      createCard(3, 'SPADES'),  // Rác nhỏ
+      createCard(4, 'SPADES'),  // Đôi 4
+      createCard(4, 'HEARTS'),
+      createCard(6, 'DIAMONDS'),// Rác nhỏ
+      createCard(7, 'CLUBS'),   // Đôi 7
+      createCard(7, 'DIAMONDS'),
+      createCard(9, 'CLUBS'),   // Rác
+      createCard(15, 'SPADES'), // 3 con 2 (Sám Heo)
+      createCard(15, 'CLUBS'),
+      createCard(15, 'DIAMONDS')
+    ];
+
+    const decision = makeBotDecision(createMockDecisionContext({
+      hand,
+      currentRoundLeadingMove: null,
+      isLeadMove: true,
+      tracker,
+      config: BOT_PERSONAS.BOT_ELO_1750,
+      remainingPlayerCards: { p0: 10, p1: 10, p2: 10, p3: 10 },
+      nextPlayerId: 'p1',
+      gameMode: 'COUNT_CARDS'
+    }));
+
+    expect(decision.type).toBe('PLAY');
+    // Tuyệt đối không xả 3 con 2 (Sám 2) ngay từ đầu!
+    expect(decision.combination?.type).not.toBe('TRIPLE');
+    expect(decision.cards?.some(c => c.rank === 15)).toBe(false);
+    // Phải đánh rác nhỏ (3♠) để thăm dò và tẩu rác dưới sự bảo kê của 3 con 2
+    expect(decision.combination?.type).toBe('SINGLE');
+    expect(decision.cards?.[0].rank).toBe(3);
+  });
 });

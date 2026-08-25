@@ -5,6 +5,7 @@ import { Trophy, RefreshCw, Home, TrendingUp, AlertCircle, RotateCcw, Map, Sword
 import { getRankTierByElo } from '../../engine/elo';
 import { CampaignChapter } from '../../engine/campaign';
 import { ActiveGameType } from '../../stores/useGameStore';
+import { clearActiveMatchSession } from '../../engine/storage';
 
 interface VictoryModalProps {
   isOpen: boolean;
@@ -65,6 +66,10 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      // Ngay khi Modal kết thúc hiện lên, lập tức dọn sạch Active Match Session trong LocalStorage
+      // để nếu người chơi F5 / đóng tab / tắt trình duyệt sẽ KHÔNG bao giờ bị phạt oan!
+      clearActiveMatchSession();
+
       // Chỉ bắn pháo hoa khi người chơi thắng hoặc tới trắng hoặc không phải chế độ thua
       if (isHumanWinner || instantWinType) {
         confetti({
@@ -461,17 +466,29 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         </div>
 
         {/* CÁC NÚT ĐIỀU HƯỚNG CHUYÊN BIỆT */}
-        <div className="flex items-center gap-3">
-          {/* Nút Phụ */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Nút Luôn Có: Về Sảnh */}
           <button
-            onClick={secondaryBtnAction}
-            className="flex-1 py-3 rounded-2xl bg-neutral-900 hover:bg-neutral-800 border border-yellow-500/40 text-yellow-300 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all hover:scale-105 cursor-pointer"
+            onClick={onReturnToLobby}
+            className="flex-1 py-3 rounded-2xl bg-neutral-900/90 hover:bg-neutral-800 border border-neutral-600 hover:border-yellow-400 text-neutral-300 hover:text-yellow-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all hover:scale-105 cursor-pointer shadow-md"
+            title="Trở về sảnh chính"
           >
-            {secondaryBtnIcon}
-            <span>{secondaryBtnText}</span>
+            <Home className="w-4 h-4 text-amber-400" />
+            <span>Về Sảnh</span>
           </button>
 
-          {/* Nút Chính */}
+          {/* Nút Phụ (Nếu có hành động chuyên biệt như Bản Đồ Ải / Vay Nợ) */}
+          {secondaryBtnText !== 'Về Sảnh' && (
+            <button
+              onClick={secondaryBtnAction}
+              className="flex-1 py-3 rounded-2xl bg-neutral-900 hover:bg-neutral-800 border border-yellow-500/40 text-yellow-300 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all hover:scale-105 cursor-pointer"
+            >
+              {secondaryBtnIcon}
+              <span>{secondaryBtnText}</span>
+            </button>
+          )}
+
+          {/* Nút Chính: Đánh Ván Mới / Chơi Tiếp */}
           <button
             onClick={onNextGame}
             className={`flex-[2] py-3 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-2 cursor-pointer ${
