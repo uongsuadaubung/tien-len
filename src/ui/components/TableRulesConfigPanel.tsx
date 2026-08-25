@@ -241,34 +241,111 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
       </div>
 
       {/* ========================================================================= */}
-      {/* 3. QUY TẮC KẾT THÚC VÁN & TÍNH TIỀN */}
+      {/* 3. QUY TẮC KẾT THÚC VÁN & TÍNH TIỀN (SEGMENTED TABS + HERO HUD SHOWCASE) */}
       {/* ========================================================================= */}
-      <div className="bg-black/40 p-4 rounded-3xl border border-yellow-500/20 shadow-lg">
-        <label className="text-xs font-black text-amber-300 uppercase tracking-wider block mb-2.5 flex items-center gap-1.5">
-          <Crown className="w-4 h-4 text-yellow-400" />
-          <span>Quy Tắc Kết Thúc Ván & Tính Tiền</span>
-        </label>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {[
-            { mode: 'COUNT_CARDS', label: '⚡ Đếm Lá Sát Phạt', desc: '1 người về Nhất dừng ngay, đếm lá người thua' },
-            { mode: 'WINNER_TAKES_ALL', label: '👑 Nhất Ăn Tất', desc: '1 người về Nhất gom sạch toàn bộ cược cả bàn' },
-            { mode: 'TRADITIONAL', label: '🎖️ Truyền Thống', desc: 'Nhất Nhì Ba Bét (Đánh đến người áp chót)' }
-          ].map(item => (
-            <button
-              key={item.mode}
-              type="button"
-              onClick={() => onChange({ mode: item.mode as GameMode })}
-              className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer ${
-                config.mode === item.mode
-                  ? 'bg-gradient-to-b from-yellow-500/25 to-amber-950/40 border-yellow-400 text-yellow-200 shadow-lg ring-1 ring-yellow-400/50 scale-[1.02]'
-                  : 'bg-neutral-900/80 border-neutral-800 text-neutral-400 hover:border-neutral-700 hover:text-neutral-200'
-              }`}
-            >
-              <div className="text-xs font-black">{item.label}</div>
-              <div className="text-[10px] text-neutral-400 mt-1 leading-relaxed">{item.desc}</div>
-            </button>
-          ))}
+      <div className="bg-black/40 p-4 rounded-3xl border border-yellow-500/20 shadow-lg space-y-3">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-black text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+            <Crown className="w-4 h-4 text-yellow-400" />
+            <span>Quy Tắc Kết Thúc Ván & Tính Tiền</span>
+          </label>
+          <span className="text-[11px] text-neutral-400">
+            Số đối thủ: <strong className="text-yellow-400">{activeBotCount} người</strong>
+          </span>
         </div>
+
+        {/* 3 Nút Chuyển Tab Chế Độ Cực Kỳ Tinh Gọn */}
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { mode: 'COUNT_CARDS', label: '⚡ Đếm Lá' },
+            { mode: 'WINNER_TAKES_ALL', label: '👑 Nhất Ăn Tất' },
+            { mode: 'TRADITIONAL', label: '🎖️ Truyền Thống' }
+          ].map(tab => {
+            const isSelected = config.mode === tab.mode;
+            return (
+              <button
+                key={tab.mode}
+                type="button"
+                onClick={() => onChange({ mode: tab.mode as GameMode })}
+                className={`py-2.5 px-2 rounded-2xl text-xs font-black transition-all cursor-pointer border text-center ${
+                  isSelected
+                    ? 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-red-950 border-yellow-200 shadow-lg scale-[1.02] ring-1 ring-yellow-300'
+                    : 'bg-neutral-900/80 border-neutral-800 text-neutral-400 hover:border-neutral-700 hover:text-white'
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* KHUNG HUD TRÌNH DIỄN CHI TIẾT QUY TẮC ĐƯỢC CHỌN (HERO CARD) */}
+        {(() => {
+          const ruleInfoMap = {
+            COUNT_CARDS: {
+              title: '⚡ Đếm Lá Sát Phạt',
+              badge: `${(config.betAmount * currentMultiplier).toLocaleString()} Xu/lá`,
+              desc: '1 người về Nhất ván đấu dừng ngay lập tức. Đếm số lá bài còn lại trên tay của tất cả người thua để thu tiền phạt.',
+              maxWin: `+${(activeBotCount * 13 * config.betAmount * currentMultiplier).toLocaleString()} Xu`,
+              maxLoss: `-${congPenaltyAmount.toLocaleString()} Xu (Cóng: 26 lá)`
+            },
+            WINNER_TAKES_ALL: {
+              title: '👑 Nhất Ăn Tất',
+              badge: `${activeBotCount}x cược cả bàn`,
+              desc: '1 người về Nhất gom trọn toàn bộ tiền cược của cả bàn đấu. Người thua chỉ mất đúng 1 lần tiền cược cố định.',
+              maxWin: `+${(activeBotCount * config.betAmount * currentMultiplier).toLocaleString()} Xu`,
+              maxLoss: `-${(config.betAmount * currentMultiplier).toLocaleString()} Xu (Cố định)`
+            },
+            TRADITIONAL: {
+              title: '🎖️ Truyền Thống (Nhất Nhì Ba Bét)',
+              badge: 'Phân hạng 1-2-3-4',
+              desc: 'Các người chơi đánh tiếp tục cho đến người áp chót để phân định thứ hạng Nhất, Nhì, Ba, Bét và chia tiền cược tương ứng.',
+              maxWin: `+${((activeBotCount >= 3 ? 2 : activeBotCount >= 2 ? 2 : 1) * config.betAmount * currentMultiplier).toLocaleString()} Xu`,
+              maxLoss: `-${((activeBotCount >= 3 ? 2 : activeBotCount >= 2 ? 2 : 1) * config.betAmount * currentMultiplier).toLocaleString()} Xu (Bét)`
+            }
+          };
+
+          const activeInfo = ruleInfoMap[config.mode] || ruleInfoMap.COUNT_CARDS;
+
+          return (
+            <div className="p-3.5 rounded-2xl bg-gradient-to-br from-amber-950/30 via-black/80 to-neutral-950 border border-yellow-500/30 shadow-inner space-y-2.5 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-yellow-300">{activeInfo.title}</span>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-300 border border-yellow-500/40">
+                    {activeInfo.badge}
+                  </span>
+                </div>
+                <span className="text-[10px] text-neutral-400">
+                  Bàn {config.playerCount} người ({activeBotCount} đối thủ)
+                </span>
+              </div>
+
+              <p className="text-[11px] text-neutral-300 font-medium leading-relaxed">
+                {activeInfo.desc}
+              </p>
+
+              {/* 2 Hộp Thống Kê Tiền Thắng / Thua Nổi Bật */}
+              <div className="grid grid-cols-2 gap-2.5 pt-1">
+                <div className="p-2.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40 flex items-center justify-between">
+                  <div className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider flex items-center gap-1">
+                    <span>🏆</span>
+                    <span>Thắng Nhất:</span>
+                  </div>
+                  <div className="text-xs font-black text-emerald-300 font-mono">{activeInfo.maxWin}</div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-red-950/60 border border-red-500/40 flex items-center justify-between">
+                  <div className="text-[10px] text-red-300 font-bold uppercase tracking-wider flex items-center gap-1">
+                    <span>💀</span>
+                    <span>Thua Tối Đa:</span>
+                  </div>
+                  <div className="text-xs font-black text-red-300 font-mono">{activeInfo.maxLoss}</div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* ========================================================================= */}
