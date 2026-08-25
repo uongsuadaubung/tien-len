@@ -164,33 +164,29 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
   return (
     <div className="space-y-5 animate-fade-in text-white">
       {/* ========================================================================= */}
-      {/* 1. BẢNG ĐÁNH GIÁ RỦI RO TÀI CHÍNH & TIỀN CỌC AN TOÀN (CHI TIẾT & SỐNG ĐỘNG) */}
+      {/* 1. BẢNG ĐÁNH GIÁ RỦI RO TÀI CHÍNH (COMPACT & TIẾT KIỆM DIỆN TÍCH) */}
       {/* ========================================================================= */}
-      <div className={`p-4 rounded-3xl border transition-all shadow-xl ${riskLevelData.containerColor}`}>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2.5 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-black/40 border border-white/20 flex items-center justify-center flex-shrink-0">
-              <ShieldAlert className={`w-5 h-5 ${riskLevelData.iconColor}`} />
-            </div>
-            <div>
-              <div className="text-xs font-black uppercase tracking-wider text-yellow-300 flex items-center gap-2">
-                <span>Đánh Giá Rủi Ro Tài Chính Bàn Đấu</span>
-              </div>
-              <div className="text-xs text-neutral-200 mt-0.5">
-                Tiền cọc an toàn: <strong className="text-yellow-300 font-extrabold">{depositRequired.toLocaleString()} Xu</strong> 
-                <span className="text-neutral-400 font-normal"> ({depositPercent.toFixed(1)}% tài sản ví)</span>
-              </div>
+      <div className={`p-3 rounded-2xl border transition-all shadow-md ${riskLevelData.containerColor}`}>
+        <div className="flex items-center justify-between gap-3">
+          {/* Cọc an toàn + Tỷ lệ % ví */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <ShieldAlert className={`w-4 h-4 flex-shrink-0 ${riskLevelData.iconColor}`} />
+            <div className="text-xs truncate">
+              <span className="text-amber-300 font-bold">Cọc an toàn: </span>
+              <strong className="text-yellow-300 font-black">{depositRequired.toLocaleString()} Xu</strong>
+              <span className="text-neutral-300 text-[11px] ml-1">({depositPercent.toFixed(1)}% ví)</span>
             </div>
           </div>
 
-          <span className={`self-start sm:self-center text-[10px] font-black px-3 py-1.5 rounded-full border uppercase tracking-wider shadow-md ${riskLevelData.badgeColor}`}>
+          {/* Badge phân cấp rủi ro */}
+          <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border uppercase tracking-wider shadow-sm flex-shrink-0 ${riskLevelData.badgeColor}`}>
             {riskLevelData.badge}
           </span>
         </div>
 
-        {/* Thanh tiến trình rủi ro tài chính trực quan */}
-        <div className="pt-2.5 space-y-1.5">
-          <div className="w-full h-2 bg-black/60 rounded-full overflow-hidden border border-white/10 p-0.5">
+        {/* Mini Progress Bar + Lời khuyên 1 dòng nhỏ gọn */}
+        <div className="mt-2 pt-1.5 border-t border-white/10 flex items-center gap-2.5">
+          <div className="w-20 sm:w-28 h-1.5 bg-black/60 rounded-full overflow-hidden border border-white/10 flex-shrink-0">
             <div 
               className={`h-full rounded-full transition-all duration-500 ${
                 depositPercent > 65
@@ -202,7 +198,7 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
               style={{ width: `${Math.min(100, Math.max(5, depositPercent))}%` }}
             />
           </div>
-          <p className="text-[11px] text-neutral-300 font-medium leading-relaxed">
+          <p className="text-[10px] text-neutral-300 font-medium truncate flex-1 leading-tight">
             💡 {riskLevelData.advice}
           </p>
         </div>
@@ -454,7 +450,7 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
       <div className="bg-black/40 p-4 rounded-3xl border border-yellow-500/20 space-y-3 shadow-lg">
         <label className="text-xs font-black text-amber-300 uppercase tracking-wider block flex items-center gap-1.5">
           <Sparkles className="w-4 h-4 text-yellow-400" />
-          <span>Tùy Chọn Luật Phạt Bàn Đấu (Real-Time Calculations)</span>
+          <span>Tùy Chọn Luật Phạt Bàn Đấu</span>
         </label>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -470,15 +466,8 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
             <div className="flex items-start gap-2.5 pr-2">
               <Ban className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
               <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-white">Cấm Đánh 2 Cuối Cùng</span>
-                  <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${
-                    config.prohibitEndingWithTwo !== false
-                      ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/40'
-                      : 'bg-neutral-800 text-neutral-400'
-                  }`}>
-                    {config.prohibitEndingWithTwo !== false ? 'BẬT' : 'TẮT'}
-                  </span>
+                <div className="text-xs font-bold text-white">
+                  Cấm Đánh 2 Cuối Cùng
                 </div>
                 <div className="text-[10px] text-neutral-400 mt-0.5 leading-tight">
                   Cấm về Heo • Thối phạt từ <strong className="text-yellow-300">{minThoiAmount.toLocaleString()}</strong> đến <strong className="text-yellow-300">{maxThoiAmount.toLocaleString()} Xu</strong>
@@ -506,15 +495,8 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
             <div className="flex items-start gap-2.5 pr-2">
               <Zap className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
               <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold text-white">4 Đôi Thông Cắt Tự Do</span>
-                  <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${
-                    config.allowFourPairsCutAnytime
-                      ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/40'
-                      : 'bg-neutral-800 text-neutral-400'
-                  }`}>
-                    {config.allowFourPairsCutAnytime ? 'BẬT' : 'TẮT'}
-                  </span>
+                <div className="text-xs font-bold text-white">
+                  4 Đôi Thông Cắt Tự Do
                 </div>
                 <div className="text-[10px] text-neutral-400 mt-0.5 leading-tight">
                   Chặt bất kỳ lúc nào • Thắng ngay <strong className="text-yellow-300">+{fourPairsRewardAmount.toLocaleString()} Xu</strong>
@@ -543,15 +525,8 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
               <div className="flex items-start gap-2.5 pr-2">
                 <Snowflake className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-white">Luật Phạt Cóng (Cháy Bài)</span>
-                    <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${
-                      config.congEnabled
-                        ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/40'
-                        : 'bg-neutral-800 text-neutral-400'
-                    }`}>
-                      {config.congEnabled ? 'BẬT' : 'TẮT'}
-                    </span>
+                  <div className="text-xs font-bold text-white">
+                    Luật Phạt Cóng (Cháy Bài)
                   </div>
                   <div className="text-[10px] text-neutral-400 mt-0.5 leading-tight">
                     Không ra được lá nào đền <strong className="text-yellow-300">{26 * currentMultiplier} lá</strong> ({congPenaltyAmount.toLocaleString()} Xu)
@@ -581,15 +556,8 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
               <div className="flex items-start gap-2.5 pr-2">
                 <Crown className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-white">Tới Trắng Tức Thì</span>
-                    <span className={`text-[9px] font-black px-1.5 py-0.2 rounded-full ${
-                      config.instantWinEnabled
-                        ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/40'
-                        : 'bg-neutral-800 text-neutral-400'
-                    }`}>
-                      {config.instantWinEnabled ? 'BẬT' : 'TẮT'}
-                    </span>
+                  <div className="text-xs font-bold text-white">
+                    Tới Trắng Tức Thì
                   </div>
                   <div className="text-[10px] text-neutral-400 mt-0.5 leading-tight">
                     Sảnh rồng, 5 đôi thông, 6 đôi... ăn trắng ván đấu
