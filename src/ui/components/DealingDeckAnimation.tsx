@@ -250,7 +250,7 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
               style={fcStyle}
             >
               <div className="w-full h-full flex items-center justify-center">
-                <span className="text-yellow-300 text-xs drop-shadow">🎴</span>
+                <span className="text-[#d4af37] text-xs">♠</span>
               </div>
             </div>
           );
@@ -261,17 +261,17 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
       <div className="absolute -bottom-8 pointer-events-auto z-50">
         <button
           onClick={handleSkip}
-          className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-black/90 hover:bg-black text-yellow-300 border-2 border-yellow-500/70 hover:border-yellow-300 text-xs font-black shadow-xl transition-all duration-150 hover:scale-105 cursor-pointer"
+          className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#182030] hover:bg-[#222c42] text-[#f3e5ab] border border-[#d4af37]/50 text-xs font-black shadow-xl transition-all duration-150 hover:scale-105 cursor-pointer"
         >
-          <FastForward className="w-4 h-4 text-yellow-400" />
+          <FastForward className="w-4 h-4 text-[#d4af37]" />
           <span>Bỏ qua ⏭</span>
         </button>
       </div>
 
       {/* Trạng thái chia bài */}
-      <div className="absolute -top-8 bg-[#1a0205] px-4 py-1 rounded-full border border-yellow-500/40 text-yellow-200 text-xs font-extrabold flex items-center gap-1.5 shadow-md">
-        <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
-        <span>{isShuffling ? 'Đang xào bài Tết...' : 'Đang chia bài 4 người...'}</span>
+      <div className="absolute -top-8 bg-[#121724] px-4 py-1 rounded-full border border-[#d4af37]/40 text-[#f3e5ab] text-xs font-extrabold flex items-center gap-1.5 shadow-md">
+        <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
+        <span>{isShuffling ? 'Đang xào bài...' : `Đang chia bài ${actualPlayerCount} người...`}</span>
       </div>
     </div>
   );

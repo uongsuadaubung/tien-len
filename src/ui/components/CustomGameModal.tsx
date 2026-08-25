@@ -149,7 +149,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
   // Bắt đầu ván đấu
   const handleStartGame = () => {
     if (settings.betAmount <= 0) {
-      alert('Mức cược phải lớn hơn 0 🧧!');
+      alert('Mức cược phải lớn hơn 0 Xu!');
       return;
     }
     if (isInsufficientCoins && playerCoins > 0) {
@@ -187,24 +187,24 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-5 animate-fade-in select-none">
-      <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col bg-[#140103] border-2 border-yellow-500/80 rounded-3xl shadow-2xl text-white overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 sm:p-5 select-none">
+      <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col bg-[#121724] border border-[#d4af37]/40 rounded-2xl shadow-2xl text-white overflow-hidden">
         {/* HEADER: TIÊU ĐỀ & TÀI SẢN + NÚT ĐÓNG */}
-        <div className="relative z-10 px-6 py-4 bg-gradient-to-r from-red-950/90 via-amber-950/80 to-[#140103] border-b border-yellow-500/30 flex items-center justify-between gap-3">
+        <div className="relative z-10 px-6 py-4 bg-[#182030] border-b border-white/10 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 flex-1 min-w-0 pr-2">
-            <div className="p-2.5 rounded-2xl bg-gradient-to-br from-yellow-500 to-amber-600 text-red-950 shadow-md flex-shrink-0">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#d4af37] to-[#aa8620] text-[#0a0d14] shadow flex-shrink-0">
               <Sliders className="w-6 h-6 stroke-[2.5]" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-lg sm:text-xl font-black text-yellow-300 tracking-wide truncate">
+                <h2 className="text-lg sm:text-xl font-black text-[#f3e5ab] tracking-wide truncate">
                   Xưởng Tùy Biến Trận Đấu (Custom Sandbox)
                 </h2>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-900/80 text-emerald-300 border border-emerald-500/40">
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-300 border border-emerald-500/40">
                   SANDBOX
                 </span>
               </div>
-              <p className="text-xs text-yellow-100/70 truncate">
+              <p className="text-xs text-slate-400 truncate">
                 Toàn quyền tùy chỉnh luật bàn đấu, số người chơi, xếp đội hình Bot và tinh chỉnh AI.
               </p>
             </div>
@@ -212,14 +212,14 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
 
           {/* SỐ DƯ HIỆN TẠI & NÚT ĐÓNG NẰM CẠNH NHAU TRỰC QUAN */}
           <div className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="flex items-center gap-1.5 bg-black/60 px-3.5 py-2 rounded-2xl border border-yellow-500/40 text-xs font-black text-yellow-300 shadow-inner">
-              <span>🧧</span>
+            <div className="flex items-center gap-1.5 bg-[#0a0d14] px-3.5 py-2 rounded-xl border border-[#d4af37]/30 text-xs font-black text-[#f3e5ab]">
+              <span>🪙</span>
               <span>{playerCoins.toLocaleString()} Xu</span>
             </div>
 
             <button
               onClick={onClose}
-              className="p-2 rounded-2xl bg-neutral-900/90 hover:bg-neutral-800 text-neutral-400 hover:text-white transition-colors border border-yellow-500/30 cursor-pointer shadow"
+              className="p-2 rounded-xl bg-[#182030] hover:bg-[#222c42] text-slate-400 hover:text-white transition-colors border border-white/10 cursor-pointer shadow"
               title="Đóng modal"
             >
               <X className="w-5 h-5" />
@@ -228,13 +228,13 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
         </div>
 
         {/* NAVIGATION TABS */}
-        <div className="flex items-center gap-2 px-6 pt-3 bg-black/40 border-b border-neutral-800 text-xs font-bold">
+        <div className="flex items-center gap-2 px-6 pt-3 bg-[#0e131d] border-b border-white/10 text-xs font-bold">
           <button
             onClick={() => setActiveTab('MODE_RULES')}
             className={`flex items-center gap-1.5 px-4 py-2.5 rounded-t-xl border-b-2 transition-all cursor-pointer ${
               activeTab === 'MODE_RULES'
-                ? 'border-yellow-400 bg-yellow-500/10 text-yellow-300'
-                : 'border-transparent text-neutral-400 hover:text-neutral-200'
+                ? 'border-[#d4af37] bg-[#d4af37]/10 text-[#f3e5ab]'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
             <Zap className="w-4 h-4" />

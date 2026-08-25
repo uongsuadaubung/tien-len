@@ -13,7 +13,7 @@ import {
   isGameRules
 } from './types';
 import { isRedCard, isTwo, sortCards } from './card';
-import { checkInstantWin, createDeck, dealCards, shuffleDeck } from './deck';
+import { checkInstantWin, createDeck, dealCards, shuffleDeck, createMulberry32 } from './deck';
 import { identifyCombination } from './combinations';
 import { isValidMove } from './validator';
 import { makeBotDecision } from '../ai/decision-maker';
@@ -120,7 +120,8 @@ export class GameEngine {
    */
   public startNewGame(
     gameNumber = 1,
-    previousWinnerId?: string
+    previousWinnerId?: string,
+    seedOrRng?: number | (() => number)
   ): { instantWin: boolean; instantWinner?: Player; instantWinType?: InstantWinType } {
     this.gameNumber = gameNumber;
     this.isFirstMoveOfGame = this.gameNumber === 1;
@@ -130,8 +131,11 @@ export class GameEngine {
     this.instantWinner = null;
     this.roundNumber = 1;
 
-    // 1. Xáo bài & chia bài
-    const deck = shuffleDeck(createDeck());
+    // 1. Xáo bài & chia bài (hỗ trợ PRNG có seed cho testing có thể tái lập 100%)
+    const rng = typeof seedOrRng === 'number'
+      ? createMulberry32(seedOrRng)
+      : (seedOrRng || Math.random);
+    const deck = shuffleDeck(createDeck(), rng);
     const hands = dealCards(deck, this.players.length);
 
     this.players.forEach((player, index) => {

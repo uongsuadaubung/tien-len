@@ -103,10 +103,7 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
   const topBotCustomConfig = isSolo1v1 ? customBotConfigs[0] : customBotConfigs[1];
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-radial from-[#3d0b11] via-[#200407] to-[#0d0103] flex flex-col justify-between select-none">
-      {/* Hiệu ứng hoa mai Tết rơi */}
-      <FallingBlossoms />
-
+    <div className="relative w-screen h-screen overflow-hidden bg-[radial-gradient(ellipse_at_center,#141926_0%,#090c12_100%)] flex flex-col justify-between select-none">
       {/* HEADER BAR CHÍNH */}
       <HeaderBar
         gameNumber={gameNumber}
@@ -139,7 +136,7 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
       <main className="flex-1 flex flex-col items-center justify-between px-2 py-1 max-w-7xl mx-auto w-full min-h-0 overflow-hidden relative">
         {/* Banner thông báo người đi trước mở màn ván */}
         {dealBanner && (
-          <div className="absolute top-16 z-50 bg-gradient-to-r from-red-600 via-amber-500 to-red-600 text-yellow-100 font-extrabold px-6 py-2 rounded-full border-2 border-yellow-300 shadow-2xl animate-bounce text-sm sm:text-base flex items-center gap-2">
+          <div className="absolute top-16 z-50 bg-[#121724]/95 text-[#f3e5ab] font-extrabold px-6 py-2 rounded-full border border-[#d4af37] shadow-2xl animate-bounce text-sm sm:text-base flex items-center gap-2">
             <span>{dealBanner}</span>
           </div>
         )}
@@ -182,7 +179,7 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
           <div className="round-table relative flex items-center justify-center p-4 sm:p-6 shadow-2xl">
             <div className="table-inner-felt">
               <div className="table-center-emblem">
-                <span className="text-yellow-500/20 font-black text-[11px] sm:text-[13px] uppercase tracking-[0.35em] select-none text-center">
+                <span className="text-[#d4af37]/25 font-black text-[11px] sm:text-[13px] uppercase tracking-[0.35em] select-none text-center">
                   TIẾN LÊN MIỀN NAM
                 </span>
               </div>

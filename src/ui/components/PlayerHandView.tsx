@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, Player } from '../../engine/types';
 import { CardView } from './CardView';
-import { Play, SkipForward, Sparkles, Wand2, ArrowUpDown, ArrowDownToLine } from 'lucide-react';
+import { Play, SkipForward, Wand2, ArrowUpDown, ArrowDownToLine } from 'lucide-react';
 
 interface HandCardStyle extends React.CSSProperties {
   '--rot-deg'?: string;
@@ -48,10 +48,10 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
   const hand = (player.hand || []).slice(0, visibleCardCount);
 
   return (
-    <div id="seat-p0" className="relative flex flex-col items-center justify-end w-full pb-1 z-30">
-      {/* Bảng nút điều khiển hành động (Action Controls) - Ẩn khi đang chia bài */}
+    <div id="seat-p0" className="relative flex flex-col items-center justify-end w-full pb-1 z-30 select-none">
+      {/* Bảng nút điều khiển hành động (Action Controls) */}
       {!isDealing && (isCurrentTurn || selectedCardIds.size > 0) && (
-        <div className="flex items-center gap-2 sm:gap-3 mb-1.5 sm:mb-2 bg-[#150205]/95 px-4 sm:px-5 py-1.5 sm:py-2 rounded-2xl border-2 border-yellow-500/60 shadow-xl animate-fade-in">
+        <div className="flex items-center gap-2 sm:gap-3 mb-1.5 sm:mb-2 bg-[#121724]/95 px-4 sm:px-5 py-1.5 sm:py-2 rounded-2xl border border-[#d4af37]/40 shadow-2xl">
           {/* Các nút hành động khi đến lượt đi */}
           {isCurrentTurn && (
             <>
@@ -60,10 +60,10 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
                 onClick={onPlaySelectedCards}
                 disabled={!canPlay}
                 className={`
-                  flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-1.5 sm:py-2 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all duration-200 shadow-lg
+                  flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-1.5 sm:py-2 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all duration-150 shadow-md
                   ${canPlay
-                    ? 'bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-red-950 hover:scale-105 shadow-yellow-500/50 cursor-pointer border border-yellow-200'
-                    : 'bg-neutral-700/60 text-neutral-400 cursor-not-allowed border border-neutral-600/30'
+                    ? 'bg-gradient-to-r from-[#d4af37] via-[#f3e5ab] to-[#aa8620] text-[#0a0d14] hover:scale-105 shadow-[#d4af37]/30 cursor-pointer border border-[#ffe699]'
+                    : 'bg-[#182030] text-slate-500 cursor-not-allowed border border-white/5'
                   }
                 `}
               >
@@ -76,10 +76,10 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
                 onClick={onPassTurn}
                 disabled={!canPass}
                 className={`
-                  flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-bold text-xs sm:text-sm transition-all duration-200
+                  flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-bold text-xs sm:text-sm transition-all duration-150
                   ${canPass
-                    ? 'bg-red-900/80 hover:bg-red-800 text-red-100 border border-red-500/40 hover:scale-105 cursor-pointer shadow-md'
-                    : 'bg-neutral-800/40 text-neutral-500 cursor-not-allowed border border-neutral-700/20'
+                    ? 'bg-[#1e2638] hover:bg-red-950/90 text-slate-200 hover:text-red-200 border border-white/10 hover:border-red-500/40 hover:scale-105 cursor-pointer shadow'
+                    : 'bg-[#182030]/60 text-slate-600 cursor-not-allowed border border-white/5'
                   }
                 `}
               >
@@ -91,10 +91,10 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
               {aiHintEnabled && (
                 <button
                   onClick={onGetAiHint}
-                  className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-purple-900/80 hover:bg-purple-800 text-purple-100 border border-purple-400/50 hover:scale-105 cursor-pointer font-bold text-xs sm:text-sm shadow-md transition-all duration-200"
+                  className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40 hover:scale-105 cursor-pointer font-bold text-xs sm:text-sm shadow transition-all duration-150"
                   title="Thần bài gợi ý nước đi tối ưu"
                 >
-                  <Wand2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-300" />
+                  <Wand2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#d4af37]" />
                   <span>Gợi Ý AI</span>
                 </button>
               )}
@@ -105,10 +105,10 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
           {selectedCardIds.size > 0 && onClearCardSelection && (
             <button
               onClick={onClearCardSelection}
-              className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-amber-950/80 hover:bg-amber-900 text-amber-200 border border-amber-500/50 hover:scale-105 cursor-pointer font-bold text-xs sm:text-sm shadow-md transition-all duration-200 animate-fade-in"
+              className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-[#182030] hover:bg-[#222c42] text-[#f3e5ab] border border-[#d4af37]/30 hover:scale-105 cursor-pointer font-bold text-xs sm:text-sm shadow transition-all duration-150"
               title="Hạ toàn bộ các lá bài đang chọn xuống"
             >
-              <ArrowDownToLine className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+              <ArrowDownToLine className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#d4af37]" />
               <span>Hạ Bài {selectedCardIds.size > 1 ? `(${selectedCardIds.size})` : ''}</span>
             </button>
           )}
@@ -116,10 +116,10 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
           {/* Nút Xếp Bài */}
           <button
             onClick={onAutoSort}
-            className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-neutral-800/90 hover:bg-neutral-700 text-yellow-300 border border-yellow-500/30 hover:scale-105 cursor-pointer font-bold text-xs sm:text-sm transition-all duration-200"
+            className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl bg-[#182030] hover:bg-[#222c42] text-slate-300 border border-white/10 hover:scale-105 cursor-pointer font-bold text-xs sm:text-sm transition-all duration-150"
             title="Xếp bài từ bé đến lớn"
           >
-            <ArrowUpDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <ArrowUpDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#d4af37]" />
             <span>Xếp Bài</span>
           </button>
         </div>
@@ -156,19 +156,19 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
       </div>
 
       {/* Thông tin người chơi (Bản thân) */}
-      <div className="flex items-center gap-3 mt-1 bg-[#150205]/95 px-4 py-1.5 rounded-full border border-yellow-500/40 shadow-md">
-        <div className="w-7 h-7 rounded-full bg-red-800 border border-yellow-400 flex items-center justify-center text-sm">
+      <div className="flex items-center gap-3 mt-1 bg-[#121724]/95 px-4 py-1.5 rounded-full border border-[#d4af37]/35 shadow-lg">
+        <div className="w-7 h-7 rounded-full bg-[#182030] border border-[#d4af37]/50 flex items-center justify-center text-sm shadow-inner">
           {player.avatar}
         </div>
         <div className="flex items-center gap-2">
-          <span className="font-extrabold text-yellow-300 text-sm">
+          <span className="font-extrabold text-[#f3e5ab] text-sm">
             {player.name}
           </span>
-          <span className="text-xs text-amber-300/80 font-bold">
-            {player.score.toLocaleString()} 🧧
+          <span className="text-xs text-slate-300 font-bold">
+            {player.score.toLocaleString()} 🪙
           </span>
           {isLeader && (
-            <span className="bg-red-600 text-yellow-200 text-[10px] font-black px-1.5 py-0.2 rounded-sm border border-yellow-400">
+            <span className="bg-[#d4af37] text-[#0a0d14] text-[10px] font-black px-1.5 py-0.2 rounded-sm shadow">
               CÁI
             </span>
           )}

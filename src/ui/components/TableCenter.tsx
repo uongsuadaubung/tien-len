@@ -38,18 +38,18 @@ export const TableCenter: React.FC<TableCenterProps> = ({
   };
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-[160px] w-full">
+    <div className="relative flex flex-col items-center justify-center min-h-[160px] w-full select-none">
       {/* Thông báo Chặt Heo / Chặt Hàng nổ bùng */}
       {chopNotification?.visible && (
-        <div className={`absolute -top-12 z-50 px-6 py-2 rounded-full flex items-center gap-2 text-white font-black text-lg animate-bounce shadow-2xl ${
+        <div className={`absolute -top-12 z-50 px-6 py-2 rounded-full flex items-center gap-2 text-white font-black text-lg shadow-2xl ${
           chopNotification.isCascade 
-            ? 'bg-gradient-to-r from-red-600 via-orange-500 to-amber-500 border-2 border-yellow-300 shadow-orange-500/60 ring-4 ring-orange-500/30' 
+            ? 'bg-gradient-to-r from-red-600 via-amber-600 to-[#d4af37] border border-[#f3e5ab] shadow-[#d4af37]/50' 
             : 'chop-badge'
         }`}>
-          <Flame className="w-6 h-6 text-yellow-300 fill-yellow-400 animate-pulse" />
+          <Flame className="w-6 h-6 text-[#f3e5ab] fill-[#d4af37]" />
           <span>{chopNotification.isCascade ? `🔥 CHẶT ĐÈ LIÊN HOÀN (x${chopNotification.chainCount || 2})!` : 'CHẶT ĐẸP!'}</span>
-          <span className="text-yellow-200 text-sm font-bold">
-            ({chopNotification.chopperName} +{chopNotification.amount.toLocaleString()}🧧 từ {chopNotification.targetName})
+          <span className="text-[#f3e5ab] text-sm font-bold">
+            ({chopNotification.chopperName} +{chopNotification.amount.toLocaleString()} 🪙 từ {chopNotification.targetName})
           </span>
         </div>
       )}
@@ -59,7 +59,7 @@ export const TableCenter: React.FC<TableCenterProps> = ({
         <div className="flex flex-col items-center">
           <div
             key={`${currentMove.playerId}-${currentMove.timestamp}-${currentMove.combination.cards.map(c => c.id).join('-')}`}
-            className={`flex items-center justify-center -space-x-8 hover:space-x-1 transition-all duration-300 ${getSlideAnimationClass(currentMove.playerId)}`}
+            className={`flex items-center justify-center -space-x-8 hover:space-x-1 transition-all duration-200 ${getSlideAnimationClass(currentMove.playerId)}`}
           >
             {currentMove.combination.cards.map((card, idx) => (
               <CardView
@@ -74,8 +74,8 @@ export const TableCenter: React.FC<TableCenterProps> = ({
               />
             ))}
           </div>
-          <div className="mt-2 bg-[#150205]/95 px-3 py-1 rounded-full border border-yellow-500/40 text-yellow-300 text-xs font-semibold flex items-center gap-1.5 shadow-md">
-            <Sparkles className="w-3.5 h-3.5 text-yellow-400" />
+          <div className="mt-2 bg-[#121724]/95 px-3 py-1 rounded-full border border-[#d4af37]/35 text-[#f3e5ab] text-xs font-semibold flex items-center gap-1.5 shadow-md">
+            <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
             <span>
               {currentMove.combination.type === 'SINGLE' && 'Lá Rác'}
               {currentMove.combination.type === 'PAIR' && 'Đôi'}
@@ -88,11 +88,11 @@ export const TableCenter: React.FC<TableCenterProps> = ({
           </div>
         </div>
       ) : !isDealing ? (
-        <div className="flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-[#180306]/95 border border-yellow-500/20 shadow-md">
-          <div className="text-yellow-400 font-extrabold text-sm tracking-wider uppercase">
+        <div className="flex flex-col items-center justify-center text-center p-4 rounded-xl bg-[#121724]/90 border border-[#d4af37]/25 shadow-md">
+          <div className="text-[#f3e5ab] font-extrabold text-sm tracking-wider uppercase">
             {isLeadMove ? 'Vòng Mới Bắt Đầu' : 'Bàn Đang Trống'}
           </div>
-          <span className="text-yellow-200/60 text-xs mt-1">
+          <span className="text-slate-400 text-xs mt-1">
             {isLeadMove ? 'Người cầm Cái hãy đánh bộ bài mở màn' : 'Chờ người chơi ra bài...'}
           </span>
         </div>

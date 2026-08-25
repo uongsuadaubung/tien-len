@@ -16,7 +16,6 @@ export const BotSeat: React.FC<BotSeatProps> = ({
   player,
   botConfig,
   isCurrentTurn,
-  position,
   isLeader,
   displayCardCount,
   isDealing
@@ -35,11 +34,11 @@ export const BotSeat: React.FC<BotSeatProps> = ({
       <div className="relative group">
         <div
           className={`
-            w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center text-2xl sm:text-3xl shadow-xl transition-all duration-300
+            w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl shadow-xl transition-all duration-200
             ${
               isCurrentTurn
-                ? 'ring-4 ring-yellow-400 ring-offset-2 ring-offset-[#2e080d] scale-110 shadow-yellow-500/50 bg-[#4a0a12]'
-                : 'border-2 border-[#f9b208]/60 bg-[#3a0910]'
+                ? 'ring-4 ring-[#d4af37] ring-offset-2 ring-offset-[#0a0d14] scale-105 bg-[#182030] shadow-[#d4af37]/30'
+                : 'border border-[#d4af37]/35 bg-[#121724]'
             }
             ${player.isPassedCurrentRound ? 'opacity-50 grayscale' : ''}
           `}
@@ -49,14 +48,14 @@ export const BotSeat: React.FC<BotSeatProps> = ({
 
         {/* Huy hiệu Cái */}
         {isLeader && (
-          <div className="absolute -top-2 -right-2 bg-gradient-to-r from-red-600 to-amber-500 text-yellow-100 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full border border-yellow-300 shadow-md">
+          <div className="absolute -top-2 -right-2 bg-gradient-to-r from-[#d4af37] to-[#aa8620] text-[#0a0d14] text-[10px] font-black px-1.5 py-0.5 rounded-full border border-white/40 shadow">
             CÁI
           </div>
         )}
 
         {/* Trạng thái Bỏ lượt */}
         {player.isPassedCurrentRound && (
-          <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold text-red-400">
+          <div className="absolute inset-0 bg-black/70 rounded-2xl flex items-center justify-center text-[10px] sm:text-xs font-black text-red-400">
             BỎ LƯỢT
           </div>
         )}
@@ -66,9 +65,9 @@ export const BotSeat: React.FC<BotSeatProps> = ({
           <div
             className={`
               absolute -bottom-2 -right-2 text-xs font-black px-2 py-0.5 rounded-full border shadow-lg
-              ${player.rankPosition === 1 ? 'bg-amber-400 text-red-950 border-yellow-200' : ''}
+              ${player.rankPosition === 1 ? 'bg-[#d4af37] text-[#0a0d14] border-white' : ''}
               ${player.rankPosition === 2 ? 'bg-slate-300 text-slate-900 border-white' : ''}
-              ${player.rankPosition === 3 ? 'bg-amber-700 text-white border-amber-500' : ''}
+              ${player.rankPosition === 3 ? 'bg-amber-800 text-white border-amber-500' : ''}
               ${player.rankPosition === 4 ? 'bg-slate-800 text-red-400 border-red-500' : ''}
             `}
           >
@@ -87,7 +86,7 @@ export const BotSeat: React.FC<BotSeatProps> = ({
       {cardCount > 0 && !player.rankPosition && (
         <div
           className={`bot-hand-fan ${
-            isCurrentTurn ? 'scale-110 drop-shadow-[0_0_10px_rgba(250,204,21,0.7)]' : ''
+            isCurrentTurn ? 'scale-105 drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]' : ''
           }`}
           title={`${botConfig?.name || player.name} đang cầm ${cardCount} lá bài`}
         >
@@ -108,9 +107,9 @@ export const BotSeat: React.FC<BotSeatProps> = ({
         </div>
       )}
 
-      {/* Tên Bot tối giản */}
+      {/* Tên Bot */}
       <div className="flex flex-col items-center mt-0.5 text-center">
-        <span className="text-xs font-bold text-yellow-200 drop-shadow-md">
+        <span className="text-xs font-bold text-[#f3e5ab] drop-shadow">
           {botConfig?.name || player.name}
         </span>
       </div>

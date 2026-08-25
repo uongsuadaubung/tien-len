@@ -1,17 +1,40 @@
 /* =========================================================
-   BASE STYLES & UTILITY SYSTEM (TIẾN LÊN MIỀN NAM)
+   BASE STYLES & CASINO LUXURY DESIGN SYSTEM (TIẾN LÊN MIỀN NAM)
    ========================================================= */
 
 :root {
-  --tet-red: #c01e2e;
-  --tet-dark-red: #7c0a15;
-  --tet-deep-bg: #160204;
-  --tet-gold: #f9b208;
-  --tet-bright-gold: #ffdf00;
-  --tet-gold-dark: #b8860b;
-  --mat-bg: #c99355;
-  --mat-border: #8e1b23;
-  --text-light: #f8fafc;
+  /* Casino Luxury Color Palette */
+  --casino-bg-deep: #0a0d14;
+  --casino-bg-surface: #121722;
+  --casino-bg-card: #182030;
+  
+  /* Felt & Table Tones */
+  --casino-felt-dark: #062319;
+  --casino-felt: #0c382b;
+  --casino-felt-bright: #124e3d;
+  --casino-felt-border: #1a6b53;
+  --casino-leather: #161210;
+  --casino-leather-border: #261f1b;
+  --casino-wood: #2c150c;
+  --casino-wood-light: #4a2415;
+
+  /* Gold & Accents */
+  --casino-gold: #d4af37;
+  --casino-gold-bright: #f3e5ab;
+  --casino-gold-dark: #997a15;
+  --casino-gold-glow: rgba(212, 175, 55, 0.35);
+
+  /* Card Colors */
+  --card-ruby: #c81d25;
+  --card-onyx: #181a24;
+  --card-porcelain: #fcfdfe;
+
+  /* Text & Utility */
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-gold: rgba(212, 175, 55, 0.4);
 }
 
 * {
@@ -21,9 +44,9 @@
 }
 
 html, body {
-  font-family: 'Plus Jakarta Sans', sans-serif;
-  background: radial-gradient(circle at center, #2e080d 0%, #120204 100%);
-  color: var(--text-light);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: radial-gradient(circle at 50% 30%, #161c28 0%, #0a0d14 100%);
+  color: var(--text-primary);
   min-height: 100vh;
   min-height: 100dvh;
   user-select: none;
@@ -37,6 +60,22 @@ html, body {
   min-height: 100dvh;
   width: 100%;
   overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0d1117;
+}
+::-webkit-scrollbar-thumb {
+  background: #252d3d;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #d4af37;
 }
 
 /* Utilities Layout */
@@ -112,7 +151,7 @@ html, body {
 .text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
 .text-5xl { font-size: 3rem; line-height: 1; }
 
-/* Colors */
+/* Casino Colors */
 .text-yellow-100 { color: #fef9c3; }
 .text-yellow-200 { color: #fef08a; }
 .text-yellow-300 { color: #fde047; }
@@ -120,18 +159,22 @@ html, body {
 .text-amber-200 { color: #fde68a; }
 .text-amber-300 { color: #fcd34d; }
 .text-amber-400 { color: #fbbf24; }
+.text-gold { color: var(--casino-gold); }
+.text-gold-bright { color: var(--casino-gold-bright); }
 .text-red-400 { color: #f87171; }
 .text-red-500 { color: #ef4444; }
 .text-red-600 { color: #dc2626; }
 .text-red-950 { color: #450a0a; }
 .text-slate-200 { color: #e2e8f0; }
 .text-slate-300 { color: #cbd5e1; }
+.text-slate-400 { color: #94a3b8; }
 .text-slate-800 { color: #1e293b; }
 .text-slate-900 { color: #0f172a; }
 .text-purple-200 { color: #e9d5ff; }
 .text-purple-300 { color: #d8b4fe; }
 .text-purple-400 { color: #c084fc; }
 .text-emerald-400 { color: #34d399; }
+.text-emerald-500 { color: #10b981; }
 .text-white { color: #ffffff; }
 
 /* Radius & Borders */
@@ -151,8 +194,8 @@ html, body {
 .border-b { border-bottom-width: 1px; }
 .border-b-2 { border-bottom-width: 2px; }
 
-.border-yellow-200 { border-color: #fef08a; }
-.border-yellow-300 { border-color: #fde047; }
+.border-gold { border-color: var(--border-gold); }
+.border-subtle { border-color: var(--border-subtle); }
 .border-yellow-400 { border-color: #facc15; }
 .border-yellow-500 { border-color: #eab308; }
 .border-yellow-500\/20 { border-color: rgba(234, 179, 8, 0.2); }
@@ -164,10 +207,9 @@ html, body {
 
 .border-red-400 { border-color: #f87171; }
 .border-red-500 { border-color: #ef4444; }
-.border-red-500\/40 { border-color: rgba(239, 68, 68, 0.4); }
-.border-purple-400\/50 { border-color: rgba(192, 132, 252, 0.5); }
-.border-purple-400\/60 { border-color: rgba(192, 132, 252, 0.6); }
-.border-neutral-700 { border-color: #404040; }
+.border-emerald-500\/40 { border-color: rgba(16, 185, 129, 0.4); }
+.border-neutral-700 { border-color: #334155; }
+.border-neutral-800 { border-color: #1e293b; }
 
 /* Backgrounds */
 .bg-black\/40 { background-color: rgba(0, 0, 0, 0.4); }
@@ -176,39 +218,23 @@ html, body {
 .bg-black\/70 { background-color: rgba(0, 0, 0, 0.7); }
 .bg-black\/80 { background-color: rgba(0, 0, 0, 0.8); }
 .bg-black\/85 { background-color: rgba(0, 0, 0, 0.85); }
-.bg-red-600 { background-color: #dc2626; }
-.bg-red-700 { background-color: #b91c1c; }
-.bg-red-800 { background-color: #991b1b; }
-.bg-red-900\/80 { background-color: rgba(127, 29, 29, 0.8); }
-.bg-red-950 { background-color: #450a0a; }
-.bg-red-950\/20 { background-color: rgba(69, 10, 10, 0.2); }
-.bg-red-950\/30 { background-color: rgba(69, 10, 10, 0.3); }
-.bg-red-950\/60 { background-color: rgba(69, 10, 10, 0.6); }
-.bg-red-950\/70 { background-color: rgba(69, 10, 10, 0.7); }
-.bg-red-950\/80 { background-color: rgba(69, 10, 10, 0.8); }
-.bg-purple-900\/80 { background-color: rgba(88, 28, 135, 0.8); }
-.bg-purple-950\/80 { background-color: rgba(59, 7, 100, 0.8); }
+.bg-casino-card { background-color: var(--casino-bg-card); }
+.bg-casino-surface { background-color: var(--casino-bg-surface); }
+.bg-slate-800 { background-color: #1e293b; }
+.bg-slate-900 { background-color: #0f172a; }
+.bg-slate-950 { background-color: #020617; }
+.bg-neutral-800 { background-color: #1e2533; }
+.bg-neutral-800\/80 { background-color: rgba(30, 37, 51, 0.8); }
+.bg-neutral-800\/90 { background-color: rgba(30, 37, 51, 0.9); }
+.bg-neutral-900 { background-color: #111622; }
+.bg-neutral-900\/80 { background-color: rgba(17, 22, 34, 0.8); }
 .bg-amber-400 { background-color: #fbbf24; }
 .bg-amber-500\/20 { background-color: rgba(245, 158, 11, 0.2); }
 .bg-amber-500\/30 { background-color: rgba(245, 158, 11, 0.3); }
 .bg-yellow-400 { background-color: #facc15; }
 .bg-yellow-500 { background-color: #eab308; }
-.bg-yellow-500\/20 { background-color: rgba(234, 179, 8, 0.2); }
-.bg-yellow-950\/80 { background-color: rgba(66, 32, 6, 0.8); }
-.bg-yellow-950\/90 { background-color: rgba(66, 32, 6, 0.9); }
-.bg-neutral-800 { background-color: #262626; }
-.bg-neutral-800\/80 { background-color: rgba(38, 38, 38, 0.8); }
-.bg-neutral-800\/90 { background-color: rgba(38, 38, 38, 0.9); }
-.bg-neutral-900 { background-color: #171717; }
-.bg-neutral-900\/80 { background-color: rgba(23, 23, 23, 0.8); }
-.bg-slate-300 { background-color: #cbd5e1; }
-.bg-slate-800 { background-color: #1e293b; }
-.bg-slate-900 { background-color: #0f172a; }
-
-.bg-gradient-to-r { background-image: linear-gradient(to right, var(--tw-gradient-stops, #f59e0b, #eab308)); }
-.from-amber-400 { --tw-gradient-stops: #fbbf24, #f59e0b; }
-.from-red-600 { --tw-gradient-stops: #dc2626, #b91c1c; }
-.from-purple-950\/80 { --tw-gradient-stops: rgba(59, 7, 100, 0.8), rgba(69, 10, 10, 0.8); }
+.bg-emerald-950\/80 { background-color: rgba(6, 35, 25, 0.8); }
+.bg-emerald-900\/60 { background-color: rgba(6, 78, 59, 0.6); }
 
 /* Padding & Margin */
 .p-1 { padding: 0.25rem; }
@@ -250,11 +276,18 @@ html, body {
 .pb-2 { padding-bottom: 0.5rem; }
 .pb-4 { padding-bottom: 1rem; }
 
-/* Backdrop Blur & Transitions (Tối ưu hóa GPU Shader) */
-.backdrop-blur-md { backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
-.backdrop-blur-sm { backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
-.backdrop-blur-xs { backdrop-filter: blur(1px); -webkit-backdrop-filter: blur(1px); }
-.transition-all { transition-property: transform, opacity; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+/* GPU Acceleration & Optimized Transitions */
+.gpu-layer {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
+}
+
+.transition-all { 
+  transition-property: transform, opacity, background-color, border-color, box-shadow; 
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1); 
+  transition-duration: 160ms; 
+}
 .duration-150 { transition-duration: 150ms; }
 .duration-200 { transition-duration: 200ms; }
 .duration-300 { transition-duration: 300ms; }
@@ -262,69 +295,52 @@ html, body {
 .cursor-not-allowed { cursor: not-allowed; }
 .cursor-default { cursor: default; }
 
-/* GPU Acceleration Directives */
-.gpu-layer {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  will-change: transform;
+/* Luxury Buttons */
+button {
+  outline: none;
+  border: none;
+  font-family: inherit;
+}
+button:hover { filter: brightness(1.08); }
+button:active { transform: scale(0.98); }
+
+.btn-casino-gold {
+  background: linear-gradient(135deg, #f5d77f 0%, #d4af37 50%, #aa8620 100%);
+  color: #1a1205;
+  font-weight: 700;
+  border: 1px solid #ffe699;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.35);
+  border-radius: 0.5rem;
+}
+.btn-casino-gold:hover {
+  box-shadow: 0 6px 16px rgba(212, 175, 55, 0.5);
+  transform: translateY(-1px);
 }
 
-/* Hover Effects */
-button:hover { filter: brightness(1.06); }
-.hover\:scale-105:hover { transform: scale(1.04); }
-
-/* Shadows (Tối ưu bán kính blur để giảm tải GPU) */
-.shadow-xs { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.25); }
-.shadow-md { box-shadow: 0 3px 6px -1px rgba(0, 0, 0, 0.35); }
-.shadow-lg { box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.45); }
-.shadow-xl { box-shadow: 0 12px 18px -3px rgba(0, 0, 0, 0.55); }
-.shadow-2xl { box-shadow: 0 16px 28px -4px rgba(0, 0, 0, 0.65); }
-
-/* Cành mai cành đào Tết rơi (GPU Hardware Accelerated translate3d) */
-.floating-blossom {
-  position: fixed;
-  top: -40px;
-  pointer-events: none;
-  z-index: 15;
-  will-change: transform;
-  transform: translateZ(0);
-  contain: strict;
-  animation-name: blossomFall;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
+.btn-casino-emerald {
+  background: linear-gradient(135deg, #1b8062 0%, #0d523e 100%);
+  color: #ffffff;
+  font-weight: 700;
+  border: 1px solid #2bc498;
+  box-shadow: 0 4px 12px rgba(13, 82, 62, 0.4);
+  border-radius: 0.5rem;
 }
 
-@keyframes blossomFall {
-  0% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
-    opacity: 0;
-  }
-  12% {
-    opacity: 0.75;
-  }
-  85% {
-    opacity: 0.75;
-  }
-  100% {
-    transform: translate3d(60px, calc(100vh + 50px), 0) rotate(360deg);
-    opacity: 0;
-  }
+.btn-casino-dark {
+  background: linear-gradient(135deg, #252d3e 0%, #161b26 100%);
+  color: #e2e8f0;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.5rem;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.98); }
-  to { opacity: 1; transform: scale(1); }
+/* Modal Surface */
+.modal-glass-surface {
+  background: rgba(18, 23, 34, 0.96);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.8), 0 0 24px rgba(212, 175, 55, 0.15);
 }
 
-.animate-fade-in {
-  animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes pulseSlow {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.85; }
-}
-
-.animate-pulse-slow {
-  animation: pulseSlow 3s ease-in-out infinite;
-}
+/* Shadows */
+.shadow-casino-card { box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.6); }
+.shadow-gold-glow { box-shadow: 0 0 16px var(--casino-gold-glow); }

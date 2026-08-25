@@ -1,21 +1,22 @@
 /* =========================================================
-   BÀN TRÒN TIẾN LÊN MIỀN NAM (CIRCULAR FELT TABLE)
+   BÀN CASINO TIẾN LÊN MIỀN NAM (LUXURY EMERALD FELT TABLE)
    ========================================================= */
 
 .round-table {
-  width: clamp(230px, 35dvh, 400px);
-  height: clamp(230px, 35dvh, 400px);
-  max-width: min(35dvh, 42vw);
-  max-height: min(35dvh, 42vw);
+  width: clamp(240px, 38dvh, 440px);
+  height: clamp(240px, 38dvh, 440px);
+  max-width: min(38dvh, 46vw);
+  max-height: min(38dvh, 46vw);
   aspect-ratio: 1 / 1;
   border-radius: 50% !important;
-  background: radial-gradient(circle at center, #420f18 0%, #26050b 55%, #140205 100%);
-  border: clamp(8px, 1.2dvh, 14px) solid #230b05;
+  background: radial-gradient(circle at 50% 45%, #134e3d 0%, #0c382b 50%, #07261d 85%, #041610 100%);
+  border: clamp(10px, 1.4dvh, 16px) solid #241208; /* Viền gỗ gụ Mahogany */
   box-shadow: 
-    0 0 0 2px #f9b208,
-    0 0 0 5px #140602,
-    0 12px 28px rgba(0, 0, 0, 0.85),
-    inset 0 0 24px rgba(0, 0, 0, 0.8);
+    0 0 0 2px #d4af37, /* Đường chỉ vàng Champagne */
+    0 0 0 6px #15110e, /* Đệm da Padded Leather ngoài */
+    0 0 0 7px rgba(212, 175, 55, 0.3),
+    0 16px 36px rgba(0, 0, 0, 0.9),
+    inset 0 0 32px rgba(0, 0, 0, 0.7);
   position: relative;
   overflow: visible;
   flex-shrink: 0;
@@ -23,35 +24,37 @@
   backface-visibility: hidden;
 }
 
-/* Đệm viền da / gỗ bàn tròn */
+/* Đệm viền da sang trọng bao ngoài bàn */
 .round-table::before {
   content: '';
   position: absolute;
-  inset: -14px;
+  inset: -16px;
   border-radius: 50%;
-  border: 3px solid rgba(249, 178, 8, 0.25);
+  border: 2px solid rgba(212, 175, 55, 0.35);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
   pointer-events: none;
 }
 
-/* Vòng chỉ vàng & Họa tiết nỉ nhung trung tâm bàn tròn */
+/* Vòng chỉ vàng dập chìm trên nỉ nhung trung tâm */
 .table-inner-felt {
   position: absolute;
-  inset: 14px;
+  inset: 12px;
   border-radius: 50%;
-  border: 2px dashed rgba(249, 178, 8, 0.25);
-  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
+  border: 1.5px dashed rgba(212, 175, 55, 0.35);
+  box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.6);
   pointer-events: none;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+/* Logo VIP Casino Emblem dập nổi nhẹ nhàng ở trung tâm */
 .table-center-emblem {
   width: 220px;
   height: 220px;
   border-radius: 50%;
-  border: 1.5px solid rgba(249, 178, 8, 0.12);
-  background: radial-gradient(circle, rgba(249, 178, 8, 0.05) 0%, transparent 70%);
+  border: 1.5px solid rgba(212, 175, 55, 0.18);
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.06) 0%, transparent 70%);
   display: flex;
   align-items: center;
   justify-content: center;

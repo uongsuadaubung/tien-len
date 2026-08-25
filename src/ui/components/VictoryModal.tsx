@@ -118,10 +118,10 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   let modalIcon = '🏆';
   let isDefeatModal = !isHumanWinner;
   let statBox1Title = 'Biến Động Tiền';
-  let statBox1Value = `${humanPayout >= 0 ? `+${humanPayout.toLocaleString()}` : humanPayout.toLocaleString()} 🧧`;
+  let statBox1Value = `${humanPayout >= 0 ? `+${humanPayout.toLocaleString()}` : humanPayout.toLocaleString()} 🪙`;
   let statBox1Sub = '';
   let statBox2Title = 'Thông Tin Bàn';
-  let statBox2Value = `${betAmount.toLocaleString()} 🧧`;
+  let statBox2Value = `${betAmount.toLocaleString()} 🪙`;
   let statBox2Sub = '';
   let primaryBtnText = 'Đánh Ván Mới';
   let primaryBtnIcon = <RefreshCw className="w-4 h-4" />;
@@ -141,7 +141,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
       modalTitle = 'ẢI CHƯA HOÀN THÀNH!';
       modalSubtitle = `Bot ${winner.name} đã về Nhất! Hãy cải thiện chiến thuật và thử lại để vượt qua ải này.`;
       statBox1Title = 'Tiền Thưởng / Cược';
-      statBox1Value = '0 🧧 (Miễn Phí)';
+      statBox1Value = '0 🪙 (Miễn Phí)';
       statBox1Sub = 'Không mất cược khi thua ải';
       statBox2Title = 'Tiến Độ Vượt Ải';
       statBox2Value = `${chapterWins}/${campaignChapter?.requiredWins || 1} Ván Thắng`;
@@ -155,7 +155,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         modalTitle = '🎉 MỞ KHÓA ẢI MỚI!';
         modalSubtitle = `Xuất sắc! Bạn đã hoàn thành ${campaignChapter?.name || 'ải'} và mở khóa ${nextChapter?.name || 'Ải Tiếp Theo'} (${nextChapter?.venueName || ''})!`;
         statBox1Title = 'Thưởng Mở Khóa Ải';
-        statBox1Value = `+${(campaignChapter?.rewardCoins || 0).toLocaleString()} 🧧`;
+        statBox1Value = `+${(campaignChapter?.rewardCoins || 0).toLocaleString()} 🪙`;
         statBox1Sub = 'Đã cộng vào tài khoản';
         statBox2Title = 'Ải Kế Tiếp';
         statBox2Value = nextChapter?.name || 'Ải Mới';
@@ -167,7 +167,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         modalTitle = '👑 ĐỈNH CAO THẦN BÀI!';
         modalSubtitle = `Tuyệt đỉnh! Bạn đã đánh bại toàn bộ các Siêu Thần Bài và hoàn thành trọn vẹn 5 Chương Chiến Dịch!`;
         statBox1Title = 'Thưởng Hoàn Thành';
-        statBox1Value = `+${(campaignChapter?.rewardCoins || 0).toLocaleString()} 🧧`;
+        statBox1Value = `+${(campaignChapter?.rewardCoins || 0).toLocaleString()} 🪙`;
         statBox2Title = 'Danh Hiệu';
         statBox2Value = 'Thần Bài Tối Thượng';
         primaryBtnText = 'Chơi Lại Ải 5';
@@ -177,7 +177,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         modalTitle = 'CHIẾN THẮNG TRẬN ĐẤU!';
         modalSubtitle = `Tiến độ ${campaignChapter?.name || 'ải'}: ${chapterWins}/${campaignChapter?.requiredWins || 1} ván thắng để mở khóa ải kế tiếp!`;
         statBox1Title = 'Tiền Thưởng / Cược';
-        statBox1Value = '0 🧧 (Miễn Phí)';
+        statBox1Value = '0 🪙 (Miễn Phí)';
         statBox2Title = 'Tiến Độ Vượt Ải';
         statBox2Value = `${chapterWins}/${campaignChapter?.requiredWins || 1} Ván Thắng`;
         primaryBtnText = 'Chơi Tiếp';
@@ -188,7 +188,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   // 2. ĐẤU HẠNG ELO (RANKED)
   else if (isRanked) {
     statBox1Title = 'Thưởng Đấu Hạng';
-    statBox1Value = humanPayout > 0 ? `+${humanPayout.toLocaleString()} 🧧` : '0 🧧 (Miễn Phí)';
+    statBox1Value = humanPayout > 0 ? `+${humanPayout.toLocaleString()} 🪙` : '0 🪙 (Miễn Phí)';
     statBox1Sub = humanPayout > 0 ? 'Thưởng Vàng Về Nhất' : '0 Xu cược khi đấu rank';
     statBox2Title = 'Xếp Hạng & Điểm Elo';
     statBox2Value = `${currentRank.badge} ${playerElo}`;
@@ -222,22 +222,22 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
       modalTitle = '🎰 ĐẠI THẮNG SÒNG BẠC NGẦM!';
       modalSubtitle = 'Bạn đã đại thắng tại sới bạc ngầm với tỷ lệ sát phạt nhân đôi!';
       statBox1Title = 'Tiền Thắng Sát Phạt';
-      statBox1Value = `+${humanPayout.toLocaleString()} 🧧`;
+      statBox1Value = `+${humanPayout.toLocaleString()} 🪙`;
       statBox1Sub = loanDeduction > 0 ? `Đã trích ${loanDeduction.toLocaleString()} xu trả nợ` : 'Đã cộng vào tài khoản';
       statBox2Title = 'Mức Cược Bàn';
-      statBox2Value = `${betAmount.toLocaleString()} 🧧 (x2)`;
+      statBox2Value = `${betAmount.toLocaleString()} 🪙 (x2)`;
       primaryBtnText = 'Tiếp Tục Sát Phạt';
       primaryBtnIcon = <Play className="w-4 h-4 fill-current" />;
     } else {
       isDefeatModal = true;
       modalIcon = '⚠️';
       modalTitle = '💥 THUA BÀN THẾ GIỚI NGẦM!';
-      modalSubtitle = `Sới bạc ngầm sát phạt khốc liệt! Bạn đã bị trừ ${Math.abs(humanPayout).toLocaleString()} 🧧.`;
+      modalSubtitle = `Sới bạc ngầm sát phạt khốc liệt! Bạn đã bị trừ ${Math.abs(humanPayout).toLocaleString()} 🪙.`;
       statBox1Title = 'Tiền Thua Sát Phạt';
-      statBox1Value = `${humanPayout.toLocaleString()} 🧧`;
+      statBox1Value = `${humanPayout.toLocaleString()} 🪙`;
       statBox1Sub = 'Tỷ lệ sát phạt nhân đôi';
       statBox2Title = 'Số Dư Tài Khoản';
-      statBox2Value = `${playerCoins.toLocaleString()} 🧧`;
+      statBox2Value = `${playerCoins.toLocaleString()} 🪙`;
       statBox2Sub = playerCoins < betAmount ? 'Nguy cơ phá sản!' : 'Cẩn trọng vốn cược';
 
       if (playerCoins < betAmount && onOpenBankLoanModal) {
@@ -257,9 +257,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
       modalTitle = '🥇 VỀ NHẤT GOM TIỀN ĐẾM LÁ!';
       modalSubtitle = 'Bạn đã về Nhất và gom trọn tiền phạt đếm lá của tất cả đối thủ!';
       statBox1Title = 'Tổng Tiền Gom Được';
-      statBox1Value = `+${humanPayout.toLocaleString()} 🧧`;
+      statBox1Value = `+${humanPayout.toLocaleString()} 🪙`;
       statBox2Title = 'Mức Phạt Đếm Lá';
-      statBox2Value = `${betAmount.toLocaleString()} 🧧 / lá`;
+      statBox2Value = `${betAmount.toLocaleString()} 🪙 / lá`;
       primaryBtnText = 'Ván Tiếp Theo';
       primaryBtnIcon = <RefreshCw className="w-4 h-4" />;
     } else {
@@ -268,10 +268,10 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
       modalTitle = 'THUA ĐẾM LÁ!';
       modalSubtitle = `Đấu thủ ${winner.name} đã về Nhất kết thúc ván bài!`;
       statBox1Title = 'Tiền Phạt Đếm Lá';
-      statBox1Value = `${humanPayout.toLocaleString()} 🧧`;
+      statBox1Value = `${humanPayout.toLocaleString()} 🪙`;
       statBox1Sub = 'Tính theo số lá tồn + thối heo';
       statBox2Title = 'Mức Phạt Đếm Lá';
-      statBox2Value = `${betAmount.toLocaleString()} 🧧 / lá`;
+      statBox2Value = `${betAmount.toLocaleString()} 🪙 / lá`;
       primaryBtnText = 'Ván Tiếp Theo';
       primaryBtnIcon = <RefreshCw className="w-4 h-4" />;
     }
@@ -284,9 +284,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
       modalTitle = '👑 GOM TRỌN SÒNG BÀI!';
       modalSubtitle = 'Chúc mừng bạn đã về Nhất và ẵm trọn toàn bộ tiền cược của cả bàn!';
       statBox1Title = 'Tiền Thắng Gom Trọn';
-      statBox1Value = `+${humanPayout.toLocaleString()} 🧧`;
+      statBox1Value = `+${humanPayout.toLocaleString()} 🪙`;
       statBox2Title = 'Mức Cược Bàn';
-      statBox2Value = `${betAmount.toLocaleString()} 🧧`;
+      statBox2Value = `${betAmount.toLocaleString()} 🪙`;
       primaryBtnText = 'Đánh Tiếp';
       primaryBtnIcon = <Play className="w-4 h-4 fill-current" />;
     } else {
@@ -295,9 +295,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
       modalTitle = 'THUA TRẬN ĂN TẤT CẢ!';
       modalSubtitle = `Đấu thủ ${winner.name} đã về Nhất và gom trọn toàn bộ tiền cược!`;
       statBox1Title = 'Tiền Cược Mất';
-      statBox1Value = `${humanPayout.toLocaleString()} 🧧`;
+      statBox1Value = `${humanPayout.toLocaleString()} 🪙`;
       statBox2Title = 'Mức Cược Bàn';
-      statBox2Value = `${betAmount.toLocaleString()} 🧧`;
+      statBox2Value = `${betAmount.toLocaleString()} 🪙`;
       primaryBtnText = 'Đánh Tiếp';
       primaryBtnIcon = <RefreshCw className="w-4 h-4" />;
     }
@@ -317,9 +317,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
       modalTitle = 'KẾT QUẢ VÁN BÀI TRUYỀN THỐNG';
     }
     statBox1Title = 'Biến Động Tiền';
-    statBox1Value = `${humanPayout >= 0 ? `+${humanPayout.toLocaleString()}` : humanPayout.toLocaleString()} 🧧`;
+    statBox1Value = `${humanPayout >= 0 ? `+${humanPayout.toLocaleString()}` : humanPayout.toLocaleString()} 🪙`;
     statBox2Title = 'Mức Cược Bàn';
-    statBox2Value = `${betAmount.toLocaleString()} 🧧`;
+    statBox2Value = `${betAmount.toLocaleString()} 🪙`;
     primaryBtnText = 'Đánh Ván Mới';
     primaryBtnIcon = <RefreshCw className="w-4 h-4" />;
   }
@@ -337,26 +337,22 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-fade-in select-none">
-      <div className={`relative w-full max-w-lg bg-gradient-to-b ${isDefeatModal ? 'from-[#2a0e05] via-[#1c0804] to-black border-2 border-orange-500/70' : isUnderground ? 'from-[#1f1604] via-[#120d02] to-black border-2 border-amber-500/80' : isRanked ? 'from-[#071326] via-[#040a17] to-black border-2 border-blue-500/70' : 'from-[#24060a] via-[#1a0407] to-black border-2 border-yellow-500/80'} rounded-3xl p-5 sm:p-6 shadow-2xl text-white text-center`}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 select-none">
+      <div className={`relative w-full max-w-lg bg-[#121724] border ${isDefeatModal ? 'border-red-500/50' : 'border-[#d4af37]/40'} rounded-2xl p-5 sm:p-6 shadow-2xl text-white text-center`}>
         {/* Biểu tượng cúp / khiên / vương miện */}
-        <div className={`inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full ${
+        <div className={`inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl ${
           isDefeatModal
-            ? 'bg-gradient-to-tr from-amber-700 via-orange-500 to-red-600 border-4 border-orange-400 text-yellow-100 shadow-orange-500/40'
-            : isUnderground
-              ? 'bg-gradient-to-tr from-amber-500 via-yellow-300 to-amber-600 border-4 border-yellow-200 text-amber-950 shadow-yellow-500/40'
-              : isRanked
-                ? 'bg-gradient-to-tr from-blue-600 via-cyan-400 to-blue-300 border-4 border-cyan-200 text-blue-950 shadow-cyan-500/40'
-                : 'bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200 border-4 border-yellow-300 text-red-950 shadow-yellow-500/40'
-        } text-3xl sm:text-4xl shadow-xl mb-3 animate-bounce`}>
+            ? 'bg-[#1e2533] border border-red-500/40 text-red-300'
+            : 'bg-gradient-to-tr from-[#d4af37] via-[#f3e5ab] to-[#aa8620] border border-white/30 text-[#0a0d14] shadow-[#d4af37]/30'
+        } text-3xl sm:text-4xl shadow-lg mb-3 animate-bounce`}>
           {modalIcon}
         </div>
 
-        <h2 className={`text-xl sm:text-2xl font-black ${isDefeatModal ? 'text-orange-400' : isRanked ? 'text-cyan-300' : 'text-yellow-300'} tracking-wide`}>
+        <h2 className={`text-xl sm:text-2xl font-black ${isDefeatModal ? 'text-red-400' : 'text-[#f3e5ab]'} tracking-wide`}>
           {modalTitle}
         </h2>
 
-        <p className="text-xs sm:text-sm font-semibold text-yellow-100/80 mt-1 mb-4">
+        <p className="text-xs sm:text-sm font-semibold text-slate-300 mt-1 mb-4">
           {modalSubtitle}
         </p>
 
@@ -440,7 +436,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                 <div className="text-right">
                   {!isCampaign && !isRanked && netPay !== undefined && (
                     <div className={`font-black text-xs sm:text-sm ${netPay > 0 ? 'text-emerald-400' : netPay < 0 ? 'text-red-400' : 'text-neutral-400'}`}>
-                      {netPay > 0 ? `+${netPay.toLocaleString()}` : netPay < 0 ? `${netPay.toLocaleString()}` : '0'} 🧧
+                      {netPay > 0 ? `+${netPay.toLocaleString()}` : netPay < 0 ? `${netPay.toLocaleString()}` : '0'} 🪙
                     </div>
                   )}
                   {isRanked && (

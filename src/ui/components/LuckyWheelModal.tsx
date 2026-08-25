@@ -71,7 +71,7 @@ const SLICES: WheelSlice[] = [
   {
     label: '50,000',
     value: 50000,
-    icon: '🧧',
+    icon: '🪙',
     gradient: ['#d97706', '#78350f'],
     textColor: '#ffffff'
   },
@@ -204,28 +204,28 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-xl animate-fade-in">
-      <div className="relative w-full max-w-lg bg-gradient-to-b from-[#24060a] via-[#140204] to-black rounded-3xl border-2 border-yellow-500/80 shadow-[0_0_60px_rgba(234,179,8,0.25)] p-5 sm:p-7 text-white flex flex-col items-center justify-between overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 select-none">
+      <div className="relative w-full max-w-lg bg-[#121724] rounded-2xl border border-[#d4af37]/40 shadow-2xl p-5 sm:p-7 text-white flex flex-col items-center justify-between overflow-hidden">
         {/* Nút đóng */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full bg-neutral-900/90 hover:bg-neutral-800 text-neutral-400 hover:text-white transition-all border border-neutral-700 hover:scale-105 cursor-pointer"
+          className="absolute top-4 right-4 p-2 rounded-xl bg-[#182030] hover:bg-[#222c42] text-slate-400 hover:text-white transition-all border border-white/10 cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Tiêu đề VIP */}
         <div className="text-center mb-3">
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-950 via-yellow-950 to-amber-950 px-4 py-1 rounded-full border border-yellow-500/50 mb-1 shadow-inner">
-            <Sparkles className="w-4 h-4 text-yellow-400 animate-pulse" />
-            <span className="text-xs font-black text-yellow-300 uppercase tracking-widest">
+          <div className="inline-flex items-center gap-2 bg-[#182030] px-4 py-1 rounded-full border border-[#d4af37]/40 mb-1 shadow-inner">
+            <Sparkles className="w-4 h-4 text-[#d4af37]" />
+            <span className="text-xs font-black text-[#f3e5ab] uppercase tracking-widest">
               CASINO HIGH RISK & REWARD
             </span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-clip-text text-transparent uppercase tracking-wider drop-shadow-md">
+          <h2 className="text-2xl sm:text-3xl font-black text-[#f3e5ab] uppercase tracking-wider drop-shadow-md">
             Vòng Quay Thần Bài
           </h2>
-          <p className="text-xs text-yellow-200/70 mt-0.5">Cân nhắc rủi ro: Có thể Mất Trắng hoặc Nổ Hũ 100,000 Xu</p>
+          <p className="text-xs text-slate-400 mt-0.5">Cân nhắc rủi ro: Có thể Mất Trắng hoặc Nổ Hũ 500,000 Xu</p>
         </div>
 
         {/* KHUNG VÒNG QUAY 3D CASINO CÓ ĐÈN LED CHỚP NHÁY */}

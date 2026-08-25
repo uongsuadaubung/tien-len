@@ -28,12 +28,12 @@ export const XRayInspector: React.FC<XRayInspectorProps> = ({
   const dangerousRanks: Rank[] = twoSafety.dangerousFourOfAKindRanks;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
-      <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-[#1a0508] border-2 border-yellow-500/80 rounded-3xl p-6 shadow-2xl text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 select-none">
+      <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto bg-[#121724] border border-[#d4af37]/40 rounded-2xl p-6 shadow-2xl text-white">
         {/* Nút Đóng */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full bg-neutral-800/80 hover:bg-neutral-700 text-yellow-300 transition-colors"
+          className="absolute top-4 right-4 p-2 rounded-xl bg-[#182030] hover:bg-[#222c42] text-slate-400 hover:text-white transition-colors cursor-pointer border border-white/10"
         >
           <X className="w-5 h-5" />
         </button>

@@ -13,7 +13,8 @@ import { Player } from '../../src/engine/types';
 function runTierTableMatchup(
   tierA: { name: string; bots: { id: string; name: string; config: BotConfig }[] },
   tierB: { name: string; bots: { id: string; name: string; config: BotConfig }[] },
-  numGames: number
+  numGames: number,
+  baseSeed = 77777
 ): {
   tierAWins: number;
   tierBWins: number;
@@ -50,7 +51,7 @@ function runTierTableMatchup(
   const game = new GameEngine(players, { mode: 'COUNT_CARDS', betAmount: 100 });
 
   for (let g = 1; g <= numGames; g++) {
-    const initRes = game.startNewGame(g);
+    const initRes = game.startNewGame(g, undefined, baseSeed + g * 2017);
 
     if (initRes.instantWin && initRes.instantWinner) {
       winCounts[initRes.instantWinner.id]++;

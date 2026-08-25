@@ -34,34 +34,34 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
       }}
     >
       {/* BẢNG TABLE HUD CHÍNH */}
-      <div className="w-[280px] sm:w-[310px] bg-[#1a0205] border-2 border-yellow-500/60 rounded-2xl shadow-xl p-2.5 text-white flex flex-col gap-2">
+      <div className="w-[280px] sm:w-[310px] bg-[#101522] border border-[#d4af37]/40 rounded-2xl shadow-2xl p-2.5 text-white flex flex-col gap-2">
         {/* Header HUD: Ván & Mức Cược */}
-        <div className="flex items-center justify-between border-b-2 border-yellow-500/40 pb-1.5 px-0.5">
+        <div className="flex items-center justify-between border-b border-[#d4af37]/30 pb-1.5 px-0.5">
           <div className="flex items-center gap-1.5">
-            <Trophy className="w-4 h-4 text-yellow-400" />
-            <span className="font-black text-xs text-yellow-200 uppercase tracking-wider">
+            <Trophy className="w-4 h-4 text-[#d4af37]" />
+            <span className="font-black text-xs text-[#f3e5ab] uppercase tracking-wider">
               Ván {gameNumber}
             </span>
           </div>
-          <div className="flex items-center gap-1 bg-amber-500/20 px-2 py-0.5 rounded-full border border-yellow-500/40">
-            <Coins className="w-3.5 h-3.5 text-yellow-400" />
-            <span className="text-xs font-black text-yellow-300">
-              {betAmount} 🧧
+          <div className="flex items-center gap-1 bg-[#182030] px-2 py-0.5 rounded-full border border-[#d4af37]/30">
+            <Coins className="w-3.5 h-3.5 text-[#d4af37]" />
+            <span className="text-xs font-black text-[#f3e5ab]">
+              {betAmount} 🪙
             </span>
           </div>
         </div>
 
         {/* BẢNG TABLE KẺ CỘT RÕ RÀNG */}
-        <div className="overflow-hidden rounded-xl border border-yellow-500/40 bg-black/50">
+        <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0a0d14]/70">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-gradient-to-r from-red-950 via-amber-950 to-red-950 text-yellow-300 text-[10px] sm:text-[11px] font-black uppercase tracking-wider border-b border-yellow-500/40">
-                <th className="py-1.5 px-2 border-r border-yellow-500/30">Người Chơi</th>
-                <th className="py-1.5 px-2 text-center border-r border-yellow-500/30 w-14">Lá Bài</th>
-                <th className="py-1.5 px-2 text-right w-16">Tiền 🧧</th>
+              <tr className="bg-[#182030] text-[#f3e5ab] text-[10px] sm:text-[11px] font-black uppercase tracking-wider border-b border-white/10">
+                <th className="py-1.5 px-2 border-r border-white/10">Người Chơi</th>
+                <th className="py-1.5 px-2 text-center border-r border-white/10 w-14">Lá Bài</th>
+                <th className="py-1.5 px-2 text-right w-16">Tiền 🪙</th>
               </tr>
             </thead>
-            <tbody className="text-xs font-semibold divide-y divide-yellow-500/20">
+            <tbody className="text-xs font-semibold divide-y divide-white/5">
               {players.map((p, index) => {
                 const isTurn = !isDealing && currentTurnPlayerId === p.id;
                 const isLeader = leadPlayerId === p.id;
@@ -74,22 +74,22 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                     key={p.id}
                     className={`transition-colors duration-150 ${
                       isTurn
-                        ? 'bg-amber-500/30 font-bold border-l-4 border-l-yellow-400'
+                        ? 'bg-[#182030] font-bold border-l-2 border-l-[#d4af37]'
                         : p.isPassedCurrentRound
                         ? 'bg-black/40 opacity-60'
                         : index % 2 === 0
-                        ? 'bg-red-950/20'
+                        ? 'bg-[#121724]/40'
                         : 'bg-transparent'
                     }`}
                   >
                     {/* Cột 1: Thông tin người chơi & Trạng thái */}
-                    <td className="py-1.5 px-2 border-r border-yellow-500/30">
+                    <td className="py-1.5 px-2 border-r border-white/10">
                       <div className="flex items-center gap-1.5 min-w-0">
                         {/* Avatar */}
                         <div className="relative flex-shrink-0">
                           <span className="text-sm">{p.avatar || '🤖'}</span>
                           {isLeader && (
-                            <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-yellow-100 text-[7px] font-black px-0.5 rounded-full border border-yellow-300">
+                            <span className="absolute -top-1.5 -right-1.5 bg-[#d4af37] text-[#0a0d14] text-[7px] font-black px-0.5 rounded-full shadow">
                               👑
                             </span>
                           )}
@@ -98,11 +98,11 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                         {/* Tên & Tag */}
                         <div className="flex flex-col min-w-0">
                           <div className="flex items-center gap-1">
-                            <span className={`text-[11px] font-bold truncate ${isTurn ? 'text-yellow-200' : 'text-slate-200'}`}>
+                            <span className={`text-[11px] font-bold truncate ${isTurn ? 'text-[#f3e5ab]' : 'text-slate-200'}`}>
                               {p.isBot ? p.name : 'Bạn'}
                             </span>
                             {p.isBot && cfg?.elo && (
-                              <span className="text-[8px] font-black text-amber-400 bg-black/60 px-1 rounded border border-yellow-500/20">
+                              <span className="text-[8px] font-black text-[#d4af37] bg-[#0a0d14] px-1 rounded border border-[#d4af37]/20">
                                 {cfg.elo}
                               </span>
                             )}
@@ -112,7 +112,7 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                           <div className="flex items-center gap-1">
                             {p.rankPosition ? (
                               <span className={`text-[8px] font-black px-1 rounded ${
-                                p.rankPosition === 1 ? 'bg-amber-400 text-red-950' : p.rankPosition === 2 ? 'bg-slate-300 text-slate-900' : p.rankPosition === 3 ? 'bg-amber-700 text-white' : 'bg-neutral-800 text-red-400'
+                                p.rankPosition === 1 ? 'bg-[#d4af37] text-[#0a0d14]' : p.rankPosition === 2 ? 'bg-slate-300 text-slate-900' : p.rankPosition === 3 ? 'bg-amber-800 text-white' : 'bg-neutral-800 text-red-400'
                               }`}>
                                 {p.rankPosition === 1 ? '🥇 Nhất' : p.rankPosition === 2 ? '🥈 Nhì' : p.rankPosition === 3 ? '🥉 Ba' : 'Bét'}
                               </span>
@@ -121,7 +121,7 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                                 Đã bỏ lượt
                               </span>
                             ) : isTurn ? (
-                              <span className="text-[8px] font-black text-yellow-300 bg-yellow-950/90 px-1 rounded border border-yellow-400 animate-pulse">
+                              <span className="text-[8px] font-black text-[#f3e5ab] bg-[#182030] px-1 rounded border border-[#d4af37]/50">
                                 Đang đánh
                               </span>
                             ) : null}
@@ -131,15 +131,15 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                     </td>
 
                     {/* Cột 2: Số lá bài còn lại */}
-                    <td className="py-1.5 px-2 text-center border-r border-yellow-500/30">
+                    <td className="py-1.5 px-2 text-center border-r border-white/10">
                       <div className="flex flex-col items-center justify-center">
                         <span
                           className={`font-black text-xs px-1.5 py-0.5 rounded ${
                             isOneCardLeft
                               ? 'bg-red-600 text-white animate-bounce'
                               : isTurn
-                              ? 'text-yellow-200 font-extrabold'
-                              : 'text-yellow-300'
+                              ? 'text-[#f3e5ab] font-extrabold'
+                              : 'text-slate-300'
                           }`}
                         >
                           {cardCount}
@@ -153,7 +153,7 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                     </td>
 
                     {/* Cột 3: Số tiền */}
-                    <td className="py-1.5 px-2 text-right font-bold text-[11px] text-amber-300/90">
+                    <td className="py-1.5 px-2 text-right font-bold text-[11px] text-[#f3e5ab]">
                       {p.score.toLocaleString()}
                     </td>
                   </tr>
@@ -167,7 +167,7 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
       {/* NÚT THU GỌN / MỞ RỘNG (TOGGLE BUTTON) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-[#2a060c] hover:bg-[#3a0810] text-yellow-300 border-2 border-l-0 border-yellow-500/50 hover:border-yellow-300 py-3 px-1 rounded-r-xl shadow-xl transition-all duration-150 cursor-pointer flex items-center justify-center"
+        className="bg-[#101522] hover:bg-[#182030] text-[#f3e5ab] border border-l-0 border-[#d4af37]/40 py-3 px-1 rounded-r-xl shadow-xl transition-all cursor-pointer flex items-center justify-center"
         title={isOpen ? 'Thu gọn bảng HUD' : 'Mở rộng bảng HUD'}
       >
         {isOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
