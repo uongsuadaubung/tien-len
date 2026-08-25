@@ -189,8 +189,7 @@ export const App: React.FC = () => {
   };
 
   const handleReturnToLobby = () => {
-    engineRef.current = null;
-    setCurrentScreen('LOBBY');
+    handleRequestReturnToLobby();
   };
 
   return (

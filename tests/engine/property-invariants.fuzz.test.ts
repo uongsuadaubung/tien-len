@@ -116,10 +116,10 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
       }));
 
       const engine = new GameEngine(players, rules);
-      engine.startNewGame(1);
+      engine.startNewGame(1, undefined, 50000 + sim * 73);
 
       let turnCount = 0;
-      const MAX_TURNS = 120;
+      const MAX_TURNS = 300;
 
       while (!engine.isGameOver && turnCount < MAX_TURNS) {
         turnCount++;

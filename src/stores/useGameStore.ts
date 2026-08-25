@@ -101,6 +101,7 @@ interface GameState {
   setMatchPayouts: (payouts: Record<string, number>) => void;
   setLoanDeductionAmount: (amount: number) => void;
   setLastEloDelta: (delta: number) => void;
+  resetMatchState: () => void;
 }
 
 const DEFAULT_PLAYERS: Player[] = [
@@ -262,5 +263,23 @@ export const useGameStore = create<GameState>((set) => ({
 
   setMatchPayouts: (payouts) => set({ matchPayouts: payouts }),
   setLoanDeductionAmount: (amount) => set({ loanDeductionAmount: amount }),
-  setLastEloDelta: (delta) => set({ lastEloDelta: delta })
+  setLastEloDelta: (delta) => set({ lastEloDelta: delta }),
+  resetMatchState: () => set({
+    isDealing: false,
+    dealtCounts: {},
+    dealBanner: null,
+    chopNotification: null,
+    currentTurnPlayerId: null,
+    leadPlayerId: null,
+    currentMove: null,
+    winners: [],
+    isGameOver: false,
+    instantWinType: undefined,
+    isThreeSpadesWin: false,
+    selectedCardIds: new Set<string>(),
+    currentHint: null,
+    matchPayouts: {},
+    loanDeductionAmount: 0,
+    lastEloDelta: 0
+  })
 }));

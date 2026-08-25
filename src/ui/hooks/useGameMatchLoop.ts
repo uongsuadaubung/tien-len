@@ -19,6 +19,8 @@ import {
 } from '../../engine/storage';
 import { UI_TIMINGS } from '../constants/ui-timings';
 
+import { OpponentProfiler } from '../../ai/opponent-profiler';
+
 // Stores
 import { useModalStore } from '../../stores/useModalStore';
 import { useUserStore } from '../../stores/useUserStore';
@@ -81,7 +83,8 @@ export function useGameMatchLoop() {
     setMatchPayouts,
     setLoanDeductionAmount,
     setLastEloDelta,
-    setCurrentScreen
+    setCurrentScreen,
+    resetMatchState
   } = useGameStore();
 
   const [campaignResultMeta, setCampaignResultMeta] = useState<CampaignResultMeta | null>(null);
@@ -320,6 +323,15 @@ export function useGameMatchLoop() {
     const effectiveGameNumber = isRanked ? 1 : nextGameNumber;
     setGameNumber(effectiveGameNumber);
 
+    if (effectiveGameNumber === 1) {
+      clearActiveMatchSession();
+      lastWinnerIdRef.current = null;
+      trackersRef.current = {};
+      replacedBotBannersRef.current = [];
+      OpponentProfiler.getInstance().reset();
+      resetMatchState();
+    }
+
     // 1. Phân giải Strategy tương ứng theo chế độ đấu
     const effectiveMode = setupContext?.customSettings?.mode || gameSettings.mode;
     const strategy = resolveStrategyForMatch(activeGameType, effectiveMode);
@@ -447,7 +459,9 @@ export function useGameMatchLoop() {
       setup.rules
     );
 
-    const resolvedWinnerId = isRanked ? undefined : (preserveWinnerId || lastWinnerIdRef.current || undefined);
+    const resolvedWinnerId = (isRanked || effectiveGameNumber === 1)
+      ? undefined
+      : (preserveWinnerId || lastWinnerIdRef.current || undefined);
     engine.startNewGame(effectiveGameNumber, resolvedWinnerId);
     engineRef.current = engine;
 
@@ -820,9 +834,14 @@ export function useGameMatchLoop() {
     }
 
     engineRef.current = null;
+    trackersRef.current = {};
+    lastWinnerIdRef.current = null;
+    replacedBotBannersRef.current = [];
+    OpponentProfiler.getInstance().reset();
+    resetMatchState();
     closeAllModals();
     setCurrentScreen('LOBBY');
-  }, [profile, setProfile, setCurrentScreen, closeAllModals]);
+  }, [profile, setProfile, setCurrentScreen, closeAllModals, resetMatchState]);
 
   // Người chơi bấm nút "Về Sảnh" trên HeaderBar
   const handleRequestReturnToLobby = useCallback(() => {
@@ -835,10 +854,17 @@ export function useGameMatchLoop() {
       });
       openModal('CONFIRM_FORFEIT');
     } else {
+      clearActiveMatchSession();
       engineRef.current = null;
+      trackersRef.current = {};
+      lastWinnerIdRef.current = null;
+      replacedBotBannersRef.current = [];
+      OpponentProfiler.getInstance().reset();
+      resetMatchState();
+      closeAllModals();
       setCurrentScreen('LOBBY');
     }
-  }, [activeGameType, openModal, setForfeitData, setCurrentScreen]);
+  }, [activeGameType, openModal, setForfeitData, setCurrentScreen, resetMatchState, closeAllModals]);
 
   return {
     engineRef,

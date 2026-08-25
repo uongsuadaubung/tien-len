@@ -244,6 +244,7 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
               isDealing={isDealing}
               dealtCardsCount={dealtCounts['p0']}
               aiHintEnabled={aiHintEnabled}
+              isFirstMoveOfGame={engineRef.current?.isFirstMoveOfGame ?? false}
             />
           )}
         </div>

@@ -206,7 +206,7 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
                     </span>
                   </div>
                   <p className="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed font-medium">
-                    Tùy chỉnh nhanh số người (2-4), cược từ 500 đến 20.000 Xu, phạt chặt nhân từ x1 đến x5, đếm lá sát phạt hoặc nhất ăn tất.
+                    Tùy chỉnh nhanh số người (2-4), cược từ 500 Xu (hoặc tự do tùy chọn), phạt chặt nhân từ x1 đến x5, đếm lá sát phạt hoặc nhất ăn tất.
                   </p>
                 </div>
               </div>
@@ -228,7 +228,7 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
             <div className="pt-4 mt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2 text-xs font-bold text-slate-300">
                 <span className="bg-[#0a0d14]/80 px-3 py-1 rounded-lg border border-[#d4af37]/30 text-[#f3e5ab]">
-                  💰 Cược: 500 - 20,000 Xu
+                  💰 Cược: 500+ Xu
                 </span>
                 <span className="bg-[#0a0d14]/80 px-3 py-1 rounded-lg border border-red-500/30 text-red-300">
                   ⚡ Phạt Chặt: x1 - x5

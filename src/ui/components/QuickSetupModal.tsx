@@ -66,10 +66,10 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
       playerCount: config.playerCount,
       betAmount: Math.max(10, config.betAmount),
       settlementRule,
-      choppingMultiplier: config.choppingMultiplier,
+      choppingMultiplier: config.choppingMultiplier ?? 1,
       congEnabled: config.congEnabled ?? true,
-      prohibitEndingWithTwo: config.prohibitEndingWithTwo,
-      allowFourPairsCutAnytime: config.allowFourPairsCutAnytime,
+      prohibitEndingWithTwo: config.prohibitEndingWithTwo ?? true,
+      allowFourPairsCutAnytime: config.allowFourPairsCutAnytime ?? true,
       threeSpadesEndingBonus: config.threeSpadesEndingBonus ?? true,
       cascadeChopEnabled: config.cascadeChopEnabled ?? true
     });
@@ -134,7 +134,7 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
               className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all border ${
                 isInsufficientCoins
                   ? 'bg-[#182030] text-slate-500 border-white/5 cursor-not-allowed opacity-60'
-                  : 'bg-gradient-to-r from-[#d4af37] via-[#f3e5ab] to-[#aa8620] hover:from-[#f3e5ab] hover:to-[#d4af37] text-[#0a0d14] hover:scale-105 active:scale-95 transition-all cursor-pointer border-[#ffe699]'
+                  : 'bg-gradient-to-r from-[#d4af37] to-[#aa8620] hover:from-[#e5c158] hover:to-[#be982d] text-[#0a0d14] hover:scale-105 active:scale-95 transition-all cursor-pointer border border-[#d4af37]'
               }`}
             >
               <Play className="w-4 h-4 fill-current" />

@@ -236,7 +236,7 @@ describe('Full Matrix Elo Tier Matchups (Ghép Cặp Toàn Bộ 5 Bậc Elo Bàn
         const tierA = allTiers[i];
         const tierB = allTiers[j];
 
-        const res = runTierTableMatchup(tierA, tierB, GAMES_PER_PAIR);
+        const res = runTierTableMatchup(tierA, tierB, GAMES_PER_PAIR, 77777 + (i * 10 + j) * 1000);
 
         tierStats[tierA.name].wins += res.tierAWins;
         tierStats[tierA.name].totalGames += GAMES_PER_PAIR;

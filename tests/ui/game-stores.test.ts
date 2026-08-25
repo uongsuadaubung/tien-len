@@ -74,4 +74,30 @@ describe('Zustand State Stores Integration Tests (Kiểm Thử Tích Hợp State
     settingsStore.setSoundEnabled(false);
     expect(useSettingsStore.getState().soundEnabled).toBe(false);
   });
+
+  it('5. useGameStore: resetMatchState làm sạch 100% dữ liệu bàn đấu và bộ nhớ tạm', () => {
+    const gameStore = useGameStore.getState();
+    const card3S = createCard(3, 'SPADES');
+
+    gameStore.toggleCardSelect(card3S.id);
+    gameStore.setCurrentTurnPlayerId('p2');
+    gameStore.setIsGameOver(true);
+    gameStore.setIsThreeSpadesWin(true);
+    gameStore.setDealBanner('Chia Bài Hoàn Tất');
+
+    expect(useGameStore.getState().selectedCardIds.size).toBe(1);
+    expect(useGameStore.getState().isGameOver).toBe(true);
+
+    // Kích hoạt Reset toàn bộ State bàn đấu
+    gameStore.resetMatchState();
+
+    const cleanState = useGameStore.getState();
+    expect(cleanState.selectedCardIds.size).toBe(0);
+    expect(cleanState.currentTurnPlayerId).toBeNull();
+    expect(cleanState.isGameOver).toBe(false);
+    expect(cleanState.isThreeSpadesWin).toBe(false);
+    expect(cleanState.dealBanner).toBeNull();
+    expect(cleanState.winners).toEqual([]);
+    expect(cleanState.currentMove).toBeNull();
+  });
 });
