@@ -75,6 +75,15 @@ export class CardTracker {
     return this.playedCards.has(card.id);
   }
 
+  public getPlayedCardIds(): string[] {
+    return Array.from(this.playedCards);
+  }
+
+  public recordPlayedCardId(cardId: string): void {
+    this.playedCards.add(cardId);
+    this.recomputeRankCounts();
+  }
+
   public getRemainingTwosCount(): number {
     let count = 0;
     for (const suit of ALL_SUITS) {

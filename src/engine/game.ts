@@ -19,6 +19,7 @@ import { isValidMove } from './validator';
 import { makeBotDecision } from '../ai/decision-maker';
 import { BotConfig } from '../ai/types';
 import { CardTracker } from '../ai/card-tracker';
+import { OpponentProfiler } from '../ai/opponent-profiler';
 
 export interface PlayMoveResult {
   success: boolean;
@@ -306,10 +307,23 @@ export class GameEngine {
 
     // 1. Trừ bài trên tay và thêm vào danh sách đã đánh
     const playedIds = new Set(cards.map(c => c.id));
+    const handSizeBeforeMove = player.hand.length;
     player.hand = player.hand.filter(c => !playedIds.has(c.id));
     player.playedCards.push(...cards);
     player.hasPlayedFirstCard = true;
     this.playedCardsInGame.push(...cards);
+
+    const nextPlayerId = this.getNextActivePlayerId(playerId);
+    const nextPlayer = this.getPlayer(nextPlayerId);
+    const isNextOneCard = nextPlayer ? nextPlayer.hand.length === 1 : false;
+    OpponentProfiler.getInstance().recordCardPlay(
+      playerId,
+      cards,
+      validation.combination,
+      handSizeBeforeMove,
+      isLeadMove,
+      isNextOneCard
+    );
 
     // Ván 1: Đã đánh ra 3S ở lượt đầu
     this.isFirstMoveOfGame = false;
@@ -475,6 +489,19 @@ export class GameEngine {
     player.isPassedCurrentRound = true;
     if (!this.currentRound.passedPlayerIds.includes(playerId)) {
       this.currentRound.passedPlayerIds.push(playerId);
+    }
+
+    const leadingMove = this.getLeadingMove();
+    if (leadingMove) {
+      const nextPlayerId = this.getNextActivePlayerId(playerId);
+      const nextPlayer = this.getPlayer(nextPlayerId);
+      const isNextOneCard = nextPlayer ? nextPlayer.hand.length === 1 : false;
+      OpponentProfiler.getInstance().recordPass(
+        playerId,
+        leadingMove.combination,
+        player.hand.length,
+        isNextOneCard
+      );
     }
 
     this.advanceTurn(playerId);
@@ -824,6 +851,10 @@ export class GameEngine {
       this.settleWinnerTakesAllEndGame(this.winners[0]);
     } else {
       this.settleTraditionalEndGame();
+    }
+
+    for (const p of this.players) {
+      OpponentProfiler.getInstance().finalizeMatchForPlayer(p.id, p.hand);
     }
   }
 

@@ -152,11 +152,39 @@ $$\max \text{Score}(P) = \sum_{c \in C} \text{Score}_{\text{combo}}(c) + \sum_{t
 
 ---
 
-## 5. ĐỘ BAO PHỦ KIỂM THỬ TỰ ĐỘNG (TEST COVERAGE)
+## 5. HỒ SƠ ĐỌC VỊ ĐỐI THỦ DÀI HẠN ([`opponent-profiler.ts`](../src/ai/opponent-profiler.ts))
 
-- **194/194 tests PASS 100%** qua 28 files kiểm thử chuyên sâu (`bun test`).
+Hệ thống xây dựng mô hình hành vi đối thủ thích ứng qua nhiều ván đấu liên tiếp:
+1. **`heoGreedRate`**: Tỉ lệ đối thủ giữ Heo Cơ/Heo Đỏ đến cờ tàn ($\le 3$ lá) hoặc bị Thối Heo $\to$ Bot tự động ép nhịp để đối thủ bị thối hoặc nhả Heo sớm.
+2. **`trashLeadRate`**: Thói quen xả rác nhỏ vs xả bộ khi Cầm Cái.
+3. **`trapPatienceScore`**: Xu hướng nhịn bài phục kích khi cầm Hàng quý.
+4. **`chopAggressionScore`**: Mức độ sẵn sàng chặt Heo ngay lập tức.
+5. **`antiLeaderCarefulness`**: Mức độ tuân thủ luật chống đền bài khi người kế tiếp báo 1 lá.
+
+---
+
+## 6. LÝ THUYẾT TRÒ CHƠI & CÂN BẰNG NASH ([`cfr-engine.ts`](../src/ai/cfr-engine.ts))
+
+Ứng dụng thuật toán **Counterfactual Regret Minimization (CFR)** và **Regret Matching**:
+1. **Mixed Strategy Equilibrium**: Tính toán phân phối xác suất cân bằng cho các trạng thái thông tin (Information Sets), khiến đối thủ không thể đoán trước nước đi của Bot.
+2. **Bluff Pass Evaluation**: Bot Tier 4/5 chủ động Bỏ Lượt (PASS) dù có bài đè được khi đối thủ ham Heo xả bài trung bình $\to$ gài bẫy nhử Heo to để chặt đè hoặc giành quyền cái quyết định.
+
+---
+
+## 7. MÔ PHỎNG MONTE CARLO MỞ RỘNG ([`mcts-async-engine.ts`](../src/ai/mcts-async-engine.ts))
+
+Động cơ **Scaled ISMCTS** hỗ trợ mở rộng số lượng Rollout Simulations từ $30 \to 100 - 500+$ kịch bản song song:
+- Phân chia theo từng batch nhỏ và nhường luồng (yielding) để giữ vững hiệu năng **60 FPS** mượt mà trên giao diện Web.
+- Tự động fallback đồng bộ siêu tốc cho môi trường kiểm thử tự động.
+
+---
+
+## 8. ĐỘ BAO PHỦ KIỂM THỬ TỰ ĐỘNG (TEST COVERAGE)
+
+- **207/207 tests PASS 100%** qua 31 files kiểm thử chuyên sâu (`bun test`).
 - Bao phủ trọn vẹn:
   1. Từng Rule Strategy độc lập và tổ hợp Composite Rules tùy biến.
   2. Thoát Cóng khẩn cấp (`EMERGENCY_UNFREEZE`).
   3. Cờ tàn Cấm 2 cuối, Ăn 3 Bích về cuối & Chống đền bài khi báo 1 lá.
-  4. Ma trận đấu 5 bậc Elo và benchmark độ trễ ra quyết định ($\le 60\text{ms}$).
+  4. Phân hệ Opponent Profiler, CFR Regret Matching & Scaled ISMCTS Engine.
+  5. Ma trận đấu 5 bậc Elo và benchmark độ trễ ra quyết định ($\le 60\text{ms}$).

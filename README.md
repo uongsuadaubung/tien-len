@@ -19,7 +19,9 @@
   - **Composite Rule-First Strategy**: AI tự động thích ứng với bất kỳ tổ hợp luật nào đang được cấu hình.
   - **Chain of Responsibility**: 5 tầng xử lý quyết định tuần tự: `Emergency` $\to$ `Endgame` $\to$ `Lead` $\to$ `Responding` $\to$ `Fallback`.
   - **CardTracker & Bayesian Inference**: Đếm bài, theo dõi rác/heo và suy luận khả năng có Hàng của đối thủ.
-  - **ISMCTS Solver (Information Set Monte Carlo Tree Search)**: Mô phỏng cây ván đấu sâu cho các Bot bậc Thần Bài.
+  - **Opponent Dynamic Profiling (`OpponentProfiler`)**: Ghi nhớ và đọc vị thói quen tâm lý (ham giữ Heo, nhát tay, gài bẫy) của người chơi qua nhiều ván đấu.
+  - **Game Theory & Nash Equilibrium (`CfrEngine`)**: Áp dụng Counterfactual Regret Minimization cho chiến thuật hỗn hợp và tung hỏa mù (Bluff Pass).
+  - **Scaled ISMCTS Solver (Monte Carlo Tree Search)**: Mô phỏng song song 100 - 500+ kịch bản cây ván đấu sâu cho các Bot bậc Thần Bài.
 * 🛠️ **Game Rules Builder Pattern**: Tạo và tùy biến luật chơi linh hoạt, an toàn bằng Fluent API (`GameRulesBuilder`).
 * 📡 **Event-Driven Architecture (GameEventBus)**: Tách biệt hoàn toàn Game Engine với UI, Quests, Achievements và Audio.
 * 🛡️ **100% Strict Type-Safe**: Tuyệt đối không sử dụng `any`, cấm ép kiểu `as Type`, không tham số `optional (?)` lỏng lẻo, kiểm soát ghế bot bằng Tuple `readonly [string, string, string]`.
@@ -94,7 +96,7 @@ bun run lint
 ```bash
 bun test
 ```
-> Chạy 194 bài test bao phủ toàn bộ Engine, AI Decision Maker, Strategy Rules, Validator, EventBus, Quests và Bot Benchmark.
+> Chạy **207 bài test** (31 test suites) bao phủ toàn bộ Engine, AI Decision Maker, Opponent Profiler, CFR Solver, Scaled MCTS, Strategy Rules, Validator, EventBus, Quests và Bot Benchmark.
 
 ### 5. Đóng Gói Ứng Dụng (Production Build)
 ```bash

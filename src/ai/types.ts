@@ -1,4 +1,5 @@
 import { Card, Combination, CombinationType, Rank } from '../engine/types';
+import { OpponentBehaviorProfile } from './opponent-profiler';
 
 export interface BotConfig {
   id: string;
@@ -55,5 +56,6 @@ export interface CardMemoryState {
   possibleDangerousRanks: Rank[];     // Các rank chưa xuất hiện lá nào (nguy cơ tứ quý)
   opponentPassedOnTypes: Record<string, CombinationType[]>; // Ghi nhớ đối thủ từng bỏ lượt ở loại bài nào
   opponentBlindspots?: Record<string, string[]>;
+  opponentProfiles?: Record<string, OpponentBehaviorProfile>;
 }
 

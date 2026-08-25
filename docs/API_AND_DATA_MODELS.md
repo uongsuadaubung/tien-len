@@ -173,6 +173,26 @@ export interface DecisionContext {
   gameMode: string;
   mctsMap?: Map<string, number>;
   compositeRuleStrategy?: CompositeRuleStrategy;
+  opponentProfiles?: Record<string, OpponentBehaviorProfile>;
+}
+
+export interface OpponentBehaviorProfile {
+  readonly playerId: string;
+  readonly gamesObserved: number;
+  readonly totalCardsPlayed: number;
+  readonly heoGreedRate: number;
+  readonly trashLeadRate: number;
+  readonly trapPatienceScore: number;
+  readonly chopAggressionScore: number;
+  readonly antiLeaderCarefulness: number;
+  readonly passRateByType: Record<CombinationType, number>;
+  readonly lastUpdatedTimestamp: number;
+}
+
+export interface ScaledMctsOptions {
+  simulationsCount: number;
+  maxCandidates: number;
+  batchSize?: number;
 }
 
 export interface BotDecision {

@@ -6,6 +6,8 @@ import { BotConfig } from './types';
 import { CardTracker } from './card-tracker';
 import { partitionHand } from './hand-partitioner';
 import { MctsSolver } from './mcts-solver';
+import { CfrEngine } from './cfr-engine';
+import { OpponentBehaviorProfile, OpponentProfiler } from './opponent-profiler';
 import { 
   CompositeRuleStrategy, 
   RuleDecisionContext, 
@@ -31,6 +33,7 @@ export interface DecisionContext {
   gameMode: string;    // Chế độ chơi
   mctsMap?: Map<string, number>;
   compositeRuleStrategy?: CompositeRuleStrategy;
+  opponentProfiles?: Record<string, OpponentBehaviorProfile>;
 }
 
 export interface BotDecision {
@@ -536,6 +539,31 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
       riskAppetite: config.riskAppetite
     };
 
+    // =========================================================================
+    // CFR BLUFF PASS CHECK (Tung hỏa mù theo lý thuyết trò chơi CFR)
+    // =========================================================================
+    if (currentRoundLeadingMove && config.elo >= 1600 && !isEmergencyAntiLeader) {
+      const targetPlayerId = currentRoundLeadingMove.playerId;
+      const targetProfile = context.opponentProfiles?.[targetPlayerId] ?? null;
+      const remainingTargetCards = remainingPlayerCards[targetPlayerId] ?? 10;
+
+      const bluffCheck = CfrEngine.getInstance().evaluateBluffPass(
+        hand,
+        currentRoundLeadingMove,
+        targetPlayerId,
+        targetProfile,
+        config,
+        remainingTargetCards
+      );
+
+      if (bluffCheck.shouldBluffPass) {
+        return {
+          type: 'PASS',
+          reason: bluffCheck.reason
+        };
+      }
+    }
+
     let bestMoveScore = -9999;
     let bestMove: ValidMoveInfo | null = null;
 
@@ -863,12 +891,15 @@ export function makeBotDecision(context: DecisionContext): BotDecision {
     }
   }
 
+  const opponentProfiles = context.opponentProfiles || OpponentProfiler.getInstance().getAllProfiles();
+
   const enrichedContext: DecisionContext = {
     ...context,
     rules: activeRules,
     prohibitEndingWithTwo: isProhibitEndingWithTwo,
     compositeRuleStrategy,
-    mctsMap
+    mctsMap,
+    opponentProfiles
   };
 
   // 5. Xử lý qua Rule-First Chain of Responsibility
