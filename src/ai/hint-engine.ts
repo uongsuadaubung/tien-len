@@ -1,4 +1,4 @@
-import { Card, PlayedMove } from '../engine/types';
+import { Card, GameRules, PlayedMove } from '../engine/types';
 import { BOT_PERSONAS } from './bot-factory';
 import { CardTracker } from './card-tracker';
 import { makeBotDecision } from './decision-maker';
@@ -22,7 +22,9 @@ export function getOptimalMoveHint(
   nextPlayerId: string = 'p1',
   isNextPlayerOneCard?: boolean,
   prohibitEndingWithTwo?: boolean,
-  gameMode?: string
+  gameMode?: string,
+  rules?: GameRules,
+  hasPlayedFirstCard?: boolean
 ): MoveHint {
   const resolvedNextPlayerId = nextPlayerId || Object.keys(remainingPlayerCards)[0] || 'p1';
   const decision = makeBotDecision({
@@ -36,7 +38,9 @@ export function getOptimalMoveHint(
     nextPlayerId: resolvedNextPlayerId,
     isNextPlayerOneCard: isNextPlayerOneCard ?? (remainingPlayerCards[resolvedNextPlayerId] === 1),
     prohibitEndingWithTwo,
-    gameMode
+    gameMode,
+    rules,
+    hasPlayedFirstCard
   });
 
   if (decision.type === 'PASS') {

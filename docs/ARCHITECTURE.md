@@ -32,11 +32,12 @@ Hệ thống được thiết kế theo mô hình kiến trúc phân lớp sạc
 │  - Strategy Engine: 6 chế độ chơi độc lập (Truyền Thống, Đếm Lá, Nhất Ăn Tất, Ngầm...)   │
 │  - EventBus: Hệ thống Pub/Sub phát sự kiện decoupling giữa Engine và UI/Quests           │
 └───────────────────────────────────────────┬──────────────────────────────────────────────┘
-                                            │ Context Queries / Decisions
+                                            │ Context Queries / Decisions (GameRules)
                                             ▼
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
 │                             4. AI INTELLIGENCE LAYER (AI Engine)                         │
-│  - Chain of Responsibility Decision Maker: Cờ tàn $\to$ Chặn 1 lá $\to$ Cầm cái $\to$ Đỡ│
+│  - Composite Rule Strategy Manager: 5 Rule Strategies (Settlement, Cong, Chop, Flow, Tab)│
+│  - Chain of Responsibility: Emergency (Cóng/Đền/2) -> Endgame -> Lead -> Response -> Fall│
 │  - Combinatorial Hand Partitioner: Phân rã bài tối ưu ($C(n, k)$, Sảnh, Đôi, Hàng)       │
 │  - CardTracker & Bayesian Inference: Đếm bài, theo dõi rác/heo, phán đoán tay đối thủ   │
 │  - Monte Carlo Tree Search (MCTS): Mô phỏng ván đấu đa kịch bản cho Bot Tier 5 (Mythic)  │
@@ -48,24 +49,29 @@ Hệ thống được thiết kế theo mô hình kiến trúc phân lớp sạc
 
 ## 2. CÁC MẪU THIẾT KẾ PHẦN MỀM KINH ĐIỂN (DESIGN PATTERNS)
 
-### 2.1. Chain of Responsibility Pattern (Chuỗi Trách Nhiệm)
-Hệ thống sử dụng Chuỗi Trách Nhiệm tại hai phân hệ cốt lõi:
+### 2.1. Composite Rule Strategy Pattern & Chain of Responsibility
+Hệ thống sử dụng mẫu thiết kế **Rule-First Strategy** để AI có thể tự động thích ứng với bất kỳ tổ hợp luật nào đang hoạt động:
 
-#### A. AI Bot Decision Chain (`src/ai/decision-maker.ts`)
-Mỗi Handler trong chuỗi chịu trách nhiệm cho một kịch bản chiến thuật cụ thể. Nếu không thỏa mãn điều kiện, quyền xử lý được tự động chuyển cho Handler kế tiếp:
-1. **`EndgameSolverHandler`**: Nhận diện và thực thi nước đi dứt điểm trận đấu ngay lập tức khi bài trên tay có thể kết thúc ván (bao gồm giải toán cờ tàn Cấm 2 Cuối Cùng).
-2. **`AntiLeaderDefenseHandler`**: Kích hoạt khi có người chơi báo 1 lá. Nếu là người kế tiếp: ưu tiên ra Bộ (đôi/sảnh) để đối thủ không đỡ được, hoặc ra lá rác to nhất (Át/Heo) để chặn đầu chống đền bài. Nếu là người khác: xả rác nhỏ thoát thân.
-3. **`LeadMoveHeuristicHandler`**: Xử lý lượt cầm cái đầu vòng. Tẩu rác nhỏ ($3, 4, 5...$) trước, giữ Heo và Hàng bọc lót; mở màn 3 Bích không phá 3 Đôi Thông / Tứ Quý.
-4. **`RespondingMoveHeuristicHandler`**: Đỡ bài đối thủ, tính toán lợi nhuận khi chặt Heo hoặc nhịn bài để giữ nguyên cấu trúc bộ sảnh quý giá.
+#### A. Composite Rule Strategy Manager ([`src/ai/rule-strategies.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/ai/rule-strategies.ts))
+Phân rã hệ thống luật thành 5 module chiến lược độc lập:
+1. **`SettlementRuleStrategy`**: Điều phối chính sách ra bài và đỡ bài theo cách tính tiền (`CARD_COUNT`, `TRADITIONAL_RANK_BASED`, `WINNER_TAKES_ALL`).
+2. **`CongRuleStrategy`**: Kích hoạt trạng thái **Thoát Cóng Khẩn Cấp (`EMERGENCY_UNFREEZE`)** khi Bot chưa ra lá bài nào (`hasPlayedFirstCard === false`) và có đối thủ sắp về ($\le 3$ lá).
+3. **`ChoppingRuleStrategy`**: Điều chỉnh hệ số rủi ro Chặt Heo và điểm gài bẫy phục kích theo `chopping.multiplier` và luật 4 đôi thông tự do.
+4. **`GameFlowRuleStrategy`**: Bảo toàn hàng ở lượt mở màn 3 Bích, xử lý cờ tàn Cấm 2 cuối (tránh thối Heo), và chống đền bài khi người kế tiếp báo 1 lá.
+5. **`TableScaleRuleStrategy`**: Tối ưu hóa Solo 1v1 (thưởng lớn cướp cái để giữ 100% nhịp độ) vs Bàn 3-4 người.
+
+#### B. AI Bot Decision Chain ([`src/ai/decision-maker.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/ai/decision-maker.ts))
+Chuỗi 5 tầng xử lý quyết định tuần tự:
+1. **`EmergencyRuleHandler`**: Xử lý các tình huống can thiệp khẩn cấp (Thoát Cóng, Chống đền bài, Cấm 2 cuối cờ tàn, Mở màn 3 Bích) ở mức ưu tiên số 1.
+2. **`EndgameSolverHandler`**: Nhận diện và thực thi nước đi dứt điểm ván đấu ngay lập tức (Instant Win / 2-card endgame).
+3. **`LeadMoveHeuristicHandler`**: Ra bài khi Cầm Cái theo `compositeLeadPolicy` (Xả sảnh dài trong Đếm lá, Tẩu rác nhỏ trong Truyền thống).
+4. **`RespondingMoveHeuristicHandler`**: Đỡ bài đối thủ, tính toán rủi ro chặt Heo, thưởng xả nhiều bài và phạt phá bộ bài quý.
 5. **`FallbackDecisionHandler`**: Đánh nước đi hợp lệ nhỏ nhất hoặc Bỏ Lượt (PASS).
-
-#### B. Combination Recognizers Chain (`src/engine/combinations.ts`)
-Nhận diện nhanh chóng loại tổ hợp bài từ Single $\to$ Pair $\to$ Triple $\to$ Straight $\to$ Three Pairs $\to$ Four of a Kind $\to$ Four Pairs.
 
 ---
 
-### 2.2. Strategy Pattern (Mẫu Chiến Lược Chế Độ Chơi)
-Vận hành tại [`src/engine/game-modes.ts`](file:///c:/Users/uongsuadaubung/Desktop/tien_len_mien_nam/src/engine/game-modes.ts), đóng gói các thuật toán tính điểm và luật kết thúc ván thành các Strategy riêng biệt:
+### 2.2. Strategy Pattern (Mẫu Chiến Lược Chế Độ Chơi Bàn Đấu)
+Vận hành tại [`src/engine/strategies/game-mode-strategy.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/engine/strategies/game-mode-strategy.ts), đóng gói cấu hình bàn đấu (`setupMatch`) và kết toán kinh tế (`settleMatch`):
 
 | Strategy | Kết Thúc Ván | Cách Tính Tiền / Phạt | Elo Rating |
 | :--- | :--- | :--- | :--- |
@@ -79,50 +85,37 @@ Vận hành tại [`src/engine/game-modes.ts`](file:///c:/Users/uongsuadaubung/D
 ---
 
 ### 2.3. Observer / Pub-Sub Event Bus Pattern
-Triển khai tại [`src/engine/event-bus.ts`](file:///c:/Users/uongsuadaubung/Desktop/tien_len_mien_nam/src/engine/event-bus.ts):
+Triển khai tại [`src/engine/events/game-event-bus.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/engine/events/game-event-bus.ts):
 - Phân tách hoàn toàn (decoupling) giữa Logic Game và Giao diện UI / Hệ thống Nhiệm Vụ.
-- Khi GameEngine phát ra sự kiện (`CARD_PLAYED`, `CHOP_EXECUTED`, `MATCH_COMPLETED`, `INSTANT_WIN`), các subscriber (`SoundManager`, `QuestEvaluator`, `AchievementTracker`, `UI Effects`) tự động nhận payload và phản hồi độc lập mà không cần can thiệp vào vòng đời Engine.
+- Khi GameEngine phát ra sự kiện (`CARD_PLAYED`, `CHOP_EXECUTED`, `MATCH_COMPLETED`, `INSTANT_WIN`), các subscriber tự động nhận payload và phản hồi độc lập.
 
 ---
 
 ### 2.4. Specification Pattern (Bộ Thẩm Định Nhiệm Vụ & Thành Tựu)
-Triển khai tại [`src/engine/quests.ts`](file:///c:/Users/uongsuadaubung/Desktop/tien_len_mien_nam/src/engine/quests.ts):
-- Đóng gói từng điều kiện hoàn thành nhiệm vụ (ví dụ: Chặt heo 2 lần, Thắng 3 ván Thế Giới Ngầm, Đạt chuỗi 5 ván thắng) thành các Evaluator chuyên biệt, tự động kiểm tra tiến độ mỗi khi có `GameEvent` tương ứng.
+Triển khai tại [`src/engine/quests.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/engine/quests.ts):
+- Đóng gói từng điều kiện hoàn thành nhiệm vụ thành các Evaluator chuyên biệt.
 
 ---
 
 ## 3. PHÂN HỆ QUẢN LÝ TRẠNG THÁI (STATE MANAGEMENT)
 
-Sử dụng **Zustand** cho kiến trúc State mỏng, hiệu năng cao, không re-render dư thừa:
-1. **`useGameStore`**:
-   - `gameEngine`: Instance GameEngine đang hoạt động.
-   - `gameState`: Snapshot trạng thái đồng bộ cho UI (ghế ngồi, bài trên tay, bài đã đánh, lượt đi hiện tại, lịch sử chặt chém).
-   - `selectedCards`: Mảng các lá bài người chơi đang chọn trên tay để đánh.
-   - `isThinking`: Trạng thái đếm ngược lượt đi của Bot.
-2. **`useUserStore`**:
-   - Quản lý Profile (Tên, Avatar, Cấp độ, Điểm kinh nghiệm, Danh hiệu).
-   - Ví tiền (Xu thường, Tiền ngầm, Nợ chợ đen).
-   - Tiến trình Nhiệm vụ ngày và Thành tựu trọn đời (tự động đồng bộ với `localStorage`).
-3. **`useSettingsStore`**:
-   - Cấu hình âm lượng BGM / SFX.
-   - Bật/tắt trợ lý gợi ý (AI Hint Engine).
-   - Tốc độ hoạt ảnh (Bình thường / Nhanh / Siêu tốc).
-   - Bật/tắt X-Ray Thần Nhãn (Soi bài đối thủ).
+Sử dụng **Zustand** cho kiến trúc State mỏng, hiệu năng cao:
+1. **`useGameStore`**: Quản lý instance `GameEngine`, snapshot ván đấu, bài đang chọn, lượt đi.
+2. **`useUserStore`**: Quản lý Profile, Xu, Elo, Nhiệm vụ ngày và Thành tựu trọn đời.
+3. **`useSettingsStore`**: Cấu hình âm lượng, gợi ý (AI Hint Engine), tốc độ ván đấu, X-Ray soi bài.
+4. **`useModalStore`**: Quản lý vòng đời hiển thị các Popup / Modal tương tác.
 
 ---
 
 ## 4. TỐI ƯU HÓA HIỆU NĂNG GPU & RENDER (HARDWARE ACCELERATION)
 
-Nhằm đảm bảo trải nghiệm siêu mượt trên mọi thiết bị và trình duyệt mà không gây nóng máy hoặc tụt FPS:
-- **Loại bỏ hiệu ứng `backdrop-filter: blur` nặng nề** trong các HUD giao diện trong trận đấu, thay bằng nền solid màu tối độ mờ cao (`bg-[#150205]/95`).
-- **Phân tách Layer GPU Độc Lập**:
-  - Áp dụng `transform: translateZ(0)` và `will-change: transform` cho toàn bộ các lá bài (`.playing-card`) và bàn nỉ tròn (`.round-table`).
-  - Toàn bộ hoạt ảnh chia bài và hiệu ứng hoa mai rơi (`FallingBlossoms`) sử dụng `translate3d(x, y, 0)` để đẩy việc tính toán chuyển động sang bộ xử lý đồ họa phần cứng (GPU Compositor).
-- **Giới hạn số lượng hạt hiệu ứng (Particle Throttling)**: Thu gọn số lượng cánh hoa bay từ 16 xuống 6 hạt nhẹ, thêm thuộc tính CSS `contain: strict`.
+- **Loại bỏ hiệu ứng `backdrop-filter: blur` nặng nề** trong các HUD giao diện trận đấu.
+- **Phân tách Layer GPU Độc Lập**: Áp dụng `transform: translateZ(0)` và `will-change: transform` cho toàn bộ các lá bài (`.playing-card`) và bàn nỉ tròn (`.round-table`).
+- **Giới hạn số lượng hạt hiệu ứng (Particle Throttling)**: Thu gọn số lượng cánh hoa bay và thêm thuộc tính CSS `contain: strict`.
 
 ---
 
 ## 5. BẢO MẬT & TÍNH TOÀN VẸN VÁN BÀI (INTEGRITY & FAIR PLAY)
 
-- **Nguyên Tắc Trí Tuệ Độc Lập (Self-Interested Bot Principle)**: Mỗi Bot là một thực thể độc lập tối ưu hóa lợi ích cá nhân, tuyệt đối không có cơ chế "thông đồng" (collusion) hay "vây bắt" người chơi thật.
-- **Che Dấu Thông Tin (Imperfect Information Game)**: Ở chế độ thông thường, CardTracker của Bot chỉ ghi nhận các lá bài đã được công khai trên bàn đấu và trong tay của chính nó, hoàn toàn không gian lận đọc trước bài úp của người chơi khác.
+- **Nguyên Tắc Trí Tuệ Độc Lập (Self-Interested Bot Principle)**: Mỗi Bot là một thực thể độc lập tối ưu hóa lợi ích cá nhân, tuyệt đối không có cơ chế "thông đồng" (collusion).
+- **Che Dấu Thông Tin (Imperfect Information Game)**: CardTracker của Bot chỉ ghi nhận các lá bài đã công khai trên bàn đấu và trong tay của chính nó, hoàn toàn không gian lận đọc trước bài úp của đối thủ.

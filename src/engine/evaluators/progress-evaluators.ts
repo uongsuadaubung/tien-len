@@ -30,11 +30,11 @@ export class WinThreeMatchesEvaluator implements ProgressEvaluator {
   }
 }
 
-export class UndergroundMasterEvaluator implements ProgressEvaluator {
-  readonly id = 'daily_underground_master';
+export class HighRollerEvaluator implements ProgressEvaluator {
+  readonly id = 'daily_high_roller';
 
   evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'MATCH_COMPLETED' && event.isHumanWinner && event.activeGameType === 'UNDERGROUND') {
+    if (event.type === 'MATCH_COMPLETED' && event.isHumanWinner && event.betAmount > 0) {
       return Math.min(targetCount, currentCount + 1);
     }
     return currentCount;
@@ -157,7 +157,7 @@ export class ChopMasterAchievementEvaluator implements ProgressEvaluator {
 
 export const QUEST_EVALUATORS: Record<string, ProgressEvaluator> = {
   daily_win_three_matches: new WinThreeMatchesEvaluator(),
-  daily_underground_master: new UndergroundMasterEvaluator(),
+  daily_high_roller: new HighRollerEvaluator(),
   daily_chop_red_two: new ChopRedTwoEvaluator(),
   daily_long_straight: new LongStraightEvaluator()
 };

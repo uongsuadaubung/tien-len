@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { Card } from '../../engine/types';
 import { sortCards } from '../../engine/card';
 import { GameEngine } from '../../engine/game';
-import { getBotConfig } from '../../ai/bot-factory';
+import { getBotConfig, generateRandomBotConfig, generateRealisticBotBankroll } from '../../ai/bot-factory';
 import { CardTracker } from '../../ai/card-tracker';
 import { getOptimalMoveHint } from '../../ai/hint-engine';
 import { soundManager } from '../audio/sound-manager';
@@ -10,7 +10,13 @@ import { CampaignChapter, CAMPAIGN_CHAPTERS } from '../../engine/campaign';
 import { resolveStrategyForMatch, MatchSetupContext } from '../../engine/strategies/game-mode-strategy';
 import { GameEventBus, MatchCompletedEvent, ChopExecutedEvent, CardPlayedEvent } from '../../engine/events/game-event-bus';
 import { evaluateDailyQuests, evaluateAchievements } from '../../engine/evaluators/progress-evaluators';
-import { PlayerProfile } from '../../engine/storage';
+import { 
+  PlayerProfile, 
+  saveActiveMatchSession, 
+  getActiveMatchSession, 
+  clearActiveMatchSession, 
+  savePlayerProfile 
+} from '../../engine/storage';
 import { UI_TIMINGS } from '../constants/ui-timings';
 
 // Stores
@@ -27,7 +33,7 @@ export interface CampaignResultMeta {
 }
 
 export function useGameMatchLoop() {
-  const { openModal } = useModalStore();
+  const { openModal, closeAllModals, setForfeitData } = useModalStore();
   const { profile, setProfile } = useUserStore();
   const {
     autoSortEnabled,
@@ -51,7 +57,9 @@ export function useGameMatchLoop() {
     currentHint,
     setPlayerCount,
     setBotPersonaIds,
+    updateBotPersonaAt,
     setCustomBotConfigs,
+    updateCustomBotConfigAt,
     setGameNumber,
     setGameRules,
     setGameSettings,
@@ -71,7 +79,8 @@ export function useGameMatchLoop() {
     setCurrentHint,
     setMatchPayouts,
     setLoanDeductionAmount,
-    setLastEloDelta
+    setLastEloDelta,
+    setCurrentScreen
   } = useGameStore();
 
   const [campaignResultMeta, setCampaignResultMeta] = useState<CampaignResultMeta | null>(null);
@@ -79,6 +88,8 @@ export function useGameMatchLoop() {
   // Engine & Trackers
   const engineRef = useRef<GameEngine | null>(null);
   const trackersRef = useRef<Record<string, CardTracker>>({});
+  const lastWinnerIdRef = useRef<string | null>(null);
+  const replacedBotBannersRef = useRef<string[]>([]);
 
   // Kích hoạt thông báo Chặt Heo/Hàng
   const triggerChopAlert = useCallback((chopperName: string, targetName: string, amount: number) => {
@@ -148,6 +159,7 @@ export function useGameMatchLoop() {
 
     const winner = engine.winners[0];
     const isPlayerWin = winner?.id === 'p0';
+    lastWinnerIdRef.current = winner?.id || null;
 
     if (isPlayerWin) {
       soundManager.playVictory();
@@ -165,15 +177,20 @@ export function useGameMatchLoop() {
       betAmount: engine.settings.betAmount,
       playerElo: currentElo,
       isBankLoanActive,
-      campaignReward: currentCampaignChapter?.rewardCoins
+      campaignReward: currentCampaignChapter?.rewardCoins,
+      penaltyMultiplier: engine.rules.chopping.multiplier || engine.rules.cong.multiplier || 1
     });
 
     setMatchPayouts(settlement.payouts);
     setLoanDeductionAmount(settlement.loanDeduction);
     setLastEloDelta(settlement.eloDelta);
 
+    const session = getActiveMatchSession();
+    const heldDeposit = session ? session.depositAmount : 0;
+    clearActiveMatchSession();
+
     const humanNetEarned = settlement.payouts['p0'] || 0;
-    const nextCoins = Math.max(0, currentCoins + humanNetEarned);
+    const nextCoins = Math.max(0, currentCoins + heldDeposit + humanNetEarned);
     const nextLoans = Math.max(0, profile.loans - settlement.loanDeduction);
     const nextElo = settlement.isVictoryModalRanked
       ? Math.max(0, currentElo + settlement.eloDelta)
@@ -253,6 +270,7 @@ export function useGameMatchLoop() {
     updatedProfile.achievements = finalAchievements;
 
     setProfile(updatedProfile);
+    savePlayerProfile(updatedProfile);
     GameEventBus.getInstance().publish(matchCompletedEvent);
 
     openModal('VICTORY');
@@ -272,24 +290,29 @@ export function useGameMatchLoop() {
   // Khởi tạo ván bài mới
   const startNewGame = useCallback((
     nextGameNumber = 1,
-    setupContext?: Partial<MatchSetupContext>
+    setupContext?: Partial<MatchSetupContext>,
+    preserveWinnerId?: string
   ) => {
     clearCardSelection();
     setWinners([]);
     setIsGameOver(false);
     setInstantWinType(undefined);
-    setGameNumber(nextGameNumber);
+
+    const isRanked = activeGameType === 'RANKED';
+    const effectiveGameNumber = isRanked ? 1 : nextGameNumber;
+    setGameNumber(effectiveGameNumber);
 
     // 1. Phân giải Strategy tương ứng theo chế độ đấu
     const effectiveMode = setupContext?.customSettings?.mode || gameSettings.mode;
     const strategy = resolveStrategyForMatch(activeGameType, effectiveMode);
 
     // 2. Strategy tự động thiết lập toàn bộ cấu hình ván đấu
+    // Đối với Đấu Hạng (Ranked): Matchmaker sẽ ghép 3 Bot có tên, avatar và Elo mới
     const setup = strategy.setupMatch({
       profile,
       customSettings: { ...gameSettings, ...setupContext?.customSettings },
-      customBotPersonaIds: botPersonaIds,
-      customBotConfigs,
+      customBotPersonaIds: isRanked ? undefined : botPersonaIds,
+      customBotConfigs: isRanked ? undefined : customBotConfigs,
       campaignChapter: currentCampaignChapter || undefined,
       playerCount,
       ...setupContext
@@ -302,18 +325,118 @@ export function useGameMatchLoop() {
     setCustomBotConfigs(setup.customBotConfigs);
     setPlayerCount(setup.playerCount);
 
-    // 4. Khởi tạo Engine với cấu hình chuẩn xác từ Strategy
+    // 3.1. Tính toán và Tạm giữ tiền cọc an toàn (Buy-in Deposit)
+    const penaltyMultiplier = setup.rules.chopping.multiplier || setup.rules.cong.multiplier || 1;
+    const tableBetAmount = setup.rules.table.betAmount || 0;
+    const requiredDeposit = isRanked ? 0 : 26 * tableBetAmount * penaltyMultiplier;
+
+    if (requiredDeposit > 0) {
+      if (profile.coins < requiredDeposit) {
+        // Không đủ tiền cọc -> Kích hoạt Modal Vay Tiền Ngân Hàng
+        openModal('BANK');
+        return;
+      }
+
+      // Trừ tạm giữ tiền cọc vào tài khoản
+      const postDepositCoins = profile.coins - requiredDeposit;
+      const updatedProfile = {
+        ...profile,
+        coins: postDepositCoins
+      };
+      setProfile(updatedProfile);
+      savePlayerProfile(updatedProfile);
+    }
+
+    // Lưu Active Session vào LocalStorage phòng trường hợp F5 / Thoát đột ngột
+    saveActiveMatchSession({
+      gameId: `match_${Date.now()}`,
+      gameType: activeGameType,
+      mode: setup.settings.mode,
+      depositAmount: requiredDeposit,
+      betAmount: tableBetAmount,
+      penaltyMultiplier,
+      isRanked,
+      startedAt: Date.now()
+    });
+
+    // 4. Giữ lại số tiền của các người chơi nếu là ván tiếp theo trong cùng bàn VÀ thay thế Bot nếu Bot cháy túi
+    let initialPlayers = setup.initialPlayers;
+    const replacedBanners: string[] = [];
+    const currentPersonaIds = [...botPersonaIds] as [string, string, string];
+    const currentConfigs = [...customBotConfigs] as [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>];
+
+    if (!isRanked && effectiveGameNumber > 1 && engineRef.current) {
+      const prevEngine = engineRef.current;
+      const betAmount = setup.settings.betAmount || 100;
+      const usedNames = [profile.name];
+      const usedAvatars = [profile.avatar];
+
+      initialPlayers = initialPlayers.map((p, idx) => {
+        const prevPlayer = prevEngine.getPlayer(p.id);
+        const prevScore = prevPlayer ? prevPlayer.score : p.score;
+
+        if (p.isBot && prevScore < betAmount) {
+          // Bot bị cháy túi -> Đứng dậy rời bàn và thay thế bằng Bot mới
+          const botIdx = idx - 1; // p1 -> 0, p2 -> 1, p3 -> 2
+          let tierNum = 2;
+          const currentPersonaId = currentPersonaIds[botIdx] || 'BOT_ELO_1150';
+          if (currentPersonaId.includes('850') || currentPersonaId.includes('900') || currentPersonaId.includes('950') || currentPersonaId.includes('1000')) tierNum = 1;
+          else if (currentPersonaId.includes('1450') || currentPersonaId.includes('1550') || currentPersonaId.includes('1600') || currentPersonaId.includes('1650')) tierNum = 3;
+          else if (currentPersonaId.includes('1750') || currentPersonaId.includes('1850') || currentPersonaId.includes('1900') || currentPersonaId.includes('1950')) tierNum = 4;
+          else if (currentPersonaId.includes('2050') || currentPersonaId.includes('2150') || currentPersonaId.includes('2300') || currentPersonaId.includes('2500')) tierNum = 5;
+
+          const newBotConfig = generateRandomBotConfig(tierNum, {
+            excludeNames: usedNames,
+            excludeAvatars: usedAvatars
+          });
+
+          usedNames.push(newBotConfig.name || '');
+          usedAvatars.push(newBotConfig.avatar || '🤖');
+
+          const newInitialScore = generateRealisticBotBankroll(newBotConfig, betAmount);
+          replacedBanners.push(`💸 ${p.name} cháy túi rời sòng! ${newBotConfig.name} (${newBotConfig.avatar}) vào thế chỗ!`);
+
+          if (botIdx >= 0 && botIdx < 3) {
+            currentPersonaIds[botIdx] = newBotConfig.id;
+            currentConfigs[botIdx] = newBotConfig;
+            updateBotPersonaAt(botIdx, newBotConfig.id);
+            updateCustomBotConfigAt(botIdx, newBotConfig);
+          }
+
+          return {
+            ...p,
+            name: newBotConfig.name || p.name,
+            avatar: newBotConfig.avatar || p.avatar,
+            botPersonaId: newBotConfig.id,
+            score: newInitialScore
+          };
+        }
+
+        usedNames.push(p.name);
+        usedAvatars.push(p.avatar);
+        return {
+          ...p,
+          score: prevScore
+        };
+      });
+    }
+
+    replacedBotBannersRef.current = replacedBanners;
+
+    // 5. Khởi tạo Engine với cấu hình chuẩn xác từ Strategy
     const engine = new GameEngine(
-      setup.initialPlayers,
+      initialPlayers,
       setup.rules
     );
-    engine.startNewGame(nextGameNumber);
+
+    const resolvedWinnerId = isRanked ? undefined : (preserveWinnerId || lastWinnerIdRef.current || undefined);
+    engine.startNewGame(effectiveGameNumber, resolvedWinnerId);
     engineRef.current = engine;
 
     const bConfigs = [
-      getBotConfig(setup.botPersonaIds[0], setup.customBotConfigs[0]),
-      getBotConfig(setup.botPersonaIds[1], setup.customBotConfigs[1]),
-      getBotConfig(setup.botPersonaIds[2], setup.customBotConfigs[2])
+      getBotConfig(currentPersonaIds[0], currentConfigs[0]),
+      getBotConfig(currentPersonaIds[1], currentConfigs[1]),
+      getBotConfig(currentPersonaIds[2], currentConfigs[2])
     ];
 
     const newTrackers: Record<string, CardTracker> = {
@@ -367,7 +490,9 @@ export function useGameMatchLoop() {
     setLeadPlayerId,
     setPlayerCount,
     setPlayers,
-    setWinners
+    setWinners,
+    updateBotPersonaAt,
+    updateCustomBotConfigAt
   ]);
 
   // Hoàn tất hiệu ứng chia bài
@@ -390,14 +515,33 @@ export function useGameMatchLoop() {
     setDealtCounts(counts);
 
     const leadPlayer = engine.getCurrentPlayer();
-    const leadText = leadPlayer?.isBot
-      ? `${leadPlayer.name} (${leadPlayer.avatar}) giành quyền mở màn!`
-      : 'Bạn (Người Chơi) giành quyền mở màn ván bài!';
+    let leadText = '';
+    if (engine.gameNumber > 1) {
+      leadText = leadPlayer?.isBot
+        ? `${leadPlayer.name} (${leadPlayer.avatar}) giành quyền mở màn (Thắng ván trước)!`
+        : 'Bạn (Người Chơi) giành quyền mở màn (Thắng ván trước)!';
+    } else {
+      leadText = leadPlayer?.isBot
+        ? `${leadPlayer.name} (${leadPlayer.avatar}) giành quyền mở màn (3 Bích)!`
+        : 'Bạn (Người Chơi) giành quyền mở màn (3 Bích)!';
+    }
 
-    setDealBanner(leadText);
-    setTimeout(() => {
-      setDealBanner(null);
-    }, UI_TIMINGS.BANNER_DISPLAY_DURATION_MS);
+    if (replacedBotBannersRef.current.length > 0) {
+      const bannerText = replacedBotBannersRef.current.join(' | ');
+      replacedBotBannersRef.current = [];
+      setDealBanner(bannerText);
+      setTimeout(() => {
+        setDealBanner(leadText);
+        setTimeout(() => {
+          setDealBanner(null);
+        }, UI_TIMINGS.BANNER_DISPLAY_DURATION_MS);
+      }, UI_TIMINGS.BANNER_DISPLAY_DURATION_MS);
+    } else {
+      setDealBanner(leadText);
+      setTimeout(() => {
+        setDealBanner(null);
+      }, UI_TIMINGS.BANNER_DISPLAY_DURATION_MS);
+    }
 
     syncGameState();
   }, [autoSortEnabled, setDealBanner, setDealtCounts, setIsDealing, syncGameState]);
@@ -612,6 +756,60 @@ export function useGameMatchLoop() {
     }
   }, [currentHint, handlePassTurn, setSelectedCardIds]);
 
+  // Xử lý khi người chơi xác nhận bỏ cuộc (Forfeit)
+  const handleForfeitMatch = useCallback(() => {
+    const session = getActiveMatchSession();
+    clearActiveMatchSession();
+
+    if (session) {
+      let updatedProfile = { ...profile };
+      if (session.isRanked) {
+        const nextElo = Math.max(0, profile.elo - 30);
+        updatedProfile = {
+          ...profile,
+          elo: nextElo,
+          stats: {
+            ...profile.stats,
+            gamesPlayed: profile.stats.gamesPlayed + 1,
+            currentStreak: 0
+          }
+        };
+      } else {
+        // Tiền cọc đã bị trừ khi vào ván, nay bị mất vĩnh viễn
+        updatedProfile = {
+          ...profile,
+          stats: {
+            ...profile.stats,
+            gamesPlayed: profile.stats.gamesPlayed + 1,
+            currentStreak: 0
+          }
+        };
+      }
+      setProfile(updatedProfile);
+      savePlayerProfile(updatedProfile);
+    }
+
+    engineRef.current = null;
+    closeAllModals();
+    setCurrentScreen('LOBBY');
+  }, [profile, setProfile, setCurrentScreen, closeAllModals]);
+
+  // Người chơi bấm nút "Về Sảnh" trên HeaderBar
+  const handleRequestReturnToLobby = useCallback(() => {
+    if (engineRef.current && !engineRef.current.isGameOver) {
+      const session = getActiveMatchSession();
+      setForfeitData({
+        depositAmount: session?.depositAmount || 0,
+        eloPenalty: 30,
+        isRanked: activeGameType === 'RANKED'
+      });
+      openModal('CONFIRM_FORFEIT');
+    } else {
+      engineRef.current = null;
+      setCurrentScreen('LOBBY');
+    }
+  }, [activeGameType, openModal, setForfeitData, setCurrentScreen]);
+
   return {
     engineRef,
     trackersRef,
@@ -623,6 +821,8 @@ export function useGameMatchLoop() {
     handleApplyAiHint,
     handleDealCard,
     handleDealComplete,
-    syncGameState
+    syncGameState,
+    handleForfeitMatch,
+    handleRequestReturnToLobby
   };
 }

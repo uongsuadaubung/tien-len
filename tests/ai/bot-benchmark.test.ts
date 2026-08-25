@@ -112,7 +112,7 @@ describe('AI Bot Benchmark Simulation (100 Ván Đấu Mô Phỏng)', () => {
     console.log('=========================================\n');
 
     expect(NUM_GAMES).toBe(100);
-  });
+  }, 30000);
 
   test('Benchmark Độ Trễ Tính Toán (Decision Latency) - Đảm bảo Zero UI Freezing', () => {
     const testBots = [

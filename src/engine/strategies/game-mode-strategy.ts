@@ -11,7 +11,7 @@ import {
   calculateTraditionalSettlement 
 } from '../economy';
 import { calculateEloDelta, matchmakeRankedOpponents } from '../elo';
-import { generateRandomBotConfig, getBotConfig, getRandomBotConfigsForTable } from '../../ai/bot-factory';
+import { generateRandomBotConfig, getBotConfig, getRandomBotConfigsForTable, generateRealisticBotBankroll } from '../../ai/bot-factory';
 import { BotConfig } from '../../ai/types';
 import { CampaignChapter } from '../campaign';
 import { PlayerProfile } from '../storage';
@@ -52,6 +52,7 @@ export interface MatchSettlementContext {
   playerElo?: number;
   isBankLoanActive?: boolean;
   campaignReward?: number;
+  penaltyMultiplier?: number;
 }
 
 /**
@@ -73,7 +74,8 @@ function buildInitialPlayers(
   profile: PlayerProfile,
   bConfigs: BotConfig[],
   botPersonaIds: [string, string, string],
-  playerCount: number
+  playerCount: number,
+  betAmount: number = 100
 ): Player[] {
   const players: Player[] = [
     {
@@ -113,6 +115,9 @@ function buildInitialPlayers(
     usedNames.push(botName || `Bot ${i + 1}`);
     usedAvatars.push(botAvatar || '🤖');
 
+    // Sinh số tiền vốn khởi điểm tự nhiên theo Bậc Elo và Mức cược
+    const botInitialBankroll = generateRealisticBotBankroll(config, betAmount);
+
     players.push({
       id: `p${i + 1}`,
       name: botName || `Bot ${i + 1}`,
@@ -121,7 +126,7 @@ function buildInitialPlayers(
       botPersonaId: personaId,
       hand: [],
       playedCards: [],
-      score: 5000,
+      score: botInitialBankroll,
       isPassedCurrentRound: false,
       hasPlayedFirstCard: false
     });
@@ -169,7 +174,7 @@ function createMatchSetupResult(
     prohibitEndingWithTwo: rules.gameFlow.prohibitEndingWithTwo
   };
 
-  const initialPlayers = buildInitialPlayers(context.profile, bConfigs, botPersonaIds, rules.table.playerCount);
+  const initialPlayers = buildInitialPlayers(context.profile, bConfigs, botPersonaIds, rules.table.playerCount, rules.table.betAmount);
 
   return {
     rules,
@@ -234,7 +239,7 @@ export class TraditionalModeStrategy implements GameModeStrategy {
       context.players,
       context.winners,
       context.betAmount,
-      false
+      context.penaltyMultiplier || 1
     );
 
     return {
@@ -268,7 +273,13 @@ export class RankedModeStrategy implements GameModeStrategy {
       }
     });
 
-    return createMatchSetupResult(context, rules, matchedBots);
+    const rankedContext: MatchSetupContext = {
+      ...context,
+      customBotPersonaIds: undefined,
+      customBotConfigs: undefined
+    };
+
+    return createMatchSetupResult(rankedContext, rules, matchedBots);
   }
 
   settleMatch(context: MatchSettlementContext): MatchSettlementResult {
@@ -312,10 +323,24 @@ export class CountCardsModeStrategy implements GameModeStrategy {
 
     const rules = createDefaultGameRules({
       settlementRule: 'CARD_COUNT',
+      chopping: {
+        allowFourPairsCutAnytime: context.customRules?.chopping?.allowFourPairsCutAnytime ?? context.customSettings?.allowFourPairsCutAnytime ?? true,
+        allowThreePairsCutTwo: true,
+        allowFourOfAKindCutPairsOfTwos: true,
+        multiplier: context.customRules?.chopping?.multiplier ?? 1
+      },
+      cong: {
+        enabled: context.customRules?.cong?.enabled ?? true,
+        penaltyCards: context.customRules?.cong?.penaltyCards ?? 26,
+        multiplier: context.customRules?.cong?.multiplier ?? 1
+      },
+      gameFlow: {
+        prohibitEndingWithTwo: context.customRules?.gameFlow?.prohibitEndingWithTwo ?? true
+      },
       table: {
         playerCount,
         betAmount,
-        botThinkDelayMs: 850,
+        botThinkDelayMs: context.customRules?.table?.botThinkDelayMs ?? context.customSettings?.botThinkDelayMs ?? 850,
         soundEnabled: true
       }
     });
@@ -330,7 +355,7 @@ export class CountCardsModeStrategy implements GameModeStrategy {
       context.players,
       winnerFirst.id,
       context.betAmount,
-      false
+      context.penaltyMultiplier || 1
     );
 
     return {
@@ -386,7 +411,7 @@ export class UndergroundModeStrategy implements GameModeStrategy {
       context.players,
       winnerFirst.id,
       context.betAmount,
-      true
+      context.penaltyMultiplier || 2
     );
 
     let loanDeduction = 0;
@@ -473,10 +498,24 @@ export class WinnerTakesAllModeStrategy implements GameModeStrategy {
 
     const rules = createDefaultGameRules({
       settlementRule: 'WINNER_TAKES_ALL',
+      chopping: {
+        allowFourPairsCutAnytime: context.customRules?.chopping?.allowFourPairsCutAnytime ?? context.customSettings?.allowFourPairsCutAnytime ?? true,
+        allowThreePairsCutTwo: true,
+        allowFourOfAKindCutPairsOfTwos: true,
+        multiplier: context.customRules?.chopping?.multiplier ?? 1
+      },
+      cong: {
+        enabled: context.customRules?.cong?.enabled ?? true,
+        penaltyCards: context.customRules?.cong?.penaltyCards ?? 26,
+        multiplier: context.customRules?.cong?.multiplier ?? 1
+      },
+      gameFlow: {
+        prohibitEndingWithTwo: context.customRules?.gameFlow?.prohibitEndingWithTwo ?? true
+      },
       table: {
         playerCount,
         betAmount,
-        botThinkDelayMs: 850,
+        botThinkDelayMs: context.customRules?.table?.botThinkDelayMs ?? context.customSettings?.botThinkDelayMs ?? 850,
         soundEnabled: true
       }
     });
@@ -491,7 +530,7 @@ export class WinnerTakesAllModeStrategy implements GameModeStrategy {
       context.players,
       winnerFirst.id,
       context.betAmount,
-      false
+      context.penaltyMultiplier || 1
     );
 
     return {

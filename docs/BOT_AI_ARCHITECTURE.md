@@ -1,13 +1,15 @@
 # TÀI LIỆU THIẾT KẾ KIẾN TRÚC & THUẬT TOÁN TRÍ TUỆ NHÂN TẠO BOT AI (TIẾN LÊN MIỀN NAM)
+## KIẾN TRÚC RULE-FIRST COMPOSITE AI STRATEGY SYSTEM
 
 ---
 
 ## 1. TỔNG QUAN KIẾN TRÚC (SYSTEM ARCHITECTURE)
 
-Hệ thống Bot AI của Tiến Lên Miền Nam được xây dựng theo kiến trúc hướng module, phân lớp rõ ràng và tích hợp các Mẫu Thiết Kế Phần Mềm (Design Patterns) kinh điển:
-- **Chain of Responsibility Pattern**: Chuỗi xử lý quyết định tuần tự, ưu tiên theo ngữ cảnh (Cờ tàn tổng quát $\to$ Chặn khẩn cấp $\to$ Dẫn bài cầm cái $\to$ Đỡ bài đối thủ $\to$ Dự phòng).
-- **Factory Pattern**: [`BotFactory`](file:///c:/Users/uongsuadaubung/Desktop/tien_len_mien_nam/src/ai/bot-factory.ts) khởi tạo 18 Personas đa dạng thuộc 5 Bậc Elo (850 - 2500 Elo).
-- **Strategy & Heuristic Evaluation Engine**: Đánh giá và chấm điểm nước đi đa chiều dựa trên thuộc tính cá nhân hóa (Personas Attributes).
+Hệ thống Bot AI của Tiến Lên Miền Nam được xây dựng theo kiến trúc hướng module, phân lớp sạch và tích hợp các Mẫu Thiết Kế Phần Mềm (Design Patterns) kinh điển:
+- **Composite Rule Strategy Pattern**: Thay vì gán AI cứng nhắc theo từng Chế độ chơi (Game Mode), hệ thống phân tích tập hợp các Rule đang **BẬT (active)** trong [`GameRules`](file:///c:/Users/kien.hm/Desktop/tien-len/src/engine/types.ts) để tự động tổng hợp chính sách ra bài, điểm điều chỉnh đỡ bài, rủi ro chặt và các hành vi khẩn cấp.
+- **Chain of Responsibility Pattern**: Chuỗi xử lý quyết định tuần tự 5 tầng ưu tiên cao xuống thấp:
+  $$\text{EmergencyRuleHandler} \longrightarrow \text{EndgameSolverHandler} \longrightarrow \text{LeadMoveHeuristicHandler} \longrightarrow \text{RespondingMoveHeuristicHandler} \longrightarrow \text{FallbackDecisionHandler}$$
+- **Factory Pattern**: [`BotFactory`](file:///c:/Users/kien.hm/Desktop/tien-len/src/ai/bot-factory.ts) khởi tạo 18 Personas đa dạng thuộc 5 Bậc Elo (850 - 2500 Elo).
 - **MCTS Solver (Monte Carlo Tree Search)**: Cung cấp khả năng mô phỏng cây ván đấu sâu cho các Bot bậc Thần Bài (Tier 5).
 
 ```
@@ -21,93 +23,111 @@ Hệ thống Bot AI của Tiến Lên Miền Nam được xây dựng theo kiế
 │  - Bài trên tay (Hand)            - Lịch sử bàn đấu (Played Moves)                    │
 │  - Bộ theo dõi bài (CardTracker)   - Cấu hình Persona (BotConfig / Elo Tier)           │
 │  - Số lá đối thủ (RemainingCards)  - Nước đi dẫn đầu vòng (CurrentRoundLeadingMove)    │
-│  - nextPlayerId (Người kế tiếp)   - prohibitEndingWithTwo (Luật Cấm 2 Cuối)           │
+│  - nextPlayerId (Người kế tiếp)   - hasPlayedFirstCard (Kiểm tra nguy cơ Cóng)        │
+│  - rules: GameRules (Tập luật)    - prohibitEndingWithTwo (Luật Cấm 2 Cuối)           │
 └──────────────────────────────────────────┬─────────────────────────────────────────────┘
                                            │
                                            ▼
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                  COMPOSITE RULE STRATEGY MANAGER (src/ai/rule-strategies.ts)           │
+│                                                                                        │
+│  ┌───────────────────────────┐ ┌───────────────────────────┐ ┌──────────────────────┐  │
+│  │ 1. Settlement Strategy    │ │ 2. Cong & Anti-Freeze     │ │ 3. Chopping & Trap   │  │
+│  │ (Đếm lá / Truyền thống)   │ │ (Thoát cóng khẩn cấp)     │ │ (Rủi ro x2 & gài bẫy)│  │
+│  └───────────────────────────┘ └───────────────────────────┘ └──────────────────────┘  │
+│  ┌───────────────────────────┐ ┌───────────────────────────┐                           │
+│  │ 4. GameFlow Strategy      │ │ 5. Table Scale Strategy   │                           │
+│  │ (3 Bích / Cấm 2 / Chống đền)│ (Solo 1v1 vs Bàn 3-4 người)│                           │
+│  └───────────────────────────┘ └───────────────────────────┘                           │
+└──────────────────────────────────────────┬─────────────────────────────────────────────┘
+                                           │ Hợp nhất: Emergency Actions, Lead Policy,
+                                           │ Responding Modifiers, Risk Factors
+                                           ▼
+┌────────────────────────────────────────────────────────────────────────────────────────┐
 │                    CHAIN OF RESPONSIBILITY (BOT DECISION HANDLER)                      │
 │                                                                                        │
-│  ┌───────────────────────────┐      Khớp cờ tàn      ┌──────────────────────────────┐ │
-│  │ 1. EndgameSolverHandler   │ ───────────────────> │ Ra nước đi dứt điểm / Nhất   │ │
-│  └─────────────┬─────────────┘                      └──────────────────────────────┘ │
-│                │ Chưa khớp                                                           │
-│                ▼                                                                     │
-│  ┌───────────────────────────┐      Đối thủ còn 1 lá ┌──────────────────────────────┐ │
-│  │ 2. AntiLeaderDefense      │ ───────────────────> │ Ra Bộ / Chặn đầu chống đền   │ │
-│  └─────────────┬─────────────┘                      └──────────────────────────────┘ │
-│                │ Chưa khớp                                                           │
-│                ▼                                                                     │
-│  ┌───────────────────────────┐      Cầm cái đầu vòng ┌──────────────────────────────┐ │
-│  │ 3. LeadMoveHeuristic      │ ───────────────────> │ Tẩu rác nhỏ / Giữ Hàng & Heo │ │
-│  └─────────────┬─────────────┘                      └──────────────────────────────┘ │
-│                │ Bàn đang có bài                                                     │
-│                ▼                                                                     │
-│  ┌───────────────────────────┐      Đỡ bài đối thủ   ┌──────────────────────────────┐ │
-│  │ 4. RespondingMoveHeuristic│ ───────────────────> │ Đỡ tối ưu / Nhịn bài giữ bộ  │ │
-│  └─────────────┬─────────────┘                      └──────────────────────────────┘ │
-│                │ Không tìm được                                                      │
-│                ▼                                                                     │
-│  ┌───────────────────────────┐                       ┌──────────────────────────────┐ │
-│  │ 5. FallbackDecision       │ ───────────────────> │ Đánh lá nhỏ nhất / Bỏ lượt   │ │
-│  └───────────────────────────┘                      └──────────────────────────────┘ │
+│  ┌───────────────────────────┐      Trạng thái khẩn cấp   ┌──────────────────────────┐ │
+│  │ 1. EmergencyRuleHandler   │ ─────────────────────────> │ Thoát Cóng / Chống Đền / │ │
+│  │ (Rule-Driven Emergency)   │                            │ Xả Heo Cờ Tàn Cấm 2 Cuối │ │
+│  └─────────────┬─────────────┘                            └──────────────────────────┘ │
+│                │ Không có tình huống khẩn cấp                                          │
+│                ▼                                                                       │
+│  ┌───────────────────────────┐      Khớp cờ tàn           ┌──────────────────────────┐ │
+│  │ 2. EndgameSolverHandler   │ ─────────────────────────> │ Về Nhất / Đôi 2 lá cờ tàn│ │
+│  └─────────────┬─────────────┘                            └──────────────────────────┘ │
+│                │ Chưa khớp                                                             │
+│                ▼                                                                       │
+│  ┌───────────────────────────┐      Cầm cái đầu vòng      ┌──────────────────────────┐ │
+│  │ 3. LeadMoveHeuristic      │ ─────────────────────────> │ Theo CompositeLeadPolicy │ │
+│  └─────────────┬─────────────┘                            │ (Sảnh dài / Tẩu rác nhỏ) │ │
+│                │ Bàn đang có bài                          └──────────────────────────┘ │
+│                ▼                                                                       │
+│  ┌───────────────────────────┐      Đỡ bài đối thủ        ┌──────────────────────────┐ │
+│  │ 4. RespondingMoveHeuristic│ ─────────────────────────> │ Đỡ tối ưu / Đè heo / Nhịn│ │
+│  └─────────────┬─────────────┘                            │ bài tính theo Risk Factor│ │
+│                │ Không tìm được nước đi hợp lệ            └──────────────────────────┘ │
+│                ▼                                                                       │
+│  ┌───────────────────────────┐                            ┌──────────────────────────┐ │
+│  │ 5. FallbackDecision       │ ─────────────────────────> │ Đánh lá nhỏ nhất / Pass  │ │
+│  └───────────────────────────┘                            └──────────────────────────┘ │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 2. CÁC PHÂN HỆ THUẬT TOÁN CỐT LÕI (CORE SUBSYSTEMS)
+## 2. HỆ THỐNG 5 MODULE RULE STRATEGIES ([`rule-strategies.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/ai/rule-strategies.ts))
 
-### 2.1. Phân Hệ Phân Rã Bài Tối Ưu ([`hand-partitioner.ts`](file:///c:/Users/uongsuadaubung/Desktop/tien_len_mien_nam/src/ai/hand-partitioner.ts))
+Mỗi quy tắc trong [`GameRules`](file:///c:/Users/kien.hm/Desktop/tien-len/src/engine/types.ts) được ánh xạ thành một `RuleStrategyEvaluator` độc lập:
 
-Thuật toán giải bài toán phân hoạch tập hợp $H \subseteq \text{Deck}$ thành danh sách các tổ hợp hợp lệ $C = \{c_1, c_2, \dots, c_k\}$ và danh sách các lá rác $T = H \setminus \bigcup c_i$ sao cho tổng điểm đánh giá cực đại:
+### 2.1. `SettlementRuleStrategy` (Quy Tắc Tính Tiền & Thứ Hạng)
+- **`CARD_COUNT` (Đếm Lá / Sòng Bạc Ngầm)**:
+  - *Mục tiêu*: Tối đa hóa tốc độ xả bài (Card Dumping Velocity) để giảm tiền phạt khi có người về Nhất.
+  - *Lead*: Ưu tiên xả Sảnh dài (4-6 lá) & Bộ nhiều lá trước.
+  - *Responding*: Thưởng lớn ($+120$) khi xả $\ge 4$ lá một lúc; không om Heo quá muộn khi đối thủ còn ít bài.
+- **`TRADITIONAL_RANK_BASED` (Truyền Thống / Đấu Hạng Elo)**:
+  - *Mục tiêu*: Kiểm soát nhịp độ (Tempo Control), tối ưu hóa 4 thứ hạng Nhất - Nhì - Ba - Bét.
+  - *Lead*: Tẩu rác nhỏ ($3, 4, 5...$) trước để xả bài yếu và thăm dò; giữ bộ to bọc lót đường dài.
+  - *Responding*: Phạt ($-100$) hành vi xả Heo đè rác nhỏ ở đầu ván.
+- **`WINNER_TAKES_ALL` (Nhất Ăn Tất)**:
+  - *Mục tiêu*: "Được ăn cả, ngã về không" — Chỉ nhắm tới ngôi vị Về Nhất.
+  - *Lead & Responding*: Thưởng lớn khi dùng Heo/bài to cướp cái để chuỗi combo dứt điểm.
 
+### 2.2. `CongRuleStrategy` (Quy Tắc Cóng & Thoát Cháy Bài)
+- Khi `cong.enabled === true`:
+  - Theo dõi cờ `hasPlayedFirstCard === false` (Bot chưa ra được lá bài nào).
+  - Khi có đối thủ bất kỳ còn $\le 3$ lá: Kích hoạt **`EMERGENCY_UNFREEZE` (Thoát Cóng Khẩn Cấp)**.
+  - *Hành vi*: Bot chấp nhận đánh bất kỳ nước đi hợp lệ nào (kể cả phá bộ nhỏ, đánh lẻ hoặc xả Heo) để có ít nhất 1 lá trên bàn, thoát khỏi mức phạt thảm họa $26 \times \text{multiplier}$ lá.
+
+### 2.3. `ChoppingRuleStrategy` (Quy Tắc Chặt Heo & Gài Bẫy)
+- Tính toán theo `chopping.multiplier` ($1\times$ chuẩn, $2\times$ sòng bạc ngầm) và `allowFourPairsCutAnytime`.
+- Khi cầm Hàng: Tăng điểm om hàng & gài bẫy (nhử Heo) tỷ lệ thuận với hệ số phạt.
+- Khi cầm Heo: Nhân hệ số rủi ro Chặt với `chopping.multiplier` và tăng độ cảnh giác khi 4 đôi thông được phép chặt tự do.
+
+### 2.4. `GameFlowRuleStrategy` (Quy Tắc Vòng Đấu & Cờ Tàn)
+- **`firstGameRequireThreeOfSpades`**: Bắt buộc chứa $3\spadesuit$, bảo vệ tuyệt đối Hàng (3 đôi thông, 4 đôi thông, tứ quý).
+- **`prohibitEndingWithTwo` (Cấm 2 Cuối Cùng)**: Khi cờ tàn còn tổ hợp Heo + 1 lượt bài thường dứt điểm, ép xả Heo trước để kết liễu bằng bài thường, ngăn ngừa 100% nguy cơ Thối Heo.
+- **`antiLeaderDefense` (Chống Đền Bài)**: Khi người kế tiếp báo 1 lá, ép ra Bộ hoặc lá rác to nhất (A, 2) để chặn đầu.
+
+### 2.5. `TableScaleRuleStrategy` (Quy Mô Bàn Đấu)
+- **Solo 1v1 (`playerCount === 2`)**: Đè bài thành công là $100\%$ cướp cái $\to$ thưởng lớn điểm Tempo ($+90$).
+- **Bàn 3-4 người**: Phân phối rác, phòng thủ xoay vòng và đọc đối thủ báo 1 lá.
+
+---
+
+## 3. CÁC PHÂN HỆ THUẬT TOÁN HỖ TRỢ
+
+### 3.1. Phân Hệ Phân Rã Bài Tối Ưu ([`hand-partitioner.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/ai/hand-partitioner.ts))
+Thuật toán giải bài toán phân hoạch tập hợp $H \subseteq \text{Deck}$ thành danh sách tổ hợp $C$ và rác $T$ sao cho tổng điểm cực đại:
 $$\max \text{Score}(P) = \sum_{c \in C} \text{Score}_{\text{combo}}(c) + \sum_{t \in T} \text{Score}_{\text{trash}}(t)$$
 
-#### Biểu Điểm Tổ Hợp Cân Bằng (Balanced Combination Scoring):
-* **5 Đôi Thông**: $800$ điểm
-* **4 Đôi Thông**: $600$ điểm
-* **Tứ Quý**: $400$ điểm
-* **3 Đôi Thông**: $300$ điểm
-* **Sảnh (Straight)**: $15 + \text{length} \times 8$ điểm *(Cân bằng để không nuốt mất Đôi)*
-* **Sám Cô (Triple)**: $40$ điểm
-* **Đôi (Pair)**: $22$ điểm
-* **Lá Rác (Trash Card)**: $-15$ điểm (riêng Heo rác $+10$ điểm)
+### 3.2. Phân Hệ Theo Dõi & Đếm Bài ([`card-tracker.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/ai/card-tracker.ts))
+1. **Đếm Heo & Hàng Quý**: Theo dõi 4 lá Heo và nguy cơ Tứ Quý / Đôi Thông.
+2. **Bayesian Pass Inference**: Ghi nhận đối thủ bỏ lượt theo loại tổ hợp và độ dài sảnh.
+3. **Báo Cáo An Toàn Heo (`TwoSafetyReport`)**: Đánh giá chỉ số rủi ro ra Heo.
 
 ---
 
-### 2.2. Phân Hệ Theo Dõi & Đếm Bài ([`card-tracker.ts`](file:///c:/Users/uongsuadaubung/Desktop/tien_len_mien_nam/src/ai/card-tracker.ts))
-
-Mô phỏng khả năng ghi nhớ và suy luận bài của con người:
-1. **Đếm Heo & Hàng Quý**: Theo dõi chính xác vị trí của từng lá Heo ($2\spadesuit, 2\clubsuit, 2\diamondsuit, 2\heartsuit$) và các Rank có nguy cơ hình thành Tứ Quý / Đôi Thông.
-2. **Theo Dõi Bỏ Lượt (Pass Inference - Bayesian Inference)**: Khi một đối thủ bỏ lượt ở một vòng đánh (ví dụ: vòng Đôi 9), hệ thống suy luận đối thủ đó không sở hữu tổ hợp cùng loại lớn hơn tổ hợp hiện tại.
-3. **Báo Cáo An Toàn Heo (`TwoSafetyReport`)**: Cung cấp chỉ số an toàn khi ra Heo (Xác suất đối thủ cầm Hàng chặt Heo).
-
----
-
-### 2.3. Cỗ Máy Ra Quyết Định ([`decision-maker.ts`](file:///c:/Users/uongsuadaubung/Desktop/tien_len_mien_nam/src/ai/decision-maker.ts))
-
-#### A. Cờ Tàn Tổng Quát & Thích Ứng Luật Cấm 2 Cuối Cùng (`EndgameSolverHandler`)
-- **Luật Cấm 2 Cuối Cùng (`prohibitEndingWithTwo`)**:
-  - Khi bài trên tay còn lại tổ hợp Heo + 1 lượt bài thường dứt điểm (`totalNonTwoTurns === 1`, ví dụ: 1 Sảnh 3-4-5 + 1 Heo, 1 Đôi 4 + Tứ Quý 2, hoặc 1 Rác 3 + Đôi Heo):
-  - Bot **bắt buộc xả tổ hợp Heo ra trước** để ép cả bàn bỏ lượt, sau đó ung dung dùng bộ thường còn lại dứt điểm về Nhất (ngăn ngừa tuyệt đối nguy cơ bị thối Heo).
-- **Luật Thông Thường**:
-  - Khi Bot còn 2 lá (1 lá to chắc thắng như Heo/Át + 1 lá rác nhỏ): Bot đi lá rác nhỏ trước để nhử bài, giữ Heo/Át chốt hạ.
-
-#### B. Chặn Người Về Nhất (`AntiLeaderDefenseHandler`)
-- Khi có bất kỳ đối thủ nào báo 1 lá:
-  - Nếu đối thủ báo 1 lá là **Người Kế Tiếp (`nextPlayerId`)**: Bắt buộc ra Bộ (Đôi, Sảnh, Sám, Tứ Quý) để đối thủ không đỡ được. Nếu không có bộ, bắt buộc đánh lá rác **TO NHẤT** (Át/Heo/Rác to nhất) để chặn đầu, chống đền bài theo luật Tiến Lên.
-  - Nếu đối thủ báo 1 lá là người khác: Tẩu thoát rác nhỏ của bản thân để giảm thiểu thiệt hại và chạy bài.
-
-#### C. Chiến Thuật Dẫn Bài Cầm Cái (`LeadMoveHeuristicHandler`)
-1. **Mở màn 3 Bích (`isFirstMoveOfGame`)**: Tuyệt đối **không phá Hàng (3 Đôi Thông, 4 Đôi Thông, Tứ Quý)** chỉ để đánh 3 Bích. Ưu tiên mở màn bằng lá đơn $3\spadesuit$ hoặc Đôi nhỏ chứa $3\spadesuit$.
-2. **Tẩu rác nhỏ trước**: Ưu tiên đánh các lá rác đơn nhỏ nhất ($3, 4, 5...$) hoặc đôi nhỏ nhất ($3-3, 4-4$) khi cầm cái để xả bớt bài yếu và thăm dò bài đối thủ.
-3. **Bảo tồn Heo & Hàng**: Không tự ý đánh Heo (2), Đôi Heo hay Hàng ra đầu ván khi còn rác; giữ lại làm vũ khí cướp nhịp và phòng thủ.
-4. **Đánh bộ nhỏ trước bộ to**: Khi xả bộ, ưu tiên các bộ nhỏ trước để ép đối thủ xả bài, giữ bộ to lại để đoạt quyền đi tiếp.
-
----
-
-## 3. PHÂN CẤP 5 BẬC ELO & BẢNG THUỘC TÍNH BOT (BOT PERSONAS)
+## 4. PHÂN CẤP 5 BẬC ELO & BẢNG THUỘC TÍNH BOT (BOT PERSONAS)
 
 ```
  BẬC ELO       PERSONAS TIÊU BIỂU      LOOKAHEAD    OPTIMALITY    TEMPO CONTROL   ĐẶC TRƯNG CHIẾN THUẬT
@@ -130,16 +150,11 @@ Mô phỏng khả năng ghi nhớ và suy luận bài của con người:
 
 ---
 
-## 4. NGUYÊN TẮC ĐỘC LẬP & TỰ LỢI CÁ NHÂN (SELF-INTEREST & ANTI-COLLUSION)
+## 5. ĐỘ BAO PHỦ KIỂM THỬ TỰ ĐỘNG (TEST COVERAGE)
 
-Hệ thống Bot AI tuân thủ nghiêm ngặt nguyên tắc **Self-Interested Individual Agents**:
-1. **Tuyệt đối không bắt tay / Quây người chơi**: Mỗi Bot là một thực thể độc lập, ra quyết định chỉ nhằm tối đa hóa cơ hội thắng và điểm số của riêng nó.
-2. **Công bằng tuyệt đối (Fair Play)**: Bot không nhìn trộm bài úp của đối thủ (No Cheating), chỉ suy luận dựa trên dữ liệu công khai trên bàn đấu thông qua `CardTracker`.
-3. **Phòng thủ bình đẳng**: Bot chặn bất kỳ ai sắp về Nhất (bất kể là Người chơi hay Bot khác) nếu nước đi đó có lợi cho thứ hạng của Bot.
-
----
-
-## 5. MINH CHỨNG HIỆU NĂNG & TEST COVERAGE
-
-- **Độ bao phủ Test tự động**: **140/140 tests pass 100%** qua 21 file kiểm thử chuyên sâu (`bun test`).
-- Toàn bộ các kịch bản mở màn 3 Bích, tẩu rác nhỏ, cờ tàn Cấm 2 Cuối, chặn đầu người 1 lá và mô phỏng 400 ván đấu Ma trận Elo đều đạt tỷ lệ chính xác và ổn định tuyệt đối.
+- **155/155 tests PASS 100%** qua 23 files kiểm thử chuyên sâu (`bun test`).
+- Bao phủ trọn vẹn:
+  1. Từng Rule Strategy độc lập và tổ hợp Composite Rules tùy biến.
+  2. Thoát Cóng khẩn cấp (`EMERGENCY_UNFREEZE`).
+  3. Cờ tàn Cấm 2 cuối & Chống đền bài khi báo 1 lá.
+  4. Ma trận đấu 5 bậc Elo (200 ván ngẫu nhiên).

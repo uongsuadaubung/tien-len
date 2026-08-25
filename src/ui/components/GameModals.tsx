@@ -3,26 +3,29 @@ import { useModalStore } from '../../stores/useModalStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useGameStore } from '../../stores/useGameStore';
-import { ShopModal } from './ShopModal';
 import { QuestsModal } from './QuestsModal';
 import { LuckyWheelModal } from './LuckyWheelModal';
 import { BankruptcyModal } from './BankruptcyModal';
-import { UndergroundCasinoModal } from './UndergroundCasinoModal';
 import { CampaignMapModal } from './CampaignMapModal';
 import { CustomGameModal, CustomGameModalConfig } from './CustomGameModal';
+import { QuickSetupModal, QuickSetupConfig } from './QuickSetupModal';
 import { SettingsModal } from './SettingsModal';
 import { XRayInspector } from './XRayInspector';
 import { VictoryModal } from './VictoryModal';
+import { ConfirmForfeitModal } from './ConfirmForfeitModal';
+import { F5PenaltyNoticeModal } from './F5PenaltyNoticeModal';
+import { NameSetupModal } from './NameSetupModal';
 import { CardTracker } from '../../ai/card-tracker';
 import { CampaignChapter } from '../../engine/campaign';
 
 interface GameModalsProps {
   player0Tracker?: CardTracker;
+  onStartQuickGame: (config: QuickSetupConfig) => void;
   onStartCustomGame: (config: CustomGameModalConfig) => void;
-  onSelectUndergroundTable: (betAmount: number) => void;
   onSelectCampaignChapter: (chapter: CampaignChapter) => void;
   onNextGame: () => void;
   onReturnToLobby: () => void;
+  onConfirmForfeit: () => void;
   campaignResultMeta?: {
     isUnlockedNext: boolean;
     isAllCompleted: boolean;
@@ -34,11 +37,12 @@ interface GameModalsProps {
 
 export const GameModals: React.FC<GameModalsProps> = ({
   player0Tracker,
+  onStartQuickGame,
   onStartCustomGame,
-  onSelectUndergroundTable,
   onSelectCampaignChapter,
   onNextGame,
   onReturnToLobby,
+  onConfirmForfeit,
   campaignResultMeta,
   onOpenCampaignMap
 }) => {
@@ -46,14 +50,14 @@ export const GameModals: React.FC<GameModalsProps> = ({
   const {
     isSettingsOpen,
     isCustomGameModalOpen,
+    isQuickSetupOpen,
     isXRayOpen,
     isVictoryOpen,
     isQuestModalOpen,
     isLuckyWheelOpen,
     isBankLoanModalOpen,
-    isShopModalOpen,
     isCampaignModalOpen,
-    isUndergroundModalOpen,
+    isNameSetupOpen,
     openModal,
     closeModal
   } = useModalStore();
@@ -96,15 +100,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
 
   return (
     <>
-      {/* 1. Shop Modal */}
-      <ShopModal
-        isOpen={isShopModalOpen}
-        profile={profile}
-        onClose={() => closeModal('SHOP')}
-        onUpdateProfile={setProfile}
-      />
-
-      {/* 2. Quests & Achievements Modal */}
+      {/* 1. Quests & Achievements Modal */}
       <QuestsModal
         isOpen={isQuestModalOpen}
         profile={profile}
@@ -112,7 +108,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
         onUpdateProfile={setProfile}
       />
 
-      {/* 3. Lucky Wheel Modal */}
+      {/* 2. Lucky Wheel Modal */}
       <LuckyWheelModal
         isOpen={isLuckyWheelOpen}
         profile={profile}
@@ -120,7 +116,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
         onUpdateProfile={setProfile}
       />
 
-      {/* 4. Bank Loan / Relief Modal */}
+      {/* 3. Bank Loan / Relief Modal */}
       <BankruptcyModal
         isOpen={isBankLoanModalOpen}
         profile={profile}
@@ -128,15 +124,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
         onUpdateProfile={setProfile}
       />
 
-      {/* 5. Underground Casino Modal */}
-      <UndergroundCasinoModal
-        isOpen={isUndergroundModalOpen}
-        profile={profile}
-        onClose={() => closeModal('UNDERGROUND')}
-        onSelectTable={onSelectUndergroundTable}
-      />
-
-      {/* 6. Campaign Map Modal */}
+      {/* 4. Campaign Map Modal */}
       <CampaignMapModal
         isOpen={isCampaignModalOpen}
         profile={profile}
@@ -144,7 +132,15 @@ export const GameModals: React.FC<GameModalsProps> = ({
         onSelectChapter={onSelectCampaignChapter}
       />
 
-      {/* 7. Custom Game Config Modal */}
+      {/* 5. Quick Setup Modal (Chơi Nhanh) */}
+      <QuickSetupModal
+        isOpen={isQuickSetupOpen}
+        onClose={() => closeModal('QUICK_SETUP')}
+        playerCoins={profile.coins}
+        onStartGame={onStartQuickGame}
+      />
+
+      {/* 6. Custom Game Config Modal */}
       <CustomGameModal
         isOpen={isCustomGameModalOpen}
         onClose={() => closeModal('CUSTOM_GAME')}
@@ -152,14 +148,14 @@ export const GameModals: React.FC<GameModalsProps> = ({
         initialConfig={{
           selectedModeId: gameSettings.mode === 'COUNT_CARDS' ? 'COUNT_CARDS' : gameSettings.mode === 'WINNER_TAKES_ALL' ? 'WINNER_TAKES_ALL' : 'TRADITIONAL',
           settings: gameSettings,
-          botPersonaIds,
-          customBotConfigs,
-          playerCount: playerCount as 2 | 3 | 4
+          playerCount: playerCount,
+          botPersonaIds: botPersonaIds,
+          customBotConfigs: customBotConfigs
         }}
-        onStartCustomGame={onStartCustomGame}
+        onStartGame={onStartCustomGame}
       />
 
-      {/* 8. Settings Modal */}
+      {/* 7. Settings Modal */}
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => closeModal('SETTINGS')}
@@ -175,7 +171,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
         onToggleXRay={toggleXRay}
       />
 
-      {/* 9. X-Ray Inspector */}
+      {/* 8. X-Ray Inspector */}
       <XRayInspector
         isOpen={isXRayOpen}
         onClose={() => closeModal('XRAY')}
@@ -184,13 +180,12 @@ export const GameModals: React.FC<GameModalsProps> = ({
         currentHint={currentHint}
       />
 
-      {/* 10. Victory Modal */}
+      {/* 9. Victory Modal */}
       <VictoryModal
         isOpen={isVictoryOpen}
         onNextGame={onNextGame}
         onReturnToLobby={onReturnToLobby}
         onOpenCampaignMap={onOpenCampaignMap || (() => { closeModal('VICTORY'); openModal('CAMPAIGN'); })}
-        onOpenUndergroundModal={() => { closeModal('VICTORY'); openModal('UNDERGROUND'); }}
         onOpenCustomGameModal={() => { closeModal('VICTORY'); openModal('CUSTOM_GAME'); }}
         onOpenBankLoanModal={() => { closeModal('VICTORY'); openModal('BANK'); }}
         winners={winners}
@@ -208,6 +203,21 @@ export const GameModals: React.FC<GameModalsProps> = ({
         isAllCampaignCompleted={campaignResultMeta?.isAllCompleted}
         nextChapter={campaignResultMeta?.nextChapter}
         playerCoins={profile.coins}
+      />
+
+      {/* 10. Confirm Forfeit Modal */}
+      <ConfirmForfeitModal onConfirmForfeit={onConfirmForfeit} />
+
+      {/* 11. F5 Penalty Notice Modal */}
+      <F5PenaltyNoticeModal />
+
+      {/* 12. Name Setup Modal */}
+      <NameSetupModal
+        isOpen={isNameSetupOpen}
+        profile={profile}
+        onClose={() => closeModal('NAME_SETUP')}
+        onUpdateProfile={setProfile}
+        isFirstTime={!profile.name || profile.name.trim() === ''}
       />
     </>
   );

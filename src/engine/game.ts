@@ -90,14 +90,20 @@ export class GameEngine {
     return this.currentRound.moves[this.currentRound.moves.length - 1];
   }
 
+  public lastWinnerId?: string;
+
   /**
    * Khởi tạo ván bài mới
+   * @param gameNumber Số thứ tự ván (1: ván đầu, >1: ván tiếp theo)
+   * @param previousWinnerId ID người về Nhất ván trước (được quyền đi trước ở ván > 1)
    */
-  public startNewGame(gameNumber = 1): { instantWin: boolean; instantWinner?: Player; instantWinType?: InstantWinType } {
+  public startNewGame(
+    gameNumber = 1,
+    previousWinnerId?: string
+  ): { instantWin: boolean; instantWinner?: Player; instantWinType?: InstantWinType } {
     this.gameNumber = gameNumber;
     this.isFirstMoveOfGame = this.gameNumber === 1;
     this.isGameOver = false;
-    this.winners = [];
     this.playedCardsInGame = [];
     this.instantWinner = null;
     this.roundNumber = 1;
@@ -123,6 +129,8 @@ export class GameEngine {
           player.instantWinType = instantType;
           player.rankPosition = 1;
           this.instantWinner = player;
+          this.winners = [player];
+          this.lastWinnerId = player.id;
           this.isGameOver = true;
           this.calculateInstantWinSettlement(player, instantType);
           return { instantWin: true, instantWinner: player, instantWinType: instantType };
@@ -130,9 +138,19 @@ export class GameEngine {
       }
     }
 
-    // 3. Tìm người đi đầu tiên (Nếu ván 1 hoặc chưa có người thắng)
+    // Reset danh sách người thắng cho ván mới
+    this.winners = [];
+
+    // 3. Tìm người đi đầu tiên:
     let firstPlayerId = this.players[0].id;
-    if (this.gameNumber === 1 || this.winners.length === 0) {
+    const resolvedPrevWinnerId = previousWinnerId || this.lastWinnerId;
+
+    if (this.gameNumber > 1 && resolvedPrevWinnerId && this.players.some(p => p.id === resolvedPrevWinnerId)) {
+      // Ván thứ 2 trở đi: Người về Nhất ván trước được quyền đi trước bất kể đang cầm bài gì!
+      firstPlayerId = resolvedPrevWinnerId;
+      this.isFirstMoveOfGame = false;
+    } else {
+      // Ván đầu tiên (gameNumber === 1): Người giữ 3 Bích đi trước
       let found3Spades = false;
       for (const player of this.players) {
         if (player.hand.some(c => c.rank === 3 && c.suit === 'SPADES')) {
@@ -143,7 +161,7 @@ export class GameEngine {
       }
 
       if (!found3Spades) {
-        // Trong chế độ 2 hoặc 3 người chơi (không có ai cầm 3 Bích), tìm người có lá bài nhỏ nhất
+        // Trong bàn 2 hoặc 3 người chơi không có 3 Bích: Tìm người có lá nhỏ nhất
         let smallestCardWeight = 9999;
         for (const player of this.players) {
           const sorted = sortCards(player.hand);
@@ -152,18 +170,10 @@ export class GameEngine {
             firstPlayerId = player.id;
           }
         }
-        // Vì không có lá 3 Bích trên bàn, người đi đầu tiên được tự do đánh lá nhỏ nhất
         this.isFirstMoveOfGame = false;
       } else {
         this.isFirstMoveOfGame = true;
       }
-    } else {
-      // Ván tiếp theo: Người về nhất ván trước
-      const prevWinner = this.winners[0];
-      if (prevWinner) {
-        firstPlayerId = prevWinner.id;
-      }
-      this.isFirstMoveOfGame = false;
     }
 
     // 4. Khởi tạo vòng chơi đầu tiên
@@ -181,11 +191,10 @@ export class GameEngine {
   /**
    * Khởi tạo custom game để phục vụ Unit Test
    */
-  public startCustomGame(gameNumber = 1): void {
+  public startCustomGame(gameNumber = 1, previousWinnerId?: string): void {
     this.gameNumber = gameNumber;
     this.isFirstMoveOfGame = this.gameNumber === 1 && (this.rules?.gameFlow?.firstGameRequireThreeOfSpades ?? true);
     this.isGameOver = false;
-    this.winners = [];
     this.playedCardsInGame = [];
     this.instantWinner = null;
     this.roundNumber = 1;
@@ -199,7 +208,12 @@ export class GameEngine {
     });
 
     let firstPlayerId = this.players[0].id;
-    if (this.isFirstMoveOfGame) {
+    const resolvedPrevWinnerId = previousWinnerId || this.lastWinnerId;
+
+    if (this.gameNumber > 1 && resolvedPrevWinnerId && this.players.some(p => p.id === resolvedPrevWinnerId)) {
+      firstPlayerId = resolvedPrevWinnerId;
+      this.isFirstMoveOfGame = false;
+    } else if (this.isFirstMoveOfGame) {
       for (const player of this.players) {
         if (player.hand.some(c => c.rank === 3 && c.suit === 'SPADES')) {
           firstPlayerId = player.id;
@@ -207,6 +221,8 @@ export class GameEngine {
         }
       }
     }
+
+    this.winners = [];
 
     this.currentRound = {
       moves: [],
@@ -410,6 +426,8 @@ export class GameEngine {
         remainingPlayerCards: remainingCardsMap,
         isNextPlayerOneCard,
         nextPlayerId,
+        rules: this.rules,
+        hasPlayedFirstCard: currentPlayer.hasPlayedFirstCard,
         prohibitEndingWithTwo,
         gameMode: this.activeGameType || this.settings.mode || 'TRADITIONAL'
       });
@@ -661,7 +679,7 @@ export class GameEngine {
     }
     // Chặt 4 Đôi Thông
     else if (target.type === 'FOUR_PAIRS_SEQUENTIAL') {
-      base = bet * 5;
+      base = bet * 6;
     }
 
     return base * mult;
@@ -710,6 +728,9 @@ export class GameEngine {
    * Kết toán bàn chơi theo đúng luật settlementRule đã cấu hình
    */
   public settleEndGame(): void {
+    if (this.winners[0]) {
+      this.lastWinnerId = this.winners[0].id;
+    }
     if (this.rules.settlementRule === 'CARD_COUNT') {
       this.settleCountCardsEndGame(this.winners[0]);
     } else if (this.rules.settlementRule === 'WINNER_TAKES_ALL') {

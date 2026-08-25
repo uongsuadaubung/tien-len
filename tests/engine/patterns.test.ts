@@ -33,11 +33,6 @@ describe('Design Patterns Architecture Unit Tests (Kiểm Thử Mẫu Thiết K�
     avatar: '🤠',
     coins: 50000,
     elo: 1200,
-    activeTitle: 't1',
-    activeCardBack: 'cb1',
-    activeTableFelt: 'f1',
-    activeAvatarFrame: 'fr1',
-    unlockedItems: [],
     campaignUnlockedChapter: 1,
     campaignChapterWins: {},
     loans: 0,
@@ -56,10 +51,10 @@ describe('Design Patterns Architecture Unit Tests (Kiểm Thử Mẫu Thiết K�
         isClaimed: false
       },
       {
-        id: 'daily_underground_master',
-        title: 'Bá Chủ Ngầm',
-        description: 'Về Nhất ngầm',
-        rewardCoins: 15000,
+        id: 'daily_high_roller',
+        title: 'Đại Gia Sát Phạt',
+        description: 'Về Nhất ván cược',
+        rewardCoins: 100000,
         icon: '🎰',
         targetCount: 1,
         currentCount: 0,
@@ -150,12 +145,13 @@ describe('Design Patterns Architecture Unit Tests (Kiểm Thử Mẫu Thiết K�
       const events: GameEvent[] = [
         {
           type: 'MATCH_COMPLETED',
-          activeGameType: 'UNDERGROUND',
+          activeGameType: 'QUICK',
           winnerPlayerId: 'p0',
           isHumanWinner: true,
           winners: [],
           allPlayers: [],
           payouts: {},
+          betAmount: 5000,
           humanNetCoins: 10000,
           totalHumanCoins: 60000
         }
@@ -166,7 +162,7 @@ describe('Design Patterns Architecture Unit Tests (Kiểm Thử Mẫu Thiết K�
       expect(updatedQuests[0].currentCount).toBe(1);
       expect(updatedQuests[0].isCompleted).toBe(false);
 
-      // daily_underground_master hoàn thành ngay vì activeGameType === 'UNDERGROUND'
+      // daily_high_roller hoàn thành ngay vì betAmount > 0 và thắng cuộc
       expect(updatedQuests[1].currentCount).toBe(1);
       expect(updatedQuests[1].isCompleted).toBe(true);
     });

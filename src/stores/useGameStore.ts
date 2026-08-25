@@ -97,7 +97,7 @@ const DEFAULT_PLAYERS: Player[] = [
     isBot: false,
     hand: [],
     playedCards: [],
-    score: 20000,
+    score: 1000000,
     isPassedCurrentRound: false,
     hasPlayedFirstCard: false
   },
@@ -109,7 +109,7 @@ const DEFAULT_PLAYERS: Player[] = [
     botPersonaId: 'BOT_ELO_850',
     hand: [],
     playedCards: [],
-    score: 5000,
+    score: 4850,
     isPassedCurrentRound: false,
     hasPlayedFirstCard: false
   },
@@ -121,7 +121,7 @@ const DEFAULT_PLAYERS: Player[] = [
     botPersonaId: 'BOT_ELO_1150',
     hand: [],
     playedCards: [],
-    score: 5000,
+    score: 8200,
     isPassedCurrentRound: false,
     hasPlayedFirstCard: false
   },
@@ -133,7 +133,7 @@ const DEFAULT_PLAYERS: Player[] = [
     botPersonaId: 'BOT_ELO_1450',
     hand: [],
     playedCards: [],
-    score: 5000,
+    score: 16500,
     isPassedCurrentRound: false,
     hasPlayedFirstCard: false
   }

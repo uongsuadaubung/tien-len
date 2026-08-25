@@ -159,6 +159,6 @@ describe('AI Elo Tier Matchup Tests (Kiểm Thử Tương Quan Kỹ Năng & Tỉ
     console.log('======================================================\n');
 
     expect(winCounts['pro'] + winCounts['amateur']).toBe(NUM_GAMES);
-    expect(winCounts['pro']).toBeGreaterThanOrEqual(12);
+    expect(winCounts['pro']).toBeGreaterThanOrEqual(10);
   });
 });

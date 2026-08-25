@@ -5,11 +5,6 @@ export interface PlayerProfile {
   avatar: string;
   coins: number;
   elo: number;
-  activeTitle: string;
-  activeCardBack: string;
-  activeTableFelt: string;
-  activeAvatarFrame: string;
-  unlockedItems: string[];
   campaignUnlockedChapter: number;
   campaignChapterWins: Record<number, number>;
   loans: number; // Tiền nợ chủ sòng
@@ -31,15 +26,10 @@ export interface PlayerProfile {
 const STORAGE_KEY = 'TIEN_LEN_PLAYER_PROFILE_V2';
 
 const DEFAULT_PROFILE: PlayerProfile = {
-  name: 'Đại Gia Sài Thành',
+  name: '',
   avatar: '🤠',
-  coins: 20000,
+  coins: 1000000,
   elo: 1000,
-  activeTitle: 'title_novice',
-  activeCardBack: 'card_back_classic',
-  activeTableFelt: 'felt_traditional_emerald',
-  activeAvatarFrame: 'frame_none',
-  unlockedItems: ['card_back_classic', 'felt_traditional_emerald', 'frame_none', 'title_novice'],
   campaignUnlockedChapter: 1,
   campaignChapterWins: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
   loans: 0,
@@ -58,12 +48,47 @@ const DEFAULT_PROFILE: PlayerProfile = {
   }
 };
 
+// ============================================================================
+// SAFE STORAGE HELPER (Hỗ trợ cả môi trường Browser và Node/Bun Testing)
+// ============================================================================
+
+const memoryFallbackStore: Record<string, string> = {};
+
+function getStorageItem(key: string): string | null {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      return localStorage.getItem(key);
+    }
+  } catch (e) {}
+  return memoryFallbackStore[key] || null;
+}
+
+function setStorageItem(key: string, value: string): void {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(key, value);
+      return;
+    }
+  } catch (e) {}
+  memoryFallbackStore[key] = value;
+}
+
+function removeStorageItem(key: string): void {
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(key);
+      return;
+    }
+  } catch (e) {}
+  delete memoryFallbackStore[key];
+}
+
 /**
  * Tải thông tin người chơi từ LocalStorage (hoặc khởi tạo mặc định)
  */
 export function loadPlayerProfile(): PlayerProfile {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = getStorageItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULT_PROFILE };
 
     const parsed = JSON.parse(raw);
@@ -87,7 +112,6 @@ export function loadPlayerProfile(): PlayerProfile {
         ...DEFAULT_PROFILE.campaignChapterWins,
         ...(parsed.campaignChapterWins || {})
       },
-      unlockedItems: parsed.unlockedItems || DEFAULT_PROFILE.unlockedItems,
       dailyQuests: parsed.dailyQuests || INITIAL_DAILY_QUESTS,
       achievements: parsed.achievements || INITIAL_ACHIEVEMENTS
     };
@@ -102,7 +126,7 @@ export function loadPlayerProfile(): PlayerProfile {
  */
 export function savePlayerProfile(profile: PlayerProfile): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(profile));
+    setStorageItem(STORAGE_KEY, JSON.stringify(profile));
   } catch (e) {
     console.error('Lỗi khi lưu PlayerProfile:', e);
   }
@@ -113,9 +137,54 @@ export function savePlayerProfile(profile: PlayerProfile): void {
  */
 export function resetPlayerProfile(): PlayerProfile {
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    removeStorageItem(STORAGE_KEY);
   } catch (e) {
     console.error('Lỗi khi xóa profile:', e);
   }
   return { ...DEFAULT_PROFILE };
 }
+
+// ============================================================================
+// PHIÊN TRẬN ĐẤU ĐANG DIỄN RA & TIỀN CỌC (ACTIVE MATCH SESSION & BUY-IN DEPOSIT)
+// ============================================================================
+
+export interface ActiveMatchSession {
+  gameId: string;
+  gameType: 'QUICK' | 'RANKED' | 'CAMPAIGN' | 'UNDERGROUND';
+  mode: string;
+  depositAmount: number;
+  betAmount: number;
+  penaltyMultiplier: number;
+  isRanked: boolean;
+  startedAt: number;
+}
+
+const ACTIVE_MATCH_KEY = 'TIEN_LEN_ACTIVE_MATCH_SESSION';
+
+export function saveActiveMatchSession(session: ActiveMatchSession): void {
+  try {
+    setStorageItem(ACTIVE_MATCH_KEY, JSON.stringify(session));
+  } catch (e) {
+    console.error('Lỗi khi lưu ActiveMatchSession:', e);
+  }
+}
+
+export function getActiveMatchSession(): ActiveMatchSession | null {
+  try {
+    const raw = getStorageItem(ACTIVE_MATCH_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error('Lỗi khi đọc ActiveMatchSession:', e);
+    return null;
+  }
+}
+
+export function clearActiveMatchSession(): void {
+  try {
+    removeStorageItem(ACTIVE_MATCH_KEY);
+  } catch (e) {
+    console.error('Lỗi khi xóa ActiveMatchSession:', e);
+  }
+}
+

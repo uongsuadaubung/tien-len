@@ -22,15 +22,23 @@ export interface EndGameSettlementResult {
 }
 
 /**
+ * Helper trích xuất hệ số nhân sát phạt (multiplier: 1x, 2x, 3x, 4x, 5x...)
+ */
+function getMultiplier(val: boolean | number = false): number {
+  if (typeof val === 'number') return Math.max(1, val);
+  return val ? 2 : 1;
+}
+
+/**
  * Tính toán tiền phạt chặt tức thì (Instant Chop Penalty)
  */
 export function calculateChopPenalty(
   target: Combination,
   candidate: Combination,
   betAmount: number,
-  isUnderground = false
+  isUnderground: boolean | number = false
 ): { amount: number; description: string } {
-  const mult = isUnderground ? 2 : 1;
+  const mult = getMultiplier(isUnderground);
   const bet = betAmount;
 
   // 1. Chặt 1 Heo
@@ -91,9 +99,9 @@ export function calculateChopPenalty(
 /**
  * Tính tiền phạt Thối Heo/Hàng khi ván đấu kết thúc
  */
-export function calculateRottenPenalty(hand: Card[], betAmount: number, isUnderground = false): number {
+export function calculateRottenPenalty(hand: Card[], betAmount: number, isUnderground: boolean | number = false): number {
   let penalty = 0;
-  const mult = isUnderground ? 2 : 1;
+  const mult = getMultiplier(isUnderground);
   const bet = betAmount;
 
   // 1. Thối Heo
@@ -121,9 +129,9 @@ export function calculateRottenPenalty(hand: Card[], betAmount: number, isUnderg
 /**
  * Tính toán tiền phạt Cóng (Cháy bài)
  */
-export function calculateCongPenalty(betAmount: number, isUnderground = false): number {
-  const mult = isUnderground ? 2 : 1;
-  // Cóng đền 26 mức cược (hoặc 52 mức cược ở sòng bạc ngầm)
+export function calculateCongPenalty(betAmount: number, isUnderground: boolean | number = false): number {
+  const mult = getMultiplier(isUnderground);
+  // Cóng đền 26 mức cược (hoặc 52, 78, 104... mức cược tùy theo multiplier)
   return 26 * betAmount * mult;
 }
 
@@ -137,12 +145,12 @@ export function calculateCountCardsSettlement(
   players: Player[],
   winnerId: string,
   betAmount: number,
-  isUnderground = false
+  isUnderground: boolean | number = false
 ): Record<string, number> {
   const payouts: Record<string, number> = {};
   players.forEach(p => { payouts[p.id] = 0; });
 
-  const mult = isUnderground ? 2 : 1;
+  const mult = getMultiplier(isUnderground);
   let totalWinnerEarn = 0;
 
   for (const player of players) {
@@ -150,13 +158,13 @@ export function calculateCountCardsSettlement(
       let lossAmount = 0;
       // Kiểm tra Cóng (13 lá và chưa đánh ra được lá nào)
       if (player.hand.length === 13 && !player.hasPlayedFirstCard) {
-        lossAmount += calculateCongPenalty(betAmount, isUnderground);
+        lossAmount += calculateCongPenalty(betAmount, mult);
       } else {
         lossAmount += player.hand.length * betAmount * mult;
       }
 
       // Thối heo / thối hàng
-      const rotten = calculateRottenPenalty(player.hand, betAmount, isUnderground);
+      const rotten = calculateRottenPenalty(player.hand, betAmount, mult);
       lossAmount += rotten;
 
       payouts[player.id] = -lossAmount;
@@ -177,12 +185,12 @@ export function calculateWinnerTakesAllSettlement(
   players: Player[],
   winnerId: string,
   betAmount: number,
-  isUnderground = false
+  isUnderground: boolean | number = false
 ): Record<string, number> {
   const payouts: Record<string, number> = {};
   players.forEach(p => { payouts[p.id] = 0; });
 
-  const mult = isUnderground ? 2 : 1;
+  const mult = getMultiplier(isUnderground);
   let totalWinnerEarn = 0;
 
   for (const player of players) {
@@ -190,10 +198,10 @@ export function calculateWinnerTakesAllSettlement(
       let lossAmount = betAmount * mult;
 
       if (player.hand.length === 13 && !player.hasPlayedFirstCard) {
-        lossAmount += calculateCongPenalty(betAmount, isUnderground);
+        lossAmount += calculateCongPenalty(betAmount, mult);
       }
 
-      const rotten = calculateRottenPenalty(player.hand, betAmount, isUnderground);
+      const rotten = calculateRottenPenalty(player.hand, betAmount, mult);
       lossAmount += rotten;
 
       payouts[player.id] = -lossAmount;
@@ -212,11 +220,11 @@ export function calculateTraditionalSettlement(
   players: Player[],
   winners: Player[],
   betAmount: number,
-  isUnderground = false
+  isUnderground: boolean | number = false
 ): Record<string, number> {
   const payouts: Record<string, number> = {};
   players.forEach(p => { payouts[p.id] = 0; });
-  const mult = isUnderground ? 2 : 1;
+  const mult = getMultiplier(isUnderground);
 
   if (winners.length === 4) {
     payouts[winners[0].id] = betAmount * 3 * mult;
@@ -236,7 +244,7 @@ export function calculateTraditionalSettlement(
   const winnerFirst = winners[0];
   for (const player of players) {
     if (player.id !== winnerFirst?.id && player.hand.length > 0) {
-      const rotten = calculateRottenPenalty(player.hand, betAmount, isUnderground);
+      const rotten = calculateRottenPenalty(player.hand, betAmount, mult);
       if (rotten > 0) {
         payouts[player.id] = (payouts[player.id] || 0) - rotten;
         if (winnerFirst) {
@@ -245,7 +253,7 @@ export function calculateTraditionalSettlement(
       }
 
       if (player.hand.length === 13 && !player.hasPlayedFirstCard) {
-        const cong = calculateCongPenalty(betAmount, isUnderground);
+        const cong = calculateCongPenalty(betAmount, mult);
         payouts[player.id] = (payouts[player.id] || 0) - cong;
         if (winnerFirst) {
           payouts[winnerFirst.id] = (payouts[winnerFirst.id] || 0) + cong;

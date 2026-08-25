@@ -12,8 +12,6 @@ interface UserState {
   takeLoan: (amount: number) => void;
   repayLoan: (amount: number) => void;
   claimDailyRelief: (amount: number) => void;
-  equipItem: (category: 'title' | 'felt' | 'frame' | 'cardBack', id: string) => void;
-  unlockItem: (itemId: string) => void;
   resetProfile: () => void;
 }
 
@@ -83,26 +81,6 @@ export const useUserStore = create<UserState>((set) => ({
       ...state.profile,
       coins: state.profile.coins + amount,
       dailyReliefClaimedCount: state.profile.dailyReliefClaimedCount + 1
-    };
-    savePlayerProfile(next);
-    return { profile: next };
-  }),
-
-  equipItem: (category, id) => set((state) => {
-    const updated = { ...state.profile };
-    if (category === 'title') updated.activeTitle = id;
-    if (category === 'felt') updated.activeTableFelt = id;
-    if (category === 'frame') updated.activeAvatarFrame = id;
-    if (category === 'cardBack') updated.activeCardBack = id;
-    savePlayerProfile(updated);
-    return { profile: updated };
-  }),
-
-  unlockItem: (itemId) => set((state) => {
-    if (state.profile.unlockedItems.includes(itemId)) return state;
-    const next: PlayerProfile = {
-      ...state.profile,
-      unlockedItems: [...state.profile.unlockedItems, itemId]
     };
     savePlayerProfile(next);
     return { profile: next };

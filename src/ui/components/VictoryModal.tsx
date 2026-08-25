@@ -11,7 +11,6 @@ interface VictoryModalProps {
   onNextGame: () => void;
   onReturnToLobby: () => void;
   onOpenCampaignMap?: () => void;
-  onOpenUndergroundModal?: () => void;
   onOpenCustomGameModal?: () => void;
   onOpenBankLoanModal?: () => void;
   winners: Player[];
@@ -36,7 +35,6 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   onNextGame,
   onReturnToLobby,
   onOpenCampaignMap,
-  onOpenUndergroundModal,
   onOpenCustomGameModal,
   onOpenBankLoanModal,
   winners,
@@ -212,9 +210,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   }
   // 3. THẾ GIỚI NGẦM (UNDERGROUND)
   else if (isUnderground) {
-    secondaryBtnText = 'Đổi Sới Bạc';
-    secondaryBtnIcon = <Swords className="w-4 h-4" />;
-    secondaryBtnAction = onOpenUndergroundModal || onReturnToLobby;
+    secondaryBtnText = 'Về Sảnh';
+    secondaryBtnIcon = <Home className="w-4 h-4" />;
+    secondaryBtnAction = onReturnToLobby;
 
     if (isHumanWinner) {
       isDefeatModal = false;

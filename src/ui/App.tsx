@@ -3,9 +3,16 @@ import { LobbyHub } from './components/LobbyHub';
 import { GameModals } from './components/GameModals';
 import { FallingBlossoms } from './components/FallingBlossoms';
 import { CustomGameModalConfig } from './components/CustomGameModal';
+import { QuickSetupConfig } from './components/QuickSetupModal';
 import { CampaignChapter } from '../engine/campaign';
 import { useGameMatchLoop } from './hooks/useGameMatchLoop';
 import { GameTableScreen } from './screens/GameTableScreen';
+import { getRandomBotConfigsForTable } from '../ai/bot-factory';
+import { 
+  getActiveMatchSession, 
+  clearActiveMatchSession, 
+  savePlayerProfile 
+} from '../engine/storage';
 
 // Stores
 import { useModalStore } from '../stores/useModalStore';
@@ -13,13 +20,14 @@ import { useUserStore } from '../stores/useUserStore';
 import { useGameStore } from '../stores/useGameStore';
 
 export const App: React.FC = () => {
-  const { openModal, closeModal } = useModalStore();
-  const { profile } = useUserStore();
+  const { openModal, closeModal, setF5PenaltyData } = useModalStore();
+  const { profile, setProfile } = useUserStore();
   const {
     currentScreen,
     activeGameType,
     gameNumber,
     playerCount,
+    gameSettings,
     setCurrentScreen,
     setActiveGameType,
     setCurrentCampaignChapter
@@ -35,8 +43,61 @@ export const App: React.FC = () => {
     handleAutoSort,
     handleApplyAiHint,
     handleDealCard,
-    handleDealComplete
+    handleDealComplete,
+    handleForfeitMatch,
+    handleRequestReturnToLobby
   } = useGameMatchLoop();
+
+  // Kiểm tra gián đoạn do F5 / Đóng ứng dụng khi mở trang
+  useEffect(() => {
+    const interruptedSession = getActiveMatchSession();
+    if (interruptedSession) {
+      clearActiveMatchSession();
+      if (interruptedSession.isRanked) {
+        const nextElo = Math.max(0, profile.elo - 30);
+        const updatedProfile = {
+          ...profile,
+          elo: nextElo,
+          stats: {
+            ...profile.stats,
+            gamesPlayed: profile.stats.gamesPlayed + 1,
+            currentStreak: 0
+          }
+        };
+        setProfile(updatedProfile);
+        savePlayerProfile(updatedProfile);
+        setF5PenaltyData({
+          depositLost: 0,
+          eloLost: 30,
+          isRanked: true
+        });
+      } else {
+        const updatedProfile = {
+          ...profile,
+          stats: {
+            ...profile.stats,
+            gamesPlayed: profile.stats.gamesPlayed + 1,
+            currentStreak: 0
+          }
+        };
+        setProfile(updatedProfile);
+        savePlayerProfile(updatedProfile);
+        setF5PenaltyData({
+          depositLost: interruptedSession.depositAmount,
+          eloLost: 0,
+          isRanked: false
+        });
+      }
+      openModal('F5_PENALTY_NOTICE');
+    }
+  }, []);
+
+  // Kiểm tra nếu chưa đặt tên thì mở Modal tạo tên khởi nghiệp
+  useEffect(() => {
+    if (!profile.name || profile.name.trim() === '') {
+      openModal('NAME_SETUP');
+    }
+  }, [profile.name, openModal]);
 
   // Khởi tạo game khi vào bàn (nếu chưa có engine)
   useEffect(() => {
@@ -49,6 +110,50 @@ export const App: React.FC = () => {
   // ĐIỀU HƯỚNG TỪ SẢNH VÀO CÁC CHẾ ĐỘ CHƠI (STRATEGY DISPATCH)
   // ==========================================================================
 
+  const handleStartQuickGame = (config: QuickSetupConfig) => {
+    closeModal('QUICK_SETUP');
+    setActiveGameType('QUICK');
+    setCurrentScreen('GAME_TABLE');
+
+    // Ghép Bot hoàn toàn ngẫu nhiên từ kho 18+ Bot Personas
+    const randomBots = getRandomBotConfigsForTable([1, 2, 3, 4, 5], 3);
+
+    startNewGame(1, {
+      playerCount: config.playerCount,
+      customRules: {
+        settlementRule: config.settlementRule,
+        chopping: {
+          multiplier: config.choppingMultiplier,
+          allowFourPairsCutAnytime: config.allowFourPairsCutAnytime,
+          allowThreePairsCutTwo: true,
+          allowFourOfAKindCutPairsOfTwos: true
+        },
+        cong: {
+          multiplier: config.choppingMultiplier,
+          penaltyCards: config.congEnabled ? 26 : 0,
+          enabled: config.congEnabled
+        },
+        gameFlow: {
+          prohibitEndingWithTwo: config.prohibitEndingWithTwo
+        },
+        table: {
+          playerCount: config.playerCount,
+          betAmount: config.betAmount
+        }
+      },
+      customBotPersonaIds: [
+        randomBots[0]?.id || 'BOT_ELO_850',
+        randomBots[1]?.id || 'BOT_ELO_1150',
+        randomBots[2]?.id || 'BOT_ELO_1450'
+      ],
+      customBotConfigs: [
+        randomBots[0] || {},
+        randomBots[1] || {},
+        randomBots[2] || {}
+      ]
+    });
+  };
+
   const handleStartCustomGameWithConfig = (config: CustomGameModalConfig) => {
     setActiveGameType('QUICK');
     closeModal('CUSTOM_GAME');
@@ -58,45 +163,6 @@ export const App: React.FC = () => {
       customBotPersonaIds: config.botPersonaIds,
       customBotConfigs: config.customBotConfigs,
       playerCount: config.playerCount
-    });
-  };
-
-  const handleStartSolo1v1 = () => {
-    setActiveGameType('QUICK');
-    setCurrentScreen('GAME_TABLE');
-    startNewGame(1, {
-      playerCount: 2,
-      customSettings: {
-        mode: 'TRADITIONAL',
-        playerCount: 2,
-        betAmount: 200
-      }
-    });
-  };
-
-  const handleStartCountCards = () => {
-    setActiveGameType('QUICK');
-    setCurrentScreen('GAME_TABLE');
-    startNewGame(1, {
-      playerCount: 4,
-      customSettings: {
-        mode: 'COUNT_CARDS',
-        playerCount: 4,
-        betAmount: 100
-      }
-    });
-  };
-
-  const handleStartWinnerTakesAll = () => {
-    setActiveGameType('QUICK');
-    setCurrentScreen('GAME_TABLE');
-    startNewGame(1, {
-      playerCount: 4,
-      customSettings: {
-        mode: 'WINNER_TAKES_ALL',
-        playerCount: 4,
-        betAmount: 150
-      }
     });
   };
 
@@ -119,16 +185,6 @@ export const App: React.FC = () => {
     });
   };
 
-  const handleStartUndergroundTable = (betAmount: number) => {
-    setActiveGameType('UNDERGROUND');
-    closeModal('UNDERGROUND');
-    setCurrentScreen('GAME_TABLE');
-    startNewGame(1, {
-      undergroundBetAmount: betAmount,
-      playerCount: 4
-    });
-  };
-
   const handleReturnToLobby = () => {
     engineRef.current = null;
     setCurrentScreen('LOBBY');
@@ -142,18 +198,15 @@ export const App: React.FC = () => {
           <FallingBlossoms />
           <LobbyHub
             profile={profile}
+            onOpenQuickSetup={() => openModal('QUICK_SETUP')}
             onOpenCustomGameModal={() => openModal('CUSTOM_GAME')}
             onOpenRanked={handleStartRanked}
             onOpenCampaign={() => openModal('CAMPAIGN')}
-            onOpenUnderground={() => openModal('UNDERGROUND')}
-            onStartSolo1v1={handleStartSolo1v1}
-            onStartCountCards={handleStartCountCards}
-            onStartWinnerTakesAll={handleStartWinnerTakesAll}
-            onOpenShop={() => openModal('SHOP')}
             onOpenQuests={() => openModal('QUEST')}
             onOpenLuckyWheel={() => openModal('WHEEL')}
             onOpenBank={() => openModal('BANK')}
             onOpenSettings={() => openModal('SETTINGS')}
+            onOpenNameSetup={() => openModal('NAME_SETUP')}
           />
         </>
       ) : (
@@ -166,16 +219,17 @@ export const App: React.FC = () => {
           onDealCard={handleDealCard}
           onDealComplete={handleDealComplete}
           onResetMatch={() => startNewGame(1, { playerCount })}
-          onReturnToLobby={handleReturnToLobby}
+          onReturnToLobby={handleRequestReturnToLobby}
         />
       )}
 
       {/* 2. MODALS TẬP TRUNG TOÀN ỨNG DỤNG */}
       <GameModals
         player0Tracker={trackersRef.current['p0']}
+        onStartQuickGame={handleStartQuickGame}
         onStartCustomGame={handleStartCustomGameWithConfig}
-        onSelectUndergroundTable={handleStartUndergroundTable}
         onSelectCampaignChapter={handleStartCampaignChapter}
+        onConfirmForfeit={handleForfeitMatch}
         campaignResultMeta={campaignResultMeta}
         onOpenCampaignMap={() => {
           closeModal('VICTORY');
@@ -183,13 +237,23 @@ export const App: React.FC = () => {
         }}
         onNextGame={() => {
           closeModal('VICTORY');
+          const betAmount = gameSettings.betAmount || 0;
+          if (activeGameType !== 'RANKED' && activeGameType !== 'CAMPAIGN' && betAmount > 0 && profile.coins < betAmount) {
+            openModal('BANK');
+            return;
+          }
+
           if (activeGameType === 'CAMPAIGN') {
             if (campaignResultMeta?.isUnlockedNext && campaignResultMeta.nextChapter) {
               startNewGame(1, { campaignChapter: campaignResultMeta.nextChapter });
             } else {
               startNewGame(gameNumber + 1);
             }
+          } else if (activeGameType === 'RANKED') {
+            // Chế độ Đấu Hạng (Ranked): Tìm đối thủ mới (tên, avatar, rank ngẫu nhiên) và mở màn ván 1 với 3 Bích
+            startNewGame(1);
           } else {
+            // Các chế độ còn lại: Ván tiếp theo trong cùng bàn, người về Nhất ván trước được quyền đi trước
             startNewGame(gameNumber + 1);
           }
         }}

@@ -23,8 +23,8 @@ interface WheelSlice {
 
 const SLICES: WheelSlice[] = [
   {
-    label: '100K JACKPOT',
-    value: 100000,
+    label: '500K JACKPOT',
+    value: 500000,
     icon: '👑',
     gradient: ['#dc2626', '#7f1d1d'],
     textColor: '#fef08a',
@@ -39,23 +39,23 @@ const SLICES: WheelSlice[] = [
     isLoss: true
   },
   {
-    label: '20,000',
-    value: 20000,
+    label: '100,000',
+    value: 100000,
     icon: '💰',
     gradient: ['#059669', '#064e3b'],
     textColor: '#fef08a'
   },
   {
-    label: '1,000',
-    value: 1000,
+    label: '5,000',
+    value: 5000,
     icon: '🪙',
     gradient: ['#4b5563', '#1f2937'],
     textColor: '#e2e8f0',
     isLoss: true
   },
   {
-    label: '50K XU',
-    value: 50000,
+    label: '250K XU',
+    value: 250000,
     icon: '💎',
     gradient: ['#7c3aed', '#4c1d95'],
     textColor: '#fef08a'
@@ -69,15 +69,15 @@ const SLICES: WheelSlice[] = [
     isLoss: true
   },
   {
-    label: '10,000',
-    value: 10000,
+    label: '50,000',
+    value: 50000,
     icon: '🧧',
     gradient: ['#d97706', '#78350f'],
     textColor: '#ffffff'
   },
   {
-    label: '5,000 (HÒA)',
-    value: 5000,
+    label: '20,000 (HÒA)',
+    value: 20000,
     icon: '🍀',
     gradient: ['#0d9488', '#134e4a'],
     textColor: '#ffffff'
@@ -96,7 +96,7 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
 
   if (!isOpen) return null;
 
-  const SPIN_COST = 5000;
+  const SPIN_COST = 20000;
   const canSpin = profile.coins >= SPIN_COST;
   const numSlices = SLICES.length;
   const sliceAngle = 360 / numSlices; // 45 deg
@@ -358,26 +358,26 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
               ? 'bg-emerald-950/90 text-emerald-200 border-emerald-500/50'
               : 'bg-red-950/90 text-red-300 border-red-500/50'
           }`}>
-            {prizeWon.value >= 10000 ? (
+            {prizeWon.value > SPIN_COST ? (
               <>
                 <Gift className="w-5 h-5" />
                 <span>CHÚC MỪNG TRÚNG LỚN: <strong>+{prizeWon.value.toLocaleString()} XU</strong>!</span>
               </>
-            ) : prizeWon.value === 5000 ? (
+            ) : prizeWon.value === SPIN_COST ? (
               <>
-                <span>🍀 HÒA VỐN: Nhận lại 5,000 Xu!</span>
+                <span>🍀 HÒA VỐN: Nhận lại {SPIN_COST.toLocaleString()} Xu!</span>
               </>
             ) : (
               <>
                 <Frown className="w-5 h-5 text-red-400" />
-                <span>{prizeWon.value === 0 ? `${prizeWon.label}: Rất tiếc, chúc bạn may mắn lần sau!` : `LỖ 4,000 XU: Nhận an ủi ${prizeWon.value.toLocaleString()} Xu`}</span>
+                <span>{prizeWon.value === 0 ? `${prizeWon.label}: Rất tiếc, chúc bạn may mắn lần sau!` : `LỖ ${(SPIN_COST - prizeWon.value).toLocaleString()} XU: Nhận an ủi ${prizeWon.value.toLocaleString()} Xu`}</span>
               </>
             )}
           </div>
         ) : (
           <div className="flex items-center gap-2 text-xs text-neutral-400 my-1">
             <span>Vé quay: </span>
-            <strong className="text-yellow-300 font-black">5,000 Xu</strong>
+            <strong className="text-yellow-300 font-black">{SPIN_COST.toLocaleString()} Xu</strong>
             <span>•</span>
             <span>Tài sản: <strong className="text-yellow-300">{profile.coins.toLocaleString()} Xu</strong></span>
           </div>

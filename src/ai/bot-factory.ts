@@ -483,3 +483,65 @@ export function getRandomBotConfigsForTable(
 
   return result;
 }
+
+/**
+ * Sinh số tiền vốn (Bankroll) khởi điểm tự nhiên, sống động cho Bot
+ * dựa trên Bậc Elo, tính cách (Risk Appetite) và Mức cược bàn chơi
+ */
+export function generateRealisticBotBankroll(config: Partial<BotConfig>, betAmount: number = 100): number {
+  const elo = config.elo || 1150;
+  const effectiveBet = Math.max(50, betAmount);
+
+  // Xác định bậc Tier của Bot (1 đến 5)
+  let tier = 2;
+  if (elo <= 1000) tier = 1;
+  else if (elo <= 1350) tier = 2;
+  else if (elo <= 1650) tier = 3;
+  else if (elo <= 1950) tier = 4;
+  else tier = 5;
+
+  let minMult = 30;
+  let maxMult = 55;
+
+  switch (tier) {
+    case 1: // Tập Sự: Vốn nhỏ khiêm tốn (30x - 55x cược)
+      minMult = 30;
+      maxMult = 55;
+      break;
+    case 2: // Phong Trào: Túi tiền tầm trung (60x - 110x cược)
+      minMult = 60;
+      maxMult = 110;
+      break;
+    case 3: // Kinh Nghiệm: Vốn dày dạn (120x - 220x cược)
+      minMult = 120;
+      maxMult = 220;
+      break;
+    case 4: // Cao Thủ: Đại gia sới bạc (240x - 450x cược)
+      minMult = 240;
+      maxMult = 450;
+      break;
+    case 5: // Thần Bài: Vốn khủng (500x - 1000x cược)
+      minMult = 500;
+      maxMult = 1000;
+      break;
+  }
+
+  // Yếu tố tâm lý mạo hiểm (Risk Appetite)
+  const risk = config.riskAppetite ?? 0.7;
+  const riskBonus = (risk - 0.5) * 10;
+
+  // Tính toán số nhân ngẫu nhiên
+  const mult = minMult + Math.random() * (maxMult - minMult) + riskBonus;
+  let rawBankroll = Math.round(effectiveBet * Math.max(minMult, mult));
+
+  // Làm tròn tự nhiên theo bước nhảy số tiền
+  if (rawBankroll < 10000) {
+    rawBankroll = Math.round(rawBankroll / 50) * 50;
+  } else if (rawBankroll < 50000) {
+    rawBankroll = Math.round(rawBankroll / 100) * 100;
+  } else {
+    rawBankroll = Math.round(rawBankroll / 500) * 500;
+  }
+
+  return Math.max(3000, rawBankroll);
+}

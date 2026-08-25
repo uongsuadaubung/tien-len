@@ -4,7 +4,7 @@
 
 ## 1. MÔ HÌNH DỮ LIỆU LÁ BÀI & TỔ HỢP (CORE CARD & COMBINATIONS)
 
-Tọa lạc tại [`src/engine/types.ts`](file:///c:/Users/uongsuadaubung/Desktop/tien_len_mien_nam/src/engine/types.ts):
+Tọa lạc tại [`src/engine/types.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/engine/types.ts):
 
 ```typescript
 export type Suit = 'SPADES' | 'CLUBS' | 'DIAMONDS' | 'HEARTS';
@@ -45,60 +45,86 @@ export interface Combination {
 
 ---
 
-## 2. MÔ HÌNH VÁN ĐẤU & NGƯỜI CHƠI (GAME ENGINE TYPES)
+## 2. MÔ HÌNH TẬP LUẬT HỢP THÀNH (MODULAR GAME RULES)
+
+Tọa lạc tại [`src/engine/types.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/engine/types.ts):
 
 ```typescript
-export type PlayerType = 'HUMAN' | 'BOT';
+export type GameSettlementRule = 'TRADITIONAL_RANK_BASED' | 'CARD_COUNT' | 'WINNER_TAKES_ALL';
 
-export interface Player {
-  id: string;
-  name: string;
-  avatar: string;
-  type: PlayerType;
-  hand: Card[];
-  coins: number;
-  rank?: number;               // 1 = Nhất, 2 = Nhì, 3 = Ba, 4 = Bét
-  elo?: number;
-  isReady?: boolean;
+export interface ChoppingRules {
+  allowFourPairsCutAnytime: boolean; // 4 đôi thông chặt tự do không cần vòng
+  allowThreePairsCutTwo: boolean;    // 3 đôi thông chặt 1 Heo
+  allowFourOfAKindCutPairsOfTwos: boolean; // Tứ quý chặt Đôi Heo
+  multiplier: number;                // Hệ số nhân tiền phạt chặt (1x chuẩn, 2x sòng bạc ngầm)
 }
 
-export interface PlayedMove {
-  playerId: string;
-  cards: Card[];
-  combination: Combination;
-  timestamp: number;
-  isChoppingMove?: boolean;    // Có phải nước đi chặt heo/hàng không
-  choppedTargetMove?: PlayedMove;
+export interface CongRules {
+  enabled: boolean;                  // Có phạt Cóng khi người khác về nhất mà chưa đánh được lá nào
+  penaltyCards: number;              // Số lá bài đền khi Cóng (chuẩn: 26 lá)
+  multiplier: number;                // Hệ số nhân phạt Cóng (1x chuẩn, 2x sòng bạc ngầm)
 }
 
-export interface GameOptions {
-  mode: GameMode;
-  betAmount: number;
-  maxPlayers: number;          // 2 (Solo), 3, hoặc 4 người
-  prohibitEndingWithTwo?: boolean; // Luật Cấm 2 Cuối Cùng
-  freeCutFourPairs?: boolean;      // Luật 4 Đôi Thông Cắt Tự Do
-  allowInstantWin?: boolean;       // Cho phép tới trắng tức thì
+export interface InstantWinRules {
+  enabled: boolean;                  // Cho phép Tới Trắng
+  payoutMultiplier: number;          // Số cược mỗi nhà đền khi Tới Trắng (chuẩn: 26x)
+}
+
+export interface GameFlowRules {
+  firstGameRequireThreeOfSpades: boolean; // Ván đầu tiên bắt buộc đánh lá 3 Bích
+  winnerLeadsNextGame: boolean;           // Người về Nhất ván trước được đi đầu ván sau
+  prohibitEndingWithTwo: boolean;         // Cấm đánh 2 cuối cùng (Cấm về Heo, kèm luật thối Heo)
+}
+
+export interface TableRules {
+  playerCount: 2 | 3 | 4;            // Số người chơi (2: Solo 1v1, 3, 4: Bàn tròn)
+  betAmount: number;                 // Mức cược cơ bản (0 Xu với Ranked)
+  botThinkDelayMs: number;           // Độ trễ suy nghĩ của AI
+  soundEnabled: boolean;
+}
+
+export interface GameRules {
+  settlementRule: GameSettlementRule; // Luật kết thúc ván & tính điểm
+  chopping: ChoppingRules;            // Luật Chặt Heo & Chặt Hàng
+  cong: CongRules;                    // Luật Cóng (Cháy bài)
+  instantWin: InstantWinRules;        // Luật Tới Trắng
+  gameFlow: GameFlowRules;            // Luật Vòng chơi & Quyền đi đầu
+  table: TableRules;                  // Cấu hình Bàn chơi
 }
 ```
 
 ---
 
-## 3. MÔ HÌNH TRÍ TUỆ NHÂN TẠO (AI BOT TYPES)
+## 3. MÔ HÌNH TRÍ TUỆ NHÂN TẠO RULE-FIRST (AI BOT & RULE STRATEGY TYPES)
 
-Tọa lạc tại [`src/ai/decision-maker.ts`](file:///c:/Users/uongsuadaubung/Desktop/tien_len_mien_nam/src/ai/decision-maker.ts) & [`src/ai/bot-factory.ts`](file:///c:/Users/uongsuadaubung/Desktop/tien_len_mien_nam/src/ai/bot-factory.ts):
+Tọa lạc tại [`src/ai/rule-strategies.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/ai/rule-strategies.ts) & [`src/ai/decision-maker.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/ai/decision-maker.ts):
 
 ```typescript
-export interface BotConfig {
-  id: string;
-  name: string;
-  avatar: string;
-  elo: number;
-  tier: 'ROOKIE' | 'CHALLENGER' | 'VETERAN' | 'MASTER' | 'MYTHIC';
-  lookaheadDepth: number;      // Độ sâu dự đoán (0..4)
-  optimalityRate: number;      // Tỉ lệ quyết định tối ưu (0.35..1.0)
-  tempoControl: number;        // Khả năng kiểm soát nhịp độ bàn chơi
-  riskTolerance: number;       // Mức độ chấp nhận rủi ro khi giữ Heo/Hàng
-  trashDisposalPriority: number;// Ưu tiên tẩu rác nhỏ
+export interface RuleLeadPolicy {
+  preferLongestComboFirst: boolean;  // Xả sảnh dài/bộ nhiều lá trước (Đếm lá)
+  dumpSmallTrashFirst: boolean;       // Tẩu rác nhỏ trước (Truyền thống)
+  aggressiveFinisherPush: boolean;    // Đánh bạo lực tranh Nhất (Nhất ăn tất / 1v1)
+}
+
+export interface RuleEmergencyAction {
+  type: 'PLAY' | 'PASS';
+  cards?: Card[];
+  combination?: Combination;
+  reason: string;
+}
+
+export interface RuleStrategyEvaluator {
+  readonly ruleName: string;
+  evaluateEmergency?(context: RuleDecisionContext, validMoves: ValidMoveInfo[]): RuleEmergencyAction | null;
+  contributeLeadPolicy?(currentPolicy: Partial<RuleLeadPolicy>): Partial<RuleLeadPolicy>;
+  getRespondingScoreModifier?(
+    move: ValidMoveInfo,
+    handSize: number,
+    targetMove: PlayedMove | null,
+    context: RuleDecisionContext
+  ): number;
+  getChoppingRiskFactor?(): number;
+  getTrapScoreModifier?(): number;
 }
 
 export interface DecisionContext {
@@ -109,9 +135,14 @@ export interface DecisionContext {
   tracker: CardTracker;
   config: BotConfig;
   remainingPlayerCards: Record<string, number>;
-  nextPlayerId: string;        // Bắt buộc: Định danh người kế tiếp để tối ưu chiến thuật
+  nextPlayerId: string;
+  rules?: GameRules;                 // Toàn bộ tập luật active chi phối ván đấu
+  hasPlayedFirstCard?: boolean;      // Trạng thái đã ra bài hay chưa (kiểm tra Cóng)
   isNextPlayerOneCard?: boolean;
   prohibitEndingWithTwo?: boolean;
+  gameMode?: string;
+  mctsMap?: Map<string, number>;
+  compositeRuleStrategy?: CompositeRuleStrategy;
 }
 
 export interface BotDecision {
@@ -126,7 +157,7 @@ export interface BotDecision {
 
 ## 4. HỆ THỐNG EVENT BUS (CENTRALIZED PUB/SUB)
 
-Tọa lạc tại [`src/engine/event-bus.ts`](file:///c:/Users/uongsuadaubung/Desktop/tien_len_mien_nam/src/engine/event-bus.ts):
+Tọa lạc tại [`src/engine/events/game-event-bus.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/engine/events/game-event-bus.ts):
 
 ```typescript
 export type GameEvent =
@@ -141,15 +172,15 @@ export type GameEvent =
 
 ## 5. CÁC STATE STORES CHÍNH (ZUSTAND STORES)
 
-### 5.1. `useGameStore` ([`src/stores/useGameStore.ts`](file:///c:/Users/uongsuadaubung/Desktop/tien_len_mien_nam/src/stores/useGameStore.ts))
+### 5.1. `useGameStore` ([`src/stores/useGameStore.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/stores/useGameStore.ts))
 - `gameEngine: GameEngine | null`: Đối tượng điều khiển trận đấu.
 - `gameState: GameState | null`: Trạng thái ván đấu đồng bộ cho UI React.
 - `selectedCards: Card[]`: Danh sách bài người chơi đang nhấc lên chuẩn bị đánh.
 - `isDealing: boolean`: Đang trong hoạt ảnh chia bài.
 - `showXRay: boolean`: Trạng thái bật/tắt Soi bài đối thủ.
 
-### 5.2. `useUserStore` ([`src/stores/useUserStore.ts`](file:///c:/Users/uongsuadaubung/Desktop/tien_len_mien_nam/src/stores/useUserStore.ts))
-- `profile: UserProfile`: Thông tin cá nhân, level, EXP, danh hiệu.
+### 5.2. `useUserStore` ([`src/stores/useUserStore.ts`](file:///c:/Users/kien.hm/Desktop/tien-len/src/stores/useUserStore.ts))
+- `profile: PlayerProfile`: Thông tin cá nhân, level, EXP, danh hiệu.
 - `coins: number`: Số dư Xu hiện tại.
 - `undergroundDebt: number`: Số nợ chợ đen cần trả.
 - `quests: Quest[]`: Danh sách 4 nhiệm vụ ngày.
