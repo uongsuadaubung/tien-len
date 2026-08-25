@@ -20,6 +20,7 @@ import { makeBotDecision } from '../ai/decision-maker';
 import { BotConfig } from '../ai/types';
 import { CardTracker } from '../ai/card-tracker';
 import { OpponentProfiler } from '../ai/opponent-profiler';
+import { calculateChopPenalty, calculateRottenPenalty } from './economy';
 
 export interface PlayMoveResult {
   success: boolean;
@@ -772,35 +773,12 @@ export class GameEngine {
    * Tính số tiền phạt cho cú chặt heo/hàng (Áp dụng hệ số chặt từ chopping.multiplier)
    */
   private calculateChopPenalty(target: Combination, candidate: Combination): number {
-    const bet = this.rules.table.betAmount;
-    const mult = this.rules.chopping.multiplier || 1;
-    let base = bet;
-
-    // Chặt 1 Heo
-    if (target.type === 'SINGLE' && isTwo(target.highestCard)) {
-      base = isRedCard(target.highestCard) ? bet * 2 : bet * 1;
-    }
-    // Chặt Đôi Heo
-    else if (target.type === 'PAIR' && isTwo(target.highestCard)) {
-      const redCount = target.cards.filter(isRedCard).length;
-      if (redCount === 2) base = bet * 4; // 2 heo đỏ
-      else if (redCount === 1) base = bet * 3; // 1 đỏ 1 đen
-      else base = bet * 2; // 2 heo đen
-    }
-    // Chặt 3 Đôi Thông
-    else if (target.type === 'THREE_PAIRS_SEQUENTIAL') {
-      base = bet * 3;
-    }
-    // Chặt Tứ Quý
-    else if (target.type === 'FOUR_OF_A_KIND') {
-      base = bet * 4;
-    }
-    // Chặt 4 Đôi Thông
-    else if (target.type === 'FOUR_PAIRS_SEQUENTIAL') {
-      base = bet * 6;
-    }
-
-    return base * mult;
+    return calculateChopPenalty(
+      target, 
+      candidate, 
+      this.rules.table.betAmount, 
+      this.rules.chopping.multiplier || 1
+    ).amount;
   }
 
   /**
@@ -816,30 +794,11 @@ export class GameEngine {
    * Tính tiền phạt Thối Heo/Hàng của một người chơi khi ván kết thúc
    */
   public calculateRottenCardsPenalty(hand: Card[]): number {
-    let penalty = 0;
-    const bet = this.rules.table.betAmount;
-
-    // 1. Thối Heo
-    for (const card of hand) {
-      if (isTwo(card)) {
-        penalty += isRedCard(card) ? bet * 2 : bet * 1;
-      }
-    }
-
-    // 2. Thối Tứ Quý & Đôi thông
-    const rankCounts: Record<number, number> = {};
-    for (const card of hand) {
-      rankCounts[card.rank] = (rankCounts[card.rank] || 0) + 1;
-    }
-
-    // Tứ quý
-    for (const rank in rankCounts) {
-      if (rankCounts[rank] === 4 && Number(rank) < 15) {
-        penalty += bet * 4;
-      }
-    }
-
-    return penalty;
+    return calculateRottenPenalty(
+      hand, 
+      this.rules.table.betAmount, 
+      this.rules.chopping.multiplier || 1
+    );
   }
 
   /**
