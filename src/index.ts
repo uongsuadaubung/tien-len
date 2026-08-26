@@ -4,6 +4,7 @@ export * from './engine/combinations';
 export * from './engine/validator';
 export * from './engine/deck';
 export * from './engine/game';
+export * from './engine/hand-sorter';
 
 export * from './ai/types';
 export * from './ai/hand-partitioner';

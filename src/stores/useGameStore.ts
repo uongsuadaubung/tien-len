@@ -17,6 +17,8 @@ import { MoveHint } from '../ai/hint-engine';
 export type ActiveGameType = 'QUICK' | 'RANKED' | 'CAMPAIGN' | 'UNDERGROUND';
 export type ScreenType = 'LOBBY' | 'GAME_TABLE';
 
+export type HandSortMode = 'NATURAL' | 'SMART_GROUP';
+
 export interface ChopNotificationData {
   visible: boolean;
   chopperName: string;
@@ -58,6 +60,8 @@ interface GameState {
   // Player Hand Interaction
   selectedCardIds: Set<string>;
   currentHint: MoveHint | null;
+  handSortMode: HandSortMode;
+  smartVariantIndex: number;
 
   // Match Settlement
   matchPayouts: Record<string, number>;
@@ -97,6 +101,9 @@ interface GameState {
   toggleCardSelect: (cardId: string) => void;
   clearCardSelection: () => void;
   setCurrentHint: (hint: MoveHint | null) => void;
+  setHandSortMode: (mode: HandSortMode) => void;
+  toggleHandSortMode: () => void;
+  setSmartVariantIndex: (index: number) => void;
 
   setMatchPayouts: (payouts: Record<string, number>) => void;
   setLoanDeductionAmount: (amount: number) => void;
@@ -197,6 +204,8 @@ export const useGameStore = create<GameState>((set) => ({
 
   selectedCardIds: new Set<string>(),
   currentHint: null,
+  handSortMode: 'NATURAL',
+  smartVariantIndex: 0,
 
   matchPayouts: {},
   loanDeductionAmount: 0,
@@ -260,6 +269,11 @@ export const useGameStore = create<GameState>((set) => ({
   }),
   clearCardSelection: () => set({ selectedCardIds: new Set<string>() }),
   setCurrentHint: (hint) => set({ currentHint: hint }),
+  setHandSortMode: (mode) => set({ handSortMode: mode }),
+  toggleHandSortMode: () => set((state) => ({
+    handSortMode: state.handSortMode === 'NATURAL' ? 'SMART_GROUP' : 'NATURAL'
+  })),
+  setSmartVariantIndex: (index) => set({ smartVariantIndex: index }),
 
   setMatchPayouts: (payouts) => set({ matchPayouts: payouts }),
   setLoanDeductionAmount: (amount) => set({ loanDeductionAmount: amount }),
@@ -278,6 +292,7 @@ export const useGameStore = create<GameState>((set) => ({
     isThreeSpadesWin: false,
     selectedCardIds: new Set<string>(),
     currentHint: null,
+    smartVariantIndex: 0,
     matchPayouts: {},
     loanDeductionAmount: 0,
     lastEloDelta: 0

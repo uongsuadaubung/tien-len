@@ -65,6 +65,8 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
     currentMove,
     selectedCardIds,
     currentHint,
+    handSortMode,
+    smartVariantIndex,
     toggleCardSelect,
     clearCardSelection
   } = useGameStore();
@@ -245,6 +247,8 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
               dealtCardsCount={dealtCounts['p0']}
               aiHintEnabled={aiHintEnabled}
               isFirstMoveOfGame={engineRef.current?.isFirstMoveOfGame ?? false}
+              sortMode={handSortMode}
+              variantIndex={smartVariantIndex}
             />
           )}
         </div>

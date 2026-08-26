@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { Card } from '../../engine/types';
 import { sortCards } from '../../engine/card';
+import { sortCardsSmart, getAvailableSmartVariants } from '../../engine/hand-sorter';
 import { GameEngine } from '../../engine/game';
 import { getBotConfig, generateRandomBotConfig, generateRealisticBotBankroll } from '../../ai/bot-factory';
 import { CardTracker } from '../../ai/card-tracker';
@@ -57,6 +58,8 @@ export function useGameMatchLoop() {
     isGameOver,
     selectedCardIds,
     currentHint,
+    handSortMode,
+    smartVariantIndex,
     setPlayerCount,
     setBotPersonaIds,
     updateBotPersonaAt,
@@ -65,6 +68,8 @@ export function useGameMatchLoop() {
     setGameNumber,
     setGameRules,
     setGameSettings,
+    setHandSortMode,
+    setSmartVariantIndex,
     setIsDealing,
     setDealtCounts,
     setDealBanner,
@@ -777,16 +782,38 @@ export function useGameMatchLoop() {
     }
   }, [clearCardSelection, syncGameState]);
 
-  // Người Chơi Tự Động Xếp Bài
+  // Người Chơi Tự Động Xếp Bài (Xoay vòng đa phương án Gom Nhóm Bộ -> Xếp Điểm 3->2)
   const handleAutoSort = useCallback(() => {
     if (!engineRef.current) return;
     const engine = engineRef.current;
     const p0 = engine.getPlayer('p0');
     if (p0) {
-      p0.hand = sortCards(p0.hand);
+      const variants = getAvailableSmartVariants(p0.hand);
+
+      if (handSortMode === 'NATURAL') {
+        // Chuyển từ Điểm sang Bộ Phương Án 1 (index 0)
+        setHandSortMode('SMART_GROUP');
+        setSmartVariantIndex(0);
+        p0.hand = sortCardsSmart(p0.hand, 0);
+      } else {
+        // Đang ở SMART_GROUP
+        if (smartVariantIndex < variants.length - 1) {
+          // Còn phương án bộ tiếp theo
+          const nextIdx = smartVariantIndex + 1;
+          setSmartVariantIndex(nextIdx);
+          p0.hand = sortCardsSmart(p0.hand, nextIdx);
+        } else {
+          // Đã ở phương án bộ cuối -> Quay về Xếp Điểm (NATURAL)
+          setHandSortMode('NATURAL');
+          setSmartVariantIndex(0);
+          p0.hand = sortCards(p0.hand);
+        }
+      }
+
       setPlayers([...engine.players]);
+      soundManager.playCardDeal();
     }
-  }, [setPlayers]);
+  }, [handSortMode, smartVariantIndex, setHandSortMode, setSmartVariantIndex, setPlayers]);
 
   // Người Chơi Áp Dụng Gợi Ý AI
   const handleApplyAiHint = useCallback(() => {
