@@ -80,6 +80,10 @@ describe('Zustand State Stores Integration Tests (Kiểm Thử Tích Hợp State
     expect(useSettingsStore.getState().botReasoningLogEnabled).toBe(true);
     settingsStore.toggleBotReasoningLog();
     expect(useSettingsStore.getState().botReasoningLogEnabled).toBe(false);
+
+    expect(useSettingsStore.getState().gameSpeed).toBe('REALISTIC');
+    settingsStore.setGameSpeed('FAST');
+    expect(useSettingsStore.getState().gameSpeed).toBe('FAST');
   });
 
   it('5. useGameStore: resetMatchState làm sạch 100% dữ liệu bàn đấu và bộ nhớ tạm', () => {

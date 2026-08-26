@@ -302,7 +302,6 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       table: {
         playerCount: 2,
         betAmount: 2000,
-        botThinkDelayMs: 600,
         soundEnabled: true
       }
     });
@@ -336,7 +335,6 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       table: {
         playerCount: 4,
         betAmount: 5000,
-        botThinkDelayMs: 800,
         soundEnabled: true
       }
     });

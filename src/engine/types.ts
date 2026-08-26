@@ -91,7 +91,6 @@ export function updateTupleAt<T>(tuple: [T, T, T], index: number, value: T): [T,
 export interface TableRules {
   playerCount: PlayerCount;          // Số người chơi
   betAmount: number;                 // Mức cược cơ bản (0 Xu với Ranked)
-  botThinkDelayMs: number;           // Độ trễ suy nghĩ của AI
   soundEnabled: boolean;
 }
 
@@ -157,7 +156,6 @@ export interface GameSettings {
   allowFourPairsCutAnytime: boolean; // 4 đôi thông chặt tự do không cần vòng (chuẩn = true)
   instantWinEnabled: boolean;
   soundEnabled: boolean;
-  botThinkDelayMs: number;
   playerCount: PlayerCount;          // 2, 3 hoặc 4 người chơi
   prohibitEndingWithTwo: boolean;    // Cấm đánh 2 cuối cùng (Cấm về Heo)
   threeSpadesEndingBonus: boolean;   // Về 3 Bích cuối cùng x2 tiền thưởng cả làng
@@ -199,7 +197,6 @@ export function createDefaultGameRules(partial?: DeepPartial<GameRules>): GameRu
     table: {
       playerCount: normalizePlayerCount(partial?.table?.playerCount),
       betAmount: partial?.table?.betAmount ?? 1000,
-      botThinkDelayMs: partial?.table?.botThinkDelayMs ?? 800,
       soundEnabled: partial?.table?.soundEnabled ?? true
     }
   };
@@ -235,7 +232,6 @@ export function convertSettingsToGameRules(settings?: Partial<GameSettings>): Ga
     table: {
       playerCount: normalizePlayerCount(settings?.playerCount),
       betAmount: settings?.betAmount ?? 1000,
-      botThinkDelayMs: settings?.botThinkDelayMs ?? 800,
       soundEnabled: settings?.soundEnabled ?? true
     }
   });
@@ -390,7 +386,6 @@ export class TableRulesBuilder {
     this.config = initial ? { ...initial } : {
       playerCount: 4,
       betAmount: 1000,
-      botThinkDelayMs: 800,
       soundEnabled: true
     };
   }
@@ -402,11 +397,6 @@ export class TableRulesBuilder {
 
   public betAmount(amount: number): this {
     this.config.betAmount = amount;
-    return this;
-  }
-
-  public botThinkDelayMs(delayMs: number): this {
-    this.config.botThinkDelayMs = delayMs;
     return this;
   }
 
@@ -437,28 +427,28 @@ export class GameRulesBuilder {
   public static traditional(): GameRulesBuilder {
     return new GameRulesBuilder(createDefaultGameRules({
       settlementRule: 'TRADITIONAL_RANK_BASED',
-      table: { playerCount: 4, betAmount: 1000, botThinkDelayMs: 850, soundEnabled: true }
+      table: { playerCount: 4, betAmount: 1000, soundEnabled: true }
     }));
   }
 
   public static countCards(): GameRulesBuilder {
     return new GameRulesBuilder(createDefaultGameRules({
       settlementRule: 'CARD_COUNT',
-      table: { playerCount: 4, betAmount: 1000, botThinkDelayMs: 750, soundEnabled: true }
+      table: { playerCount: 4, betAmount: 1000, soundEnabled: true }
     }));
   }
 
   public static winnerTakesAll(): GameRulesBuilder {
     return new GameRulesBuilder(createDefaultGameRules({
       settlementRule: 'WINNER_TAKES_ALL',
-      table: { playerCount: 4, betAmount: 1000, botThinkDelayMs: 800, soundEnabled: true }
+      table: { playerCount: 4, betAmount: 1000, soundEnabled: true }
     }));
   }
 
   public static solo1v1(): GameRulesBuilder {
     return new GameRulesBuilder(createDefaultGameRules({
       settlementRule: 'CARD_COUNT',
-      table: { playerCount: 2, betAmount: 1000, botThinkDelayMs: 650, soundEnabled: true }
+      table: { playerCount: 2, betAmount: 1000, soundEnabled: true }
     }));
   }
 

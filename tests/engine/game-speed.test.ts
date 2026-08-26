@@ -55,7 +55,7 @@ describe('Game Speed & Dynamic Bot Thinking Timing (Giả lập thời gian suy 
     const result = calculateDynamicBotDelay(context, 'DELIBERATE');
     expect(result.delayMs).toBeGreaterThanOrEqual(2500);
     expect(result.delayMs).toBeLessThanOrEqual(3300);
-    expect(result.thoughtText).toContain('🧠');
+    expect(result.thoughtText).toBe('🤔 Đang suy nghĩ...');
   });
 
   test('3. Chế độ REALISTIC (Chân Thực): Bỏ lượt dứt khoát nhanh chóng (550ms - 800ms)', () => {
@@ -71,7 +71,7 @@ describe('Game Speed & Dynamic Bot Thinking Timing (Giả lập thời gian suy 
     const result = calculateDynamicBotDelay(context, 'REALISTIC');
     expect(result.delayMs).toBeGreaterThanOrEqual(550);
     expect(result.delayMs).toBeLessThanOrEqual(800);
-    expect(result.thoughtText).toContain('Bỏ lượt');
+    expect(result.thoughtText).toBe('🤔 Đang suy nghĩ...');
   });
 
   test('4. Chế độ REALISTIC (Chân Thực): Cực kỳ căng thẳng khi gặp Heo/Hàng (2.4s - 3.1s)', () => {
@@ -87,7 +87,7 @@ describe('Game Speed & Dynamic Bot Thinking Timing (Giả lập thời gian suy 
     const result = calculateDynamicBotDelay(context, 'REALISTIC');
     expect(result.delayMs).toBeGreaterThanOrEqual(2400);
     expect(result.delayMs).toBeLessThanOrEqual(3100);
-    expect(result.thoughtText).toContain('chặt Heo');
+    expect(result.thoughtText).toBe('🤔 Đang suy nghĩ...');
   });
 
   test('5. Chế độ REALISTIC (Chân Thực): Cân não chặn đầu khi người kế bên còn 1 lá (2.2s - 2.8s)', () => {
@@ -103,7 +103,7 @@ describe('Game Speed & Dynamic Bot Thinking Timing (Giả lập thời gian suy 
     const result = calculateDynamicBotDelay(context, 'REALISTIC');
     expect(result.delayMs).toBeGreaterThanOrEqual(2200);
     expect(result.delayMs).toBeLessThanOrEqual(2800);
-    expect(result.thoughtText).toContain('Chặn người 1 lá');
+    expect(result.thoughtText).toBe('🤔 Đang suy nghĩ...');
   });
 
   test('6. Chế độ REALISTIC (Chân Thực): Lượt mở màn ván / cầm cái (1.1s - 1.6s)', () => {
@@ -119,6 +119,6 @@ describe('Game Speed & Dynamic Bot Thinking Timing (Giả lập thời gian suy 
     const result = calculateDynamicBotDelay(context, 'REALISTIC');
     expect(result.delayMs).toBeGreaterThanOrEqual(1100);
     expect(result.delayMs).toBeLessThanOrEqual(1600);
-    expect(result.thoughtText).toContain('mở đầu');
+    expect(result.thoughtText).toBe('🤔 Đang suy nghĩ...');
   });
 });

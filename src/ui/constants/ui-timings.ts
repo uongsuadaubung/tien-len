@@ -14,9 +14,5 @@ export const UI_TIMINGS = {
 
   // Thông báo & Banner
   BANNER_DISPLAY_DURATION_MS: 2800, // Thời gian hiển thị Banner mở màn
-  CHOP_ALERT_DURATION_MS: 2500,     // Thời gian hiển thị Thông báo chặt Heo/Hàng
-
-  // Bot AI Thinking
-  DEFAULT_BOT_THINK_DELAY_MS: 850,  // Độ trễ suy nghĩ mặc định của Bot
-  MIN_BOT_THINK_DELAY_MS: 50        // Độ trễ tối thiểu an toàn để tránh lag UI
+  CHOP_ALERT_DURATION_MS: 2500      // Thời gian hiển thị Thông báo chặt Heo/Hàng
 } as const;

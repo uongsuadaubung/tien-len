@@ -25,7 +25,6 @@ export interface TableConfigState {
   threeSpadesEndingBonus?: boolean;
   cascadeChopEnabled?: boolean;
   instantWinEnabled?: boolean;
-  botThinkDelayMs?: number;
 }
 
 const PLAYER_COUNT_OPTIONS: readonly { count: PlayerCount; label: string; desc: string }[] = [
@@ -44,7 +43,6 @@ export interface TableRulesConfigPanelProps {
   playerCoins: number;
   config: TableConfigState;
   onChange: (updated: Partial<TableConfigState>) => void;
-  showBotThinkDelay?: boolean;
   showInstantWin?: boolean;
   showCongOption?: boolean;
 }
@@ -55,7 +53,6 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
   playerCoins,
   config,
   onChange,
-  showBotThinkDelay = true,
   showInstantWin = true,
   showCongOption = false
 }) => {
@@ -682,27 +679,6 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
             </div>
           )}
         </div>
-
-        {/* TỐC ĐỘ SUY NGHĨ CỦA BOT */}
-        {showBotThinkDelay && config.botThinkDelayMs !== undefined && (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-container)]">
-            <div>
-              <div className="text-xs font-semibold text-[var(--text-primary)]">Độ Trễ Nước Đi Của Bot</div>
-              <div className="text-[10px] text-[var(--text-muted)]">Thời gian quan sát nước đánh: <span className="text-[var(--color-gold)] font-bold">{config.botThinkDelayMs}ms</span></div>
-            </div>
-            <div className="flex items-center gap-2 w-full sm:w-44">
-              <input
-                type="range"
-                min={300}
-                max={1800}
-                step={50}
-                value={config.botThinkDelayMs}
-                onChange={(e) => onChange({ botThinkDelayMs: parseInt(e.target.value, 10) })}
-                className="w-full accent-[var(--color-gold)] cursor-pointer"
-              />
-            </div>
-          </div>
-        )}
       </Card>
     </div>
   );

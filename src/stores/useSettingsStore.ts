@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { UI_TIMINGS } from '../ui/constants/ui-timings';
 import { GameSpeedMode } from '../engine/game-speed';
 
 /**
@@ -15,7 +14,6 @@ interface SettingsState {
   aiHintEnabled: boolean;
   xrayEnabled: boolean;
   botReasoningLogEnabled: boolean;
-  botThinkDelayMs: number;
   gameSpeed: GameSpeedMode;
 
   // Actions
@@ -31,7 +29,6 @@ interface SettingsState {
   setAiHintEnabled: (enabled: boolean) => void;
   setXRayEnabled: (enabled: boolean) => void;
   setBotReasoningLogEnabled: (enabled: boolean) => void;
-  setBotThinkDelayMs: (delay: number) => void;
   setGameSpeed: (speed: GameSpeedMode) => void;
 }
 
@@ -42,7 +39,6 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   aiHintEnabled: false,
   xrayEnabled: false, // Mặc định TẮT soi bài
   botReasoningLogEnabled: false, // Mặc định TẮT (người chơi có thể bật trong Settings)
-  botThinkDelayMs: UI_TIMINGS.DEFAULT_BOT_THINK_DELAY_MS,
   gameSpeed: 'REALISTIC', // Mặc định: Giả lập thời gian suy nghĩ chân thực động
 
   toggleSound: () => set((state) => ({ soundEnabled: !state.soundEnabled })),
@@ -58,6 +54,5 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setAiHintEnabled: (enabled) => set({ aiHintEnabled: enabled }),
   setXRayEnabled: (enabled) => set({ xrayEnabled: enabled }),
   setBotReasoningLogEnabled: (enabled) => set({ botReasoningLogEnabled: enabled }),
-  setBotThinkDelayMs: (delay) => set({ botThinkDelayMs: delay }),
   setGameSpeed: (speed) => set({ gameSpeed: speed })
 }));

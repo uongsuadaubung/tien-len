@@ -71,7 +71,6 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
     allowFourPairsCutAnytime: initialConfig?.settings?.allowFourPairsCutAnytime ?? true,
     instantWinEnabled: initialConfig?.settings?.instantWinEnabled ?? true,
     soundEnabled: initialConfig?.settings?.soundEnabled ?? true,
-    botThinkDelayMs: initialConfig?.settings?.botThinkDelayMs ?? 800,
     prohibitEndingWithTwo: initialConfig?.settings?.prohibitEndingWithTwo ?? true,
     threeSpadesEndingBonus: initialConfig?.settings?.threeSpadesEndingBonus ?? true,
     cascadeChopEnabled: initialConfig?.settings?.cascadeChopEnabled ?? true
@@ -240,7 +239,6 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
             congEnabled
           }}
           onChange={handleTableConfigChange}
-          showBotThinkDelay={true}
           showInstantWin={true}
           showCongOption={false}
         />

@@ -649,28 +649,28 @@ export function resolveCompositeRuleStrategy(
     case 'COUNT_CARDS':
       defaultRules = createDefaultGameRules({
         settlementRule: 'CARD_COUNT',
-        table: { playerCount: 4, betAmount: 500, botThinkDelayMs: 700, soundEnabled: true }
+        table: { playerCount: 4, betAmount: 500, soundEnabled: true }
       });
       break;
 
     case 'WINNER_TAKES_ALL':
       defaultRules = createDefaultGameRules({
         settlementRule: 'WINNER_TAKES_ALL',
-        table: { playerCount: 4, betAmount: 1000, botThinkDelayMs: 800, soundEnabled: true }
+        table: { playerCount: 4, betAmount: 1000, soundEnabled: true }
       });
       break;
 
     case 'SOLO_1V1':
       defaultRules = createDefaultGameRules({
         settlementRule: 'CARD_COUNT',
-        table: { playerCount: 2, betAmount: 1000, botThinkDelayMs: 650, soundEnabled: true }
+        table: { playerCount: 2, betAmount: 1000, soundEnabled: true }
       });
       break;
 
     case 'CAMPAIGN':
       defaultRules = createDefaultGameRules({
         settlementRule: 'CARD_COUNT',
-        table: { playerCount: 4, betAmount: 100, botThinkDelayMs: 850, soundEnabled: true }
+        table: { playerCount: 4, betAmount: 100, soundEnabled: true }
       });
       break;
 
@@ -680,7 +680,7 @@ export function resolveCompositeRuleStrategy(
     default:
       defaultRules = createDefaultGameRules({
         settlementRule: 'TRADITIONAL_RANK_BASED',
-        table: { playerCount: 4, betAmount: 500, botThinkDelayMs: 850, soundEnabled: true }
+        table: { playerCount: 4, betAmount: 500, soundEnabled: true }
       });
       break;
   }
@@ -791,7 +791,6 @@ export class GameFlowRuleStrategyBuilder {
 export class TableScaleRuleStrategyBuilder {
   private _playerCount: 2 | 3 | 4 = 4;
   private _betAmount: number = 500;
-  private _botThinkDelayMs: number = 800;
   private _soundEnabled: boolean = true;
 
   public playerCount(count: 2 | 3 | 4): this {
@@ -804,11 +803,6 @@ export class TableScaleRuleStrategyBuilder {
     return this;
   }
 
-  public botThinkDelayMs(delayMs: number): this {
-    this._botThinkDelayMs = delayMs;
-    return this;
-  }
-
   public soundEnabled(enabled: boolean): this {
     this._soundEnabled = enabled;
     return this;
@@ -818,7 +812,6 @@ export class TableScaleRuleStrategyBuilder {
     return new TableScaleRuleStrategy({
       playerCount: this._playerCount,
       betAmount: this._betAmount,
-      botThinkDelayMs: this._botThinkDelayMs,
       soundEnabled: this._soundEnabled
     });
   }

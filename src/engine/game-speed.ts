@@ -34,17 +34,17 @@ export function calculateDynamicBotDelay(
   if (speedMode === 'FAST') {
     return {
       delayMs: 350 + Math.floor(Math.random() * 250),
-      thoughtText: '⚡ Đánh nhanh...'
+      thoughtText: '⚡ Đang đi...'
     };
   }
 
   if (speedMode === 'DELIBERATE') {
     if (!context.hasValidMoves && !context.isLead) {
-      return { delayMs: 1200, thoughtText: '❌ Không theo...' };
+      return { delayMs: 1200, thoughtText: '🤔 Đang suy nghĩ...' };
     }
     return {
       delayMs: 2500 + Math.floor(Math.random() * 800),
-      thoughtText: '🧠 Cân não tính toán...'
+      thoughtText: '🤔 Đang suy nghĩ...'
     };
   }
 
@@ -53,23 +53,23 @@ export function calculateDynamicBotDelay(
   if (!context.hasValidMoves && !context.isLead) {
     return {
       delayMs: 550 + Math.floor(Math.random() * 250),
-      thoughtText: '🙅 Bỏ lượt'
+      thoughtText: '🤔 Đang suy nghĩ...'
     };
   }
 
-  // 2. Căng thẳng: Đối thủ đánh Heo / Hàng -> Cân nhắc chặt
+  // 2. Gặp Heo / Hàng -> Cân nhắc kỹ
   if (context.isFacingHeoOrChop) {
     return {
       delayMs: 2400 + Math.floor(Math.random() * 700),
-      thoughtText: '🔥 Cân nhắc chặt Heo...'
+      thoughtText: '🤔 Đang suy nghĩ...'
     };
   }
 
-  // 3. Căng thẳng: Người kế tiếp còn 1 lá -> Cân nhắc chặn đầu
+  // 3. Người kế tiếp còn 1 lá -> Cân nhắc kỹ
   if (context.isNextOneCard) {
     return {
       delayMs: 2200 + Math.floor(Math.random() * 600),
-      thoughtText: '⚠️ Chặn người 1 lá...'
+      thoughtText: '🤔 Đang suy nghĩ...'
     };
   }
 
@@ -77,13 +77,13 @@ export function calculateDynamicBotDelay(
   if (context.isLead) {
     return {
       delayMs: 1100 + Math.floor(Math.random() * 500),
-      thoughtText: '🎯 Chọn bài mở đầu...'
+      thoughtText: '🤔 Đang suy nghĩ...'
     };
   }
 
   // 5. Nước đi thường
   return {
     delayMs: 900 + Math.floor(Math.random() * 400),
-    thoughtText: '🤔 Đang tính nước...'
+    thoughtText: '🤔 Đang suy nghĩ...'
   };
 }

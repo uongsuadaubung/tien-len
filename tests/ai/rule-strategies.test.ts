@@ -292,7 +292,7 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
       const context = createMockRuleDecisionContext({
         hand: [cAS],
         remainingPlayerCards: { p0: 5, p1: 5 },
-        rules: createDefaultGameRules({ table: { playerCount: 2, betAmount: 500, botThinkDelayMs: 650, soundEnabled: true } }),
+        rules: createDefaultGameRules({ table: { playerCount: 2, betAmount: 500, soundEnabled: true } }),
         antiLeaderAggression: 1.0
       });
 
@@ -316,7 +316,7 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
           multiplier: 2,
           cascadeMultiplier: true
         },
-        table: { playerCount: 2, betAmount: 1000, botThinkDelayMs: 700, soundEnabled: true }
+        table: { playerCount: 2, betAmount: 1000, soundEnabled: true }
       });
 
       const composite = resolveCompositeRuleStrategy(customRules);
@@ -336,7 +336,7 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
 
       const customRules = createDefaultGameRules({
         settlementRule: 'CARD_COUNT',
-        table: { playerCount: 4, betAmount: 500, botThinkDelayMs: 700, soundEnabled: true }
+        table: { playerCount: 4, betAmount: 500, soundEnabled: true }
       });
 
       const c9S = createCard(9, 'SPADES');
@@ -456,7 +456,6 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
         .withTable(t => t
           .playerCount(4)
           .betAmount(2000)
-          .botThinkDelayMs(600)
         )
         .build();
 
@@ -466,7 +465,6 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
       expect(customRules.cong.multiplier).toBe(2);
       expect(customRules.gameFlow.threeSpadesEndingBonus).toBe(true);
       expect(customRules.table.betAmount).toBe(2000);
-      expect(customRules.table.botThinkDelayMs).toBe(600);
     });
 
     it('GameRulesBuilder hỗ trợ Preset Profiles kế thừa và ghi đè linh hoạt', () => {

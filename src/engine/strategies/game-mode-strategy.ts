@@ -177,7 +177,6 @@ function createMatchSetupResult(
     allowFourPairsCutAnytime: rules.chopping.allowFourPairsCutAnytime,
     instantWinEnabled: rules.instantWin.enabled,
     soundEnabled: rules.table.soundEnabled,
-    botThinkDelayMs: rules.table.botThinkDelayMs,
     prohibitEndingWithTwo: rules.gameFlow.prohibitEndingWithTwo,
     threeSpadesEndingBonus: rules.gameFlow.threeSpadesEndingBonus,
     cascadeChopEnabled: rules.chopping.cascadeMultiplier
@@ -254,7 +253,6 @@ export class TraditionalModeStrategy implements GameModeStrategy {
       .withTable(t => t
         .playerCount(playerCount)
         .betAmount(betAmount)
-        .botThinkDelayMs(context.customRules?.table?.botThinkDelayMs ?? context.customSettings?.botThinkDelayMs ?? 850)
       )
       .build();
 
@@ -313,7 +311,6 @@ export class CountCardsModeStrategy implements GameModeStrategy {
       .withTable(t => t
         .playerCount(playerCount)
         .betAmount(betAmount)
-        .botThinkDelayMs(context.customRules?.table?.botThinkDelayMs ?? context.customSettings?.botThinkDelayMs ?? 850)
       )
       .build();
 
@@ -361,7 +358,6 @@ export class CampaignModeStrategy implements GameModeStrategy {
       .withTable(t => t
         .playerCount(4)
         .betAmount(betAmount)
-        .botThinkDelayMs(850)
       )
       .build();
 
@@ -423,7 +419,6 @@ export class WinnerTakesAllModeStrategy implements GameModeStrategy {
       .withTable(t => t
         .playerCount(playerCount)
         .betAmount(betAmount)
-        .botThinkDelayMs(context.customRules?.table?.botThinkDelayMs ?? context.customSettings?.botThinkDelayMs ?? 850)
       )
       .build();
 

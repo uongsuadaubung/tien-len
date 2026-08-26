@@ -83,7 +83,6 @@ export class GameEngine {
       allowFourPairsCutAnytime: this.rules.chopping.allowFourPairsCutAnytime,
       instantWinEnabled: this.rules.instantWin.enabled,
       soundEnabled: this.rules.table.soundEnabled,
-      botThinkDelayMs: this.rules.table.botThinkDelayMs,
       playerCount: this.rules.table.playerCount,
       prohibitEndingWithTwo: this.rules.gameFlow.prohibitEndingWithTwo,
       threeSpadesEndingBonus: this.rules.gameFlow.threeSpadesEndingBonus,

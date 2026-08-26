@@ -136,7 +136,6 @@ const customRules = new GameRulesBuilder()
   .configureTable({
     playerCount: 4,
     betAmount: 1000,
-    botThinkDelayMs: 600,
     soundEnabled: true
   })
   .build();

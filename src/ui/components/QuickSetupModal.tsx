@@ -40,8 +40,7 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
     allowFourPairsCutAnytime: true,
     threeSpadesEndingBonus: true,
     cascadeChopEnabled: true,
-    instantWinEnabled: true,
-    botThinkDelayMs: 800
+    instantWinEnabled: true
   });
 
   const currentMultiplier = config.choppingMultiplier || 1;
@@ -118,7 +117,6 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
         playerCoins={playerCoins}
         config={config}
         onChange={handleConfigChange}
-        showBotThinkDelay={false}
         showInstantWin={false}
         showCongOption={true}
       />

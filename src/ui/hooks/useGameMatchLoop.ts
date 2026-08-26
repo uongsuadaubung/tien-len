@@ -44,7 +44,6 @@ export function useGameMatchLoop() {
   const {
     autoSortEnabled,
     aiHintEnabled,
-    botThinkDelayMs,
     gameSpeed
   } = useSettingsStore();
 

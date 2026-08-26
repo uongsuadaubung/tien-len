@@ -178,7 +178,6 @@ const DEFAULT_GAME_SETTINGS: GameSettings = {
   allowFourPairsCutAnytime: true,
   instantWinEnabled: true,
   soundEnabled: true,
-  botThinkDelayMs: 800,
   prohibitEndingWithTwo: true,
   threeSpadesEndingBonus: true,
   cascadeChopEnabled: true

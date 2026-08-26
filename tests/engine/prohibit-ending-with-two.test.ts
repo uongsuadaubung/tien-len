@@ -159,7 +159,7 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
       const rules = createDefaultGameRules({
         settlementRule: 'CARD_COUNT',
         gameFlow: { firstGameRequireThreeOfSpades: false, winnerLeadsNextGame: true, prohibitEndingWithTwo: true },
-        table: { betAmount: 100, playerCount: 4, botThinkDelayMs: 500, soundEnabled: false }
+        table: { betAmount: 100, playerCount: 4, soundEnabled: false }
       });
       const engine = new GameEngine(players, rules);
       engine.startCustomGame(2);

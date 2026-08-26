@@ -61,7 +61,6 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
         table: {
           playerCount: 4,
           betAmount: 500,
-          botThinkDelayMs: 850,
           soundEnabled: true
         }
       },
@@ -93,7 +92,6 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
         table: {
           playerCount: 2,
           betAmount: 200,
-          botThinkDelayMs: 850,
           soundEnabled: true
         }
       },
@@ -119,7 +117,6 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
         table: {
           playerCount: 3,
           betAmount: 1000,
-          botThinkDelayMs: 850,
           soundEnabled: true
         }
       },
@@ -140,7 +137,7 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
       chopping: { multiplier: 2, allowFourPairsCutAnytime: true, allowThreePairsCutTwo: true, allowFourOfAKindCutPairsOfTwos: true },
       cong: { multiplier: 2, enabled: true },
       gameFlow: { prohibitEndingWithTwo: true },
-      table: { playerCount: 4, betAmount: 500, soundEnabled: true, botThinkDelayMs: 850 }
+      table: { playerCount: 4, betAmount: 500, soundEnabled: true }
     });
 
     const p0: Player = { id: 'p0', name: 'Bạn', avatar: '🤠', isBot: false, hand: [], playedCards: [], score: 50000, isPassedCurrentRound: false, hasPlayedFirstCard: false };

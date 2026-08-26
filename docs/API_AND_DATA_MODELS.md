@@ -86,7 +86,6 @@ export interface GameFlowRules {
 export interface TableRules {
   playerCount: PlayerCount;          // Số người chơi (2: Solo 1v1, 3, 4: Bàn tròn)
   betAmount: number;                 // Mức cược cơ bản (0 Xu với Ranked)
-  botThinkDelayMs: number;           // Độ trễ suy nghĩ của AI
   soundEnabled: boolean;
 }
 
@@ -115,7 +114,7 @@ const rules = new GameRulesBuilder()
   .configureChopping({ multiplier: 2, allowFourPairsCutAnytime: true })
   .configureCong({ enabled: true, penaltyCards: 26, multiplier: 2 })
   .configureGameFlow({ prohibitEndingWithTwo: true, threeSpadesEndingBonus: true })
-  .configureTable({ playerCount: 4, betAmount: 1000, botThinkDelayMs: 600, soundEnabled: true })
+  .configureTable({ playerCount: 4, betAmount: 1000, soundEnabled: true })
   .build();
 ```
 

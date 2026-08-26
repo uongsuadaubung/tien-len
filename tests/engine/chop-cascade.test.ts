@@ -87,7 +87,7 @@ describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạ
       const rules = new GameRulesBuilder()
         .withInstantWin(w => w.enabled(false))
         .withChopping(c => c.cascadeMultiplier(true))
-        .withTable(t => t.betAmount(1000).playerCount(4).botThinkDelayMs(0).soundEnabled(false))
+        .withTable(t => t.betAmount(1000).playerCount(4).soundEnabled(false))
         .build();
 
       const game = new GameEngine(players, rules);
@@ -120,7 +120,7 @@ describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạ
       const rules = new GameRulesBuilder()
         .withInstantWin(w => w.enabled(false))
         .withChopping(c => c.cascadeMultiplier(true))
-        .withTable(t => t.betAmount(1000).playerCount(4).botThinkDelayMs(0).soundEnabled(false))
+        .withTable(t => t.betAmount(1000).playerCount(4).soundEnabled(false))
         .build();
 
       const game = new GameEngine(players, rules);
@@ -163,7 +163,7 @@ describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạ
       const rules = new GameRulesBuilder()
         .withInstantWin(w => w.enabled(false))
         .withChopping(c => c.cascadeMultiplier(true))
-        .withTable(t => t.betAmount(1000).playerCount(4).botThinkDelayMs(0).soundEnabled(false))
+        .withTable(t => t.betAmount(1000).playerCount(4).soundEnabled(false))
         .build();
 
       const game = new GameEngine(players, rules);
@@ -208,7 +208,7 @@ describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạ
       const rules = new GameRulesBuilder()
         .withInstantWin(w => w.enabled(false))
         .withChopping(c => c.cascadeMultiplier(false))
-        .withTable(t => t.betAmount(1000).playerCount(4).botThinkDelayMs(0).soundEnabled(false))
+        .withTable(t => t.betAmount(1000).playerCount(4).soundEnabled(false))
         .build();
 
       const game = new GameEngine(players, rules);

@@ -23,7 +23,6 @@ export interface GameModeDefinition {
     settlementType: GameSettlementType;
     allowFourPairsCutAnytime: boolean;
     instantWinEnabled: boolean;
-    botThinkDelayMs: number;
     betAmount: number;
     playerCount: 2 | 3 | 4;
     prohibitEndingWithTwo: boolean;
@@ -72,7 +71,6 @@ export const GAME_MODE_REGISTRY: GameModeDefinition[] = [
       settlementType: 'RANK_BASED',
       allowFourPairsCutAnytime: true,
       instantWinEnabled: true,
-      botThinkDelayMs: 850,
       betAmount: 500,
       playerCount: 4,
       prohibitEndingWithTwo: true
@@ -105,7 +103,6 @@ export const GAME_MODE_REGISTRY: GameModeDefinition[] = [
       settlementType: 'CARD_COUNT',
       allowFourPairsCutAnytime: true,
       instantWinEnabled: true,
-      botThinkDelayMs: 700,
       betAmount: 500,
       playerCount: 4,
       prohibitEndingWithTwo: true
@@ -138,7 +135,6 @@ export const GAME_MODE_REGISTRY: GameModeDefinition[] = [
       settlementType: 'WINNER_TAKES_ALL',
       allowFourPairsCutAnytime: true,
       instantWinEnabled: true,
-      botThinkDelayMs: 800,
       betAmount: 1000,
       playerCount: 4,
       prohibitEndingWithTwo: true
@@ -171,7 +167,6 @@ export const GAME_MODE_REGISTRY: GameModeDefinition[] = [
       settlementType: 'CARD_COUNT',
       allowFourPairsCutAnytime: true,
       instantWinEnabled: true,
-      botThinkDelayMs: 650,
       betAmount: 1000,
       playerCount: 2,
       prohibitEndingWithTwo: true
@@ -204,7 +199,6 @@ export const GAME_MODE_REGISTRY: GameModeDefinition[] = [
       settlementType: 'RANK_BASED',
       allowFourPairsCutAnytime: true,
       instantWinEnabled: true,
-      botThinkDelayMs: 850,
       betAmount: 500,
       playerCount: 4,
       prohibitEndingWithTwo: true

@@ -20,7 +20,7 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
 
       const rules = new GameRulesBuilder()
         .withSettlement(settlement)
-        .withTable(t => t.playerCount(playerCount).betAmount(1000).botThinkDelayMs(0).soundEnabled(false))
+        .withTable(t => t.playerCount(playerCount).betAmount(1000).soundEnabled(false))
         .withGameFlow(g => g.prohibitEndingWithTwo(i % 2 === 0).threeSpadesEndingBonus(i % 3 === 0))
         .build();
 
@@ -56,7 +56,7 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
     for (let sim = 0; sim < 50; sim++) {
       const rules = new GameRulesBuilder()
         .withSettlement('CARD_COUNT')
-        .withTable(t => t.playerCount(4).betAmount(500).botThinkDelayMs(0).soundEnabled(false))
+        .withTable(t => t.playerCount(4).betAmount(500).soundEnabled(false))
         .withCong(c => c.enabled(true).penaltyCards(26).multiplier(1))
         .withGameFlow(g => g.prohibitEndingWithTwo(false).threeSpadesEndingBonus(false))
         .build();
@@ -98,7 +98,7 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
       const playerCount = PLAYER_COUNTS[sim % PLAYER_COUNTS.length];
       const rules = new GameRulesBuilder()
         .withSettlement(SETTLEMENT_RULES[sim % SETTLEMENT_RULES.length])
-        .withTable(t => t.playerCount(playerCount).betAmount(100).botThinkDelayMs(0).soundEnabled(false))
+        .withTable(t => t.playerCount(playerCount).betAmount(100).soundEnabled(false))
         .withGameFlow(g => g.prohibitEndingWithTwo(true).threeSpadesEndingBonus(true))
         .build();
 
