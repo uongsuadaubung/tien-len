@@ -14,6 +14,7 @@ import { BotConfig } from '../ai/types';
 import { CampaignChapter } from '../engine/campaign';
 import { MoveHint } from '../ai/hint-engine';
 import { ECONOMY_CONSTANTS } from '../engine/constants/economy';
+import { MatchLogReport } from '../engine/match-logger';
 
 export type ActiveGameType = 'QUICK' | 'RANKED' | 'CAMPAIGN' | 'UNDERGROUND';
 export type ScreenType = 'LOBBY' | 'GAME_TABLE';
@@ -25,8 +26,8 @@ export interface ChopNotificationData {
   chopperName: string;
   targetName: string;
   amount: number;
-  isCascade?: boolean;
-  chainCount?: number;
+  isCascade: boolean;
+  chainCount: number;
 }
 
 interface GameState {
@@ -69,6 +70,7 @@ interface GameState {
   matchPayouts: Record<string, number>;
   loanDeductionAmount: number;
   lastEloDelta: number;
+  matchLogReport: MatchLogReport | null;
 
   // Actions
   setCurrentScreen: (screen: ScreenType) => void;
@@ -111,6 +113,7 @@ interface GameState {
   setMatchPayouts: (payouts: Record<string, number>) => void;
   setLoanDeductionAmount: (amount: number) => void;
   setLastEloDelta: (delta: number) => void;
+  setMatchLogReport: (report: MatchLogReport | null) => void;
   resetMatchState: () => void;
 }
 
@@ -214,6 +217,7 @@ export const useGameStore = create<GameState>((set) => ({
   matchPayouts: {},
   loanDeductionAmount: 0,
   lastEloDelta: 0,
+  matchLogReport: null,
 
   setCurrentScreen: (screen) => set({ currentScreen: screen }),
   setActiveGameType: (type) => set({ activeGameType: type }),
@@ -283,6 +287,7 @@ export const useGameStore = create<GameState>((set) => ({
   setMatchPayouts: (payouts) => set({ matchPayouts: payouts }),
   setLoanDeductionAmount: (amount) => set({ loanDeductionAmount: amount }),
   setLastEloDelta: (delta) => set({ lastEloDelta: delta }),
+  setMatchLogReport: (report) => set({ matchLogReport: report }),
   resetMatchState: () => set({
     isDealing: false,
     dealtCounts: {},
@@ -301,6 +306,7 @@ export const useGameStore = create<GameState>((set) => ({
     smartVariantIndex: 0,
     matchPayouts: {},
     loanDeductionAmount: 0,
-    lastEloDelta: 0
+    lastEloDelta: 0,
+    matchLogReport: null
   })
 }));

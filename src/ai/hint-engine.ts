@@ -5,7 +5,7 @@ import { makeBotDecision } from './decision-maker';
 
 export interface MoveHint {
   action: 'PLAY' | 'PASS';
-  cards?: Card[];
+  cards: Card[] | null;
   explanation: string;
 }
 
@@ -40,12 +40,16 @@ export function getOptimalMoveHint(
     prohibitEndingWithTwo: prohibitEndingWithTwo ?? true,
     gameMode: gameMode ?? 'TRADITIONAL',
     rules: rules ?? createDefaultGameRules(),
-    hasPlayedFirstCard: hasPlayedFirstCard ?? true
+    hasPlayedFirstCard: hasPlayedFirstCard ?? true,
+    mctsMap: null,
+    compositeRuleStrategy: null,
+    opponentProfiles: null
   });
 
   if (decision.type === 'PASS') {
     return {
       action: 'PASS',
+      cards: null,
       explanation: decision.reason || 'Nên chủ động bỏ lượt để bảo toàn các bộ sảnh/hàng quý giá trên tay.'
     };
   }
@@ -55,7 +59,7 @@ export function getOptimalMoveHint(
   if (decision.combination?.type === 'THREE_PAIRS_SEQUENTIAL' || decision.combination?.type === 'FOUR_OF_A_KIND') {
     return {
       action: 'PLAY',
-      cards: decision.cards,
+      cards: decision.cards || null,
       explanation: `Tung hàng đặc biệt (${cardCodes}) để chặt đè đối thủ và giành quyền chủ động!`
     };
   }
@@ -63,14 +67,14 @@ export function getOptimalMoveHint(
   if (isLeadMove) {
     return {
       action: 'PLAY',
-      cards: decision.cards,
+      cards: decision.cards || null,
       explanation: `Mở đầu vòng bằng tổ hợp (${cardCodes}) để tẩu tán bài rác và duy trì thế trận an toàn.`
     };
   }
 
   return {
     action: 'PLAY',
-    cards: decision.cards,
+    cards: decision.cards || null,
     explanation: `Đè bài bằng (${cardCodes}) để tranh lượt và ép đối thủ tiêu hao bài to.`
   };
 }

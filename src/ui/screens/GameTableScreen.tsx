@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { GameEngine } from '../../engine/game';
 import { isValidMove } from '../../engine/validator';
 import { getBotConfig } from '../../ai/bot-factory';
 import { HeaderBar } from '../components/HeaderBar';
 import { LeftMatchHUD } from '../components/LeftMatchHUD';
+import { BotReasoningHUD } from '../components/BotReasoningHUD';
 import { BotSeat } from '../components/BotSeat';
 import { TableCenter } from '../components/TableCenter';
 import { DealingDeckAnimation } from '../components/DealingDeckAnimation';
@@ -39,12 +40,14 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
   onResetMatch,
   onReturnToLobby
 }) => {
+  const [isReasoningHudOpen, setIsReasoningHudOpen] = useState<boolean>(true);
   const { openModal } = useModalStore();
   const { profile } = useUserStore();
   const {
     soundEnabled,
     aiHintEnabled,
     xrayEnabled,
+    botReasoningLogEnabled,
     toggleSound
   } = useSettingsStore();
 
@@ -135,6 +138,17 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
         isDealing={isDealing}
         dealtCounts={dealtCounts}
       />
+
+      {/* BẢNG SUY LUẬN BOT AI TRỰC TIẾP BÊN PHẢI (RIGHT BOT REASONING HUD) */}
+      {botReasoningLogEnabled && (
+        <BotReasoningHUD
+          isOpen={isReasoningHudOpen}
+          onToggle={() => setIsReasoningHudOpen(prev => !prev)}
+          gameNumber={gameNumber}
+          betAmount={gameSettings.betAmount}
+          isDealing={isDealing}
+        />
+      )}
 
       {/* SÀN ĐẤU TIẾN LÊN: NGƯỜI CHƠI BAO QUANH BÀN TRÒN TRUNG TÂM */}
       <main className="flex-1 flex flex-col items-center justify-between px-2 py-1 max-w-7xl mx-auto w-full min-h-0 overflow-hidden relative">

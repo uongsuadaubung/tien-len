@@ -1,36 +1,50 @@
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { Player } from '../../engine/types';
-import { Trophy, RefreshCw, Home, TrendingUp, AlertCircle, RotateCcw, Map, Swords, Play, Sparkles } from 'lucide-react';
+import { 
+  Trophy, 
+  RefreshCw, 
+  Home, 
+  TrendingUp, 
+  AlertCircle, 
+  RotateCcw, 
+  Map, 
+  Swords, 
+  Play, 
+  Sparkles,
+  Download
+} from 'lucide-react';
 import { getRankTierByElo } from '../../engine/elo';
 import { CampaignChapter } from '../../engine/campaign';
 import { ActiveGameType } from '../../stores/useGameStore';
 import { clearActiveMatchSession } from '../../engine/storage';
+import { MatchLogger } from '../../engine/match-logger';
 import { Modal, Card, Badge, Button } from '../primitives';
 
 interface VictoryModalProps {
   isOpen: boolean;
   onNextGame: () => void;
   onReturnToLobby: () => void;
-  onOpenCampaignMap?: () => void;
-  onOpenCustomGameModal?: () => void;
-  onOpenBankLoanModal?: () => void;
+  onOpenCampaignMap: (() => void) | null;
+  onOpenCustomGameModal: (() => void) | null;
+  onOpenBankLoanModal: (() => void) | null;
   winners: Player[];
   allPlayers: Player[];
   betAmount: number;
-  instantWinType?: string;
-  isThreeSpadesWin?: boolean;
-  payouts?: Record<string, number>;
-  loanDeduction?: number;
-  eloDelta?: number;
-  playerElo?: number;
-  activeGameType?: ActiveGameType;
-  campaignChapter?: CampaignChapter | null;
-  chapterWins?: number;
-  isChapterUnlockedNext?: boolean;
-  isAllCampaignCompleted?: boolean;
-  nextChapter?: CampaignChapter | null;
-  playerCoins?: number;
+  instantWinType: string | null;
+  isThreeSpadesWin: boolean;
+  payouts: Record<string, number> | null;
+  loanDeduction: number;
+  eloDelta: number;
+  playerElo: number;
+  activeGameType: ActiveGameType;
+  campaignChapter: CampaignChapter | null;
+  chapterWins: number;
+  isChapterUnlockedNext: boolean;
+  isAllCampaignCompleted: boolean;
+  nextChapter: CampaignChapter | null;
+  playerCoins: number;
+  botReasoningLogEnabled: boolean;
 }
 
 export const VictoryModal: React.FC<VictoryModalProps> = ({
@@ -44,25 +58,27 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   allPlayers,
   betAmount,
   instantWinType,
-  isThreeSpadesWin = false,
+  isThreeSpadesWin,
   payouts,
-  loanDeduction = 0,
-  eloDelta = 0,
-  playerElo = 1000,
-  activeGameType = 'TRADITIONAL',
+  loanDeduction,
+  eloDelta,
+  playerElo,
+  activeGameType,
   campaignChapter,
-  chapterWins = 0,
-  isChapterUnlockedNext = false,
-  isAllCampaignCompleted = false,
+  chapterWins,
+  isChapterUnlockedNext,
+  isAllCampaignCompleted,
   nextChapter,
-  playerCoins = 0
+  playerCoins,
+  botReasoningLogEnabled: _botReasoningLogEnabled
 }) => {
+  const matchReport = MatchLogger.getInstance().getLatestFinalizedReport();
   const isHumanWinner = winners.length > 0 && winners[0].id === 'p0';
   const isRanked = activeGameType === 'RANKED';
   const isCampaign = activeGameType === 'CAMPAIGN';
   const isUnderground = activeGameType === 'UNDERGROUND';
-  const isCountCards = activeGameType === 'COUNT_CARDS';
-  const isWinnerTakesAll = activeGameType === 'WINNER_TAKES_ALL';
+  const isCountCards = matchReport?.gameMode === 'COUNT_CARDS';
+  const isWinnerTakesAll = matchReport?.gameMode === 'WINNER_TAKES_ALL';
 
   useEffect(() => {
     if (isOpen) {
@@ -78,225 +94,136 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     }
   }, [isOpen, isHumanWinner, instantWinType]);
 
-  const displayPlayers = React.useMemo(() => {
-    if (winners.length >= allPlayers.length) {
-      return winners;
-    }
-    const winnerIds = new Set(winners.map(w => w.id));
-    const nonWinners = allPlayers.filter(p => !winnerIds.has(p.id));
-    nonWinners.sort((a, b) => a.hand.length - b.hand.length);
-    return [...winners, ...nonWinners];
-  }, [winners, allPlayers]);
+  const handleExportJson = () => {
+    const jsonStr = MatchLogger.getInstance().exportToJsonString();
+    const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tienlen_match_log_${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   if (!isOpen) return null;
 
-  const winner = winners[0] || allPlayers[0];
+  const winner = winners.length > 0 ? winners[0] : allPlayers[0];
+  const humanPlayer = allPlayers.find(p => p.id === 'p0') || allPlayers[0];
   const humanPayout = payouts ? (payouts['p0'] || 0) : 0;
-  const currentRank = getRankTierByElo(playerElo);
 
-  let modalTitle = 'KẾT THÚC VÁN BÀI';
-  let modalSubtitle = `Chúc mừng ${winner.name} đã giành chiến thắng!`;
+  // Sắp xếp người chơi theo kết quả
+  const displayPlayers: Player[] = [...allPlayers].sort((a, b) => {
+    const aIdx = winners.findIndex(w => w.id === a.id);
+    const bIdx = winners.findIndex(w => w.id === b.id);
+    if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+    if (aIdx !== -1) return -1;
+    if (bIdx !== -1) return 1;
+    return (a.hand?.length || 0) - (b.hand?.length || 0);
+  });
+
+  // TÍNH TOÁN TIÊU ĐỀ & NỘI DUNG STAT BOXES THEO CHẾ ĐỘ
+  let modalTitle = 'KẾT QUẢ VÁN ĐẤU';
+  let modalSubtitle = 'Ván đấu đã kết thúc!';
   let modalIcon = '🏆';
-  let statBox1Title = 'Biến Động Tiền';
-  let statBox1Value = `${humanPayout >= 0 ? `+${humanPayout.toLocaleString()}` : humanPayout.toLocaleString()} 🪙`;
-  let statBox1Sub = '';
-  let statBox2Title = 'Thông Tin Bàn';
-  let statBox2Value = `${betAmount.toLocaleString()} 🪙`;
-  let statBox2Sub = '';
-  let primaryBtnText = 'Đánh Ván Mới';
-  let primaryBtnIcon = <RefreshCw className="w-4 h-4" />;
+  let primaryBtnText = 'Ván Mới';
+  let primaryBtnIcon = <Play className="w-4 h-4 text-black" />;
   let secondaryBtnText = 'Về Sảnh';
   let secondaryBtnIcon = <Home className="w-4 h-4" />;
   let secondaryBtnAction = onReturnToLobby;
 
-  // 1. CHIẾN DỊCH (CAMPAIGN)
+  let statBox1Title = 'KẾT QUẢ CÁ NHÂN';
+  let statBox1Value = humanPayout > 0 ? `+${humanPayout.toLocaleString()} 🪙` : `${humanPayout.toLocaleString()} 🪙`;
+  let statBox1Sub = isHumanWinner ? '🥇 Bạn đã về Nhất!' : '💥 Chưa thể giành chiến thắng';
+
+  let statBox2Title = 'CHẾ ĐỘ CHƠI';
+  let statBox2Value = 'Truyền Thống';
+  let statBox2Sub = `Mức cược: ${betAmount.toLocaleString()} Xu`;
+
   if (isCampaign) {
-    secondaryBtnText = 'Bản Đồ Ải';
-    secondaryBtnIcon = <Map className="w-4 h-4" />;
-    secondaryBtnAction = onOpenCampaignMap || onReturnToLobby;
+    modalIcon = isHumanWinner ? '⭐' : '💀';
+    statBox2Title = 'CHƯƠNG CHIẾN DỊCH';
+    statBox2Value = campaignChapter ? `Ải ${campaignChapter.id}: ${campaignChapter.name}` : 'Chiến Dịch';
+    statBox2Sub = isHumanWinner 
+      ? `Đã thắng ${chapterWins}/${campaignChapter?.requiredWins || 1} ván` 
+      : 'Thử lại để vượt ải';
 
-    if (!isHumanWinner) {
-      modalIcon = '⚔️';
-      modalTitle = 'ẢI CHƯA HOÀN THÀNH';
-      modalSubtitle = `Bot ${winner.name} đã về Nhất! Hãy cải thiện chiến thuật và thử lại để vượt qua ải này.`;
-      statBox1Title = 'Tiền Thưởng / Cược';
-      statBox1Value = '0 🪙 (Miễn Phí)';
-      statBox1Sub = 'Không mất cược khi thua ải';
-      statBox2Title = 'Tiến Độ Vượt Ải';
-      statBox2Value = `${chapterWins}/${campaignChapter?.requiredWins || 1} Ván Thắng`;
-      statBox2Sub = 'Cần về Nhất để ghi điểm qua ải';
-      primaryBtnText = 'Chơi Lại';
-      primaryBtnIcon = <RotateCcw className="w-4 h-4" />;
-    } else {
-      if (isChapterUnlockedNext) {
-        modalIcon = '👑';
-        modalTitle = 'MỞ KHÓA ẢI MỚI';
-        modalSubtitle = `Xuất sắc! Bạn đã hoàn thành ${campaignChapter?.name || 'ải'} và mở khóa ${nextChapter?.name || 'Ải Tiếp Theo'} (${nextChapter?.venueName || ''})!`;
-        statBox1Title = 'Thưởng Mở Khóa Ải';
-        statBox1Value = `+${(campaignChapter?.rewardCoins || 0).toLocaleString()} 🪙`;
-        statBox1Sub = 'Đã cộng vào tài khoản';
-        statBox2Title = 'Ải Kế Tiếp';
-        statBox2Value = nextChapter?.name || 'Ải Mới';
-        statBox2Sub = nextChapter?.venueName || '';
-        primaryBtnText = `Chơi Tiếp (${nextChapter?.name || 'Ải Mới'})`;
-        primaryBtnIcon = <Play className="w-4 h-4 fill-current" />;
+    if (isHumanWinner) {
+      if (isChapterUnlockedNext && nextChapter) {
+        modalTitle = 'HOÀN THÀNH ẢI CHIẾN DỊCH!';
+        modalSubtitle = `Xuất sắc! Bạn đã mở khóa ${nextChapter.name}!`;
+        primaryBtnText = 'Ải Tiếp Theo';
+        primaryBtnIcon = <Swords className="w-4 h-4 text-black" />;
+        secondaryBtnText = 'Bản Đồ Ải';
+        secondaryBtnIcon = <Map className="w-4 h-4" />;
+        secondaryBtnAction = onOpenCampaignMap || onReturnToLobby;
       } else if (isAllCampaignCompleted) {
-        modalIcon = '👑';
-        modalTitle = 'ĐỈNH CAO THẦN BÀI';
-        modalSubtitle = `Tuyệt đỉnh! Bạn đã đánh bại toàn bộ các Siêu Thần Bài và hoàn thành trọn vẹn 5 Chương Chiến Dịch!`;
-        statBox1Title = 'Thưởng Hoàn Thành';
-        statBox1Value = `+${(campaignChapter?.rewardCoins || 0).toLocaleString()} 🪙`;
-        statBox2Title = 'Danh Hiệu';
-        statBox2Value = 'Thần Bài Tối Thượng';
-        primaryBtnText = 'Chơi Lại Ải 5';
-        primaryBtnIcon = <RotateCcw className="w-4 h-4" />;
+        modalTitle = 'VÔ ĐỊCH TOÀN BỘ CHIẾN DỊCH!';
+        modalSubtitle = 'Chúc mừng bạn đã chinh phục toàn bộ 10 chương Chiến Dịch Đỉnh Cao!';
+        primaryBtnText = 'Về Sảnh';
+        primaryBtnIcon = <Home className="w-4 h-4 text-black" />;
       } else {
-        modalIcon = '🏆';
-        modalTitle = 'CHIẾN THẮNG TRẬN ĐẤU';
-        modalSubtitle = `Tiến độ ${campaignChapter?.name || 'ải'}: ${chapterWins}/${campaignChapter?.requiredWins || 1} ván thắng để mở khóa ải kế tiếp!`;
-        statBox1Title = 'Tiền Thưởng / Cược';
-        statBox1Value = '0 🪙 (Miễn Phí)';
-        statBox2Title = 'Tiến Độ Vượt Ải';
-        statBox2Value = `${chapterWins}/${campaignChapter?.requiredWins || 1} Ván Thắng`;
-        primaryBtnText = 'Chơi Tiếp';
-        primaryBtnIcon = <Play className="w-4 h-4 fill-current" />;
+        modalTitle = 'CHIẾN THẮNG TRẬN ĐẤU!';
+        modalSubtitle = `Tiến độ chương: ${chapterWins}/${campaignChapter?.requiredWins || 1} ván thắng`;
+        primaryBtnText = 'Đánh Tiếp';
       }
+    } else {
+      modalTitle = 'THUA TRẬN CHIẾN DỊCH';
+      modalSubtitle = 'Đối thủ quá mạnh! Hãy điều chỉnh chiến thuật và thử lại!';
+      primaryBtnText = 'Thử Lại Ải Này';
+      primaryBtnIcon = <RotateCcw className="w-4 h-4 text-black" />;
+      secondaryBtnText = 'Bản Đồ Ải';
+      secondaryBtnIcon = <Map className="w-4 h-4" />;
+      secondaryBtnAction = onOpenCampaignMap || onReturnToLobby;
     }
-  }
-  // 2. ĐẤU HẠNG ELO (RANKED)
-  else if (isRanked) {
-    statBox1Title = 'Thưởng Đấu Hạng';
-    statBox1Value = humanPayout > 0 ? `+${humanPayout.toLocaleString()} 🪙` : '0 🪙 (Miễn Phí)';
-    statBox1Sub = humanPayout > 0 ? 'Thưởng Vàng Về Nhất' : '0 Xu cược khi đấu rank';
-    statBox2Title = 'Xếp Hạng & Điểm Elo';
-    statBox2Value = `${currentRank.badge} ${playerElo}`;
-    statBox2Sub = eloDelta !== 0 ? (eloDelta > 0 ? `+${eloDelta} điểm Elo` : `${eloDelta} điểm Elo`) : 'Không đổi';
+  } else if (isRanked) {
+    modalIcon = isHumanWinner ? '🎖️' : '📉';
+    const rankTier = getRankTierByElo(playerElo);
+    modalTitle = isHumanWinner ? 'CHIẾN THẮNG ĐẤU HẠNG' : 'KẾT THÚC ĐẤU HẠNG';
+    modalSubtitle = `Điểm Rank hiện tại: ${playerElo} Elo (${rankTier.name})`;
 
+    statBox1Title = 'ĐIỂM ELO NHẬN ĐƯỢC';
+    statBox1Value = eloDelta > 0 ? `+${eloDelta} Elo` : `${eloDelta} Elo`;
+    statBox1Sub = `Xếp hạng hiện tại: ${rankTier.name}`;
+
+    statBox2Title = 'BẬC CAO THỦ';
+    statBox2Value = `${rankTier.name} (${playerElo} Elo)`;
+    statBox2Sub = rankTier.description;
+  } else if (isUnderground) {
+    modalIcon = isHumanWinner ? '💰' : '💸';
+    modalTitle = isHumanWinner ? 'THẮNG LỚN SÒNG ĐEN!' : 'THUA SÒNG ĐEN';
+    modalSubtitle = isHumanWinner 
+      ? 'Bạn đã vét sạch túi của các đối thủ tại Sòng Đen Chợ Lớn!' 
+      : 'Không có sự khoan nhượng tại Sòng Đen!';
+    statBox2Title = 'SÒNG ĐEN CHỢ LỚN';
+    statBox2Value = `Mức cược ${betAmount.toLocaleString()} Xu`;
+    statBox2Sub = 'Luật đền Cóng x2, Thối heo x2';
+  } else if (isCountCards) {
+    statBox2Title = 'CHẾ ĐỘ ĐẾM LÁ';
+    statBox2Value = `Cược ${betAmount.toLocaleString()} Xu/Lá`;
+    statBox2Sub = isHumanWinner ? 'Về nhất ăn trọn số lá của cả làng' : 'Thua tính theo số lá còn lại';
+  } else if (isWinnerTakesAll) {
+    statBox2Title = 'NHẤT ĂN TẤT';
+    statBox2Value = `Cược ${betAmount.toLocaleString()} Xu`;
+    statBox2Sub = isHumanWinner ? 'Về nhất ăn toàn bộ tiền cược' : 'Chỉ có 1 người duy nhất chiến thắng';
+  }
+
+  // TỚI TRẮNG (INSTANT WIN)
+  if (instantWinType) {
+    modalIcon = '⚡';
     if (isHumanWinner) {
-      modalIcon = '🏆';
-      modalTitle = 'CHIẾN THẮNG ĐẤU HẠNG';
-      modalSubtitle = 'Chúc mừng bạn đã xuất sắc về Nhất trên đấu trường Xếp Hạng!';
-      primaryBtnText = 'Tìm Trận Mới';
-      primaryBtnIcon = <TrendingUp className="w-4 h-4" />;
+      modalTitle = 'TỚI TRẮNG HOÀNG GIA!';
+      modalSubtitle = `Chúc mừng bạn đã tới trắng bằng bộ bài đặc biệt: ${instantWinType}! Thưởng khủng cả làng!`;
     } else {
-      modalIcon = '🛡️';
-      modalTitle = 'KẾT QUẢ ĐẤU HẠNG ELO';
-      modalSubtitle = `Đấu thủ ${winner.name} đã về Nhất. Hãy tiếp tục thi đấu để cải thiện thứ hạng!`;
-      primaryBtnText = 'Đấu Tiếp Để Gỡ Rank';
-      primaryBtnIcon = <TrendingUp className="w-4 h-4" />;
+      modalTitle = `${winner.name.toUpperCase()} TỚI TRẮNG!`;
+      modalSubtitle = `Đấu thủ ${winner.name} đã tới trắng ngay lượt chia đầu: ${instantWinType}!`;
     }
-  }
-  // 3. THẾ GIỚI NGẦM (UNDERGROUND)
-  else if (isUnderground) {
-    secondaryBtnText = 'Về Sảnh';
-    secondaryBtnIcon = <Home className="w-4 h-4" />;
-    secondaryBtnAction = onReturnToLobby;
-
-    if (isHumanWinner) {
-      modalIcon = '💎';
-      modalTitle = 'ĐẠI THẮNG SÒNG BẠC NGẦM';
-      modalSubtitle = 'Bạn đã đại thắng tại sới bạc ngầm với tỷ lệ sát phạt nhân đôi!';
-      statBox1Title = 'Tiền Thắng Sát Phạt';
-      statBox1Value = `+${humanPayout.toLocaleString()} 🪙`;
-      statBox1Sub = loanDeduction > 0 ? `Đã trích ${loanDeduction.toLocaleString()} xu trả nợ` : 'Đã cộng vào tài khoản';
-      statBox2Title = 'Mức Cược Bàn';
-      statBox2Value = `${betAmount.toLocaleString()} 🪙 (x2)`;
-      primaryBtnText = 'Tiếp Tục Sát Phạt';
-      primaryBtnIcon = <Play className="w-4 h-4 fill-current" />;
-    } else {
-      modalIcon = '⚠️';
-      modalTitle = 'THUA BÀN THẾ GIỚI NGẦM';
-      modalSubtitle = `Sới bạc ngầm sát phạt khốc liệt! Bạn đã bị trừ ${Math.abs(humanPayout).toLocaleString()} 🪙.`;
-      statBox1Title = 'Tiền Thua Sát Phạt';
-      statBox1Value = `${humanPayout.toLocaleString()} 🪙`;
-      statBox1Sub = 'Tỷ lệ sát phạt nhân đôi';
-      statBox2Title = 'Số Dư Tài Khoản';
-      statBox2Value = `${playerCoins.toLocaleString()} 🪙`;
-      statBox2Sub = playerCoins < betAmount ? 'Nguy cơ phá sản!' : 'Cẩn trọng vốn cược';
-
-      if (playerCoins < betAmount && onOpenBankLoanModal) {
-        secondaryBtnText = 'Vay Ngân Hàng Đen';
-        secondaryBtnIcon = <AlertCircle className="w-4 h-4 text-red-400" />;
-        secondaryBtnAction = onOpenBankLoanModal;
-      }
-      primaryBtnText = 'Gỡ Gạc Ván Mới';
-      primaryBtnIcon = <RotateCcw className="w-4 h-4" />;
-    }
-  }
-  // 4. ĐẾM LÁ (COUNT_CARDS)
-  else if (isCountCards) {
-    if (isHumanWinner) {
-      modalIcon = '💰';
-      modalTitle = 'VỀ NHẤT GOM TIỀN ĐẾM LÁ';
-      modalSubtitle = 'Bạn đã về Nhất và gom trọn tiền phạt đếm lá của tất cả đối thủ!';
-      statBox1Title = 'Tổng Tiền Gom Được';
-      statBox1Value = `+${humanPayout.toLocaleString()} 🪙`;
-      statBox2Title = 'Mức Phạt Đếm Lá';
-      statBox2Value = `${betAmount.toLocaleString()} 🪙 / lá`;
-      primaryBtnText = 'Ván Tiếp Theo';
-      primaryBtnIcon = <RefreshCw className="w-4 h-4" />;
-    } else {
-      modalIcon = '💥';
-      modalTitle = 'THUA ĐẾM LÁ';
-      modalSubtitle = `Đấu thủ ${winner.name} đã về Nhất kết thúc ván bài!`;
-      statBox1Title = 'Tiền Phạt Đếm Lá';
-      statBox1Value = `${humanPayout.toLocaleString()} 🪙`;
-      statBox1Sub = 'Tính theo số lá tồn + thối heo';
-      statBox2Title = 'Mức Phạt Đếm Lá';
-      statBox2Value = `${betAmount.toLocaleString()} 🪙 / lá`;
-      primaryBtnText = 'Ván Tiếp Theo';
-      primaryBtnIcon = <RefreshCw className="w-4 h-4" />;
-    }
-  }
-  // 5. ĂN TẤT CẢ (WINNER_TAKES_ALL)
-  else if (isWinnerTakesAll) {
-    if (isHumanWinner) {
-      modalIcon = '👑';
-      modalTitle = 'GOM TRỌN SÒNG BÀI';
-      modalSubtitle = 'Chúc mừng bạn đã về Nhất và ẵm trọn toàn bộ tiền cược của cả bàn!';
-      statBox1Title = 'Tiền Thắng Gom Trọn';
-      statBox1Value = `+${humanPayout.toLocaleString()} 🪙`;
-      statBox2Title = 'Mức Cược Bàn';
-      statBox2Value = `${betAmount.toLocaleString()} 🪙`;
-      primaryBtnText = 'Đánh Tiếp';
-      primaryBtnIcon = <Play className="w-4 h-4 fill-current" />;
-    } else {
-      modalIcon = '💥';
-      modalTitle = 'THUA TRẬN ĂN TẤT CẢ';
-      modalSubtitle = `Đấu thủ ${winner.name} đã về Nhất và gom trọn toàn bộ tiền cược!`;
-      statBox1Title = 'Tiền Cược Mất';
-      statBox1Value = `${humanPayout.toLocaleString()} 🪙`;
-      statBox2Title = 'Mức Cược Bàn';
-      statBox2Value = `${betAmount.toLocaleString()} 🪙`;
-      primaryBtnText = 'Đánh Tiếp';
-      primaryBtnIcon = <RefreshCw className="w-4 h-4" />;
-    }
-  }
-  // 6. TRUYỀN THỐNG / CUSTOM
-  else {
-    if (onOpenCustomGameModal) {
-      secondaryBtnText = 'Tùy Chỉnh Bàn';
-      secondaryBtnIcon = <Swords className="w-4 h-4" />;
-      secondaryBtnAction = onOpenCustomGameModal;
-    }
-
-    if (instantWinType) {
-      modalTitle = 'TỚI TRẮNG ĐẶC BIỆT';
-      modalSubtitle = `Đấu thủ ${winner.name} đã Tới Trắng (${instantWinType})!`;
-    } else {
-      modalTitle = 'KẾT QUẢ VÁN BÀI TRUYỀN THỐNG';
-    }
-    statBox1Title = 'Biến Động Tiền';
-    statBox1Value = `${humanPayout >= 0 ? `+${humanPayout.toLocaleString()}` : humanPayout.toLocaleString()} 🪙`;
-    statBox2Title = 'Mức Cược Bàn';
-    statBox2Value = `${betAmount.toLocaleString()} 🪙`;
-    primaryBtnText = 'Đánh Ván Mới';
-    primaryBtnIcon = <RefreshCw className="w-4 h-4" />;
   }
 
-  // 7. VỀ 3 BÍCH HOÀNG GIA
+  // VỀ 3 BÍCH HOÀNG GIA
   if (isThreeSpadesWin) {
-    modalIcon = '👑';
+    modalIcon = '♠️';
     if (isHumanWinner) {
       modalTitle = 'VỀ 3 BÍCH HOÀNG GIA - THẮNG X2';
       modalSubtitle = 'Tuyệt đỉnh thần bài! Bạn đã kết liễu ván đấu bằng lá đơn 3♠ và nhân đôi toàn bộ tiền thắng!';
@@ -400,7 +327,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         </div>
 
         {/* Bảng Xếp Hạng Người Chơi */}
-        <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+        <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
           {displayPlayers.map((p, idx) => {
             const isWinner = idx === 0;
             const rankLabel = isWinner
@@ -450,6 +377,21 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
             );
           })}
         </div>
+
+        {/* NÚT XUẤT JSON LOG TRẬN ĐẤU */}
+        {matchReport && (
+          <div className="flex justify-end pt-1">
+            <Button
+              variant="surface"
+              size="sm"
+              onClick={handleExportJson}
+              leftIcon={<Download className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
+              className="text-xs"
+            >
+              Xuất JSON
+            </Button>
+          </div>
+        )}
       </div>
     </Modal>
   );

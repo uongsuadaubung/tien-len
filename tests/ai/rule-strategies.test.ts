@@ -354,7 +354,10 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
         hasPlayedFirstCard: true,
         isNextPlayerOneCard: false,
         prohibitEndingWithTwo: true,
-        gameMode: 'COUNT_CARDS'
+        gameMode: 'COUNT_CARDS',
+        mctsMap: null,
+        compositeRuleStrategy: null,
+        opponentProfiles: null
       });
 
       expect(decision.type).toBe('PLAY');

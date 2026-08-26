@@ -14,6 +14,7 @@ import {
   type ValidMoveInfo, 
   resolveCompositeRuleStrategy 
 } from './rule-strategies';
+import { BotCandidateEvaluation, BotDecisionTelemetry } from '../engine/match-logger';
 
 export type { ValidMoveInfo };
 
@@ -31,16 +32,44 @@ export interface DecisionContext {
   isNextPlayerOneCard: boolean;
   prohibitEndingWithTwo: boolean;
   gameMode: string;    // Chế độ chơi
-  mctsMap?: Map<string, number>;
-  compositeRuleStrategy?: CompositeRuleStrategy;
-  opponentProfiles?: Record<string, OpponentBehaviorProfile>;
+  mctsMap: Map<string, number> | null;
+  compositeRuleStrategy: CompositeRuleStrategy | null;
+  opponentProfiles: Record<string, OpponentBehaviorProfile> | null;
 }
 
 export interface BotDecision {
   type: 'PLAY' | 'PASS';
-  cards?: Card[];
-  combination?: Combination;
-  reason?: string;
+  cards: Card[] | null;
+  combination: Combination | null;
+  reason: string | null;
+  strategyUsed: string | null;
+  evaluationScore: number | null;
+  candidatesEvaluated: BotCandidateEvaluation[] | null;
+  telemetry: BotDecisionTelemetry | null;
+}
+
+export function buildBotDecision(
+  type: 'PLAY' | 'PASS',
+  opts: {
+    cards?: Card[] | null;
+    combination?: Combination | null;
+    reason?: string | null;
+    strategyUsed?: string | null;
+    evaluationScore?: number | null;
+    candidatesEvaluated?: BotCandidateEvaluation[] | null;
+    telemetry?: BotDecisionTelemetry | null;
+  } = {}
+): BotDecision {
+  return {
+    type,
+    cards: opts.cards ?? null,
+    combination: opts.combination ?? null,
+    reason: opts.reason ?? null,
+    strategyUsed: opts.strategyUsed ?? null,
+    evaluationScore: opts.evaluationScore ?? null,
+    candidatesEvaluated: opts.candidatesEvaluated ?? null,
+    telemetry: opts.telemetry ?? null
+  };
 }
 
 // ============================================================================
@@ -254,12 +283,12 @@ export class EmergencyRuleHandler extends BotDecisionHandler {
 
     const emergency = compositeStrategy.evaluateEmergencyOverrides(ruleContext, validMoves);
     if (emergency) {
-      return {
-        type: emergency.type,
-        cards: emergency.cards,
-        combination: emergency.combination,
-        reason: emergency.reason
-      };
+      return buildBotDecision(emergency.type, {
+        cards: emergency.cards || null,
+        combination: emergency.combination || null,
+        reason: emergency.reason || null,
+        strategyUsed: 'EMERGENCY_OVERRIDE'
+      });
     }
 
     return this.passToNext(context, validMoves);
@@ -276,12 +305,12 @@ export class EndgameSolverHandler extends BotDecisionHandler {
     // 1. Nước đi dứt điểm ngay lập tức (Instant Win): Nếu có nước đi đánh hết sạch bài trên tay
     const instantWinMove = validMoves.find(m => m.cards.length === hand.length);
     if (instantWinMove) {
-      return {
-        type: 'PLAY',
+      return buildBotDecision('PLAY', {
         cards: instantWinMove.cards,
         combination: instantWinMove.combination,
-        reason: 'Dứt điểm toàn bộ bài để về Nhất'
-      };
+        reason: 'Dứt điểm toàn bộ bài để về Nhất',
+        strategyUsed: 'ENDGAME_INSTANT_WIN'
+      });
     }
 
     if (!isLeadMove) {
@@ -295,12 +324,12 @@ export class EndgameSolverHandler extends BotDecisionHandler {
       if (sortedHand[0].rank === sortedHand[1].rank) {
         const pairMove = validMoves.find(m => m.combination.type === 'PAIR');
         if (pairMove) {
-          return {
-            type: 'PLAY',
+          return buildBotDecision('PLAY', {
             cards: pairMove.cards,
             combination: pairMove.combination,
-            reason: 'Cờ tàn 2 lá: Về đôi'
-          };
+            reason: 'Cờ tàn 2 lá: Về đôi',
+            strategyUsed: 'ENDGAME_PAIR_WIN'
+          });
         }
       }
 
@@ -308,12 +337,12 @@ export class EndgameSolverHandler extends BotDecisionHandler {
       if (!prohibitEndingWithTwo && (isTwo(sortedHand[1]) || sortedHand[1].rank >= 13 || tracker.isStrongestRemainingSingle(sortedHand[1]))) {
         const smallMove = validMoves.find(m => m.cards.length === 1 && m.cards[0].id === sortedHand[0].id);
         if (smallMove) {
-          return {
-            type: 'PLAY',
+          return buildBotDecision('PLAY', {
             cards: smallMove.cards,
             combination: smallMove.combination,
-            reason: 'Cờ tàn 2 lá: Đánh rác nhỏ trước, giữ Heo/bài to chốt hạ'
-          };
+            reason: 'Cờ tàn 2 lá: Đánh rác nhỏ trước, giữ Heo/bài to chốt hạ',
+            strategyUsed: 'ENDGAME_SMALL_LEAD'
+          });
         }
       }
     }
@@ -472,12 +501,12 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
           m => m.combination.type === 'SINGLE' && m.cards[0].id === absoluteHighestCard.id
         );
         if (splitMove) {
-          return {
-            type: 'PLAY',
+          return buildBotDecision('PLAY', {
             cards: splitMove.cards,
             combination: splitMove.combination,
-            reason: `Bẻ bài chặn đền bài (Dynamic Sacrifice): Xé bài đánh lá to nhất ${absoluteHighestCard.rank} chặn người 1 lá`
-          };
+            reason: `Bẻ bài chặn đền bài (Dynamic Sacrifice): Xé bài đánh lá to nhất ${absoluteHighestCard.rank} chặn người 1 lá`,
+            strategyUsed: 'DYNAMIC_SACRIFICE'
+          });
         }
       }
       if (nonTwoTrash.length > 0) {
@@ -486,12 +515,12 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
           m => m.combination.type === 'SINGLE' && m.cards[0].id === largestTrash.id
         );
         if (move) {
-          return {
-            type: 'PLAY',
+          return buildBotDecision('PLAY', {
             cards: move.cards,
             combination: move.combination,
-            reason: 'Chặn đầu người kế tiếp báo 1 lá bằng rác lớn nhất'
-          };
+            reason: 'Chặn đầu người kế tiếp báo 1 lá bằng rác lớn nhất',
+            strategyUsed: 'ANTI_ONE_CARD_INTERCEPT'
+          });
         }
       }
     }
@@ -529,12 +558,12 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
                    m.combination.highestCard.rank === combo.highestCard.rank
             );
             if (move) {
-              return {
-                type: 'PLAY',
+              return buildBotDecision('PLAY', {
                 cards: move.cards,
                 combination: move.combination,
-                reason: `Khai thác điểm yếu & bắt bài (In-Match Adaptation): Đánh ${combo.type} do đối thủ (${targetOpponentId}) có tỉ lệ bỏ lượt cao`
-              };
+                reason: `Khai thác điểm yếu & bắt bài (In-Match Adaptation): Đánh ${combo.type} do đối thủ (${targetOpponentId}) có tỉ lệ bỏ lượt cao`,
+                strategyUsed: 'IN_MATCH_ADAPTATION'
+              });
             }
           }
         }
@@ -562,12 +591,12 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
         m => m.cards[0].rank === 14 || (isTwo(m.cards[0]) && (m.cards[0].suit === 'SPADES' || m.cards[0].suit === 'CLUBS'))
       );
       if (baitMove) {
-        return {
-          type: 'PLAY',
+        return buildBotDecision('PLAY', {
           cards: baitMove.cards,
           combination: baitMove.combination,
-          reason: `Gài bẫy nhử mồi (Baiting Trap): Đánh ${baitMove.cards[0].rank} khi đang ôm Hàng Chặt để câu Heo đối thủ`
-        };
+          reason: `Gài bẫy nhử mồi (Baiting Trap): Đánh ${baitMove.cards[0].rank} khi đang ôm Hàng Chặt để câu Heo đối thủ`,
+          strategyUsed: 'BAITING_TRAP'
+        });
       }
     }
 
@@ -591,12 +620,12 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
             m.combination.highestCard.id === bestSprintCombo.highestCard.id
         );
         if (move) {
-          return {
-            type: 'PLAY',
+          return buildBotDecision('PLAY', {
             cards: move.cards,
             combination: move.combination,
-            reason: `Tăng tốc dứt điểm (Turns-to-Win: ${turnsToWin} nhịp): Xả ${bestSprintCombo.type} để về bài thần tốc`
-          };
+            reason: `Tăng tốc dứt điểm (Turns-to-Win: ${turnsToWin} nhịp): Xả ${bestSprintCombo.type} để về bài thần tốc`,
+            strategyUsed: 'TEMPO_SPRINT'
+          });
         }
       }
     }
@@ -618,12 +647,12 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
           m => m.combination.type === 'SINGLE' && m.cards[0].id === smallestTrash.id
         );
         if (move) {
-          return {
-            type: 'PLAY',
+          return buildBotDecision('PLAY', {
             cards: move.cards,
             combination: move.combination,
-            reason: `Lực bài áp đảo (${handStrength.twoCount} Heo): Tẩu rác nhỏ ${smallestTrash.rank} dưới sự bảo kê của Heo`
-          };
+            reason: `Lực bài áp đảo (${handStrength.twoCount} Heo): Tẩu rác nhỏ ${smallestTrash.rank} dưới sự bảo kê của Heo`,
+            strategyUsed: 'DOMINANT_TRASH_DISPOSAL'
+          });
         }
       }
       // Nếu đã sạch rác (nonTwoTrash = 0): Xả sảnh/bộ dài nhất để dứt điểm!
@@ -640,12 +669,12 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
             m.combination.highestCard.id === bestCombo.highestCard.id
         );
         if (move) {
-          return {
-            type: 'PLAY',
+          return buildBotDecision('PLAY', {
             cards: move.cards,
             combination: move.combination,
-            reason: `Lực bài áp đảo đã sạch rác: Xả bộ dài nhất (${bestCombo.type} ${bestCombo.cards.length} lá) dứt điểm`
-          };
+            reason: `Lực bài áp đảo đã sạch rác: Xả bộ dài nhất (${bestCombo.type} ${bestCombo.cards.length} lá) dứt điểm`,
+            strategyUsed: 'DOMINANT_COMBO_CLEAR'
+          });
         }
       }
     }
@@ -677,12 +706,12 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
           m.combination.highestCard.id === longestCombo.highestCard.id
       );
       if (move) {
-        return {
-          type: 'PLAY',
+        return buildBotDecision('PLAY', {
           cards: move.cards,
           combination: move.combination,
-          reason: `Chiến thuật Rule-Driven: Xả tổ hợp dài nhất (${longestCombo.type} ${longestCombo.cards.length} lá) trước để giảm số lá tồn`
-        };
+          reason: `Chiến thuật Rule-Driven: Xả tổ hợp dài nhất (${longestCombo.type} ${longestCombo.cards.length} lá) trước để giảm số lá tồn`,
+          strategyUsed: 'RULE_DRIVEN_LONGEST_COMBO'
+        });
       }
     }
 
@@ -705,12 +734,12 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
                 m => m.combination.type === 'SINGLE' && m.cards[0].id === mediumTrash.id
               );
               if (move) {
-                return {
-                  type: 'PLAY',
+                return buildBotDecision('PLAY', {
                   cards: move.cards,
                   combination: move.combination,
-                  reason: `Ý thức vị thế ghế ngồi (Positional Awareness): Đánh rác tầm trung ${mediumTrash.rank} để đì nhà dưới (${nextPlayerId})`
-                };
+                  reason: `Ý thức vị thế ghế ngồi (Positional Awareness): Đánh rác tầm trung ${mediumTrash.rank} để đì nhà dưới (${nextPlayerId})`,
+                  strategyUsed: 'POSITIONAL_TRASH_LEAD'
+                });
               }
             }
           }
@@ -722,12 +751,12 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
           m => m.combination.type === 'SINGLE' && m.cards[0].id === smallestTrash.id
         );
         if (move) {
-          return {
-            type: 'PLAY',
+          return buildBotDecision('PLAY', {
             cards: move.cards,
             combination: move.combination,
-            reason: 'Tẩu rác nhỏ nhất để thăm dò và xả bài yếu'
-          };
+            reason: 'Tẩu rác nhỏ nhất để thăm dò và xả bài yếu',
+            strategyUsed: 'SMALLEST_TRASH_DISPOSAL'
+          });
         }
       } else {
         // Người kế tiếp báo 1 lá -> CHẶN ĐẦU: Đánh lá rác TO NHẤT
@@ -736,12 +765,12 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
           m => m.combination.type === 'SINGLE' && m.cards[0].id === largestTrash.id
         );
         if (move) {
-          return {
-            type: 'PLAY',
+          return buildBotDecision('PLAY', {
             cards: move.cards,
             combination: move.combination,
-            reason: 'Chặn đầu người kế tiếp báo 1 lá bằng rác lớn nhất'
-          };
+            reason: 'Chặn đầu người kế tiếp báo 1 lá bằng rác lớn nhất',
+            strategyUsed: 'ANTI_ONE_CARD_LARGEST_TRASH'
+          });
         }
       }
     }
@@ -760,12 +789,12 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
           m.combination.highestCard.id === smallestCombo.highestCard.id
       );
       if (move) {
-        return {
-          type: 'PLAY',
+        return buildBotDecision('PLAY', {
           cards: move.cards,
           combination: move.combination,
-          reason: `Đánh bộ nhỏ ${smallestCombo.type} ${smallestCombo.cards.length} lá để giữ nhịp`
-        };
+          reason: `Đánh bộ nhỏ ${smallestCombo.type} ${smallestCombo.cards.length} lá để giữ nhịp`,
+          strategyUsed: 'SMALLEST_COMBO_LEAD'
+        });
       }
     }
 
@@ -789,12 +818,12 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
           bestMove = m;
         }
       }
-      return {
-        type: 'PLAY',
+      return buildBotDecision('PLAY', {
         cards: bestMove.cards,
         combination: bestMove.combination,
-        reason: 'MCTS tối ưu nước đi cờ tàn'
-      };
+        reason: 'MCTS tối ưu nước đi cờ tàn',
+        strategyUsed: 'MCTS_LEAD_OPTIMIZATION'
+      });
     }
 
     // =========================================================================
@@ -808,12 +837,12 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
     );
 
     const safeDefault = nonChopMoves.length > 0 ? nonChopMoves[0] : (nonTwoMoves.length > 0 ? nonTwoMoves[0] : validMoves[0]);
-    return {
-      type: 'PLAY',
+    return buildBotDecision('PLAY', {
       cards: safeDefault.cards,
       combination: safeDefault.combination,
-      reason: 'Nước đi an toàn mặc định'
-    };
+      reason: 'Nước đi an toàn mặc định',
+      strategyUsed: 'SAFE_DEFAULT_LEAD'
+    });
   }
 }
 
@@ -1088,10 +1117,10 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
       );
 
       if (bluffCheck.shouldBluffPass) {
-        return {
-          type: 'PASS',
-          reason: bluffCheck.reason
-        };
+        return buildBotDecision('PASS', {
+          reason: bluffCheck.reason,
+          strategyUsed: 'CFR_BLUFF_PASS'
+        });
       }
     }
 
@@ -1101,16 +1130,23 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
     const pendingCombosCardCount = partition.combinations.reduce((acc, c) => acc + c.cards.length, 0);
     const leadValueRatio = pendingCombosCardCount / Math.max(1, hand.length);
 
+    const evaluatedCandidateList: BotCandidateEvaluation[] = [];
+
     for (const move of validMoves) {
       let score = 50;
+      const reasons: string[] = ['Điểm cơ bản +50'];
       const containsTwo = move.cards.some(isTwo);
 
       // 1. Chặt Heo & Hàng
-      score += evaluateChoppingScore(move, targetCombo, config, trapTendencyBonus);
+      const chopScore = evaluateChoppingScore(move, targetCombo, config, trapTendencyBonus);
+      if (chopScore !== 0) {
+        score += chopScore;
+        reasons.push(`Chặt bài (${chopScore > 0 ? '+' : ''}${Math.round(chopScore)})`);
+      }
 
       // 2. Quản lý Heo (2) & Tránh nguy cơ bị Chặt đè
       if (containsTwo) {
-        score += evaluateTwoManagementScore(
+        const twoScore = evaluateTwoManagementScore(
           move,
           targetCombo,
           context,
@@ -1122,6 +1158,8 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
           choppingRiskFactor,
           config
         );
+        score += twoScore;
+        reasons.push(`Quản lý Heo (${twoScore > 0 ? '+' : ''}${Math.round(twoScore)})`);
       }
 
       // 3. Liên minh tạm thời dìm người dẫn đầu bàn 4 người (Semi-Cooperative Passing)
@@ -1138,12 +1176,13 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
           const isAllyMoveStrong = currentRoundLeadingMove.combination.highestCard.rank >= 13 || isTwo(currentRoundLeadingMove.combination.highestCard);
           if (isAllyMoveStrong) {
             score -= AI_HEURISTIC_WEIGHTS.SEMI_COOP_PASS_DEDUCTION * config.semiCooperativeCooperation;
+            reasons.push('Nhường đồng minh dìm người 1 lá');
           }
         }
       }
 
       // 4. Vị thế ghế ngồi & Bắt bài khắc chế
-      score += evaluatePositionalAndAdaptationModifiers(
+      const posScore = evaluatePositionalAndAdaptationModifiers(
         move,
         currentRoundLeadingMove,
         context,
@@ -1152,6 +1191,10 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
         targetCombo,
         hand
       );
+      if (posScore !== 0) {
+        score += posScore;
+        reasons.push(`Vị thế ghế ngồi (${posScore > 0 ? '+' : ''}${Math.round(posScore)})`);
+      }
 
       // 5. Kiểm soát nhịp độ & Lợi thế bài thường
       if (config.tempoControl > 0.2 && !containsTwo) {
@@ -1168,12 +1211,16 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
 
       // 7. Điểm điều chỉnh từ GameRules composite strategy
       if (compositeStrategy) {
-        score += compositeStrategy.getCompositeRespondingScoreModifier(
+        const ruleScore = compositeStrategy.getCompositeRespondingScoreModifier(
           move, 
           hand.length, 
           currentRoundLeadingMove, 
           ruleContext
         );
+        if (ruleScore !== 0) {
+          score += ruleScore;
+          reasons.push(`Luật game (${ruleScore > 0 ? '+' : ''}${Math.round(ruleScore)})`);
+        }
       }
 
       // 8. Đánh giá MCTS Rollouts
@@ -1181,17 +1228,20 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
         const key = move.cards.map(c => c.id).sort().join('_');
         if (mctsMap.has(key)) {
           const winRate = mctsMap.get(key)!;
-          score += (winRate - 0.25) * 40;
+          const mctsDelta = (winRate - 0.25) * 40;
+          score += mctsDelta;
+          reasons.push(`MCTS Winrate ${(winRate * 100).toFixed(0)}% (${mctsDelta > 0 ? '+' : ''}${Math.round(mctsDelta)})`);
         }
       }
 
       // 9. Cứu thua khẩn cấp
       if (isEmergencyAntiLeader) {
         score += AI_HEURISTIC_WEIGHTS.EMERGENCY_INTERCEPT_BONUS;
+        reasons.push('Khẩn cấp chặn người 1 lá');
       }
 
       // 10. Chi phí xé bài / bảo vệ cấu trúc bài
-      score -= evaluateComboIntegrityCost(
+      const integrityCost = evaluateComboIntegrityCost(
         move,
         partition,
         hand,
@@ -1200,22 +1250,29 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
         config,
         context.isNextPlayerOneCard
       );
+      if (integrityCost > 0) {
+        score -= integrityCost;
+        reasons.push(`Phá bộ/xé bài (-${Math.round(integrityCost)})`);
+      }
 
       // 11. Ưu tiên tẩu rác
       const isTrash = move.cards.every(c => partition.trashCards.some(tc => tc.id === c.id));
       if (isTrash) {
         score += AI_HEURISTIC_WEIGHTS.TRASH_MOVE_REWARD;
+        reasons.push('Tẩu rác lẻ');
       }
 
       // 12. Cờ tàn tăng tốc dứt điểm
       if (hand.length <= 3 || hand.length - move.cards.length <= 2) {
         score += AI_HEURISTIC_WEIGHTS.ENDGAME_SPRINT_BONUS;
+        reasons.push('Tăng tốc cờ tàn');
       }
 
       // 13. Khai thác lá bài to nhất tuyệt đối
       if (move.cards.length === 1 && tracker.isStrongestRemainingSingle(move.cards[0])) {
         if (hand.length <= 4 || leadValueRatio > 0.3) {
           score += AI_HEURISTIC_WEIGHTS.STRONGEST_SINGLE_BONUS * config.tempoControl;
+          reasons.push('Cầm trịch lá to nhất bàn');
         }
       }
 
@@ -1239,24 +1296,38 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
         score += (Math.random() - 0.5) * 20;
       }
 
+      evaluatedCandidateList.push({
+        cards: [...move.cards],
+        combinationType: move.combination.type,
+        score: Math.round(score),
+        reasons
+      });
+
       if (score > bestMoveScore) {
         bestMoveScore = score;
         bestMove = move;
       }
     }
 
+    const sortedCandidates = [...evaluatedCandidateList].sort((a, b) => b.score - a.score).slice(0, 5);
+
     if (bestMove && bestMoveScore > 0) {
-      return {
-        type: 'PLAY',
+      return buildBotDecision('PLAY', {
         cards: bestMove.cards,
-        combination: bestMove.combination
-      };
+        combination: bestMove.combination,
+        reason: `Đánh giá Heuristics (${Math.round(bestMoveScore)} điểm): Đánh ${bestMove.combination.type} [ ${bestMove.cards.map(c => c.code).join(' ')} ]`,
+        strategyUsed: 'HEURISTIC_EVALUATION',
+        evaluationScore: Math.round(bestMoveScore),
+        candidatesEvaluated: sortedCandidates
+      });
     }
 
-    return {
-      type: 'PASS',
-      reason: 'Chủ động bỏ lượt để giữ thế bài'
-    };
+    return buildBotDecision('PASS', {
+      reason: 'Chủ động bỏ lượt để giữ thế bài (các nước đi đều có điểm đánh giá <= 0)',
+      strategyUsed: 'HEURISTIC_EVALUATION_PASS',
+      evaluationScore: bestMoveScore > -9000 ? Math.round(bestMoveScore) : null,
+      candidatesEvaluated: sortedCandidates
+    });
   }
 }
 
@@ -1267,18 +1338,18 @@ export class FallbackDecisionHandler extends BotDecisionHandler {
   public handle(context: DecisionContext, validMoves: ValidMoveInfo[]): BotDecision | null {
     if (context.isLeadMove && validMoves.length > 0) {
       const first = validMoves[0];
-      return {
-        type: 'PLAY',
+      return buildBotDecision('PLAY', {
         cards: first.cards,
         combination: first.combination,
-        reason: 'Nước đi dự phòng'
-      };
+        reason: 'Nước đi dự phòng',
+        strategyUsed: 'FALLBACK_LEAD'
+      });
     }
 
-    return {
-      type: 'PASS',
-      reason: 'Bỏ lượt'
-    };
+    return buildBotDecision('PASS', {
+      reason: 'Bỏ lượt',
+      strategyUsed: 'FALLBACK_PASS'
+    });
   }
 }
 
@@ -1355,26 +1426,67 @@ export function makeBotDecision(context: DecisionContext): BotDecision {
 
   // 3. Nếu không có nước đi hợp lệ nào: Buộc phải Bỏ lượt (hoặc đánh 1 lá nếu là Lead)
   if (validMoves.length === 0) {
+    let emptyDecision: BotDecision;
     if (isLeadMove && hand.length > 0) {
       if (isProhibitEndingWithTwo && hand.every(isTwo)) {
-        return {
+        emptyDecision = {
           type: 'PASS',
-          reason: 'Chỉ còn Heo trên tay, không thể đánh do luật cấm về bằng Heo (2)'
+          cards: null,
+          combination: null,
+          reason: 'Chỉ còn Heo trên tay, không thể đánh do luật cấm về bằng Heo (2)',
+          strategyUsed: 'PROHIBIT_TWO_PASS',
+          evaluationScore: null,
+          candidatesEvaluated: null,
+          telemetry: null
+        };
+      } else {
+        const nonTwos = hand.filter(c => !isTwo(c));
+        const chosenCard = nonTwos.length > 0 ? sortCards(nonTwos)[0] : sortCards(hand)[0];
+        const singleCombo = identifyCombination([chosenCard])!;
+        emptyDecision = {
+          type: 'PLAY',
+          cards: [chosenCard],
+          combination: singleCombo,
+          reason: 'Buộc phải ra bài khi đang cầm cái',
+          strategyUsed: 'FORCED_LEAD_PLAY',
+          evaluationScore: null,
+          candidatesEvaluated: null,
+          telemetry: null
         };
       }
-      const nonTwos = hand.filter(c => !isTwo(c));
-      const chosenCard = nonTwos.length > 0 ? sortCards(nonTwos)[0] : sortCards(hand)[0];
-      const singleCombo = identifyCombination([chosenCard])!;
-      return {
-        type: 'PLAY',
-        cards: [chosenCard],
-        combination: singleCombo,
-        reason: 'Buộc phải ra bài khi đang cầm cái'
+    } else {
+      emptyDecision = {
+        type: 'PASS',
+        cards: null,
+        combination: null,
+        reason: 'Không có nước đi hợp lệ',
+        strategyUsed: 'NO_VALID_MOVES_PASS',
+        evaluationScore: null,
+        candidatesEvaluated: null,
+        telemetry: null
       };
     }
+
+    const handTwoCount = hand.filter(isTwo).length;
+    const partition = partitionHand(hand, config.handPartitioningOptimality);
+    const trashCount = partition.trashCards.length;
+
+    const telemetry: BotDecisionTelemetry = {
+      chosenReason: emptyDecision.reason || 'Bỏ lượt',
+      strategyUsed: emptyDecision.strategyUsed || 'NO_VALID_MOVES',
+      heuristicScore: null,
+      evaluatedCandidatesCount: 0,
+      topCandidates: [],
+      mctsWinRate: null,
+      mctsSimulations: config.mctsSimulations || null,
+      handStrengthTwoCount: handTwoCount,
+      handStrengthTrashCount: trashCount,
+      remainingOpponentCards: { ...remainingPlayerCards }
+    };
+
     return {
-      type: 'PASS',
-      reason: 'Không có nước đi hợp lệ'
+      ...emptyDecision,
+      telemetry
     };
   }
 
@@ -1407,15 +1519,49 @@ export function makeBotDecision(context: DecisionContext): BotDecision {
   };
 
   // 5. Xử lý qua Rule-First Chain of Responsibility
-  const decision = DEFAULT_DECISION_CHAIN.handle(enrichedContext, validMoves);
-  if (decision) {
-    return decision;
+  const decision = DEFAULT_DECISION_CHAIN.handle(enrichedContext, validMoves) || {
+    type: isLeadMove ? 'PLAY' : 'PASS',
+    cards: isLeadMove ? validMoves[0].cards : null,
+    combination: isLeadMove ? validMoves[0].combination : null,
+    reason: isLeadMove ? 'Nước đi mặc định khi cầm cái' : 'Bỏ lượt mặc định',
+    strategyUsed: 'SAFE_DEFAULT',
+    evaluationScore: null,
+    candidatesEvaluated: null,
+    telemetry: null
+  };
+
+  const handTwoCount = hand.filter(isTwo).length;
+  const partition = partitionHand(hand, config.handPartitioningOptimality);
+  const trashCount = partition.trashCards.length;
+
+  let mctsBestWinRate: number | null = null;
+  if (decision.cards && decision.cards.length > 0 && mctsMap.size > 0) {
+    const key = decision.cards.map(c => c.id).sort().join('_');
+    if (mctsMap.has(key)) {
+      mctsBestWinRate = mctsMap.get(key) || null;
+    }
   }
 
-  // Dự phòng an toàn
+  const telemetry: BotDecisionTelemetry = {
+    chosenReason: decision.reason || (decision.type === 'PLAY' ? 'Đánh bài theo chiến thuật' : 'Bỏ lượt'),
+    strategyUsed: decision.strategyUsed || (isLeadMove ? 'LEAD_STRATEGY' : 'RESPONSE_STRATEGY'),
+    heuristicScore: decision.evaluationScore !== undefined ? decision.evaluationScore : null,
+    evaluatedCandidatesCount: validMoves.length,
+    topCandidates: decision.candidatesEvaluated || (decision.cards ? [{
+      cards: decision.cards,
+      combinationType: decision.combination?.type || null,
+      score: decision.evaluationScore || 100,
+      reasons: [decision.reason || 'Quyết định từ chiến thuật ưu tiên']
+    }] : []),
+    mctsWinRate: mctsBestWinRate,
+    mctsSimulations: config.mctsSimulations || null,
+    handStrengthTwoCount: handTwoCount,
+    handStrengthTrashCount: trashCount,
+    remainingOpponentCards: { ...remainingPlayerCards }
+  };
+
   return {
-    type: isLeadMove ? 'PLAY' : 'PASS',
-    cards: isLeadMove ? validMoves[0].cards : undefined,
-    combination: isLeadMove ? validMoves[0].combination : undefined
+    ...decision,
+    telemetry
   };
 }

@@ -44,7 +44,10 @@ describe('Positional Awareness & In-Match Fast Adaptation AI Verification', () =
       hasPlayedFirstCard: true,
       isNextPlayerOneCard: false,
       prohibitEndingWithTwo: false,
-      gameMode: 'TRADITIONAL'
+      gameMode: 'TRADITIONAL',
+      mctsMap: null,
+      compositeRuleStrategy: null,
+      opponentProfiles: null
     };
 
     const validMoves = [
@@ -97,7 +100,10 @@ describe('Positional Awareness & In-Match Fast Adaptation AI Verification', () =
       hasPlayedFirstCard: true,
       isNextPlayerOneCard: false,
       prohibitEndingWithTwo: false,
-      gameMode: 'TRADITIONAL'
+      gameMode: 'TRADITIONAL',
+      mctsMap: null,
+      compositeRuleStrategy: null,
+      opponentProfiles: null
     };
 
     const validMoves = [
@@ -150,6 +156,8 @@ describe('Positional Awareness & In-Match Fast Adaptation AI Verification', () =
       isNextPlayerOneCard: false,
       prohibitEndingWithTwo: false,
       gameMode: 'TRADITIONAL',
+      mctsMap: null,
+      compositeRuleStrategy: null,
       opponentProfiles: { p1: opponentProfile }
     };
 
@@ -208,6 +216,8 @@ describe('Positional Awareness & In-Match Fast Adaptation AI Verification', () =
       isNextPlayerOneCard: false,
       prohibitEndingWithTwo: false,
       gameMode: 'TRADITIONAL',
+      mctsMap: null,
+      compositeRuleStrategy: null,
       opponentProfiles: { p1: opponentProfile }
     };
 
@@ -258,7 +268,10 @@ describe('Positional Awareness & In-Match Fast Adaptation AI Verification', () =
       hasPlayedFirstCard: true,
       isNextPlayerOneCard: false,
       prohibitEndingWithTwo: false,
-      gameMode: 'TRADITIONAL'
+      gameMode: 'TRADITIONAL',
+      mctsMap: null,
+      compositeRuleStrategy: null,
+      opponentProfiles: null
     };
 
     // Candidate single moves: 8♠ (xé Tứ quý), 9♠ (rác), 10♣ (rác), J♦ (rác)

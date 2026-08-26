@@ -74,7 +74,10 @@ describe('AI Bot Benchmark Simulation (100 Ván Đấu Mô Phỏng)', () => {
           hasPlayedFirstCard: currentTurnPlayer.hasPlayedFirstCard,
           isNextPlayerOneCard: remainingCardsMap[nextPlayerId] === 1,
           prohibitEndingWithTwo: game.rules.gameFlow.prohibitEndingWithTwo,
-          gameMode: game.settings.mode
+          gameMode: game.settings.mode,
+          mctsMap: null,
+          compositeRuleStrategy: null,
+          opponentProfiles: null
         });
 
         if (decision.type === 'PLAY' && decision.cards) {
@@ -153,8 +156,11 @@ describe('AI Bot Benchmark Simulation (100 Ván Đấu Mô Phỏng)', () => {
           rules: createDefaultGameRules(),
           hasPlayedFirstCard: true,
           isNextPlayerOneCard: false,
-          prohibitEndingWithTwo: true,
-          gameMode: 'TRADITIONAL'
+          prohibitEndingWithTwo: false,
+          gameMode: 'TRADITIONAL',
+          mctsMap: null,
+          compositeRuleStrategy: null,
+          opponentProfiles: null
         });
       }
 

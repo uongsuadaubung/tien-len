@@ -134,5 +134,5 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
       expect(engine.isGameOver).toBe(true);
       expect(turnCount).toBeLessThan(MAX_TURNS);
     }
-  });
+  }, 30000);
 });

@@ -65,7 +65,10 @@ describe('Information Set Monte Carlo Rollout Solver (ISMCTS)', () => {
       hasPlayedFirstCard: true,
       isNextPlayerOneCard: false,
       prohibitEndingWithTwo: true,
-      gameMode: 'TRADITIONAL'
+      gameMode: 'TRADITIONAL',
+      mctsMap: null,
+      compositeRuleStrategy: null,
+      opponentProfiles: null
     });
 
     expect(decision.type).toBe('PLAY');

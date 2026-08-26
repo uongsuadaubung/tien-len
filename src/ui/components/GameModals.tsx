@@ -75,11 +75,13 @@ export const GameModals: React.FC<GameModalsProps> = ({
     autoSortEnabled,
     aiHintEnabled,
     xrayEnabled,
+    botReasoningLogEnabled,
     toggleSound,
     toggleBlossom,
     toggleAutoSort,
     toggleAiHint,
-    toggleXRay
+    toggleXRay,
+    toggleBotReasoningLog
   } = useSettingsStore();
 
   // Game Store
@@ -173,6 +175,8 @@ export const GameModals: React.FC<GameModalsProps> = ({
         onToggleAiHint={toggleAiHint}
         xrayEnabled={xrayEnabled}
         onToggleXRay={toggleXRay}
+        botReasoningLogEnabled={botReasoningLogEnabled}
+        onToggleBotReasoningLog={toggleBotReasoningLog}
       />
 
       {/* 8. X-Ray Inspector */}
@@ -195,19 +199,20 @@ export const GameModals: React.FC<GameModalsProps> = ({
         winners={winners}
         allPlayers={players}
         betAmount={gameSettings.betAmount}
-        instantWinType={instantWinType}
+        instantWinType={instantWinType || null}
         isThreeSpadesWin={isThreeSpadesWin}
         payouts={matchPayouts}
         loanDeduction={loanDeductionAmount}
         eloDelta={lastEloDelta}
         playerElo={profile.elo}
         activeGameType={activeGameType}
-        campaignChapter={currentCampaignChapter}
+        campaignChapter={currentCampaignChapter || null}
         chapterWins={campaignResultMeta?.currentWins ?? (profile.campaignChapterWins[currentCampaignChapter?.id || 1] || 0)}
-        isChapterUnlockedNext={campaignResultMeta?.isUnlockedNext}
-        isAllCampaignCompleted={campaignResultMeta?.isAllCompleted}
-        nextChapter={campaignResultMeta?.nextChapter}
+        isChapterUnlockedNext={campaignResultMeta?.isUnlockedNext || false}
+        isAllCampaignCompleted={campaignResultMeta?.isAllCompleted || false}
+        nextChapter={campaignResultMeta?.nextChapter || null}
         playerCoins={profile.coins}
+        botReasoningLogEnabled={botReasoningLogEnabled}
       />
 
       {/* 10. Confirm Forfeit Modal */}

@@ -250,7 +250,10 @@ describe('Design Patterns Architecture Unit Tests (Kiểm Thử Mẫu Thiết K�
         hasPlayedFirstCard: true,
         isNextPlayerOneCard: false,
         prohibitEndingWithTwo: true,
-        gameMode: 'TRADITIONAL'
+        gameMode: 'TRADITIONAL',
+        mctsMap: null,
+        compositeRuleStrategy: null,
+        opponentProfiles: null
       };
 
       const decision = makeBotDecision(context);
@@ -274,7 +277,10 @@ describe('Design Patterns Architecture Unit Tests (Kiểm Thử Mẫu Thiết K�
         hasPlayedFirstCard: true,
         isNextPlayerOneCard: true,
         prohibitEndingWithTwo: true,
-        gameMode: 'TRADITIONAL'
+        gameMode: 'TRADITIONAL',
+        mctsMap: null,
+        compositeRuleStrategy: null,
+        opponentProfiles: null
       };
 
       const decision = makeBotDecision(context);

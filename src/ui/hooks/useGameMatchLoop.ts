@@ -20,6 +20,7 @@ import {
   savePlayerProfile 
 } from '../../engine/storage';
 import { UI_TIMINGS } from '../constants/ui-timings';
+import { MatchLogger } from '../../engine/match-logger';
 
 import { OpponentProfiler } from '../../ai/opponent-profiler';
 
@@ -91,6 +92,7 @@ export function useGameMatchLoop() {
     setMatchPayouts,
     setLoanDeductionAmount,
     setLastEloDelta,
+    setMatchLogReport,
     setCurrentScreen,
     resetMatchState
   } = useGameStore();
@@ -140,8 +142,8 @@ export function useGameMatchLoop() {
       chopperName, 
       targetName, 
       amount,
-      isCascade,
-      chainCount
+      isCascade: isCascade || false,
+      chainCount: chainCount || 1
     });
     setTimeout(() => {
       setChopNotification(null);
@@ -333,6 +335,17 @@ export function useGameMatchLoop() {
     savePlayerProfile(updatedProfile);
     GameEventBus.getInstance().publish(matchCompletedEvent);
 
+    const matchReport = MatchLogger.getInstance().finalizeMatch({
+      players: engine.players,
+      winners: engine.winners,
+      payouts: settlement.payouts,
+      isThreeSpadesWin: engine.isThreeSpadesWin,
+      instantWinType: instantWinType || null,
+      loanDeduction: settlement.loanDeduction || 0,
+      eloDelta: settlement.eloDelta || 0
+    });
+    setMatchLogReport(matchReport);
+
     openModal('VICTORY');
   }, [
     activeGameType,
@@ -343,6 +356,7 @@ export function useGameMatchLoop() {
     setLastEloDelta,
     setLoanDeductionAmount,
     setMatchPayouts,
+    setMatchLogReport,
     setProfile,
     syncGameState,
     triggerQuestToastIfNewlyCompleted

@@ -21,6 +21,7 @@ import { BotConfig } from '../ai/types';
 import { CardTracker } from '../ai/card-tracker';
 import { OpponentProfiler } from '../ai/opponent-profiler';
 import { calculateChopPenalty, calculateRottenPenalty } from './economy';
+import { MatchLogger, BotDecisionTelemetry } from './match-logger';
 
 export interface PlayMoveResult {
   success: boolean;
@@ -212,6 +213,13 @@ export class GameEngine {
       isFinished: false
     };
 
+    MatchLogger.getInstance().startNewMatch({
+      gameNumber: this.gameNumber,
+      gameMode: this.settings.mode || 'TRADITIONAL',
+      rules: this.rules,
+      players: this.players
+    });
+
     return { instantWin: false };
   }
 
@@ -258,6 +266,13 @@ export class GameEngine {
       passedPlayerIds: [],
       isFinished: false
     };
+
+    MatchLogger.getInstance().startNewMatch({
+      gameNumber: this.gameNumber,
+      gameMode: this.settings.mode || 'TRADITIONAL',
+      rules: this.rules,
+      players: this.players
+    });
   }
 
   /**
@@ -265,7 +280,8 @@ export class GameEngine {
    */
   public playMove(
     playerId: string,
-    cards: Card[]
+    cards: Card[],
+    botTelemetry: BotDecisionTelemetry | null = null
   ): PlayMoveResult {
     const player = this.getPlayer(playerId);
     if (!player) return { success: false, error: 'Không tìm thấy người chơi' };
@@ -311,12 +327,14 @@ export class GameEngine {
     }
 
     // 1. Trừ bài trên tay và thêm vào danh sách đã đánh
+    const handBeforeTurn = [...player.hand];
     const playedIds = new Set(cards.map(c => c.id));
     const handSizeBeforeMove = player.hand.length;
     player.hand = player.hand.filter(c => !playedIds.has(c.id));
     player.playedCards.push(...cards);
     player.hasPlayedFirstCard = true;
     this.playedCardsInGame.push(...cards);
+    const handAfterTurn = [...player.hand];
 
     const nextPlayerId = this.getNextActivePlayerId(playerId);
     const nextPlayer = this.getPlayer(nextPlayerId);
@@ -410,6 +428,25 @@ export class GameEngine {
 
     this.currentRound.moves.push(playedMoveRecord);
 
+    MatchLogger.getInstance().recordTurn({
+      roundNumber: this.roundNumber,
+      playerId,
+      playerName: player.name,
+      isBot: player.isBot,
+      botPersonaId: player.botPersonaId || null,
+      action: 'PLAY',
+      cardsPlayed: cards,
+      combination: validation.combination,
+      handBeforeTurn,
+      handAfterTurn,
+      leadingMoveBeforeTurn: leadingMove || null,
+      isLeadMove,
+      isChop,
+      choppedPlayerId: choppedPlayerId || null,
+      penaltyAmount: penaltyAmount || null,
+      botDecision: botTelemetry
+    });
+
     // Nếu người chơi dùng 4 đôi thông nhảy cóc ngoài lượt, phục hồi quyền tham gia
     if (player.isPassedCurrentRound) {
       player.isPassedCurrentRound = false;
@@ -479,7 +516,10 @@ export class GameEngine {
   /**
    * Bỏ lượt (Pass)
    */
-  public passTurn(playerId: string): { success: boolean; error?: string } {
+  public passTurn(
+    playerId: string,
+    botTelemetry: BotDecisionTelemetry | null = null
+  ): { success: boolean; error?: string } {
     if (this.currentRound.currentTurnPlayerId !== playerId) {
       return { success: false, error: 'Chưa đến lượt của bạn' };
     }
@@ -490,6 +530,8 @@ export class GameEngine {
 
     const player = this.getPlayer(playerId);
     if (!player) return { success: false, error: 'Không tìm thấy người chơi' };
+
+    const handBeforeTurn = [...player.hand];
 
     player.isPassedCurrentRound = true;
     if (!this.currentRound.passedPlayerIds.includes(playerId)) {
@@ -508,6 +550,25 @@ export class GameEngine {
         isNextOneCard
       );
     }
+
+    MatchLogger.getInstance().recordTurn({
+      roundNumber: this.roundNumber,
+      playerId,
+      playerName: player.name,
+      isBot: player.isBot,
+      botPersonaId: player.botPersonaId || null,
+      action: 'PASS',
+      cardsPlayed: null,
+      combination: null,
+      handBeforeTurn,
+      handAfterTurn: handBeforeTurn,
+      leadingMoveBeforeTurn: leadingMove || null,
+      isLeadMove: this.isRoundLeadMove(),
+      isChop: false,
+      choppedPlayerId: null,
+      penaltyAmount: null,
+      botDecision: botTelemetry
+    });
 
     this.advanceTurn(playerId);
     return { success: true };
@@ -545,12 +606,15 @@ export class GameEngine {
         rules: this.rules,
         hasPlayedFirstCard: currentPlayer.hasPlayedFirstCard,
         prohibitEndingWithTwo,
-        gameMode: this.settings.mode || 'TRADITIONAL'
+        gameMode: this.settings.mode || 'TRADITIONAL',
+        mctsMap: null,
+        compositeRuleStrategy: null,
+        opponentProfiles: null
       });
 
       if (decision.type === 'PLAY' && decision.cards && decision.cards.length > 0) {
         const cardsPlayed = [...decision.cards];
-        const moveRes = this.playMove(playerId, decision.cards);
+        const moveRes = this.playMove(playerId, decision.cards, decision.telemetry || null);
         if (moveRes.success) {
           const combo = identifyCombination(cardsPlayed);
           const playedMoveInfo: PlayedMove = {
@@ -572,7 +636,7 @@ export class GameEngine {
           };
         }
       } else {
-        const passRes = this.passTurn(playerId);
+        const passRes = this.passTurn(playerId, decision.telemetry || null);
         if (passRes.success) {
           return {
             action: 'PASS',

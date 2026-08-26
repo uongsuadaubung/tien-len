@@ -4,7 +4,8 @@ import {
   VolumeX, 
   Settings, 
   Eye, 
-  CheckCircle
+  CheckCircle,
+  BrainCircuit
 } from 'lucide-react';
 import { Modal, Card, Button } from '../primitives';
 
@@ -13,14 +14,16 @@ interface SettingsModalProps {
   onClose: () => void;
   soundEnabled: boolean;
   onToggleSound: () => void;
-  autoSortEnabled?: boolean;
-  onToggleAutoSort?: () => void;
-  blossomEnabled?: boolean;
-  onToggleBlossom?: () => void;
-  aiHintEnabled?: boolean;
-  onToggleAiHint?: () => void;
-  xrayEnabled?: boolean;
-  onToggleXRay?: () => void;
+  autoSortEnabled: boolean;
+  onToggleAutoSort: () => void;
+  blossomEnabled: boolean;
+  onToggleBlossom: () => void;
+  aiHintEnabled: boolean;
+  onToggleAiHint: () => void;
+  xrayEnabled: boolean;
+  onToggleXRay: () => void;
+  botReasoningLogEnabled: boolean;
+  onToggleBotReasoningLog: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -28,12 +31,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   soundEnabled,
   onToggleSound,
-  autoSortEnabled = true,
+  autoSortEnabled,
   onToggleAutoSort,
-  aiHintEnabled = false,
+  blossomEnabled,
+  onToggleBlossom,
+  aiHintEnabled,
   onToggleAiHint,
-  xrayEnabled = false,
-  onToggleXRay
+  xrayEnabled,
+  onToggleXRay,
+  botReasoningLogEnabled,
+  onToggleBotReasoningLog
 }) => {
   if (!isOpen) return null;
 
@@ -145,6 +152,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
           <div className={`w-10 h-5 flex items-center rounded-full p-0.5 transition-colors ${xrayEnabled ? 'bg-[var(--color-gold)]' : 'bg-[var(--bg-container)] border border-[var(--border-container)]'}`}>
             <div className={`bg-[#0a0c0e] w-4 h-4 rounded-full shadow transform transition-transform ${xrayEnabled ? 'translate-x-5 bg-white' : 'translate-x-0'}`} />
+          </div>
+        </Card>
+
+        {/* 5. Nhật Ký Suy Luận Bot AI (Debug Mode) */}
+        <Card 
+          variant="card"
+          hoverable
+          clickable
+          onClick={onToggleBotReasoningLog}
+          className="flex items-center justify-between p-3.5"
+        >
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-xl border ${botReasoningLogEnabled ? 'bg-[var(--bg-card-active)] border-[var(--color-gold-border)] text-[var(--color-gold)]' : 'bg-[var(--bg-container)] border-[var(--border-container)] text-[var(--text-muted)]'}`}>
+              <BrainCircuit className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-xs font-bold text-[var(--text-primary)]">Nhật Ký Suy Luận Bot AI (Debug Mode)</div>
+              <div className="text-[10px] text-[var(--text-muted)]">Xem chi tiết chuỗi suy nghĩ, lý do ra bài và điểm heuristics của Bot</div>
+            </div>
+          </div>
+
+          <div className={`w-10 h-5 flex items-center rounded-full p-0.5 transition-colors ${botReasoningLogEnabled ? 'bg-[var(--color-gold)]' : 'bg-[var(--bg-container)] border border-[var(--border-container)]'}`}>
+            <div className={`bg-[#0a0c0e] w-4 h-4 rounded-full shadow transform transition-transform ${botReasoningLogEnabled ? 'translate-x-5 bg-white' : 'translate-x-0'}`} />
           </div>
         </Card>
       </div>

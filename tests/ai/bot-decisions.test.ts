@@ -20,7 +20,10 @@ describe('AI Bot Decision Maker', () => {
     hasPlayedFirstCard: partial.hasPlayedFirstCard ?? true,
     isNextPlayerOneCard: partial.isNextPlayerOneCard ?? false,
     prohibitEndingWithTwo: partial.prohibitEndingWithTwo ?? false,
-    gameMode: partial.gameMode ?? 'TRADITIONAL'
+    gameMode: partial.gameMode ?? 'TRADITIONAL',
+    mctsMap: partial.mctsMap ?? null,
+    compositeRuleStrategy: partial.compositeRuleStrategy ?? null,
+    opponentProfiles: partial.opponentProfiles ?? null
   });
 
   test('Ván 1: Bot tự động chọn nước đi hợp lệ có chứa quân 3♠', () => {

@@ -25,7 +25,10 @@ describe('Chiến Thuật Ra Bài Cầm Cái & Mở Màn 3 Bích Chuẩn Tiến 
     hasPlayedFirstCard: partial.hasPlayedFirstCard ?? true,
     isNextPlayerOneCard: partial.isNextPlayerOneCard ?? false,
     prohibitEndingWithTwo: partial.prohibitEndingWithTwo ?? true,
-    gameMode: partial.gameMode ?? 'TRADITIONAL'
+    gameMode: partial.gameMode ?? 'TRADITIONAL',
+    mctsMap: partial.mctsMap ?? null,
+    compositeRuleStrategy: partial.compositeRuleStrategy ?? null,
+    opponentProfiles: partial.opponentProfiles ?? null
   });
 
   test('1. Mở màn 3 Bích: Bot có 3 Bích nằm trong 3 Đôi Thông (334455) KHÔNG ĐƯỢC xả cả 3 Đôi Thông', () => {

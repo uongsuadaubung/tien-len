@@ -47,7 +47,10 @@ describe('Chiến Thuật AI Thích Ứng Theo Từng Chế Độ Chơi (Mode-Sp
       hasPlayedFirstCard: true,
       isNextPlayerOneCard: false,
       prohibitEndingWithTwo: true,
-      gameMode: 'COUNT_CARDS' // Chế độ Đếm Lá
+      gameMode: 'COUNT_CARDS', // Chế độ Đếm Lá
+      mctsMap: null,
+      compositeRuleStrategy: null,
+      opponentProfiles: null
     });
 
     expect(decision.type).toBe('PLAY');
@@ -82,7 +85,10 @@ describe('Chiến Thuật AI Thích Ứng Theo Từng Chế Độ Chơi (Mode-Sp
       hasPlayedFirstCard: true,
       isNextPlayerOneCard: false,
       prohibitEndingWithTwo: true,
-      gameMode: 'TRADITIONAL' // Chế độ Truyền Thống
+      gameMode: 'TRADITIONAL', // Chế độ Truyền Thống
+      mctsMap: null,
+      compositeRuleStrategy: null,
+      opponentProfiles: null
     });
 
     expect(decision.type).toBe('PLAY');
@@ -114,7 +120,10 @@ describe('Chiến Thuật AI Thích Ứng Theo Từng Chế Độ Chơi (Mode-Sp
       hasPlayedFirstCard: true,
       isNextPlayerOneCard: false,
       prohibitEndingWithTwo: true,
-      gameMode: 'UNDERGROUND' // Chế độ Sòng Bạc Ngầm
+      gameMode: 'UNDERGROUND',
+      mctsMap: null,
+      compositeRuleStrategy: null,
+      opponentProfiles: null
     });
 
     expect(decision.type).toBe('PLAY');

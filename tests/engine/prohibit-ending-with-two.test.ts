@@ -213,7 +213,10 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
       hasPlayedFirstCard: partial.hasPlayedFirstCard ?? true,
       isNextPlayerOneCard: partial.isNextPlayerOneCard ?? false,
       prohibitEndingWithTwo: partial.prohibitEndingWithTwo ?? true,
-      gameMode: partial.gameMode ?? 'TRADITIONAL'
+      gameMode: partial.gameMode ?? 'TRADITIONAL',
+      mctsMap: partial.mctsMap ?? null,
+      compositeRuleStrategy: partial.compositeRuleStrategy ?? null,
+      opponentProfiles: partial.opponentProfiles ?? null
     });
 
     test('Bot có 2 lá [3♠, 2♥] chủ động đánh 2♥ trước khi đang cầm cái để về bằng 3♠', () => {

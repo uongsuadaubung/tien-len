@@ -26,7 +26,10 @@ describe('5 Cơ Chế Ra Quyết Định Cấp Đại Kiện Tướng Cho AI Bot
     hasPlayedFirstCard: partial.hasPlayedFirstCard ?? true,
     isNextPlayerOneCard: partial.isNextPlayerOneCard ?? false,
     prohibitEndingWithTwo: partial.prohibitEndingWithTwo ?? false,
-    gameMode: partial.gameMode ?? 'TRADITIONAL'
+    gameMode: partial.gameMode ?? 'TRADITIONAL',
+    mctsMap: partial.mctsMap ?? null,
+    compositeRuleStrategy: partial.compositeRuleStrategy ?? null,
+    opponentProfiles: partial.opponentProfiles ?? null
   });
 
   test('1. Bẻ Bài Sinh Tử (Dynamic Hand Sacrifice): Bot Tier 4 xé Đôi Át khi đỡ bài để chặn người 1 lá chống đền bài', () => {
