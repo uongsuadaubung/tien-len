@@ -208,6 +208,7 @@ export const App: React.FC = () => {
             onOpenLuckyWheel={() => openModal('WHEEL')}
             onOpenBank={() => openModal('BANK')}
             onOpenSettings={() => openModal('SETTINGS')}
+            onOpenRules={() => openModal('RULES')}
             onOpenNameSetup={() => openModal('NAME_SETUP')}
           />
         </>

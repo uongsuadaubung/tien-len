@@ -15,6 +15,7 @@ import { VictoryModal } from './VictoryModal';
 import { ConfirmForfeitModal } from './ConfirmForfeitModal';
 import { F5PenaltyNoticeModal } from './F5PenaltyNoticeModal';
 import { NameSetupModal } from './NameSetupModal';
+import { RulesModal } from './RulesModal';
 import { CardTracker } from '../../ai/card-tracker';
 import { CampaignChapter } from '../../engine/campaign';
 import { normalizePlayerCount } from '../../engine/types';
@@ -59,6 +60,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
     isBankLoanModalOpen,
     isCampaignModalOpen,
     isNameSetupOpen,
+    isRulesOpen,
     openModal,
     closeModal
   } = useModalStore();
@@ -171,6 +173,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
         onToggleAiHint={toggleAiHint}
         xrayEnabled={xrayEnabled}
         onToggleXRay={toggleXRay}
+        onOpenRules={() => openModal('RULES')}
       />
 
       {/* 8. X-Ray Inspector */}
@@ -221,6 +224,12 @@ export const GameModals: React.FC<GameModalsProps> = ({
         onClose={() => closeModal('NAME_SETUP')}
         onUpdateProfile={setProfile}
         isFirstTime={!profile.name || profile.name.trim() === ''}
+      />
+
+      {/* 13. Rules & Counter Matrix Modal */}
+      <RulesModal
+        isOpen={isRulesOpen}
+        onClose={() => closeModal('RULES')}
       />
     </>
   );

@@ -12,7 +12,8 @@ import {
   Settings, 
   AlertCircle,
   Sliders,
-  Edit2
+  Edit2,
+  BookOpen
 } from 'lucide-react';
 
 interface LobbyHubProps {
@@ -25,6 +26,7 @@ interface LobbyHubProps {
   onOpenLuckyWheel: () => void;
   onOpenBank: () => void;
   onOpenSettings: () => void;
+  onOpenRules?: () => void;
   onOpenNameSetup?: () => void;
 }
 
@@ -38,6 +40,7 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
   onOpenLuckyWheel,
   onOpenBank,
   onOpenSettings,
+  onOpenRules,
   onOpenNameSetup
 }) => {
   const currentRank = getRankTierByElo(profile.elo);
@@ -164,6 +167,18 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
             <Disc className="w-4 h-4 text-[#0a0d14]" />
             <span>Vòng Quay</span>
           </button>
+
+          {/* Nút Luật & Khắc Chế */}
+          {onOpenRules && (
+            <button
+              onClick={onOpenRules}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#182030] hover:bg-[#222c42] border border-[#d4af37]/40 text-[#f3e5ab] hover:text-yellow-300 font-bold text-xs shadow-md transition-all cursor-pointer"
+              title="Hướng dẫn luật chơi & bảng khắc chế các bài"
+            >
+              <BookOpen className="w-4 h-4 text-[#d4af37]" />
+              <span className="hidden md:inline">Luật & Khắc Chế</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -339,7 +354,18 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
           <span>Tiến Lên Miền Nam VIP • Luxury Casino Edition</span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
+          {onOpenRules && (
+            <button
+              onClick={onOpenRules}
+              className="flex items-center gap-1 hover:text-[#f3e5ab] transition-colors cursor-pointer text-slate-400"
+              title="Hướng dẫn luật chơi & bảng khắc chế bài"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>Luật & Khắc Chế</span>
+            </button>
+          )}
+
           <button
             onClick={onOpenSettings}
             className="flex items-center gap-1 hover:text-[#f3e5ab] transition-colors cursor-pointer text-slate-400"

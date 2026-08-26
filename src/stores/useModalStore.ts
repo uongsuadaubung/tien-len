@@ -12,7 +12,8 @@ export type ModalType =
   | 'CAMPAIGN'
   | 'CONFIRM_FORFEIT'
   | 'F5_PENALTY_NOTICE'
-  | 'NAME_SETUP';
+  | 'NAME_SETUP'
+  | 'RULES';
 
 interface ModalState {
   isSettingsOpen: boolean;
@@ -27,6 +28,7 @@ interface ModalState {
   isConfirmForfeitOpen: boolean;
   isF5PenaltyNoticeOpen: boolean;
   isNameSetupOpen: boolean;
+  isRulesOpen: boolean;
 
   forfeitData?: { depositAmount: number; eloPenalty: number; isRanked: boolean; };
   f5PenaltyData?: { depositLost: number; eloLost: number; isRanked: boolean; };
@@ -49,6 +51,7 @@ interface ModalState {
   setIsConfirmForfeitOpen: (open: boolean) => void;
   setIsF5PenaltyNoticeOpen: (open: boolean) => void;
   setIsNameSetupOpen: (open: boolean) => void;
+  setIsRulesOpen: (open: boolean) => void;
   setForfeitData: (data?: { depositAmount: number; eloPenalty: number; isRanked: boolean; }) => void;
   setF5PenaltyData: (data?: { depositLost: number; eloLost: number; isRanked: boolean; }) => void;
 }
@@ -66,6 +69,7 @@ export const useModalStore = create<ModalState>((set) => ({
   isConfirmForfeitOpen: false,
   isF5PenaltyNoticeOpen: false,
   isNameSetupOpen: false,
+  isRulesOpen: false,
   forfeitData: undefined,
   f5PenaltyData: undefined,
 
@@ -83,6 +87,7 @@ export const useModalStore = create<ModalState>((set) => ({
       case 'CONFIRM_FORFEIT': set({ isConfirmForfeitOpen: true }); break;
       case 'F5_PENALTY_NOTICE': set({ isF5PenaltyNoticeOpen: true }); break;
       case 'NAME_SETUP': set({ isNameSetupOpen: true }); break;
+      case 'RULES': set({ isRulesOpen: true }); break;
     }
   },
 
@@ -100,6 +105,7 @@ export const useModalStore = create<ModalState>((set) => ({
       case 'CONFIRM_FORFEIT': set({ isConfirmForfeitOpen: false }); break;
       case 'F5_PENALTY_NOTICE': set({ isF5PenaltyNoticeOpen: false }); break;
       case 'NAME_SETUP': set({ isNameSetupOpen: false }); break;
+      case 'RULES': set({ isRulesOpen: false }); break;
     }
   },
 
@@ -115,7 +121,8 @@ export const useModalStore = create<ModalState>((set) => ({
     isCampaignModalOpen: false,
     isConfirmForfeitOpen: false,
     isF5PenaltyNoticeOpen: false,
-    isNameSetupOpen: false
+    isNameSetupOpen: false,
+    isRulesOpen: false
   }),
 
   setIsSettingsOpen: (open) => set({ isSettingsOpen: open }),
@@ -130,6 +137,7 @@ export const useModalStore = create<ModalState>((set) => ({
   setIsConfirmForfeitOpen: (open) => set({ isConfirmForfeitOpen: open }),
   setIsF5PenaltyNoticeOpen: (open) => set({ isF5PenaltyNoticeOpen: open }),
   setIsNameSetupOpen: (open) => set({ isNameSetupOpen: open }),
+  setIsRulesOpen: (open) => set({ isRulesOpen: open }),
   setForfeitData: (data) => set({ forfeitData: data }),
   setF5PenaltyData: (data) => set({ f5PenaltyData: data })
 }));

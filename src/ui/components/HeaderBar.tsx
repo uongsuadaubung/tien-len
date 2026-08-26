@@ -1,6 +1,6 @@
 import React from 'react';
 import { GameMode } from '../../engine/types';
-import { Settings, Eye, Volume2, VolumeX, RotateCcw, Home } from 'lucide-react';
+import { Settings, Eye, Volume2, VolumeX, RotateCcw, Home, BookOpen } from 'lucide-react';
 import { getRankTierByElo } from '../../engine/elo';
 
 export type ActiveGameType = 'QUICK' | 'RANKED' | 'CAMPAIGN' | 'UNDERGROUND';
@@ -15,6 +15,7 @@ interface HeaderBarProps {
   soundEnabled: boolean;
   onToggleSound: () => void;
   onOpenCustomGameModal?: () => void;
+  onOpenRules: () => void;
   onOpenSettings: () => void;
   onOpenXRay: () => void;
   onResetMatch: () => void;
@@ -30,6 +31,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   playerElo,
   soundEnabled,
   onToggleSound,
+  onOpenRules,
   onOpenSettings,
   onOpenXRay,
   onResetMatch,
@@ -119,6 +121,15 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           title={soundEnabled ? 'Tắt Âm Thanh' : 'Bật Âm Thanh'}
         >
           {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+        </button>
+
+        {/* Nút Luật Chơi & Bảng Khắc Chế */}
+        <button
+          onClick={onOpenRules}
+          className="p-1.5 rounded-xl bg-[#182030] hover:bg-[#222c42] border border-[#d4af37]/30 text-[#f3e5ab] hover:text-yellow-300 transition-all cursor-pointer shadow"
+          title="Luật Chơi & Bảng Khắc Chế Bài"
+        >
+          <BookOpen className="w-4 h-4" />
         </button>
 
         {/* Nút Chia Lại Ván Bài Mới */}

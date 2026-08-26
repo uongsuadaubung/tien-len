@@ -117,6 +117,7 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
         soundEnabled={soundEnabled}
         onToggleSound={toggleSound}
         xrayEnabled={xrayEnabled}
+        onOpenRules={() => openModal('RULES')}
         onOpenSettings={() => openModal('SETTINGS')}
         onOpenXRay={() => openModal('XRAY')}
         onResetMatch={onResetMatch}

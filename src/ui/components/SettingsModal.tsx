@@ -6,7 +6,8 @@ import {
   X, 
   Sparkles, 
   Eye, 
-  CheckCircle
+  CheckCircle,
+  BookOpen
 } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -22,6 +23,7 @@ interface SettingsModalProps {
   onToggleAiHint?: () => void;
   xrayEnabled?: boolean;
   onToggleXRay?: () => void;
+  onOpenRules?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -34,7 +36,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   aiHintEnabled = false,
   onToggleAiHint,
   xrayEnabled = false,
-  onToggleXRay
+  onToggleXRay,
+  onOpenRules
 }) => {
   if (!isOpen) return null;
 
@@ -145,6 +148,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${xrayEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
             </div>
           </div>
+
+          {/* 5. Nút Mở Luật Chơi & Bảng Khắc Chế */}
+          {onOpenRules && (
+            <button
+              onClick={() => {
+                onClose();
+                onOpenRules();
+              }}
+              className="w-full flex items-center justify-between p-3.5 rounded-xl bg-gradient-to-r from-red-950/40 to-[#182030] border border-red-500/30 hover:border-red-500/60 text-[#f3e5ab] hover:text-white cursor-pointer transition-all shadow"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-red-950/80 text-red-400 border border-red-500/40">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <div className="text-left">
+                  <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span>Luật Chơi & Bảng Khắc Chế Bài</span>
+                    <span className="text-[10px] bg-red-600 text-white px-1.5 py-0.2 rounded font-black">HOT</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400">Tra cứu cách chặt Heo, Tứ Quý, 3-4 Đôi Thông & phạt</div>
+                </div>
+              </div>
+              <span className="text-[#d4af37] text-sm font-black">→</span>
+            </button>
+          )}
         </div>
 
         {/* THÔNG TIN HỆ THỐNG */}
