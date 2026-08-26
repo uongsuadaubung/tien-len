@@ -2,17 +2,26 @@ import { describe, expect, test } from 'bun:test';
 import { parseCard, parseCards } from '../../src/engine/card';
 import { identifyCombination } from '../../src/engine/combinations';
 import { CardTracker } from '../../src/ai/card-tracker';
+import { PlayedMove, Combination } from '../../src/engine/types';
 
 describe('AI Card Tracker (Bộ Nhớ Đếm Bài & Suy Luận)', () => {
+  const makeMove = (playerId: string, combination: Combination): PlayedMove => ({
+    playerId,
+    combination,
+    timestamp: Date.now(),
+    isChop: null,
+    choppedPlayerId: null,
+    penaltyAmount: null,
+    isCascadeChop: null,
+    chopChainCount: null,
+    chopChainTotalAmount: null
+  });
+
   test('Theo dõi chính xác các lá bài đã xuất hiện', () => {
     const myHand = parseCards('3S 4S 5S 2H');
     const tracker = new CardTracker(myHand, 1.0); // 100% memory
 
-    const move1 = {
-      playerId: 'p2',
-      combination: identifyCombination(parseCards('2S 2D'))!,
-      timestamp: Date.now()
-    };
+    const move1 = makeMove('p2', identifyCombination(parseCards('2S 2D'))!);
     tracker.recordMove(move1);
 
     expect(tracker.isCardPlayed(parseCard('2S'))).toBe(true);
@@ -30,11 +39,7 @@ describe('AI Card Tracker (Bộ Nhớ Đếm Bài & Suy Luận)', () => {
     const tracker = new CardTracker(myHand, 1.0);
 
     // Bàn chơi đánh ra 10S
-    tracker.recordMove({
-      playerId: 'p2',
-      combination: identifyCombination(parseCards('10S'))!,
-      timestamp: Date.now()
-    });
+    tracker.recordMove(makeMove('p2', identifyCombination(parseCards('10S'))!));
 
     const dangerousRanks = tracker.getDangerousFourOfAKindRanks();
     // Rank 10 đã xuất hiện 1 lá nên đối thủ không thể có Tứ quý 10 nữa
@@ -64,11 +69,7 @@ describe('AI Card Tracker (Bộ Nhớ Đếm Bài & Suy Luận)', () => {
 
     // Đánh ra đủ mỗi rank 1 lá
     for (let r = 3; r <= 14; r++) {
-      tracker.recordMove({
-        playerId: 'p1',
-        combination: identifyCombination(parseCards(`${r === 14 ? 'A' : r === 13 ? 'K' : r === 12 ? 'Q' : r === 11 ? 'J' : r}S`))!,
-        timestamp: Date.now()
-      });
+      tracker.recordMove(makeMove('p1', identifyCombination(parseCards(`${r === 14 ? 'A' : r === 13 ? 'K' : r === 12 ? 'Q' : r === 11 ? 'J' : r}S`))!));
     }
 
     const report2 = tracker.getTwoSafetyReport();
@@ -89,11 +90,7 @@ describe('AI Card Tracker (Bộ Nhớ Đếm Bài & Suy Luận)', () => {
     expect(tracker2.isStrongestRemainingSingle(parseCard('2D'))).toBe(false);
 
     // Đánh 2H ra ngoài
-    tracker2.recordMove({
-      playerId: 'p1',
-      combination: identifyCombination(parseCards('2H'))!,
-      timestamp: Date.now()
-    });
+    tracker2.recordMove(makeMove('p1', identifyCombination(parseCards('2H'))!));
     // Bây giờ 2D trở thành to nhất!
     expect(tracker2.isStrongestRemainingSingle(parseCard('2D'))).toBe(true);
   });

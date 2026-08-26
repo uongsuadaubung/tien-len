@@ -32,7 +32,7 @@ export function replayTurnDecisionFromLog(
   const turnEntry = report.turns[turnIndex];
   const player = report.players.find(p => p.id === turnEntry.playerId);
   const botPersonaId = turnEntry.botPersonaId || player?.botPersonaId || 'BOT_ELO_1750';
-  const config: BotConfig = getBotConfig(botPersonaId as any);
+  const config: BotConfig = getBotConfig(botPersonaId);
 
   // 1. Tái thiết lập CardTracker theo lịch sử các lá bài đã xuất hiện trước lượt này
   const tracker = new CardTracker(turnEntry.handBeforeTurn, config.memoryDepth);
@@ -43,7 +43,13 @@ export function replayTurnDecisionFromLog(
         tracker.recordMove({
           playerId: prevTurn.playerId,
           combination: prevTurn.combination,
-          timestamp: prevTurn.timestamp
+          timestamp: prevTurn.timestamp,
+          isChop: prevTurn.isChop ?? null,
+          choppedPlayerId: prevTurn.choppedPlayerId ?? null,
+          penaltyAmount: prevTurn.penaltyAmount ?? null,
+          isCascadeChop: null,
+          chopChainCount: null,
+          chopChainTotalAmount: null
         });
       }
     }

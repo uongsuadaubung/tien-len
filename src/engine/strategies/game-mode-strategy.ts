@@ -24,12 +24,12 @@ import { PlayerProfile } from '../storage';
  */
 export interface MatchSetupContext {
   profile: PlayerProfile;
-  customRules?: DeepPartial<GameRules>;
-  customSettings?: Partial<GameSettings>;
-  customBotPersonaIds?: [string, string, string];
-  customBotConfigs?: [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>];
-  campaignChapter?: CampaignChapter;
-  playerCount?: number;
+  customRules: DeepPartial<GameRules> | null;
+  customSettings: Partial<GameSettings> | null;
+  customBotPersonaIds: string[] | null;
+  customBotConfigs: Partial<BotConfig>[] | null;
+  campaignChapter: CampaignChapter | null;
+  playerCount: number | null;
 }
 
 /**
@@ -51,11 +51,11 @@ export interface MatchSettlementContext {
   players: Player[];
   winners: Player[];
   betAmount: number;
-  playerElo?: number;
-  isBankLoanActive?: boolean;
-  campaignReward?: number;
-  penaltyMultiplier?: number;
-  isThreeSpadesWin?: boolean;
+  playerElo: number | null;
+  isBankLoanActive: boolean | null;
+  campaignReward: number | null;
+  penaltyMultiplier: number | null;
+  isThreeSpadesWin: boolean | null;
 }
 
 /**
@@ -67,7 +67,7 @@ export interface MatchSettlementResult {
   eloDelta: number;
   loanDeduction: number;
   isVictoryModalRanked: boolean;
-  campaignReward?: number;
+  campaignReward: number | null;
 }
 
 /**
@@ -86,11 +86,14 @@ function buildInitialPlayers(
       name: profile.name || 'Bạn (Người Chơi)',
       avatar: profile.avatar || '🤠',
       isBot: false,
+      botPersonaId: null,
       hand: [],
       playedCards: [],
       score: profile.coins,
       isPassedCurrentRound: false,
-      hasPlayedFirstCard: false
+      hasPlayedFirstCard: false,
+      rankPosition: null,
+      instantWinType: null
     }
   ];
 
@@ -118,7 +121,6 @@ function buildInitialPlayers(
     usedNames.push(botName || `Bot ${i + 1}`);
     usedAvatars.push(botAvatar || '🤖');
 
-    // Sinh số tiền vốn khởi điểm tự nhiên theo Bậc Elo và Mức cược
     const botInitialBankroll = generateRealisticBotBankroll(config, betAmount);
 
     players.push({
@@ -126,12 +128,14 @@ function buildInitialPlayers(
       name: botName || `Bot ${i + 1}`,
       avatar: botAvatar || '🤖',
       isBot: true,
-      botPersonaId: personaId,
+      botPersonaId: personaId || null,
       hand: [],
       playedCards: [],
       score: botInitialBankroll,
       isPassedCurrentRound: false,
-      hasPlayedFirstCard: false
+      hasPlayedFirstCard: false,
+      rankPosition: null,
+      instantWinType: null
     });
   }
 
@@ -146,12 +150,21 @@ function createMatchSetupResult(
   rules: GameRules,
   defaultBotConfigs: BotConfig[]
 ): MatchSetupResult {
-  const customBotConfigs = context.customBotConfigs ?? [{}, {}, {}];
+  const rawConfigs = context.customBotConfigs || [];
+  const customBotConfigs: [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>] = [
+    rawConfigs[0] || {},
+    rawConfigs[1] || {},
+    rawConfigs[2] || {}
+  ];
   let bConfigs: BotConfig[];
   let botPersonaIds: [string, string, string];
 
-  if (context.customBotPersonaIds) {
-    botPersonaIds = context.customBotPersonaIds;
+  if (context.customBotPersonaIds && context.customBotPersonaIds.length >= 3) {
+    botPersonaIds = [
+      context.customBotPersonaIds[0] || 'BOT_ELO_850',
+      context.customBotPersonaIds[1] || 'BOT_ELO_1150',
+      context.customBotPersonaIds[2] || 'BOT_ELO_1450'
+    ];
     bConfigs = [
       getBotConfig(botPersonaIds[0], customBotConfigs[0]),
       getBotConfig(botPersonaIds[1], customBotConfigs[1]),
@@ -221,7 +234,7 @@ function computeMatchEloDelta(context: MatchSettlementContext): number {
   const opponentsAvgElo = opponentBots.length > 0
     ? Math.round(
         opponentBots.reduce((sum, p) => {
-          const config = getBotConfig((p.botPersonaId || 'BOT_ELO_1150') as any);
+          const config = getBotConfig(p.botPersonaId || 'BOT_ELO_1150');
           return sum + (config.elo || 1000);
         }, 0) / opponentBots.length
       )
@@ -277,7 +290,8 @@ export class TraditionalModeStrategy implements GameModeStrategy {
       payouts,
       eloDelta,
       loanDeduction: 0,
-      isVictoryModalRanked: true
+      isVictoryModalRanked: true,
+      campaignReward: null
     };
   }
 }
@@ -336,7 +350,8 @@ export class CountCardsModeStrategy implements GameModeStrategy {
       payouts,
       eloDelta,
       loanDeduction: 0,
-      isVictoryModalRanked: true
+      isVictoryModalRanked: true,
+      campaignReward: null
     };
   }
 }
@@ -364,8 +379,8 @@ export class CampaignModeStrategy implements GameModeStrategy {
     const defaultBots = chapter ? chapter.bots : getRandomBotConfigsForTable([1, 2, 3], 3);
     const campaignContext: MatchSetupContext = {
       ...context,
-      customBotPersonaIds: chapter ? [chapter.bots[0].id, chapter.bots[1].id, chapter.bots[2].id] : undefined,
-      customBotConfigs: chapter ? [chapter.bots[0], chapter.bots[1], chapter.bots[2]] : undefined
+      customBotPersonaIds: chapter ? [chapter.bots[0].id, chapter.bots[1].id, chapter.bots[2].id] : null,
+      customBotConfigs: chapter ? [chapter.bots[0], chapter.bots[1], chapter.bots[2]] : null
     };
     return createMatchSetupResult(campaignContext, rules, defaultBots);
   }
@@ -449,7 +464,8 @@ export class WinnerTakesAllModeStrategy implements GameModeStrategy {
       payouts,
       eloDelta,
       loanDeduction: 0,
-      isVictoryModalRanked: true
+      isVictoryModalRanked: true,
+      campaignReward: null
     };
   }
 }

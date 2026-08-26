@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'bun:test';
 import { createCard } from '../../src/engine/card';
 import { GameEngine } from '../../src/engine/game';
-import { Player, createDefaultGameRules, GameRulesBuilder } from '../../src/engine/types';
+import { Player, PlayedMove, createDefaultGameRules, GameRulesBuilder } from '../../src/engine/types';
 import { ChoppingRuleStrategyBuilder } from '../../src/ai/rule-strategies';
 
 describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạc Chuẩn)', () => {
@@ -39,44 +39,56 @@ describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạ
         name: 'Người Chơi A',
         avatar: '🤠',
         isBot: false,
+        botPersonaId: null,
         hand: [],
         playedCards: [],
         score: 10000,
         isPassedCurrentRound: false,
-        hasPlayedFirstCard: true
+        hasPlayedFirstCard: true,
+        rankPosition: null,
+        instantWinType: null
       },
       {
         id: 'p1',
         name: 'Bot B',
         avatar: '🤖',
         isBot: true,
+        botPersonaId: null,
         hand: [],
         playedCards: [],
         score: 10000,
         isPassedCurrentRound: false,
-        hasPlayedFirstCard: true
+        hasPlayedFirstCard: true,
+        rankPosition: null,
+        instantWinType: null
       },
       {
         id: 'p2',
         name: 'Bot C',
         avatar: '🤖',
         isBot: true,
+        botPersonaId: null,
         hand: [],
         playedCards: [],
         score: 10000,
         isPassedCurrentRound: false,
-        hasPlayedFirstCard: true
+        hasPlayedFirstCard: true,
+        rankPosition: null,
+        instantWinType: null
       },
       {
         id: 'p3',
         name: 'Bot D',
         avatar: '🤖',
         isBot: true,
+        botPersonaId: null,
         hand: [],
         playedCards: [],
         score: 10000,
         isPassedCurrentRound: false,
-        hasPlayedFirstCard: true
+        hasPlayedFirstCard: true,
+        rankPosition: null,
+        instantWinType: null
       }
     ];
   }
@@ -245,11 +257,16 @@ describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạ
         isChop: true
       };
 
-      const targetMove = {
+      const targetMove: PlayedMove = {
         playerId: 'p1',
         combination: { type: 'THREE_PAIRS_SEQUENTIAL' as const, cards: threePairs, highestCard: threePairs[5], length: 6 },
         timestamp: Date.now(),
-        isChop: true
+        isChop: true,
+        choppedPlayerId: null,
+        penaltyAmount: null,
+        isCascadeChop: null,
+        chopChainCount: null,
+        chopChainTotalAmount: null
       };
 
       // targetMove.isChop = true -> Counter chop!

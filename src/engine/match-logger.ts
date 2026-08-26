@@ -1,4 +1,4 @@
-import { Card, Combination, CombinationType, GameRules, PlayedMove, Player } from './types';
+import { Card, Combination, CombinationType, GameRules, PlayedMove, Player, createDefaultGameRules } from './types';
 
 /**
  * Đánh giá chi tiết của một ứng viên nước đi trong quá trình AI tính toán
@@ -266,7 +266,7 @@ export class MatchLogger {
       matchId: this.currentMatchId || `match_${endedAtTimestamp}`,
       gameNumber: this.gameNumber,
       gameMode: this.gameMode,
-      rules: this.rules || ({} as GameRules),
+      rules: this.rules || createDefaultGameRules(),
       startedAt: new Date(this.startedAtTimestamp || endedAtTimestamp).toISOString(),
       endedAt: new Date(endedAtTimestamp).toISOString(),
       durationMs,
@@ -399,7 +399,7 @@ export class MatchLogger {
       matchId: this.currentMatchId || `match_${endedAtTimestamp}`,
       gameNumber: this.gameNumber,
       gameMode: this.gameMode,
-      rules: this.rules || ({} as GameRules),
+      rules: this.rules || createDefaultGameRules(),
       startedAt: new Date(this.startedAtTimestamp || endedAtTimestamp).toISOString(),
       endedAt: new Date(endedAtTimestamp).toISOString(),
       durationMs,

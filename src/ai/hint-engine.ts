@@ -21,8 +21,31 @@ export interface MoveHint {
   type: HintType;
   title: string;          // vd: "⚠️ Cảnh Báo Hàng Nóng", "💡 Nhẫn Nhịn Giữ Sảnh", "🚫 Tạm Bỏ Lượt"
   message: string;        // Lời thoại sinh động của Quân Sư (hiển thị ký hiệu bài trực quan: 3♠ 4♣ A♥ 2♥)
-  explanation: string;    // Giữ cho backwards compatibility
-  details?: string;       // Phân tích kỹ thuật chi tiết
+  explanation: string | null;    // Giữ cho backwards compatibility
+  details: string | null;       // Phân tích kỹ thuật chi tiết
+}
+
+/**
+ * Trợ giúp tạo MoveHint object hoàn chỉnh với details và explanation
+ */
+export function createMoveHint(data: {
+  action: 'PLAY' | 'PASS';
+  cards: Card[] | null;
+  type: HintType;
+  title: string;
+  message: string;
+  explanation?: string | null;
+  details?: string | null;
+}): MoveHint {
+  return {
+    action: data.action,
+    cards: data.cards,
+    type: data.type,
+    title: data.title,
+    message: data.message,
+    explanation: data.explanation ?? null,
+    details: data.details ?? null
+  };
 }
 
 /**
@@ -182,6 +205,8 @@ export function getOptimalMoveHint(
       hand,
       leadingMove,
       isLeadMove: false,
+      isFirstMoveOfGame: false,
+      allowFourPairsCutAnytime: true,
       prohibitEndingWithTwo: prohibitEndingWithTwo ?? true
     });
     if (candidates.length === 0) {
@@ -191,7 +216,8 @@ export function getOptimalMoveHint(
         type: 'FORCED_PASS',
         title: '🚫 Tạm Nhường Lượt',
         message: pickDialogue(DIALOGUES.FORCED_PASS),
-        explanation: 'Không có bài hợp lệ để đè bài trên bàn.'
+        explanation: 'Không có bài hợp lệ để đè bài trên bàn.',
+        details: null
       };
     }
   }
@@ -231,20 +257,22 @@ export function getOptimalMoveHint(
       type: 'DANGER_WARNING',
       title: '🚨 Nguy Cơ Bị Cóng!',
       message: pickDialogue(DIALOGUES.DANGER_CONG(cardCodes)),
-      explanation: 'Nguy cơ bị Cóng khi chưa đánh được lá nào.'
+      explanation: 'Nguy cơ bị Cóng khi chưa đánh được lá nào.',
+      details: null
     };
   }
 
   // 2b. Kịch bản CẢNH BÁO THỐI HEO CHÓT (Khi tay bài còn <= 3 lá mà ôm Heo trong luật cấm về Heo)
-  if (prohibitEndingWithTwo && hand.length <= 3 && hasTwosInHand && decision.type === 'PLAY' && decision.cards) {
+  if (prohibitEndingWithTwo && hand.length <= 3 && hasTwosInHand) {
     const twoCards = hand.filter(c => c.rank === 15);
     return {
-      action: 'PLAY',
-      cards: decision.cards,
+      action: decision.type === 'PLAY' && decision.cards ? 'PLAY' : 'PASS',
+      cards: decision.type === 'PLAY' ? decision.cards : null,
       type: 'DANGER_WARNING',
-      title: '⚠️ Coi Chừng Thối Heo!',
+      title: '⚠️ Cảnh Báo Thối Heo!',
       message: pickDialogue(DIALOGUES.DANGER_THOI_HEO(formatCards(twoCards))),
-      explanation: 'Cảnh báo nguy cơ thối Heo chót khi bài sắp hết.'
+      explanation: 'Luật cấm về bằng Heo đang bật, hãy cẩn thận xả bài để tránh bị thối Heo.',
+      details: null
     };
   }
 
@@ -256,7 +284,8 @@ export function getOptimalMoveHint(
       type: 'DANGER_WARNING',
       title: '🚨 Chặn Đầu Khẩn Cấp!',
       message: pickDialogue(DIALOGUES.DANGER_BLOCK_NEXT(cardCodes)),
-      explanation: `Chặn đầu đối thủ kế bên chỉ còn 1 lá bằng (${cardCodes}).`
+      explanation: `Chặn đầu đối thủ kế bên chỉ còn 1 lá bằng (${cardCodes}).`,
+      details: null
     };
   }
 
@@ -272,7 +301,8 @@ export function getOptimalMoveHint(
       type: 'BEAT_MOVE',
       title: '💥 Cơ Hội Bắt Heo!',
       message: pickDialogue(DIALOGUES.CHOP_HEO(cardCodes)),
-      explanation: 'Tung hàng đặc biệt để chặt Heo.'
+      explanation: 'Tung hàng đặc biệt để chặt Heo.',
+      details: null
     };
   }
 
@@ -289,7 +319,8 @@ export function getOptimalMoveHint(
       type: 'BEAT_MOVE',
       title: '💥 Chặt Chồng Đỉnh Cao!',
       message: pickDialogue(DIALOGUES.OVER_CHOP(cardCodes)),
-      explanation: `Chặt chồng hàng đặc biệt (${cardCodes}) đè bẹp đối thủ.`
+      explanation: `Chặt chồng hàng đặc biệt (${cardCodes}) đè bẹp đối thủ.`,
+      details: null
     };
   }
 
@@ -302,7 +333,8 @@ export function getOptimalMoveHint(
         type: 'DANGER_WARNING',
         title: '⚠️ Cẩn Thận Hàng Nóng',
         message: pickDialogue(DIALOGUES.DANGER_HOT_BOMBS),
-        explanation: 'Nguy cơ bị chặt Heo cao, nên chủ động nhịn bài.'
+        explanation: 'Nguy cơ bị chặt Heo cao, nên chủ động nhịn bài.',
+        details: null
       };
     }
   }
@@ -315,7 +347,8 @@ export function getOptimalMoveHint(
       type: 'TACTICAL_PASS',
       title: '💡 Nhẫn Nhịn Giữ Bài',
       message: pickDialogue(DIALOGUES.TACTICAL_PASS(decision.reason)),
-      explanation: decision.reason || 'Nên chủ động bỏ lượt để bảo toàn các bộ sảnh/hàng quý giá trên tay.'
+      explanation: decision.reason || 'Nên chủ động bỏ lượt để bảo toàn các bộ sảnh/hàng quý giá trên tay.',
+      details: null
     };
   }
 
@@ -327,7 +360,8 @@ export function getOptimalMoveHint(
       type: 'WIN_OPPORTUNITY',
       title: '👑 Cơ Hội Về Nhất!',
       message: pickDialogue(DIALOGUES.WIN_OPPORTUNITY(cardCodes)),
-      explanation: `Đánh hết bài (${cardCodes}) để về Nhất!`
+      explanation: `Đánh hết bài (${cardCodes}) để về Nhất!`,
+      details: null
     };
   }
 
@@ -339,7 +373,8 @@ export function getOptimalMoveHint(
       type: 'BEAT_MOVE',
       title: '💥 Tung Hàng Bắt Đè!',
       message: pickDialogue(DIALOGUES.CHOP_HEO(cardCodes)),
-      explanation: `Tung hàng đặc biệt (${cardCodes}) để chặt đè đối thủ và giành quyền chủ động!`
+      explanation: `Tung hàng đặc biệt (${cardCodes}) để chặt đè đối thủ và giành quyền chủ động!`,
+      details: null
     };
   }
 
@@ -351,7 +386,8 @@ export function getOptimalMoveHint(
       type: 'LEAD_OPENING',
       title: '🎯 Khởi Đầu 3 Bích (3♠)',
       message: pickDialogue(DIALOGUES.FIRST_MOVE_3S(cardCodes)),
-      explanation: 'Đánh 3 Bích để mở màn ván đầu.'
+      explanation: 'Đánh 3 Bích để mở màn ván đầu.',
+      details: null
     };
   }
 
@@ -365,7 +401,8 @@ export function getOptimalMoveHint(
         type: 'LEAD_OPENING',
         title: '👑 Thế Bài Cực Đẹp!',
         message: pickDialogue(DIALOGUES.OPENING_GOD_HAND(cardCodes)),
-        explanation: `Mở đầu với tay bài siêu đẹp bằng (${cardCodes}).`
+        explanation: `Mở đầu với tay bài siêu đẹp bằng (${cardCodes}).`,
+        details: null
       };
     }
     return {
@@ -374,7 +411,8 @@ export function getOptimalMoveHint(
       type: 'LEAD_OPENING',
       title: '🎯 Mở Màn Thế Trận',
       message: pickDialogue(DIALOGUES.LEAD_OPENING(cardCodes)),
-      explanation: `Mở đầu vòng bằng tổ hợp (${cardCodes}) để tẩu tán bài rác và duy trì thế trận an toàn.`
+      explanation: `Mở đầu vòng bằng tổ hợp (${cardCodes}) để tẩu tán bài rác và duy trì thế trận an toàn.`,
+      details: null
     };
   }
 
@@ -385,7 +423,8 @@ export function getOptimalMoveHint(
     type: 'BEAT_MOVE',
     title: '⚔️ Đè Bài Tranh Lượt',
     message: pickDialogue(DIALOGUES.BEAT_NORMAL(cardCodes)),
-    explanation: `Đè bài bằng (${cardCodes}) để tranh lượt và ép đối thủ tiêu hao bài to.`
+    explanation: `Đè bài bằng (${cardCodes}) để tranh lượt và ép đối thủ tiêu hao bài to.`,
+    details: null
   };
 }
 
@@ -397,7 +436,7 @@ export interface SelectionFeedbackContext {
   isLeadMove: boolean;
   tracker: CardTracker;
   optimalHint: MoveHint | null;
-  prohibitEndingWithTwo?: boolean;
+  prohibitEndingWithTwo: boolean | null;
 }
 
 /**
@@ -566,16 +605,14 @@ function analyzeTacticalOutcome(
  * Đánh giá nhận xét tức thì của Quân Sư khi người chơi bấm chọn các lá bài trên tay (Bao quát 100% kịch bản)
  */
 export function evaluateSelectionFeedback(context: SelectionFeedbackContext): MoveHint | null {
-  const {
-    selectedCards,
-    hand,
-    leadingMove,
-    isFirstMoveOfGame,
-    isLeadMove,
-    tracker,
-    optimalHint,
-    prohibitEndingWithTwo = true
-  } = context;
+  const selectedCards = context.selectedCards;
+  const hand = context.hand;
+  const leadingMove = context.leadingMove;
+  const isFirstMoveOfGame = context.isFirstMoveOfGame;
+  const isLeadMove = context.isLeadMove;
+  const tracker = context.tracker;
+  const optimalHint = context.optimalHint;
+  const prohibitEndingWithTwo = context.prohibitEndingWithTwo ?? true;
 
   if (!selectedCards || selectedCards.length === 0) return null;
 
@@ -602,7 +639,8 @@ export function evaluateSelectionFeedback(context: SelectionFeedbackContext): Mo
       type: 'FORCED_PASS',
       title: '🚫 Chưa Hợp Lệ',
       message: validation.reason || `Bộ bài (${cardCodes}) chưa hợp lệ theo luật hoặc không đè được bài trên bàn!`,
-      explanation: validation.reason || 'Nước đi không hợp lệ'
+      explanation: validation.reason || 'Nước đi không hợp lệ',
+      details: null
     };
   }
 
@@ -614,7 +652,8 @@ export function evaluateSelectionFeedback(context: SelectionFeedbackContext): Mo
       type: 'WIN_OPPORTUNITY',
       title: '👑 Nước Bài Về Nhất!',
       message: pickDialogue(DIALOGUES.WIN_OPPORTUNITY(cardCodes)),
-      explanation: 'Đánh hết bài để về Nhất.'
+      explanation: 'Đánh hết bài để về Nhất.',
+      details: null
     };
   }
 
@@ -628,7 +667,8 @@ export function evaluateSelectionFeedback(context: SelectionFeedbackContext): Mo
       type: 'DANGER_WARNING',
       title: '⚠️ Cẩn Thận Bị Bắt Heo!',
       message: `Cảm giác bàn này còn nhiều hàng nóng đang rình rập. Bạn có chắc muốn tung Heo (${cardCodes}) lúc này không?`,
-      explanation: 'Nguy cơ bị chặt Heo cao.'
+      explanation: 'Nguy cơ bị chặt Heo cao.',
+      details: null
     };
   }
 
@@ -646,7 +686,8 @@ export function evaluateSelectionFeedback(context: SelectionFeedbackContext): Mo
         type: 'DANGER_WARNING',
         title: '⚠️ Cảnh Báo Xé Tứ Quý!',
         message: `Đánh (${cardCodes}) sẽ làm xé nát bộ ${group.name} (${formatCards(group.cards)}) quý giá trên tay bạn đấy!`,
-        explanation: 'Nước đi làm xé Tứ Quý.'
+        explanation: 'Nước đi làm xé Tứ Quý.',
+        details: null
       };
     }
   }
@@ -662,7 +703,8 @@ export function evaluateSelectionFeedback(context: SelectionFeedbackContext): Mo
         type: 'DANGER_WARNING',
         title: '⚠️ Cảnh Báo Xé Đôi Thông!',
         message: `Đánh (${cardCodes}) sẽ làm mất bộ ${group.name} (${formatCards(group.cards)}) trên tay bạn đấy!`,
-        explanation: 'Nước đi làm xé Đôi Thông.'
+        explanation: 'Nước đi làm xé Đôi Thông.',
+        details: null
       };
     }
   }
@@ -678,7 +720,8 @@ export function evaluateSelectionFeedback(context: SelectionFeedbackContext): Mo
         type: 'DANGER_WARNING',
         title: '⚠️ Coi Chừng Xé Sảnh!',
         message: `Đánh (${cardCodes}) sẽ làm xé nát bộ ${group.name} (${formatCards(group.cards)}) trên tay bạn đấy!`,
-        explanation: 'Nước đi làm xé sảnh đẹp.'
+        explanation: 'Nước đi làm xé sảnh đẹp.',
+        details: null
       };
     }
   }
@@ -700,7 +743,8 @@ export function evaluateSelectionFeedback(context: SelectionFeedbackContext): Mo
       type: outcome.type,
       title: outcome.title,
       message: outcome.message + extraContext,
-      explanation: outcome.message
+      explanation: outcome.message,
+      details: null
     };
   }
 
@@ -710,6 +754,7 @@ export function evaluateSelectionFeedback(context: SelectionFeedbackContext): Mo
     type: 'BEAT_MOVE',
     title: '👍 Nước Đi Hợp Lệ',
     message: `Tổ hợp (${cardCodes}) hợp lệ! Bấm Đánh Bài để thực hiện.`,
-    explanation: 'Hợp lệ.'
+    explanation: 'Hợp lệ.',
+    details: null
   };
 }

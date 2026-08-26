@@ -13,7 +13,9 @@ export type ModalType =
   | 'CONFIRM_FORFEIT'
   | 'F5_PENALTY_NOTICE'
   | 'NAME_SETUP'
-  | 'RULES';
+  | 'RULES'
+  | 'ECOSYSTEM'
+  | 'BOT_PROFILE';
 
 interface ModalState {
   isSettingsOpen: boolean;
@@ -29,6 +31,8 @@ interface ModalState {
   isF5PenaltyNoticeOpen: boolean;
   isNameSetupOpen: boolean;
   isRulesOpen: boolean;
+  isEcosystemOpen: boolean;
+  isBotProfileOpen: boolean;
 
   forfeitData?: { depositAmount: number; eloPenalty: number; isRanked: boolean; };
   f5PenaltyData?: { depositLost: number; eloLost: number; isRanked: boolean; };
@@ -52,6 +56,8 @@ interface ModalState {
   setIsF5PenaltyNoticeOpen: (open: boolean) => void;
   setIsNameSetupOpen: (open: boolean) => void;
   setIsRulesOpen: (open: boolean) => void;
+  setIsEcosystemOpen: (open: boolean) => void;
+  setIsBotProfileOpen: (open: boolean) => void;
   setForfeitData: (data?: { depositAmount: number; eloPenalty: number; isRanked: boolean; }) => void;
   setF5PenaltyData: (data?: { depositLost: number; eloLost: number; isRanked: boolean; }) => void;
 }
@@ -70,6 +76,8 @@ export const useModalStore = create<ModalState>((set) => ({
   isF5PenaltyNoticeOpen: false,
   isNameSetupOpen: false,
   isRulesOpen: false,
+  isEcosystemOpen: false,
+  isBotProfileOpen: false,
   forfeitData: undefined,
   f5PenaltyData: undefined,
 
@@ -88,6 +96,8 @@ export const useModalStore = create<ModalState>((set) => ({
       case 'F5_PENALTY_NOTICE': set({ isF5PenaltyNoticeOpen: true }); break;
       case 'NAME_SETUP': set({ isNameSetupOpen: true }); break;
       case 'RULES': set({ isRulesOpen: true }); break;
+      case 'ECOSYSTEM': set({ isEcosystemOpen: true }); break;
+      case 'BOT_PROFILE': set({ isBotProfileOpen: true }); break;
     }
   },
 
@@ -106,6 +116,8 @@ export const useModalStore = create<ModalState>((set) => ({
       case 'F5_PENALTY_NOTICE': set({ isF5PenaltyNoticeOpen: false }); break;
       case 'NAME_SETUP': set({ isNameSetupOpen: false }); break;
       case 'RULES': set({ isRulesOpen: false }); break;
+      case 'ECOSYSTEM': set({ isEcosystemOpen: false }); break;
+      case 'BOT_PROFILE': set({ isBotProfileOpen: false }); break;
     }
   },
 
@@ -122,7 +134,9 @@ export const useModalStore = create<ModalState>((set) => ({
     isConfirmForfeitOpen: false,
     isF5PenaltyNoticeOpen: false,
     isNameSetupOpen: false,
-    isRulesOpen: false
+    isRulesOpen: false,
+    isEcosystemOpen: false,
+    isBotProfileOpen: false
   }),
 
   setIsSettingsOpen: (open) => set({ isSettingsOpen: open }),
@@ -138,6 +152,8 @@ export const useModalStore = create<ModalState>((set) => ({
   setIsF5PenaltyNoticeOpen: (open) => set({ isF5PenaltyNoticeOpen: open }),
   setIsNameSetupOpen: (open) => set({ isNameSetupOpen: open }),
   setIsRulesOpen: (open) => set({ isRulesOpen: open }),
+  setIsEcosystemOpen: (open) => set({ isEcosystemOpen: open }),
+  setIsBotProfileOpen: (open) => set({ isBotProfileOpen: open }),
   setForfeitData: (data) => set({ forfeitData: data }),
   setF5PenaltyData: (data) => set({ f5PenaltyData: data })
 }));

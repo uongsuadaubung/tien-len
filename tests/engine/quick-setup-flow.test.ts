@@ -64,6 +64,8 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
           soundEnabled: true
         }
       },
+      customSettings: null,
+      campaignChapter: null,
       customBotPersonaIds: [randomBots[0].id, randomBots[1].id, randomBots[2].id],
       customBotConfigs: [randomBots[0], randomBots[1], randomBots[2]]
     });
@@ -95,6 +97,8 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
           soundEnabled: true
         }
       },
+      customSettings: null,
+      campaignChapter: null,
       customBotPersonaIds: [randomBots[0].id, 'BOT_ELO_1150', 'BOT_ELO_1450'],
       customBotConfigs: [randomBots[0], {}, {}]
     });
@@ -120,6 +124,8 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
           soundEnabled: true
         }
       },
+      customSettings: null,
+      campaignChapter: null,
       customBotPersonaIds: [randomBots[0].id, randomBots[1].id, 'BOT_ELO_1450'],
       customBotConfigs: [randomBots[0], randomBots[1], {}]
     });
@@ -140,10 +146,10 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
       table: { playerCount: 4, betAmount: 500, soundEnabled: true }
     });
 
-    const p0: Player = { id: 'p0', name: 'Bạn', avatar: '🤠', isBot: false, hand: [], playedCards: [], score: 50000, isPassedCurrentRound: false, hasPlayedFirstCard: false };
-    const p1: Player = { id: 'p1', name: 'Bot 1', avatar: '🤖', isBot: true, hand: [], playedCards: [], score: 35000, isPassedCurrentRound: false, hasPlayedFirstCard: false };
-    const p2: Player = { id: 'p2', name: 'Bot 2', avatar: '🤖', isBot: true, hand: [], playedCards: [], score: 40000, isPassedCurrentRound: false, hasPlayedFirstCard: false };
-    const p3: Player = { id: 'p3', name: 'Bot 3', avatar: '🤖', isBot: true, hand: [], playedCards: [], score: 65000, isPassedCurrentRound: false, hasPlayedFirstCard: false };
+    const p0: Player = { id: 'p0', name: 'Bạn', avatar: '🤠', isBot: false, botPersonaId: null, hand: [], playedCards: [], score: 50000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null };
+    const p1: Player = { id: 'p1', name: 'Bot 1', avatar: '🤖', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 35000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null };
+    const p2: Player = { id: 'p2', name: 'Bot 2', avatar: '🤖', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 40000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null };
+    const p3: Player = { id: 'p3', name: 'Bot 3', avatar: '🤖', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 65000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null };
 
     const engine = new GameEngine([p0, p1, p2, p3], rules);
     engine.startNewGame(1);
@@ -182,6 +188,7 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
       name: 'Bot',
       avatar: '🤖',
       isBot: true,
+      botPersonaId: null,
       hand: [
         { id: '4S', rank: 4, suit: 'SPADES', weight: 16, code: '4S' },
         { id: '5S', rank: 5, suit: 'SPADES', weight: 20, code: '5S' }
@@ -189,18 +196,23 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
       playedCards: [],
       score: 5000,
       isPassedCurrentRound: false,
-      hasPlayedFirstCard: true
+      hasPlayedFirstCard: true,
+      rankPosition: null,
+      instantWinType: null
     };
     const winner: Player = {
       id: 'p0',
       name: 'Bạn',
       avatar: '🤠',
       isBot: false,
+      botPersonaId: null,
       hand: [],
       playedCards: [],
       score: 5000,
       isPassedCurrentRound: false,
-      hasPlayedFirstCard: true
+      hasPlayedFirstCard: true,
+      rankPosition: null,
+      instantWinType: null
     };
 
     const settlementX4 = calculateCountCardsSettlement([winner, loser], 'p0', bet, 4);

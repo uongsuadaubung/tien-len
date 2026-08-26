@@ -12,44 +12,56 @@ function createMockPlayers(): Player[] {
       name: 'Người Chơi',
       avatar: 'user',
       isBot: false,
+      botPersonaId: null,
       hand: [],
       playedCards: [],
       score: 1000,
       isPassedCurrentRound: false,
-      hasPlayedFirstCard: false
+      hasPlayedFirstCard: false,
+      rankPosition: null,
+      instantWinType: null
     },
     {
       id: 'p2',
       name: 'Bé Năm',
       avatar: 'bot1',
       isBot: true,
+      botPersonaId: null,
       hand: [],
       playedCards: [],
       score: 1000,
       isPassedCurrentRound: false,
-      hasPlayedFirstCard: false
+      hasPlayedFirstCard: false,
+      rankPosition: null,
+      instantWinType: null
     },
     {
       id: 'p3',
       name: 'Chú Bảy',
       avatar: 'bot2',
       isBot: true,
+      botPersonaId: null,
       hand: [],
       playedCards: [],
       score: 1000,
       isPassedCurrentRound: false,
-      hasPlayedFirstCard: false
+      hasPlayedFirstCard: false,
+      rankPosition: null,
+      instantWinType: null
     },
     {
       id: 'p4',
       name: 'Bác Tư',
       avatar: 'bot3',
       isBot: true,
+      botPersonaId: null,
       hand: [],
       playedCards: [],
       score: 1000,
       isPassedCurrentRound: false,
-      hasPlayedFirstCard: false
+      hasPlayedFirstCard: false,
+      rankPosition: null,
+      instantWinType: null
     }
   ];
 }

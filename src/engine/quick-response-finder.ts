@@ -13,9 +13,9 @@ export interface QuickSelectContext {
   hand: Card[];
   leadingMove: PlayedMove | null;
   isLeadMove: boolean;
-  isFirstMoveOfGame?: boolean;
-  allowFourPairsCutAnytime?: boolean;
-  prohibitEndingWithTwo?: boolean;
+  isFirstMoveOfGame: boolean | null;
+  allowFourPairsCutAnytime: boolean | null;
+  prohibitEndingWithTwo: boolean | null;
 }
 
 /**
@@ -23,14 +23,12 @@ export interface QuickSelectContext {
  * và sắp xếp theo thứ tự "Vừa khít nhất" (Tối ưu từ nhỏ đến lớn)
  */
 export function getSortedQuickSelectCandidates(context: QuickSelectContext): QuickSelectCandidate[] {
-  const {
-    hand,
-    leadingMove,
-    isLeadMove,
-    isFirstMoveOfGame = false,
-    allowFourPairsCutAnytime = true,
-    prohibitEndingWithTwo = true
-  } = context;
+  const hand = context.hand;
+  const leadingMove = context.leadingMove;
+  const isLeadMove = context.isLeadMove;
+  const isFirstMoveOfGame = context.isFirstMoveOfGame ?? false;
+  const allowFourPairsCutAnytime = context.allowFourPairsCutAnytime ?? true;
+  const prohibitEndingWithTwo = context.prohibitEndingWithTwo ?? true;
 
   if (!hand || hand.length === 0) return [];
 

@@ -18,11 +18,17 @@ interface RulesModalProps {
 
 type TabType = 'COUNTER' | 'COMBOS' | 'INSTANT' | 'SPECIAL';
 
-const tabOptions = [
-  { id: 'COUNTER' as TabType, label: 'Bảng Khắc Chế & Đè Hàng', icon: <Swords className="w-4 h-4" /> },
-  { id: 'COMBOS' as TabType, label: 'Các Bộ Bài & Thứ Tự', icon: <Layers className="w-4 h-4" /> },
-  { id: 'INSTANT' as TabType, label: 'Tới Trắng Tức Thì', icon: <Trophy className="w-4 h-4" /> },
-  { id: 'SPECIAL' as TabType, label: 'Luật Cấm & Xử Phạt', icon: <AlertTriangle className="w-4 h-4" /> }
+interface TabOption {
+  id: TabType;
+  label: string;
+  icon: React.ReactNode;
+}
+
+const tabOptions: TabOption[] = [
+  { id: 'COUNTER', label: 'Bảng Khắc Chế & Đè Hàng', icon: <Swords className="w-4 h-4" /> },
+  { id: 'COMBOS', label: 'Các Bộ Bài & Thứ Tự', icon: <Layers className="w-4 h-4" /> },
+  { id: 'INSTANT', label: 'Tới Trắng Tức Thì', icon: <Trophy className="w-4 h-4" /> },
+  { id: 'SPECIAL', label: 'Luật Cấm & Xử Phạt', icon: <AlertTriangle className="w-4 h-4" /> }
 ];
 
 export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
@@ -47,7 +53,11 @@ export const RulesModal: React.FC<RulesModalProps> = ({ isOpen, onClose }) => {
       <Tabs
         options={tabOptions}
         activeId={activeTab}
-        onChange={(id) => setActiveTab(id as TabType)}
+        onChange={(id) => {
+          if (id === 'COUNTER' || id === 'COMBOS' || id === 'INSTANT' || id === 'SPECIAL') {
+            setActiveTab(id);
+          }
+        }}
         className="mb-4"
       />
 

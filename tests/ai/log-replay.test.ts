@@ -11,10 +11,10 @@ describe('Log Replay & Deterministic Test Reproduction', () => {
     // 1. Khởi tạo một ván đấu giữa 4 Bot AI
     const rules = createDefaultGameRules();
     const players = [
-      { id: 'p0', name: 'Bot 1', avatar: '🤖', isBot: true, botPersonaId: 'BOT_ELO_1750', score: 0, elo: 1750, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false },
-      { id: 'p1', name: 'Bot 2', avatar: '🤖', isBot: true, botPersonaId: 'BOT_ELO_1900', score: 0, elo: 1900, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false },
-      { id: 'p2', name: 'Bot 3', avatar: '🤖', isBot: true, botPersonaId: 'BOT_ELO_2100', score: 0, elo: 2100, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false },
-      { id: 'p3', name: 'Bot 4', avatar: '🤖', isBot: true, botPersonaId: 'BOT_ELO_2300', score: 0, elo: 2300, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false }
+      { id: 'p0', name: 'Bot 1', avatar: '🤖', isBot: true, botPersonaId: 'BOT_ELO_1750', score: 0, elo: 1750, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
+      { id: 'p1', name: 'Bot 2', avatar: '🤖', isBot: true, botPersonaId: 'BOT_ELO_1900', score: 0, elo: 1900, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
+      { id: 'p2', name: 'Bot 3', avatar: '🤖', isBot: true, botPersonaId: 'BOT_ELO_2100', score: 0, elo: 2100, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
+      { id: 'p3', name: 'Bot 4', avatar: '🤖', isBot: true, botPersonaId: 'BOT_ELO_2300', score: 0, elo: 2300, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null }
     ];
     const game = new GameEngine(players, rules);
 

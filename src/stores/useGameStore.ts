@@ -125,11 +125,14 @@ const DEFAULT_PLAYERS: Player[] = [
     name: 'Bạn (Người Chơi)',
     avatar: '🤠',
     isBot: false,
+    botPersonaId: null,
     hand: [],
     playedCards: [],
     score: ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS,
     isPassedCurrentRound: false,
-    hasPlayedFirstCard: false
+    hasPlayedFirstCard: false,
+    rankPosition: null,
+    instantWinType: null
   },
   {
     id: 'p1',
@@ -141,7 +144,9 @@ const DEFAULT_PLAYERS: Player[] = [
     playedCards: [],
     score: 4850,
     isPassedCurrentRound: false,
-    hasPlayedFirstCard: false
+    hasPlayedFirstCard: false,
+    rankPosition: null,
+    instantWinType: null
   },
   {
     id: 'p2',
@@ -153,7 +158,9 @@ const DEFAULT_PLAYERS: Player[] = [
     playedCards: [],
     score: 8200,
     isPassedCurrentRound: false,
-    hasPlayedFirstCard: false
+    hasPlayedFirstCard: false,
+    rankPosition: null,
+    instantWinType: null
   },
   {
     id: 'p3',
@@ -165,7 +172,9 @@ const DEFAULT_PLAYERS: Player[] = [
     playedCards: [],
     score: 16500,
     isPassedCurrentRound: false,
-    hasPlayedFirstCard: false
+    hasPlayedFirstCard: false,
+    rankPosition: null,
+    instantWinType: null
   }
 ];
 

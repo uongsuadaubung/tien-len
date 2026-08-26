@@ -3,8 +3,8 @@ import { OpponentBehaviorProfile } from './opponent-profiler';
 
 export interface BotConfig {
   id: string;
-  name?: string;
-  avatar?: string;
+  name: string | null;
+  avatar: string | null;
   description: string;
   tier: string;                        // 'Tier 1: Tập Sự' | 'Tier 2: Phong Trào' | 'Tier 3: Kinh Nghiệm' | 'Tier 4: Cao Thủ' | 'Tier 5: Thần Bài'
   elo: number;                         // Điểm Elo ước tính (850 -> 2500)
@@ -61,7 +61,7 @@ export interface CardMemoryState {
   unseenTwos: Card[];
   possibleDangerousRanks: Rank[];     // Các rank chưa xuất hiện lá nào (nguy cơ tứ quý)
   opponentPassedOnTypes: Record<string, CombinationType[]>; // Ghi nhớ đối thủ từng bỏ lượt ở loại bài nào
-  opponentBlindspots?: Record<string, string[]>;
-  opponentProfiles?: Record<string, OpponentBehaviorProfile>;
+  opponentBlindspots: Record<string, string[]> | null;
+  opponentProfiles: Record<string, OpponentBehaviorProfile> | null;
 }
 

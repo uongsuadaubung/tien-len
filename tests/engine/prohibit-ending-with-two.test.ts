@@ -95,10 +95,10 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
   describe('2. GameEngine Thực Thi Luật & Phạt Thối Heo', () => {
     function createTestPlayers(): Player[] {
       return [
-        { id: 'p0', name: 'Player', avatar: '', isBot: false, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false },
-        { id: 'bot1', name: 'Bot 1', avatar: '', isBot: true, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false },
-        { id: 'bot2', name: 'Bot 2', avatar: '', isBot: true, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false },
-        { id: 'bot3', name: 'Bot 3', avatar: '', isBot: true, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false }
+        { id: 'p0', name: 'Player', avatar: '', isBot: false, botPersonaId: null, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
+        { id: 'bot1', name: 'Bot 1', avatar: '', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
+        { id: 'bot2', name: 'Bot 2', avatar: '', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
+        { id: 'bot3', name: 'Bot 3', avatar: '', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null }
       ];
     }
 
@@ -285,10 +285,16 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
       const tracker = new CardTracker();
 
       const aceCard = createCard(14, 'SPADES');
-      const leadingMove = {
+      const leadingMove: PlayedMove = {
         playerId: 'p0',
         combination: { type: 'SINGLE' as const, cards: [aceCard], highestCard: aceCard, length: 1 },
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        isChop: null,
+        choppedPlayerId: null,
+        penaltyAmount: null,
+        isCascadeChop: null,
+        chopChainCount: null,
+        chopChainTotalAmount: null
       };
 
       const decision = makeBotDecision(createMockDecisionContext({
@@ -513,10 +519,10 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
   describe('4. GameEngine Gameplay: Xử lý 1 Rác + Tứ Quý 2', () => {
     function createTestPlayers(): Player[] {
       return [
-        { id: 'p0', name: 'Player', avatar: '', isBot: false, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false },
-        { id: 'bot1', name: 'Bot 1', avatar: '', isBot: true, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false },
-        { id: 'bot2', name: 'Bot 2', avatar: '', isBot: true, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false },
-        { id: 'bot3', name: 'Bot 3', avatar: '', isBot: true, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false }
+        { id: 'p0', name: 'Player', avatar: '', isBot: false, botPersonaId: null, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
+        { id: 'bot1', name: 'Bot 1', avatar: '', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
+        { id: 'bot2', name: 'Bot 2', avatar: '', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
+        { id: 'bot3', name: 'Bot 3', avatar: '', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null }
       ];
     }
 

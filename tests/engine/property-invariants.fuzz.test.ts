@@ -34,7 +34,9 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
         playedCards: [],
         score: 10000,
         isPassedCurrentRound: false,
-        hasPlayedFirstCard: false
+        hasPlayedFirstCard: false,
+        rankPosition: null,
+        instantWinType: null
       }));
 
       const engine = new GameEngine(players, rules);
@@ -66,11 +68,14 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
         name: `Bot ${idx}`,
         avatar: '🤖',
         isBot: true,
+        botPersonaId: null,
         hand: [],
         playedCards: [],
         score: 0,
         isPassedCurrentRound: false,
-        hasPlayedFirstCard: false
+        hasPlayedFirstCard: false,
+        rankPosition: null,
+        instantWinType: null
       }));
 
       const engine = new GameEngine(players, rules);
@@ -112,7 +117,9 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
         playedCards: [],
         score: 1000,
         isPassedCurrentRound: false,
-        hasPlayedFirstCard: false
+        hasPlayedFirstCard: false,
+        rankPosition: null,
+        instantWinType: null
       }));
 
       const engine = new GameEngine(players, rules);

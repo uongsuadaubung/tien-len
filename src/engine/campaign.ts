@@ -12,9 +12,9 @@ export interface CampaignChapter {
   requiredWins: number;
   betAmount: number;
   rewardCoins: number;
-  rewardTitle?: string;
+  rewardTitle: string | null;
   bots: [BotConfig, BotConfig, BotConfig];
-  specialRuleDescription?: string;
+  specialRuleDescription: string | null;
 }
 
 export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [

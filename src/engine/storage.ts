@@ -277,7 +277,8 @@ export function getActiveMatchSession(): ActiveMatchSession | null {
   try {
     const raw = getStorageItem(ACTIVE_MATCH_SESSION_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as ActiveMatchSession;
+    const parsed: ActiveMatchSession = JSON.parse(raw);
+    return parsed;
   } catch (e) {
     console.error('Lỗi khi đọc ActiveMatchSession:', e);
     return null;
@@ -298,7 +299,7 @@ export function clearActiveMatchSession(): void {
 
 const HUMAN_BEHAVIOR_PROFILE_KEY = 'TIEN_LEN_HUMAN_BEHAVIOR_PROFILE_V1';
 
-export function saveHumanBehaviorProfile(data: any): void {
+export function saveHumanBehaviorProfile(data: unknown): void {
   try {
     setStorageItem(HUMAN_BEHAVIOR_PROFILE_KEY, JSON.stringify(data));
   } catch (e) {
@@ -306,11 +307,12 @@ export function saveHumanBehaviorProfile(data: any): void {
   }
 }
 
-export function loadHumanBehaviorProfile(): any | null {
+export function loadHumanBehaviorProfile(): unknown | null {
   try {
     const raw = getStorageItem(HUMAN_BEHAVIOR_PROFILE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw);
+    const parsed: unknown = JSON.parse(raw);
+    return parsed;
   } catch (e) {
     console.error('Lỗi khi đọc HumanBehaviorProfile:', e);
     return null;
@@ -325,6 +327,6 @@ export function clearHumanBehaviorProfile(): void {
   }
 }
 
-export function getHumanBehaviorProfile(): any | null {
+export function getHumanBehaviorProfile(): unknown | null {
   return loadHumanBehaviorProfile();
 }

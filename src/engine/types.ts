@@ -72,7 +72,7 @@ export interface GameFlowRules {
 
 export type PlayerCount = 2 | 3 | 4;
 
-export function normalizePlayerCount(count?: number): PlayerCount {
+export function normalizePlayerCount(count: number | null = 4): PlayerCount {
   if (count === 2 || count === 3 || count === 4) return count;
   return 4;
 }
@@ -120,26 +120,26 @@ export interface Player {
   name: string;
   avatar: string;
   isBot: boolean;
-  botPersonaId?: string;
+  botPersonaId: string | null;
   hand: Card[];
   playedCards: Card[];
   score: number;
   isPassedCurrentRound: boolean;
   hasPlayedFirstCard: boolean; // Dùng để kiểm tra Cóng (cháy bài)
-  rankPosition?: number;       // 1 (Nhất), 2 (Nhì), 3 (Ba), 4 (Bét)
-  instantWinType?: InstantWinType;
+  rankPosition: number | null; // 1 (Nhất), 2 (Nhì), 3 (Ba), 4 (Bét)
+  instantWinType: InstantWinType | null;
 }
 
 export interface PlayedMove {
   playerId: string;
   combination: Combination;
   timestamp: number;
-  isChop?: boolean;            // Có phải là một cú chặt heo/hàng không
-  choppedPlayerId?: string;    // Người bị chặt
-  penaltyAmount?: number;      // Tiền/điểm phạt của cú chặt
-  isCascadeChop?: boolean;     // Có phải là cú chặt đè trong chuỗi chặt chồng không
-  chopChainCount?: number;     // Số lần chặt liên tiếp trong chuỗi (2, 3, 4...)
-  chopChainTotalAmount?: number; // Tổng số tiền tích lũy của chuỗi chặt
+  isChop: boolean | null;            // Có phải là một cú chặt heo/hàng không
+  choppedPlayerId: string | null;    // Người bị chặt
+  penaltyAmount: number | null;      // Tiền/điểm phạt của cú chặt
+  isCascadeChop: boolean | null;     // Có phải là cú chặt đè trong chuỗi chặt chồng không
+  chopChainCount: number | null;     // Số lần chặt liên tiếp trong chuỗi (2, 3, 4...)
+  chopChainTotalAmount: number | null; // Tổng số tiền tích lũy của chuỗi chặt
 }
 
 export interface Round {

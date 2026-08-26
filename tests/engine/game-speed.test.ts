@@ -12,7 +12,13 @@ describe('Game Speed & Dynamic Bot Thinking Timing (Giả lập thời gian suy 
       highestCard: parseCard('9S')!,
       length: 1
     },
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    isChop: null,
+    choppedPlayerId: null,
+    penaltyAmount: null,
+    isCascadeChop: null,
+    chopChainCount: null,
+    chopChainTotalAmount: null
   };
 
   const heoMove: PlayedMove = {
@@ -23,7 +29,13 @@ describe('Game Speed & Dynamic Bot Thinking Timing (Giả lập thời gian suy 
       highestCard: parseCard('2H')!,
       length: 1
     },
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    isChop: null,
+    choppedPlayerId: null,
+    penaltyAmount: null,
+    isCascadeChop: null,
+    chopChainCount: null,
+    chopChainTotalAmount: null
   };
 
   test('1. Chế độ FAST (Siêu Nhanh): Mọi lượt đều đi siêu tốc (350ms - 600ms)', () => {

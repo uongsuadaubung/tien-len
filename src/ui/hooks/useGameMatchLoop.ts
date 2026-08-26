@@ -30,6 +30,7 @@ import { useModalStore } from '../../stores/useModalStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useGameStore } from '../../stores/useGameStore';
+import { useEcosystemStore } from '../../stores/useEcosystemStore';
 
 export interface CampaignResultMeta {
   isUnlockedNext: boolean;
@@ -231,7 +232,7 @@ export function useGameMatchLoop() {
       betAmount: engine.settings.betAmount,
       playerElo: currentElo,
       isBankLoanActive,
-      campaignReward: currentCampaignChapter?.rewardCoins,
+      campaignReward: currentCampaignChapter?.rewardCoins || null,
       penaltyMultiplier: engine.rules.chopping.multiplier || engine.rules.cong.multiplier || 1,
       isThreeSpadesWin: engine.isThreeSpadesWin
     });
@@ -350,6 +351,37 @@ export function useGameMatchLoop() {
     });
     setMatchLogReport(matchReport);
 
+    // Cập nhật hệ sinh thái 200 Bot nếu không phải Campaign
+    if (activeGameType !== 'CAMPAIGN') {
+      const humanRank = isPlayerWin ? 1 : (engine.winners.findIndex(w => w.id === 'p0') + 1 || 4);
+      const botResults = engine.players
+        .filter(p => p.id !== 'p0')
+        .map(p => {
+          const rank = engine.winners.findIndex(w => w.id === p.id) + 1 || 4;
+          const deltaCoins = settlement.payouts[p.id] || 0;
+          let deltaElo = 0;
+          if (rank === 1) deltaElo = Math.floor(Math.random() * 9) + 24;
+          else if (rank === 2) deltaElo = Math.floor(Math.random() * 5) + 8;
+          else if (rank === 3) deltaElo = -(Math.floor(Math.random() * 5) + 8);
+          else deltaElo = -(Math.floor(Math.random() * 9) + 24);
+
+          return {
+            botId: p.botPersonaId || p.id,
+            rank,
+            deltaCoins,
+            deltaElo,
+            chopsDone: 0,
+            congsGiven: 0
+          };
+        });
+
+      useEcosystemStore.getState().settleMatchEcosystem({
+        humanRank,
+        betAmount: engine.settings.betAmount,
+        botResults
+      });
+    }
+
     openModal('VICTORY');
   }, [
     activeGameType,
@@ -399,11 +431,12 @@ export function useGameMatchLoop() {
     // 2. Strategy tự động thiết lập toàn bộ cấu hình ván đấu
     const setup = strategy.setupMatch({
       profile,
+      customRules: setupContext?.customRules ?? null,
       customSettings: { ...gameSettings, ...setupContext?.customSettings },
-      customBotPersonaIds: isCampaign ? (chapter ? [chapter.bots[0].id, chapter.bots[1].id, chapter.bots[2].id] : undefined) : setupContext?.customBotPersonaIds,
-      customBotConfigs: isCampaign ? (chapter ? [chapter.bots[0], chapter.bots[1], chapter.bots[2]] : undefined) : setupContext?.customBotConfigs,
-      campaignChapter: chapter,
-      playerCount: isCampaign ? 4 : playerCount,
+      customBotPersonaIds: isCampaign ? (chapter ? [chapter.bots[0].id, chapter.bots[1].id, chapter.bots[2].id] : null) : (setupContext?.customBotPersonaIds ?? null),
+      customBotConfigs: isCampaign ? (chapter ? [chapter.bots[0], chapter.bots[1], chapter.bots[2]] : null) : (setupContext?.customBotConfigs ?? null),
+      campaignChapter: chapter || null,
+      playerCount: isCampaign ? 4 : (playerCount ?? null),
       ...setupContext
     });
 
@@ -417,6 +450,14 @@ export function useGameMatchLoop() {
     setBotPersonaIds(setup.botPersonaIds);
     setCustomBotConfigs(setup.customBotConfigs);
     setPlayerCount(setup.playerCount);
+
+    // Kích hoạt chuẩn bị ván đấu trong Hệ Sinh Thái (chạy Web Worker mô phỏng ngầm song song)
+    if (!isCampaign && effectiveGameNumber === 1) {
+      const tableBet = setup.rules.table.betAmount || 1000;
+      useEcosystemStore.getState().prepareMatchEcosystem(profile.elo, tableBet).catch(err => {
+        console.warn('Lỗi khi kích hoạt Ecosystem background simulation:', err);
+      });
+    }
 
     // 3.1. Tính toán và Tạm giữ tiền cọc an toàn (Buy-in Deposit)
     const penaltyMultiplier = setup.rules.chopping.multiplier || setup.rules.cong.multiplier || 1;
@@ -752,8 +793,8 @@ export function useGameMatchLoop() {
             currentPlayer.name, 
             chopped?.name || 'Đối thủ', 
             penalty,
-            result.isCascadeChop,
-            result.chopChainCount
+            result.isCascadeChop || false,
+            result.chopChainCount || 1
           );
         }
       } else {
@@ -799,8 +840,8 @@ export function useGameMatchLoop() {
           profile.name, 
           chopped?.name || 'Bot', 
           penalty,
-          moveRes.isCascadeChop,
-          moveRes.chopChainCount
+          moveRes.isCascadeChop || false,
+          moveRes.chopChainCount || 1
         );
 
         const chopEvent: ChopExecutedEvent = {

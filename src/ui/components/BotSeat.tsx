@@ -1,6 +1,8 @@
 import React from 'react';
 import { Player } from '../../engine/types';
 import { BotConfig } from '../../ai/types';
+import { useEcosystemStore } from '../../stores/useEcosystemStore';
+import { useModalStore } from '../../stores/useModalStore';
 
 interface BotSeatProps {
   player?: Player | null;
@@ -24,6 +26,16 @@ export const BotSeat: React.FC<BotSeatProps> = ({
 }) => {
   if (!player) return null;
 
+  const handleInspectBot = () => {
+    const allBots = useEcosystemStore.getState().bots;
+    const targetId = player.botPersonaId || player.id;
+    const targetBot = allBots.find(b => b.id === targetId || b.name === player.name) || null;
+    if (targetBot) {
+      useEcosystemStore.getState().setSelectedBot(targetBot);
+      useModalStore.getState().openModal('BOT_PROFILE');
+    }
+  };
+
   const cardCount = isDealing && displayCardCount !== undefined ? displayCardCount : (player.hand?.length || 0);
   const visibleCards = Math.min(13, cardCount);
 
@@ -40,10 +52,14 @@ export const BotSeat: React.FC<BotSeatProps> = ({
       )}
 
       {/* Avatar Bot */}
-      <div className="relative group">
+      <div 
+        onClick={handleInspectBot}
+        className="relative group cursor-pointer"
+        title={`Bấm để xem căn cước & lịch sử đối đầu của ${botConfig?.name || player.name}`}
+      >
         <div
           className={`
-            w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl shadow-xl transition-all duration-200
+            w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-2xl sm:text-3xl shadow-xl transition-all duration-200 group-hover:scale-110 group-hover:border-amber-400
             ${
               isCurrentTurn
                 ? 'ring-4 ring-[#d4af37] ring-offset-2 ring-offset-[#0a0d14] scale-105 bg-[#182030] shadow-[#d4af37]/30'

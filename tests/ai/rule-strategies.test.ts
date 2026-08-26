@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { Card, Combination, createDefaultGameRules, GameRulesBuilder } from '../../src/engine/types';
+import { Card, Combination, PlayedMove, createDefaultGameRules, GameRulesBuilder } from '../../src/engine/types';
 import { createCard } from '../../src/engine/card';
 import { CardTracker } from '../../src/ai/card-tracker';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
@@ -73,10 +73,16 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
         isChop: false
       };
 
-      const targetThree = {
+      const targetThree: PlayedMove = {
         playerId: 'p1',
         combination: { type: 'SINGLE' as const, cards: [c3S], highestCard: c3S, length: 1 },
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        isChop: null,
+        choppedPlayerId: null,
+        penaltyAmount: null,
+        isCascadeChop: null,
+        chopChainCount: null,
+        chopChainTotalAmount: null
       };
 
       // Đè Heo lên lá 3 khi còn nhiều bài (handSize = 8) -> bị phạt nặng -100
@@ -134,7 +140,13 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
         currentRoundLeadingMove: {
           playerId: 'p1',
           combination: { type: 'SINGLE', cards: [c4C], highestCard: c4C, length: 1 },
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          isChop: null,
+          choppedPlayerId: null,
+          penaltyAmount: null,
+          isCascadeChop: null,
+          chopChainCount: null,
+          chopChainTotalAmount: null
         },
         remainingPlayerCards: { p0: 5, p1: 2, p2: 8, p3: 9 }, // p1 còn 2 lá!
         hasPlayedFirstCard: false, // CHƯA RA ĐƯỢC LÁ NÀO

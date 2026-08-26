@@ -27,11 +27,14 @@ function simulateMatchup(
     name: b.name,
     avatar: b.config.avatar || '🤖',
     isBot: true,
+    botPersonaId: b.config.id || null,
     hand: [],
     playedCards: [],
     score: 0,
     isPassedCurrentRound: false,
-    hasPlayedFirstCard: false
+    hasPlayedFirstCard: false,
+    rankPosition: null,
+    instantWinType: null
   }));
 
   const game = new GameEngine(players, { mode: 'COUNT_CARDS', betAmount: 100 });

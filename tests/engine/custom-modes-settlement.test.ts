@@ -18,6 +18,20 @@ import { parseCards } from '../../src/engine/card';
 describe('Extensible Game Modes & Settlement Engine Tests', () => {
   const BET = 500;
 
+  const makeTestPlayer = (p: Partial<Player> & { id: string; name: string }): Player => ({
+    avatar: '🤖',
+    isBot: p.id !== 'p0',
+    botPersonaId: null,
+    hand: [],
+    playedCards: [],
+    score: 10000,
+    isPassedCurrentRound: false,
+    hasPlayedFirstCard: true,
+    rankPosition: null,
+    instantWinType: null,
+    ...p
+  });
+
   test('1. Extensible Game Mode Registry: Kiểm tra cấu hình các chế độ mở rộng', () => {
     const allModes = getAllGameModeDefinitions();
     expect(allModes.length).toBeGreaterThanOrEqual(5);
@@ -44,50 +58,33 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
 
   test('2. Chế độ Đếm Lá (COUNT_CARDS) Bàn thường: 1 người về Nhất ăn theo số lá bài còn lại của đối thủ', () => {
     const players: Player[] = [
-      {
+      makeTestPlayer({
         id: 'p0',
         name: 'Người Chơi',
         avatar: '🤠',
         isBot: false,
         hand: [], // Về Nhất (0 lá)
-        playedCards: parseCards('3S 4S 5S 6S 7S 8S 9S 10S JS QS KS AS 2S'),
-        score: 10000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: true
-      },
-      {
+        playedCards: parseCards('3S 4S 5S 6S 7S 8S 9S 10S JS QS KS AS 2S')
+      }),
+      makeTestPlayer({
         id: 'p1',
         name: 'Bot 1',
         avatar: '🧒',
-        isBot: true,
-        hand: parseCards('4D 5D 6D'), // Còn 3 lá (không thối)
-        playedCards: [],
-        score: 10000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: true
-      },
-      {
+        hand: parseCards('4D 5D 6D') // Còn 3 lá (không thối)
+      }),
+      makeTestPlayer({
         id: 'p2',
         name: 'Bot 2',
         avatar: '🤠',
-        isBot: true,
-        hand: parseCards('7D 8D 2H'), // Còn 3 lá (thối 1 heo đỏ)
-        playedCards: [],
-        score: 10000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: true
-      },
-      {
+        hand: parseCards('7D 8D 2H') // Còn 3 lá (thối 1 heo đỏ)
+      }),
+      makeTestPlayer({
         id: 'p3',
         name: 'Bot 3',
         avatar: '👑',
-        isBot: true,
-        hand: parseCards('3D 4C 5C 6C 7C 8C 9C 10C JC QC KC AC 2D'), // Cóng (13 lá + thối heo đỏ + chưa đánh lá nào)
-        playedCards: [],
-        score: 10000,
-        isPassedCurrentRound: false,
+        hand: parseCards('3D 4C 5C 6C 7C 8C 9C 10C JC QC KC AC 2D'), // Cóng
         hasPlayedFirstCard: false
-      }
+      })
     ];
 
     const payouts = calculateCountCardsSettlement(players, 'p0', BET, false);
@@ -107,50 +104,36 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
 
   test('3. Đếm lá sát phạt hệ số nhân x2: Phạt nhân đôi lá và thối heo x2', () => {
     const players: Player[] = [
-      {
+      makeTestPlayer({
         id: 'p0',
         name: 'Người Chơi',
         avatar: '🤠',
         isBot: false,
         hand: [], // Về Nhất
-        playedCards: [],
-        score: 50000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: true
-      },
-      {
+        score: 50000
+      }),
+      makeTestPlayer({
         id: 'p1',
         name: 'Trùm Sòng',
         avatar: '🕶️',
-        isBot: true,
         hand: parseCards('4D 5D'), // Còn 2 lá (x2 = 4 lá phạt = 4 x 500 = 2,000)
-        playedCards: [],
-        score: 50000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: true
-      },
-      {
+        score: 50000
+      }),
+      makeTestPlayer({
         id: 'p2',
         name: 'Cô Sáu',
         avatar: '👑',
-        isBot: true,
         hand: parseCards('2S'), // 1 lá heo đen (2 lá x 500 = 1,000 + thối heo đen x2 = 1,000 = 2,000)
-        playedCards: [],
-        score: 50000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: true
-      },
-      {
+        score: 50000
+      }),
+      makeTestPlayer({
         id: 'p3',
         name: 'Bà Son',
         avatar: '🦹‍♀️',
-        isBot: true,
         hand: parseCards('3D 4C 5C 6C 7C 8C 9C 10C JC QC KC AC 2D'), // Cóng hệ số x2: 52 x 500 = 26,000 + thối heo đỏ x2 = 2,000 = 28,000
-        playedCards: [],
         score: 50000,
-        isPassedCurrentRound: false,
         hasPlayedFirstCard: false
-      }
+      })
     ];
 
     const payouts = calculateCountCardsSettlement(players, 'p0', BET, 2);
@@ -163,50 +146,31 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
 
   test('4. Chế độ Nhất Ăn Tất (WINNER_TAKES_ALL): Người về Nhất ăn trọn tiền cược cơ bản từ tất cả người thua', () => {
     const players: Player[] = [
-      {
+      makeTestPlayer({
         id: 'p0',
         name: 'Người Chơi',
         avatar: '🤠',
         isBot: false,
-        hand: [],
-        playedCards: [],
-        score: 10000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: true
-      },
-      {
+        hand: []
+      }),
+      makeTestPlayer({
         id: 'p1',
         name: 'Bot 1',
         avatar: '🧒',
-        isBot: true,
-        hand: parseCards('4D 5D 6D'),
-        playedCards: [],
-        score: 10000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: true
-      },
-      {
+        hand: parseCards('4D 5D 6D')
+      }),
+      makeTestPlayer({
         id: 'p2',
         name: 'Bot 2',
         avatar: '🤠',
-        isBot: true,
-        hand: parseCards('7D 8D 2S'), // 1 cược + thối heo đen (500) = -1,000
-        playedCards: [],
-        score: 10000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: true
-      },
-      {
+        hand: parseCards('7D 8D 2S') // 1 cược + thối heo đen (500) = -1,000
+      }),
+      makeTestPlayer({
         id: 'p3',
         name: 'Bot 3',
         avatar: '👑',
-        isBot: true,
-        hand: parseCards('9D 10D'),
-        playedCards: [],
-        score: 10000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: true
-      }
+        hand: parseCards('9D 10D')
+      })
     ];
 
     const payouts = calculateWinnerTakesAllSettlement(players, 'p0', BET, false);
@@ -218,50 +182,39 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
 
   test('5. GameEngine COUNT_CARDS: Kết thúc ván ngay khi 1 người đánh hết bài', () => {
     const initialPlayers: Player[] = [
-      {
+      makeTestPlayer({
         id: 'p0',
         name: 'Bạn',
         avatar: '🤠',
         isBot: false,
         hand: parseCards('3S'), // Chỉ còn 1 lá 3 Bích
-        playedCards: [],
         score: 5000,
-        isPassedCurrentRound: false,
         hasPlayedFirstCard: false
-      },
-      {
+      }),
+      makeTestPlayer({
         id: 'p1',
         name: 'Bot 1',
         avatar: '🧒',
-        isBot: true,
         hand: parseCards('4S 5S 6S'),
-        playedCards: [],
         score: 5000,
-        isPassedCurrentRound: false,
         hasPlayedFirstCard: false
-      },
-      {
+      }),
+      makeTestPlayer({
         id: 'p2',
         name: 'Bot 2',
         avatar: '🤠',
-        isBot: true,
         hand: parseCards('7S 8S 9S'),
-        playedCards: [],
         score: 5000,
-        isPassedCurrentRound: false,
         hasPlayedFirstCard: false
-      },
-      {
+      }),
+      makeTestPlayer({
         id: 'p3',
         name: 'Bot 3',
         avatar: '👑',
-        isBot: true,
         hand: parseCards('10S JS QS'),
-        playedCards: [],
         score: 5000,
-        isPassedCurrentRound: false,
         hasPlayedFirstCard: false
-      }
+      })
     ];
 
     const engine = new GameEngine(initialPlayers, { mode: 'COUNT_CARDS', betAmount: 500 });
@@ -277,28 +230,23 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
 
   test('6. GameEngine Solo 1v1 (2 Người chơi): Kết thúc chuẩn mực', () => {
     const initialPlayers: Player[] = [
-      {
+      makeTestPlayer({
         id: 'p0',
         name: 'Bạn',
         avatar: '🤠',
         isBot: false,
         hand: parseCards('3S'),
-        playedCards: [],
         score: 5000,
-        isPassedCurrentRound: false,
         hasPlayedFirstCard: false
-      },
-      {
+      }),
+      makeTestPlayer({
         id: 'p1',
         name: 'Alpha TL',
         avatar: '🤖',
-        isBot: true,
         hand: parseCards('4S 5S 6S'),
-        playedCards: [],
         score: 5000,
-        isPassedCurrentRound: false,
         hasPlayedFirstCard: false
-      }
+      })
     ];
 
     const engine = new GameEngine(initialPlayers, { mode: 'TRADITIONAL', betAmount: 500, playerCount: 2 });

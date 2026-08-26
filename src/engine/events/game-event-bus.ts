@@ -132,7 +132,11 @@ export class GameEventBus {
     }
 
     const set = this.listeners.get(eventType)!;
-    const genericListener = listener as GenericEventListener;
+    const genericListener: GenericEventListener = (event: GameEvent) => {
+      if (isMatchingEvent(eventType, event)) {
+        listener(event);
+      }
+    };
     set.add(genericListener);
 
     return () => {

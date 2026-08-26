@@ -10,6 +10,7 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
     name: 'Bạn',
     avatar: '🤠',
     isBot: false,
+    botPersonaId: null,
     hand: [
       { id: '3_SPADES', rank: 3, suit: 'SPADES', weight: 12, code: '3S' },
       { id: '4_HEARTS', rank: 4, suit: 'HEARTS', weight: 19, code: '4H' }
@@ -17,7 +18,9 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
     playedCards: [],
     score: 1000,
     isPassedCurrentRound: false,
-    hasPlayedFirstCard: false
+    hasPlayedFirstCard: false,
+    rankPosition: null,
+    instantWinType: null
   };
 
   const p1: Player = {
@@ -25,6 +28,7 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
     name: 'Alex',
     avatar: '🧒',
     isBot: true,
+    botPersonaId: null,
     hand: [
       { id: '5_DIAMONDS', rank: 5, suit: 'DIAMONDS', weight: 22, code: '5D' },
       { id: '15_HEARTS', rank: 15, suit: 'HEARTS', weight: 63, code: '2H' }
@@ -32,7 +36,9 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
     playedCards: [],
     score: 1000,
     isPassedCurrentRound: false,
-    hasPlayedFirstCard: false
+    hasPlayedFirstCard: false,
+    rankPosition: null,
+    instantWinType: null
   };
 
   const p2: Player = {
@@ -40,13 +46,16 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
     name: 'Kai',
     avatar: '🤠',
     isBot: true,
+    botPersonaId: null,
     hand: [
       { id: '6_CLUBS', rank: 6, suit: 'CLUBS', weight: 25, code: '6C' }
     ],
     playedCards: [],
     score: 1000,
     isPassedCurrentRound: false,
-    hasPlayedFirstCard: false
+    hasPlayedFirstCard: false,
+    rankPosition: null,
+    instantWinType: null
   };
 
   const p3: Player = {
@@ -54,13 +63,16 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
     name: 'Marcus',
     avatar: '👴',
     isBot: true,
+    botPersonaId: null,
     hand: [
       { id: '7_SPADES', rank: 7, suit: 'SPADES', weight: 28, code: '7S' }
     ],
     playedCards: [],
     score: 1000,
     isPassedCurrentRound: false,
-    hasPlayedFirstCard: false
+    hasPlayedFirstCard: false,
+    rankPosition: null,
+    instantWinType: null
   };
 
   test('1. Trận đầu tiên (gameNumber = 1): Người cầm 3 Bích (p0) bắt buộc đi trước', () => {
@@ -136,8 +148,24 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
       dailyMilestonesClaimed: { 1: false, 3: false, 5: false }
     };
 
-    const match1 = strategy.setupMatch({ profile: mockProfile, playerCount: 4 });
-    const match2 = strategy.setupMatch({ profile: mockProfile, playerCount: 4 });
+    const match1 = strategy.setupMatch({
+      profile: mockProfile,
+      playerCount: 4,
+      customRules: null,
+      customSettings: null,
+      customBotPersonaIds: null,
+      customBotConfigs: null,
+      campaignChapter: null
+    });
+    const match2 = strategy.setupMatch({
+      profile: mockProfile,
+      playerCount: 4,
+      customRules: null,
+      customSettings: null,
+      customBotPersonaIds: null,
+      customBotConfigs: null,
+      campaignChapter: null
+    });
 
     expect(match1.initialPlayers.length).toBe(4);
     expect(match2.initialPlayers.length).toBe(4);

@@ -14,11 +14,14 @@ import {
 } from '../engine/storage';
 import { GameRulesBuilder } from '../engine/types';
 import { calculateAdaptiveQuickBet } from '../engine/economy';
+import { matchBotsForPlayerTable } from '../engine/ecosystem/matchmaker';
 
 // Stores
 import { useModalStore } from '../stores/useModalStore';
 import { useUserStore } from '../stores/useUserStore';
 import { useGameStore } from '../stores/useGameStore';
+import { useEcosystemStore } from '../stores/useEcosystemStore';
+import { BotConfig } from '../ai/types';
 
 export const App: React.FC = () => {
   const { openModal, closeModal, setF5PenaltyData } = useModalStore();
@@ -102,8 +105,23 @@ export const App: React.FC = () => {
     setActiveGameType('QUICK');
     setCurrentScreen('GAME_TABLE');
 
-    // Ghép Bot hoàn toàn ngẫu nhiên từ kho 18+ Bot Personas
-    const randomBots = getRandomBotConfigsForTable([1, 2, 3, 4, 5], 3);
+    // Ghép Bot trực tiếp từ Hệ Sinh Thái 200 Bot sống động
+    const ecosystemBots = useEcosystemStore.getState().bots;
+    const requiredCount = (config.playerCount || 4) - 1;
+    let botConfigs: Partial<BotConfig>[] = [];
+    let botIds: string[] = [];
+
+    if (ecosystemBots.length > 0) {
+      const matched = matchBotsForPlayerTable(ecosystemBots, profile.elo, config.betAmount, requiredCount);
+      botConfigs = matched;
+      botIds = matched.map(b => b.id);
+    }
+
+    if (botConfigs.length < requiredCount) {
+      const fallbacks = getRandomBotConfigsForTable([1, 2, 3, 4, 5], requiredCount);
+      botConfigs = fallbacks;
+      botIds = fallbacks.map(b => b.id || 'BOT_ELO_1150');
+    }
 
     const customRules = new GameRulesBuilder()
       .withSettlement(config.settlementRule)
@@ -130,16 +148,8 @@ export const App: React.FC = () => {
     startNewGame(1, {
       playerCount: config.playerCount,
       customRules,
-      customBotPersonaIds: [
-        randomBots[0]?.id || 'BOT_ELO_850',
-        randomBots[1]?.id || 'BOT_ELO_1150',
-        randomBots[2]?.id || 'BOT_ELO_1450'
-      ],
-      customBotConfigs: [
-        randomBots[0] || {},
-        randomBots[1] || {},
-        randomBots[2] || {}
-      ]
+      customBotPersonaIds: botIds,
+      customBotConfigs: botConfigs
     });
   };
 

@@ -18,6 +18,7 @@ describe('MatchLogger & Bot Reasoning Telemetry', () => {
         name: 'Người Chơi',
         avatar: '🤠',
         isBot: false,
+        botPersonaId: null,
         hand: [
           { id: '3S', rank: 3, suit: 'SPADES', code: '3♠', weight: 30 },
           { id: '4H', rank: 4, suit: 'HEARTS', code: '4♥', weight: 43 }
@@ -25,7 +26,9 @@ describe('MatchLogger & Bot Reasoning Telemetry', () => {
         playedCards: [],
         score: 50000,
         isPassedCurrentRound: false,
-        hasPlayedFirstCard: false
+        hasPlayedFirstCard: false,
+        rankPosition: null,
+        instantWinType: null
       },
       {
         id: 'bot1',
@@ -40,7 +43,9 @@ describe('MatchLogger & Bot Reasoning Telemetry', () => {
         playedCards: [],
         score: 50000,
         isPassedCurrentRound: false,
-        hasPlayedFirstCard: false
+        hasPlayedFirstCard: false,
+        rankPosition: null,
+        instantWinType: null
       }
     ];
 
@@ -121,10 +126,10 @@ describe('MatchLogger & Bot Reasoning Telemetry', () => {
 
   it('should seamlessly log whole simulated match in GameEngine with bot telemetry', () => {
     const players: Player[] = [
-      { id: 'p0', name: 'User', avatar: '🤠', isBot: true, hand: [], playedCards: [], score: 50000, isPassedCurrentRound: false, hasPlayedFirstCard: false },
-      { id: 'bot1', name: 'Bot 1', avatar: '🤖', isBot: true, hand: [], playedCards: [], score: 50000, isPassedCurrentRound: false, hasPlayedFirstCard: false },
-      { id: 'bot2', name: 'Bot 2', avatar: '🤖', isBot: true, hand: [], playedCards: [], score: 50000, isPassedCurrentRound: false, hasPlayedFirstCard: false },
-      { id: 'bot3', name: 'Bot 3', avatar: '🤖', isBot: true, hand: [], playedCards: [], score: 50000, isPassedCurrentRound: false, hasPlayedFirstCard: false }
+      { id: 'p0', name: 'User', avatar: '🤠', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 50000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
+      { id: 'bot1', name: 'Bot 1', avatar: '🤖', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 50000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
+      { id: 'bot2', name: 'Bot 2', avatar: '🤖', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 50000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
+      { id: 'bot3', name: 'Bot 3', avatar: '🤖', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 50000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null }
     ];
     const engine = new GameEngine(players, createDefaultGameRules());
 

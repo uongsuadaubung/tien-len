@@ -9,10 +9,10 @@ import { parseCards } from '../../src/engine/card';
 describe('AI Bot Benchmark Simulation (100 Ván Đấu Mô Phỏng)', () => {
   test('Mô phỏng 100 ván đấu giữa 4 Bot và đánh giá xếp hạng tỉ lệ thắng', () => {
     const bots = [
-      { player: { id: 'bot1', name: 'Alex (Rookie)', avatar: '🧒', isBot: true, hand: [], playedCards: [], score: 0, isPassedCurrentRound: false, hasPlayedFirstCard: false }, config: BOT_PERSONAS.BOT_ELO_850 },
-      { player: { id: 'bot2', name: 'Kai (Striker)', avatar: '🤠', isBot: true, hand: [], playedCards: [], score: 0, isPassedCurrentRound: false, hasPlayedFirstCard: false }, config: BOT_PERSONAS.BOT_ELO_1150 },
-      { player: { id: 'bot3', name: 'Marcus (Veteran)', avatar: '👴', isBot: true, hand: [], playedCards: [], score: 0, isPassedCurrentRound: false, hasPlayedFirstCard: false }, config: BOT_PERSONAS.BOT_ELO_1450 },
-      { player: { id: 'bot4', name: 'Sophia (Grandmaster)', avatar: '👑', isBot: true, hand: [], playedCards: [], score: 0, isPassedCurrentRound: false, hasPlayedFirstCard: false }, config: BOT_PERSONAS.BOT_ELO_1750 }
+      { player: { id: 'bot1', name: 'Alex (Rookie)', avatar: '🧒', isBot: true, botPersonaId: 'BOT_ELO_850', hand: [], playedCards: [], score: 0, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null }, config: BOT_PERSONAS.BOT_ELO_850 },
+      { player: { id: 'bot2', name: 'Kai (Striker)', avatar: '🤠', isBot: true, botPersonaId: 'BOT_ELO_1150', hand: [], playedCards: [], score: 0, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null }, config: BOT_PERSONAS.BOT_ELO_1150 },
+      { player: { id: 'bot3', name: 'Marcus (Veteran)', avatar: '👴', isBot: true, botPersonaId: 'BOT_ELO_1450', hand: [], playedCards: [], score: 0, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null }, config: BOT_PERSONAS.BOT_ELO_1450 },
+      { player: { id: 'bot4', name: 'Sophia (Grandmaster)', avatar: '👑', isBot: true, botPersonaId: 'BOT_ELO_1750', hand: [], playedCards: [], score: 0, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null }, config: BOT_PERSONAS.BOT_ELO_1750 }
     ];
 
     const winCounts: Record<string, number> = { bot1: 0, bot2: 0, bot3: 0, bot4: 0 };
@@ -25,7 +25,9 @@ describe('AI Bot Benchmark Simulation (100 Ván Đấu Mô Phỏng)', () => {
         playedCards: [],
         score: 0,
         isPassedCurrentRound: false,
-        hasPlayedFirstCard: false
+        hasPlayedFirstCard: false,
+        rankPosition: null,
+        instantWinType: null
       }));
 
       const game = new GameEngine(players, { mode: 'COUNT_CARDS', betAmount: 100 });

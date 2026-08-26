@@ -189,11 +189,16 @@ describe('Positional Awareness & In-Match Fast Adaptation AI Verification', () =
     const grandmasterConfig = getBotConfig('BOT_ELO_2500'); // inMatchAdaptationRate = 1.0
     const handler = new RespondingMoveHeuristicHandler();
 
-    // Đối thủ p1 đánh 2 Bích (Heo Đen) đầu trận
     const blackTwoMove: PlayedMove = {
       playerId: 'p1',
       combination: identifyCombination([createCard(15, 'SPADES')])!,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      isChop: null,
+      choppedPlayerId: null,
+      penaltyAmount: null,
+      isCascadeChop: null,
+      chopChainCount: null,
+      chopChainTotalAmount: null
     };
 
     // Hồ sơ đối thủ p1 là người cực kỳ ham găm Heo (heoGreedRate = 0.9)
@@ -248,11 +253,16 @@ describe('Positional Awareness & In-Match Fast Adaptation AI Verification', () =
     const grandmasterConfig = getBotConfig('BOT_ELO_2500');
     const handler = new RespondingMoveHeuristicHandler();
 
-    // Đối thủ đánh lá 3 Bích trong trận Solo 1v1 (đối thủ còn 7 lá)
     const leadMove: PlayedMove = {
       playerId: 'p1',
       combination: identifyCombination([createCard(3, 'SPADES')])!,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      isChop: null,
+      choppedPlayerId: null,
+      penaltyAmount: null,
+      isCascadeChop: null,
+      chopChainCount: null,
+      chopChainTotalAmount: null
     };
 
     const context: DecisionContext = {

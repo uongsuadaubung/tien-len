@@ -16,12 +16,18 @@ interface QuestsModalProps {
 type QuestTabType = 'DAILY' | 'ACHIEVEMENTS';
 type AchievementCategoryFilter = 'ALL' | 'CHOP' | 'VICTORY' | 'WEALTH' | 'SPECIAL';
 
-const achievementCategoryTabs = [
-  { id: 'ALL' as AchievementCategoryFilter, label: 'Tất Cả', icon: <Layers className="w-3.5 h-3.5" /> },
-  { id: 'CHOP' as AchievementCategoryFilter, label: 'Chém Heo & Hàng', icon: <Flame className="w-3.5 h-3.5" /> },
-  { id: 'VICTORY' as AchievementCategoryFilter, label: 'Chiến Thắng', icon: <Trophy className="w-3.5 h-3.5" /> },
-  { id: 'WEALTH' as AchievementCategoryFilter, label: 'Tài Sản & Đại Gia', icon: <Coins className="w-3.5 h-3.5" /> },
-  { id: 'SPECIAL' as AchievementCategoryFilter, label: 'Kỳ Tích & Elo', icon: <Star className="w-3.5 h-3.5" /> }
+interface AchievementCategoryTab {
+  id: AchievementCategoryFilter;
+  label: string;
+  icon: React.ReactNode;
+}
+
+const achievementCategoryTabs: AchievementCategoryTab[] = [
+  { id: 'ALL', label: 'Tất Cả', icon: <Layers className="w-3.5 h-3.5" /> },
+  { id: 'CHOP', label: 'Chém Heo & Hàng', icon: <Flame className="w-3.5 h-3.5" /> },
+  { id: 'VICTORY', label: 'Chiến Thắng', icon: <Trophy className="w-3.5 h-3.5" /> },
+  { id: 'WEALTH', label: 'Tài Sản & Đại Gia', icon: <Coins className="w-3.5 h-3.5" /> },
+  { id: 'SPECIAL', label: 'Kỳ Tích & Elo', icon: <Star className="w-3.5 h-3.5" /> }
 ];
 
 /**
@@ -73,15 +79,21 @@ export const QuestsModal: React.FC<QuestsModalProps> = ({
   const currentTabClaimableCoins = tab === 'DAILY' ? dailyTabClaimableCoins : achTabClaimableCoins;
   const hasCurrentTabClaimable = currentTabClaimableCoins > 0;
 
+  interface QuestTab {
+    id: QuestTabType;
+    label: string;
+    icon: React.ReactNode;
+  }
+
   // Tabs có hiển thị số lượng phần thưởng đang chờ nhận
-  const questTabs = [
+  const questTabs: QuestTab[] = [
     { 
-      id: 'DAILY' as QuestTabType, 
+      id: 'DAILY', 
       label: `Nhiệm Vụ Hàng Ngày (5 Mục / 24h)${dailyUnclaimedCount > 0 ? ` [${dailyUnclaimedCount}]` : ''}`, 
       icon: <Sparkles className="w-4 h-4" /> 
     },
     { 
-      id: 'ACHIEVEMENTS' as QuestTabType, 
+      id: 'ACHIEVEMENTS', 
       label: `Thành Tựu Danh Hiệu${achUnclaimedCount > 0 ? ` [${achUnclaimedCount}]` : ''}`, 
       icon: <Award className="w-4 h-4" /> 
     }
@@ -301,7 +313,11 @@ export const QuestsModal: React.FC<QuestsModalProps> = ({
       <Tabs
         options={questTabs}
         activeId={tab}
-        onChange={(id) => setTab(id as QuestTabType)}
+        onChange={(id) => {
+          if (id === 'DAILY' || id === 'ACHIEVEMENTS') {
+            setTab(id);
+          }
+        }}
         className="mb-3"
       />
 

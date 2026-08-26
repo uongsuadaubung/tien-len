@@ -16,6 +16,9 @@ import { ConfirmForfeitModal } from './ConfirmForfeitModal';
 import { F5PenaltyNoticeModal } from './F5PenaltyNoticeModal';
 import { NameSetupModal } from './NameSetupModal';
 import { RulesModal } from './RulesModal';
+import { EcosystemModal } from './EcosystemModal';
+import { BotProfileModal } from './BotProfileModal';
+import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { CardTracker } from '../../ai/card-tracker';
 import { CampaignChapter } from '../../engine/campaign';
 import { normalizePlayerCount } from '../../engine/types';
@@ -61,9 +64,12 @@ export const GameModals: React.FC<GameModalsProps> = ({
     isCampaignModalOpen,
     isNameSetupOpen,
     isRulesOpen,
+    isBotProfileOpen,
     openModal,
     closeModal
   } = useModalStore();
+
+  const { selectedBot } = useEcosystemStore();
 
   // User Store
   const { profile, setProfile } = useUserStore();
@@ -238,6 +244,16 @@ export const GameModals: React.FC<GameModalsProps> = ({
       <RulesModal
         isOpen={isRulesOpen}
         onClose={() => closeModal('RULES')}
+      />
+
+      {/* 14. Ecosystem & Leaderboard 200 Bot Modal */}
+      <EcosystemModal />
+
+      {/* 15. Bot Profile Card Modal */}
+      <BotProfileModal
+        isOpen={isBotProfileOpen}
+        bot={selectedBot}
+        onClose={() => closeModal('BOT_PROFILE')}
       />
     </>
   );

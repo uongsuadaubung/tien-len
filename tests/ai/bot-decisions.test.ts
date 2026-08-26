@@ -4,9 +4,21 @@ import { identifyCombination } from '../../src/engine/combinations';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { CardTracker } from '../../src/ai/card-tracker';
 import { makeBotDecision, DecisionContext } from '../../src/ai/decision-maker';
-import { createDefaultGameRules, Card } from '../../src/engine/types';
+import { createDefaultGameRules, Card, PlayedMove, Combination } from '../../src/engine/types';
 
 describe('AI Bot Decision Maker', () => {
+  const makeMove = (playerId: string, combo: Combination): PlayedMove => ({
+    playerId,
+    combination: combo,
+    timestamp: Date.now(),
+    isChop: null,
+    choppedPlayerId: null,
+    penaltyAmount: null,
+    isCascadeChop: null,
+    chopChainCount: null,
+    chopChainTotalAmount: null
+  });
+
   const createMockDecisionContext = (partial: Partial<DecisionContext> & { hand: Card[] }): DecisionContext => ({
     hand: partial.hand,
     currentRoundLeadingMove: partial.currentRoundLeadingMove ?? null,
@@ -51,11 +63,7 @@ describe('AI Bot Decision Maker', () => {
     const tracker = new CardTracker(hand, 1.0);
     const config = BOT_PERSONAS.BOT_ELO_1450;
 
-    const targetMove = {
-      playerId: 'p1',
-      combination: identifyCombination(parseCards('2H'))!,
-      timestamp: Date.now()
-    };
+    const targetMove = makeMove('p1', identifyCombination(parseCards('2H'))!);
 
     const decision = makeBotDecision(createMockDecisionContext({
       hand,
@@ -77,11 +85,7 @@ describe('AI Bot Decision Maker', () => {
     const config = BOT_PERSONAS.BOT_ELO_1450;
 
     // Đối thủ đánh đôi K (KD KH)
-    const targetMove = {
-      playerId: 'p1',
-      combination: identifyCombination(parseCards('KD KH'))!,
-      timestamp: Date.now()
-    };
+    const targetMove = makeMove('p1', identifyCombination(parseCards('KD KH'))!);
 
     const decision = makeBotDecision(createMockDecisionContext({
       hand,
@@ -146,11 +150,7 @@ describe('AI Bot Decision Maker', () => {
     const config = BOT_PERSONAS.BOT_ELO_1750;
 
     // Đối thủ đánh lá 10S, nhưng đối thủ p1 chỉ còn 1 lá duy nhất
-    const targetMove = {
-      playerId: 'p2',
-      combination: identifyCombination(parseCards('10S'))!,
-      timestamp: Date.now()
-    };
+    const targetMove = makeMove('p2', identifyCombination(parseCards('10S'))!);
 
     const decision = makeBotDecision(createMockDecisionContext({
       hand,
@@ -173,11 +173,7 @@ describe('AI Bot Decision Maker', () => {
     const config = BOT_PERSONAS.BOT_ELO_850; // Rookie bot
 
     // Đối thủ đánh lá 7S bình thường
-    const targetMove = {
-      playerId: 'p2',
-      combination: identifyCombination(parseCards('7S'))!,
-      timestamp: Date.now()
-    };
+    const targetMove = makeMove('p2', identifyCombination(parseCards('7S'))!);
 
     const decision = makeBotDecision(createMockDecisionContext({
       hand,
@@ -283,11 +279,7 @@ describe('AI Bot Decision Maker', () => {
     const tracker = new CardTracker(hand, 1.0);
     const config = BOT_PERSONAS.BOT_ELO_1850;
 
-    const targetMove = {
-      playerId: 'p2',
-      combination: identifyCombination(parseCards('5S'))!,
-      timestamp: Date.now()
-    };
+    const targetMove = makeMove('p2', identifyCombination(parseCards('5S'))!);
 
     const decision = makeBotDecision(createMockDecisionContext({
       hand,

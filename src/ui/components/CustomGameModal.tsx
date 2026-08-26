@@ -41,10 +41,16 @@ interface CustomGameModalProps {
 
 type TabType = 'MODE_RULES' | 'BOT_ROSTER' | 'ADVANCED_AI';
 
-const customTabs = [
-  { id: 'MODE_RULES' as TabType, label: '1. Luật & Bàn Đấu', icon: <Zap className="w-4 h-4" /> },
-  { id: 'BOT_ROSTER' as TabType, label: '2. Đội Hình Bot AI', icon: <Users className="w-4 h-4" /> },
-  { id: 'ADVANCED_AI' as TabType, label: '3. Tinh Chỉnh Chỉ Số AI', icon: <BrainCircuit className="w-4 h-4" /> }
+interface CustomTab {
+  id: TabType;
+  label: string;
+  icon: React.ReactNode;
+}
+
+const customTabs: CustomTab[] = [
+  { id: 'MODE_RULES', label: '1. Luật & Bàn Đấu', icon: <Zap className="w-4 h-4" /> },
+  { id: 'BOT_ROSTER', label: '2. Đội Hình Bot AI', icon: <Users className="w-4 h-4" /> },
+  { id: 'ADVANCED_AI', label: '3. Tinh Chỉnh Chỉ Số AI', icon: <BrainCircuit className="w-4 h-4" /> }
 ];
 
 export const CustomGameModal: React.FC<CustomGameModalProps> = ({
@@ -224,7 +230,11 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
       <Tabs
         options={customTabs}
         activeId={activeTab}
-        onChange={(id) => setActiveTab(id as TabType)}
+        onChange={(id) => {
+          if (id === 'MODE_RULES' || id === 'BOT_ROSTER' || id === 'ADVANCED_AI') {
+            setActiveTab(id);
+          }
+        }}
         className="mb-4"
       />
 

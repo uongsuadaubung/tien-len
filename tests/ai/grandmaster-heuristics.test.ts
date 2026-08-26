@@ -42,7 +42,13 @@ describe('5 Cơ Chế Ra Quyết Định Cấp Đại Kiện Tướng Cho AI Bot
         highestCard: createCard(10, 'SPADES'),
         length: 1
       },
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      isChop: null,
+      choppedPlayerId: null,
+      penaltyAmount: null,
+      isCascadeChop: null,
+      chopChainCount: null,
+      chopChainTotalAmount: null
     };
 
     // Bot có [Đôi Át (A♠, A♥) + rác nhỏ 3♠, 4♦]. Để đỡ 10♠, Bot phải xé Đôi Át!
@@ -176,7 +182,13 @@ describe('5 Cơ Chế Ra Quyết Định Cấp Đại Kiện Tướng Cho AI Bot
         highestCard: createCard(15, 'SPADES'),
         length: 1
       },
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      isChop: null,
+      choppedPlayerId: null,
+      penaltyAmount: null,
+      isCascadeChop: null,
+      chopChainCount: null,
+      chopChainTotalAmount: null
     };
 
     // Bot có [2♥ Heo Cơ + rác 3♠, 4♦]

@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { PlayerProfile } from '../../engine/storage';
 import { getRankTierByElo, RANK_TIERS } from '../../engine/elo';
 import { calculateAdaptiveQuickBet } from '../../engine/economy';
+import { useModalStore } from '../../stores/useModalStore';
+import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { 
   Trophy, 
   Flame, 
@@ -15,7 +17,10 @@ import {
   Sliders,
   Edit2,
   BookOpen,
-  ArrowRight
+  ArrowRight,
+  Users,
+  Sparkles,
+  Newspaper
 } from 'lucide-react';
 import { Button, Badge, Card, SectionHeader } from '../primitives';
 
@@ -46,6 +51,13 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
   onOpenRules,
   onOpenNameSetup
 }) => {
+  const { openModal } = useModalStore();
+  const { newsfeed, initEcosystem } = useEcosystemStore();
+
+  useEffect(() => {
+    initEcosystem();
+  }, [initEcosystem]);
+
   const currentRank = getRankTierByElo(profile.elo);
 
   // Tính % tiến trình lên Rank tiếp theo
@@ -172,6 +184,18 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
             <span>Vòng Quay</span>
           </Button>
 
+          {/* Nút Thế Giới 200 Bot */}
+          <Button
+            variant="surface"
+            size="md"
+            onClick={() => openModal('ECOSYSTEM')}
+            leftIcon={<Users className="w-4 h-4 text-amber-400" />}
+            title="Bảng Xếp Hạng & Thế Giới 200 Bot Sống Động"
+            className="border-amber-500/40 text-amber-300 hover:text-amber-200"
+          >
+            <span>Thế Giới Bot</span>
+          </Button>
+
           {/* Nút Luật & Khắc Chế */}
           {onOpenRules && (
             <Button
@@ -187,6 +211,26 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
           )}
         </div>
       </Card>
+
+      {/* BANNER BẢN TIN SỚI BẠC (LIVE NEWSFEED TICKER) */}
+      {newsfeed.length > 0 && (
+        <div 
+          onClick={() => openModal('ECOSYSTEM')}
+          className="relative z-10 w-full max-w-6xl mx-auto mt-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-950/40 via-purple-950/30 to-amber-950/40 border border-amber-500/20 flex items-center justify-between cursor-pointer hover:border-amber-500/40 transition-all shadow-sm group"
+        >
+          <div className="flex items-center gap-2 overflow-hidden text-xs">
+            <span className="flex items-center gap-1 text-amber-400 font-bold uppercase text-[10px] tracking-wider bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/30 flex-shrink-0">
+              <Newspaper className="w-3 h-3" /> Tin Sới Bạc
+            </span>
+            <span className="text-[var(--text-secondary)] truncate group-hover:text-[var(--text-primary)] transition-colors">
+              {newsfeed[0]?.message}
+            </span>
+          </div>
+          <span className="text-[10px] text-amber-400 font-semibold flex-shrink-0 ml-2 flex items-center gap-0.5 group-hover:underline">
+            Xem BXH 200 Bot <ArrowRight className="w-3 h-3" />
+          </span>
+        </div>
+      )}
 
       {/* BODY (Tier 0 Canvas với các Container Tier 1) */}
       <main className="relative z-10 w-full max-w-6xl mx-auto my-auto py-3 space-y-6">

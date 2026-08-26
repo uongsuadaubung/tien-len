@@ -20,44 +20,56 @@ describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)',
         name: 'Người Chơi',
         avatar: '🤠',
         isBot: false,
+        botPersonaId: null,
         hand: [],
         playedCards: [],
         score: 10000,
         isPassedCurrentRound: false,
-        hasPlayedFirstCard: true
+        hasPlayedFirstCard: true,
+        rankPosition: null,
+        instantWinType: null
       },
       {
         id: 'p1',
         name: 'Bot 1',
         avatar: '🤖',
         isBot: true,
+        botPersonaId: null,
         hand: [],
         playedCards: [],
         score: 10000,
         isPassedCurrentRound: false,
-        hasPlayedFirstCard: true
+        hasPlayedFirstCard: true,
+        rankPosition: null,
+        instantWinType: null
       },
       {
         id: 'p2',
         name: 'Bot 2',
         avatar: '🤖',
         isBot: true,
+        botPersonaId: null,
         hand: [],
         playedCards: [],
         score: 10000,
         isPassedCurrentRound: false,
-        hasPlayedFirstCard: true
+        hasPlayedFirstCard: true,
+        rankPosition: null,
+        instantWinType: null
       },
       {
         id: 'p3',
         name: 'Bot 3',
         avatar: '🤖',
         isBot: true,
+        botPersonaId: null,
         hand: [],
         playedCards: [],
         score: 10000,
         isPassedCurrentRound: false,
-        hasPlayedFirstCard: true
+        hasPlayedFirstCard: true,
+        rankPosition: null,
+        instantWinType: null
       }
     ];
   }

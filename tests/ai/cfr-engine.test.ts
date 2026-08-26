@@ -12,6 +12,7 @@ describe('CFR & Regret Matching Engine (Lý Thuyết Trò Chơi & Cân Bằng Na
   const grandmasterBot: BotConfig = {
     id: 'bot_alpha',
     name: 'Alpha-TL',
+    avatar: null,
     description: 'Thần bài CFR',
     tier: 'Tier 5: Thần Bài',
     elo: 2500,
@@ -36,6 +37,7 @@ describe('CFR & Regret Matching Engine (Lý Thuyết Trò Chơi & Cân Bằng Na
   const rookieBot: BotConfig = {
     id: 'bot_rookie',
     name: 'Bé Tập Sự',
+    avatar: null,
     description: 'Rookie',
     tier: 'Tier 1: Tập Sự',
     elo: 850,
@@ -91,7 +93,13 @@ describe('CFR & Regret Matching Engine (Lý Thuyết Trò Chơi & Cân Bằng Na
     const leadingMove: PlayedMove = {
       playerId: 'player_1',
       combination: identifyCombination([nineSpades])!,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      isChop: null,
+      choppedPlayerId: null,
+      penaltyAmount: null,
+      isCascadeChop: null,
+      chopChainCount: null,
+      chopChainTotalAmount: null
     };
     const targetProfile = createDefaultOpponentProfile('player_1');
 
@@ -105,7 +113,13 @@ describe('CFR & Regret Matching Engine (Lý Thuyết Trò Chơi & Cân Bằng Na
     const leadingMove: PlayedMove = {
       playerId: 'player_greedy',
       combination: identifyCombination([tenSpades])!,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      isChop: null,
+      choppedPlayerId: null,
+      penaltyAmount: null,
+      isCascadeChop: null,
+      chopChainCount: null,
+      chopChainTotalAmount: null
     };
     const greedyProfile = {
       ...createDefaultOpponentProfile('player_greedy'),

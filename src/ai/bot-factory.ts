@@ -1,6 +1,8 @@
-import { BotConfig } from './types';
+import { BotConfig } from "./types";
 
-export const BOT_PERSONAS: Record<string, BotConfig> = {
+type BotPersonaRaw = Omit<BotConfig, 'name' | 'avatar'> & { name?: string | null; avatar?: string | null };
+
+const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   // ==========================================
   // TIER 1: TẬP SỰ / NOVICE (ELO 850 - 1000)
   // ==========================================
@@ -462,6 +464,13 @@ export const BOT_PERSONAS: Record<string, BotConfig> = {
   }
 };
 
+export const BOT_PERSONAS: Record<string, BotConfig> = Object.fromEntries(
+  Object.entries(RAW_BOT_PERSONAS).map(([k, v]) => [
+    k,
+    { name: null, avatar: null, ...v }
+  ])
+);
+
 export function getBotConfig(id: string, customOverrides?: Partial<BotConfig>): BotConfig {
   let baseKey = id;
   if (id && id.startsWith('dyn_')) {
@@ -471,10 +480,9 @@ export function getBotConfig(id: string, customOverrides?: Partial<BotConfig>): 
     }
   }
   const base = BOT_PERSONAS[baseKey] || BOT_PERSONAS[id] || BOT_PERSONAS.BOT_ELO_1150;
-  if (!customOverrides) return base;
   return {
     ...base,
-    ...customOverrides
+    ...(customOverrides || {})
   };
 }
 
@@ -505,11 +513,51 @@ export function getAllBotConfigs(): BotConfig[] {
 // ============================================================================
 
 export const GLOBAL_BOT_NAMES = [
-  'Alex', 'Max', 'Leo', 'Mia', 'Kai', 'Sam', 'Elena', 'Lucas', 'Felix', 'Zane',
-  'Rex', 'Luna', 'Nova', 'Viper', 'Shadow', 'Ace', 'Blaze', 'Phoenix', 'Knight', 'Cyber',
-  'Kuro', 'Ren', 'Kenji', 'Aria', 'Chloe', 'Victor', 'Marcus', 'Sophia', 'Drake', 'Storm',
-  'Frost', 'Raven', 'Titan', 'Ghost', 'Oscar', 'Ryan', 'Zack', 'Hugo', 'Logan', 'Ethan',
-  'Liam', 'Noah', 'Maya', 'Ivy', 'Ruby', 'Stella', 'Diana', 'Clara', 'Serena', 'Axel'
+  // Việt Nam (Latin ABC)
+  'Nam Phong', 'Tuan Kiet', 'Minh Triet', 'Hoang Long', 'Bao Tram', 'Khanh Linh', 'Hai Dang', 'Quoc Bao', 'Duy Anh', 'Thanh Dat',
+  'Tien Dung', 'Quang Hai', 'Minh Vuong', 'Trong Hoang', 'Huu Thang', 'Viet Anh', 'Xuan Truong', 'Cong Phuong', 'Van Toan', 'Dinh Trong',
+  'Duc Huy', 'Van Lam', 'Hong Duy', 'Van Duc', 'Tuan Anh', 'Tan Tai', 'Thanh Chung', 'Viet Hung', 'Ngoc Hai', 'Duy Manh',
+  'Bao Long', 'Gia Bao', 'Minh Khoi', 'Duc Phuc', 'Hoang Nam', 'Thien An', 'Dang Khoa', 'Bao Khang', 'Phuc Thinh', 'Tan Phat',
+  'Hai Yen', 'Thu Thao', 'Bich Phuong', 'Kim Ngan', 'Thanh Huong', 'Mai Anh', 'Thuy Linh', 'Yen Nhi', 'Minh Chau', 'Phuong Linh',
+
+  // Anh, Mỹ, Úc, Canada (English / Anglo)
+  'Alexander', 'Oliver', 'Charlotte', 'Benjamin', 'Lucas', 'Ethan', 'Evelyn', 'Liam', 'Noah', 'James',
+  'Mason', 'Logan', 'Emma', 'Sophia', 'Jackson', 'Aiden', 'Henry', 'Sebastian', 'Jack', 'Samuel',
+  'Matthew', 'Daniel', 'Anthony', 'David', 'Chloe', 'Grace', 'Harper', 'Victoria', 'Zoe', 'Carter',
+  'Wyatt', 'Dylan', 'Luke', 'Gabriel', 'Owen', 'Grayson', 'Nathan', 'Caleb', 'Isaac', 'Hunter',
+  'Christian', 'Andrew', 'Connor', 'Eli', 'Aaron', 'Landon', 'Jonathan', 'Nolan', 'Nicholas', 'Austin',
+  'Amelia', 'Hannah', 'Audrey', 'Bella', 'Claire', 'Skyler', 'Hazel', 'Lucy', 'Stella', 'Violet',
+
+  // Tây Ban Nha, Bồ Đào Nha, Nam Mỹ (Hispanic / Latino)
+  'Mateo', 'Santiago', 'Leonardo', 'Rodrigo', 'Thiago', 'Diego', 'Valentina', 'Isabella', 'Camila', 'Sofia',
+  'Carlos', 'Alvaro', 'Fernando', 'Rafael', 'Javier', 'Gonzalo', 'Alejandro', 'Manuel', 'Lorenzo', 'Sergio',
+  'Elena', 'Carmen', 'Pablo', 'Andres', 'Joaquin', 'Emiliano', 'Matias', 'Nicolas', 'Felipe', 'Bautista',
+  'Lucia', 'Martina', 'Catalina', 'Mariana', 'Julieta', 'Valeria', 'Daniela', 'Fernanda', 'Paula', 'Renata',
+
+  // Pháp, Ý, Đức, Bỉ, Thụy Sĩ (Western Europe)
+  'Felix', 'Max', 'Lukas', 'Julian', 'Marco', 'Matteo', 'Alessandro', 'Hugo', 'Louis', 'Arthur',
+  'Jonas', 'Paul', 'Leon', 'Finn', 'Elias', 'Fabian', 'Moritz', 'Tobias', 'Florian', 'Stefan',
+  'Julien', 'Antoine', 'Maxime', 'Clement', 'Valentin', 'Baptiste', 'Romain', 'Adrien', 'Corentin', 'Guillaume',
+  'Luca', 'Davide', 'Federico', 'Simone', 'Andrea', 'Gabriele', 'Tommaso', 'Lorenzo', 'Edoardo', 'Riccardo',
+  'Clara', 'Camille', 'Lea', 'Manon', 'Chloe', 'Giulia', 'Chiara', 'Francesca', 'Greta', 'Laura',
+
+  // Bắc Âu & Đông Âu Latin (Scandinavian & Slavic Latinized)
+  'Lars', 'Henrik', 'Magnus', 'Astrid', 'Freja', 'Gustav', 'Erik', 'Viktor', 'Oskar', 'Axel',
+  'Arvid', 'Nils', 'Kasper', 'Soren', 'Mikkel', 'Mathias', 'Oliver', 'Emil', 'Rasmus', 'Frederik',
+  'Stanislav', 'Milan', 'Tomas', 'Marek', 'Jan', 'Petr', 'Jiri', 'Pavel', 'Martin', 'Michal',
+  'Elena', 'Karin', 'Ingrid', 'Maja', 'Linnea', 'Klara', 'Petra', 'Zuzana', 'Tereza', 'Lenka',
+
+  // Nhật Bản & Hàn Quốc (Phiên âm Romaji / Latin ABC)
+  'Kenji', 'Ren', 'Daiki', 'Kazuki', 'Haruto', 'Ryuto', 'Minho', 'Jun', 'Taehyun', 'Seung',
+  'Akira', 'Shin', 'Takashi', 'Hiro', 'Yuto', 'Sota', 'Kaito', 'Jin', 'Hyun', 'Dong',
+  'Kenta', 'Shota', 'Hayato', 'Riku', 'Taiki', 'Tsubasa', 'Naoki', 'Yuma', 'Takumi', 'Keita',
+  'Jiwon', 'Minjun', 'Seojun', 'Dohyun', 'Yejun', 'Siwoo', 'Haeseong', 'Kyungsoo', 'Sungmin', 'Jaehyuk',
+  'Aoi', 'Hina', 'Yui', 'Sakura', 'Rin', 'Sora', 'Mei', 'Nanami', 'Eunji', 'Sujin',
+
+  // Biệt hiệu Gamer / Esports Quốc tế
+  'Shadow', 'Viper', 'Phoenix', 'Blaze', 'Cyber', 'Titan', 'Ghost', 'Knight', 'Raven', 'Frost',
+  'Storm', 'Zack', 'Drake', 'Ace', 'Kuro', 'Zane', 'Rex', 'Luna', 'Nova', 'Oscar',
+  'Vanguard', 'Apex', 'Matrix', 'Nexus', 'Pulse', 'Rogue', 'Specter', 'Striker', 'Phantom', 'Zenith'
 ];
 
 export const GLOBAL_NICKNAMES_BY_TIER: Record<number, string[]> = {
