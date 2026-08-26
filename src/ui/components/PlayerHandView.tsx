@@ -3,7 +3,7 @@ import { Card, Player } from '../../engine/types';
 import { HandSortMode } from '../../stores/useGameStore';
 import { getAvailableSmartVariants, getSmartHandGroups } from '../../engine/hand-sorter';
 import { CardView } from './CardView';
-import { Play, SkipForward, Wand2, ArrowUpDown, ArrowDownToLine, Layers } from 'lucide-react';
+import { Play, SkipForward, ArrowUpDown, ArrowDownToLine, Layers, Crosshair } from 'lucide-react';
 
 interface HandCardStyle extends React.CSSProperties {
   '--rot-deg'?: string;
@@ -17,7 +17,10 @@ interface PlayerHandViewProps {
   onPlaySelectedCards: () => void;
   onPassTurn: () => void;
   onAutoSort: () => void;
-  onGetAiHint: () => void;
+  onGetAiHint?: () => void;
+  onQuickSelect?: () => void;
+  canQuickSelect?: boolean;
+  quickSelectCandidatesCount?: number;
   isCurrentTurn: boolean;
   canPlay: boolean;
   canPass: boolean;
@@ -39,6 +42,9 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
   onPassTurn,
   onAutoSort,
   onGetAiHint,
+  onQuickSelect,
+  canQuickSelect = true,
+  quickSelectCandidatesCount = 0,
   isCurrentTurn,
   canPlay,
   canPass,
@@ -143,15 +149,26 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
                   <span>Đánh Bài</span>
                 </button>
 
-                {/* Nút Gợi Ý AI */}
-                {aiHintEnabled && (
+                {/* Nút Bắt Bài (Tự động chọn nhanh tổ hợp vừa khít để đè bài trên bàn) */}
+                {onQuickSelect && (
                   <button
-                    onClick={onGetAiHint}
-                    className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-500/40 hover:scale-105 cursor-pointer font-bold text-xs sm:text-sm shadow transition-all duration-150"
-                    title="Thần bài gợi ý nước đi tối ưu"
+                    onClick={onQuickSelect}
+                    disabled={!canQuickSelect}
+                    className={`
+                      flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-bold text-xs sm:text-sm transition-all duration-150 shadow
+                      ${canQuickSelect
+                        ? 'bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-500/50 hover:border-amber-400 hover:scale-105 cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.2)]'
+                        : 'bg-[#182030] text-slate-500 cursor-not-allowed border border-white/5 opacity-50'
+                      }
+                    `}
+                    title={
+                      canQuickSelect
+                        ? `Tự động chọn bài để ${isLeader ? 'ra trước' : 'chặn bài'}${quickSelectCandidatesCount > 1 ? ` (${quickSelectCandidatesCount} lựa chọn, nhấn tiếp để đổi)` : ''}`
+                        : 'Không có bài chặn được'
+                    }
                   >
-                    <Wand2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#d4af37]" />
-                    <span>Gợi Ý AI</span>
+                    <Crosshair className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--color-gold)]" />
+                    <span>Bắt Bài</span>
                   </button>
                 )}
               </>

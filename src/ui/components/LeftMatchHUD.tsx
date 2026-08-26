@@ -3,6 +3,8 @@ import { Player } from '../../engine/types';
 import { getBotConfig } from '../../ai/bot-factory';
 import { Trophy, Coins } from 'lucide-react';
 import { Badge } from '../primitives';
+import { MoveHint } from '../../ai/hint-engine';
+import { AIAssistantMascot } from './AIAssistantMascot';
 
 interface LeftMatchHUDProps {
   players: Player[];
@@ -12,6 +14,9 @@ interface LeftMatchHUDProps {
   betAmount: number;
   isDealing: boolean;
   dealtCounts: { [playerId: string]: number };
+  aiHint?: MoveHint | null;
+  isHumanTurn?: boolean;
+  aiHintEnabled?: boolean;
 }
 
 export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
@@ -21,7 +26,10 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
   gameNumber,
   betAmount,
   isDealing,
-  dealtCounts
+  dealtCounts,
+  aiHint,
+  isHumanTurn = false,
+  aiHintEnabled = true
 }) => {
   const [isOpen] = useState<boolean>(true);
 
@@ -146,6 +154,15 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
           </table>
         </div>
       </div>
+
+      {/* QUÂN SƯ THẦN BÀI (NGAY BÊN DƯỚI BẢNG HUD) */}
+      {aiHintEnabled && (
+        <AIAssistantMascot
+          hint={aiHint || null}
+          isHumanTurn={isHumanTurn}
+          enabled={aiHintEnabled}
+        />
+      )}
     </div>
   );
 };

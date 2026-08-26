@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { LobbyHub } from './components/LobbyHub';
 import { GameModals } from './components/GameModals';
-import { FallingBlossoms } from './components/FallingBlossoms';
 import { CustomGameModalConfig } from './components/CustomGameModal';
 import { QuickSetupConfig } from './components/QuickSetupModal';
 import { CampaignChapter } from '../engine/campaign';
@@ -198,10 +197,8 @@ export const App: React.FC = () => {
     <>
       {/* 1. MÀN HÌNH CHÍNH (SẢNH HOẶC BÀN ĐẤU) */}
       {currentScreen === 'LOBBY' ? (
-        <>
-          <FallingBlossoms />
-          <LobbyHub
-            profile={profile}
+        <LobbyHub
+          profile={profile}
             onPlayNow={handlePlayNowDefault}
             onOpenQuickSetup={() => openModal('QUICK_SETUP')}
             onOpenCustomGameModal={() => openModal('CUSTOM_GAME')}
@@ -213,7 +210,6 @@ export const App: React.FC = () => {
             onOpenRules={() => openModal('RULES')}
             onOpenNameSetup={() => openModal('NAME_SETUP')}
           />
-        </>
       ) : (
         <GameTableScreen
           engineRef={engineRef}

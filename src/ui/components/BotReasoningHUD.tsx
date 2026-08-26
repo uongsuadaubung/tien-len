@@ -112,7 +112,7 @@ export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
           <div className="flex items-center gap-1">
             <button
               onClick={handleExportJson}
-              title="Xuất JSON log"
+              title="Lưu Phân Tích"
               className="p-1 rounded hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--color-gold)] transition-colors"
             >
               <Download className="w-3.5 h-3.5" />

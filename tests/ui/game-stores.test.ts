@@ -84,6 +84,12 @@ describe('Zustand State Stores Integration Tests (Kiểm Thử Tích Hợp State
     expect(useSettingsStore.getState().gameSpeed).toBe('REALISTIC');
     settingsStore.setGameSpeed('FAST');
     expect(useSettingsStore.getState().gameSpeed).toBe('FAST');
+
+    expect(useSettingsStore.getState().quickResponseAssistEnabled).toBe(false);
+    settingsStore.setQuickResponseAssistEnabled(true);
+    expect(useSettingsStore.getState().quickResponseAssistEnabled).toBe(true);
+    settingsStore.toggleQuickResponseAssist();
+    expect(useSettingsStore.getState().quickResponseAssistEnabled).toBe(false);
   });
 
   it('5. useGameStore: resetMatchState làm sạch 100% dữ liệu bàn đấu và bộ nhớ tạm', () => {

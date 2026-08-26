@@ -1,6 +1,7 @@
 import { Quest, Achievement } from '../quests';
 import { PlayerProfile } from '../storage';
 import { GameEvent } from '../events/game-event-bus';
+import { CAMPAIGN_CHAPTERS } from '../campaign';
 
 /**
  * Interface cho Progress Evaluator theo Specification Pattern
@@ -441,15 +442,18 @@ export class RankedEloAchievementEvaluator implements ProgressEvaluator {
 export class CampaignAllClearAchievementEvaluator implements ProgressEvaluator {
   readonly id = 'ach_campaign_all_clear';
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
-    if (event.type === 'MATCH_COMPLETED' && event.activeGameType === 'CAMPAIGN') {
-      const wins5 = (profile.campaignChapterWins && profile.campaignChapterWins[5]) || 0;
-      const effectiveWins5 = (event.isHumanWinner && event.activeGameType === 'CAMPAIGN') ? wins5 + 1 : wins5;
-      if (effectiveWins5 >= 1 || profile.campaignUnlockedChapter > 5) {
-        return targetCount;
+  evaluate(_event: GameEvent, _currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    let completedChaptersCount = 0;
+    const winsMap = profile.campaignChapterWins || {};
+
+    for (const chapter of CAMPAIGN_CHAPTERS) {
+      const wins = winsMap[chapter.id] || 0;
+      if (wins >= chapter.requiredWins || (profile.campaignUnlockedChapter || 1) > chapter.id) {
+        completedChaptersCount++;
       }
     }
-    return currentCount;
+
+    return Math.min(targetCount, completedChaptersCount);
   }
 }
 

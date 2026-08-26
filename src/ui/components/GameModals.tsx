@@ -71,16 +71,16 @@ export const GameModals: React.FC<GameModalsProps> = ({
   // Settings Store
   const {
     soundEnabled,
-    blossomEnabled,
     autoSortEnabled,
     aiHintEnabled,
+    quickResponseAssistEnabled,
     xrayEnabled,
     botReasoningLogEnabled,
     gameSpeed,
     toggleSound,
-    toggleBlossom,
     toggleAutoSort,
     toggleAiHint,
+    toggleQuickResponseAssist,
     toggleXRay,
     toggleBotReasoningLog,
     setGameSpeed
@@ -169,12 +169,12 @@ export const GameModals: React.FC<GameModalsProps> = ({
         onClose={() => closeModal('SETTINGS')}
         soundEnabled={soundEnabled}
         onToggleSound={toggleSound}
-        blossomEnabled={blossomEnabled}
-        onToggleBlossom={toggleBlossom}
         autoSortEnabled={autoSortEnabled}
         onToggleAutoSort={toggleAutoSort}
         aiHintEnabled={aiHintEnabled}
         onToggleAiHint={toggleAiHint}
+        quickResponseAssistEnabled={quickResponseAssistEnabled}
+        onToggleQuickResponseAssist={toggleQuickResponseAssist}
         xrayEnabled={xrayEnabled}
         onToggleXRay={toggleXRay}
         botReasoningLogEnabled={botReasoningLogEnabled}

@@ -130,3 +130,31 @@ export function isBlackTwo(card: Card): boolean {
   return isTwo(card) && isBlackCard(card);
 }
 
+export const SUIT_VIETNAMESE_NAMES: Record<Suit, string> = {
+  SPADES: 'Bích',
+  CLUBS: 'Tép',
+  DIAMONDS: 'Rô',
+  HEARTS: 'Cơ'
+};
+
+/**
+ * Chuyển lá bài thành dạng ký hiệu trực quan cho người chơi (vd: "3♠", "10♦", "A♥", "2♥")
+ */
+export function formatCard(card: Card): string {
+  return `${RANK_NAMES[card.rank]}${SUIT_SYMBOLS[card.suit]}`;
+}
+
+/**
+ * Chuyển danh sách lá bài thành chuỗi ký hiệu trực quan (vd: "3♠ 4♣ 5♦")
+ */
+export function formatCards(cards: Card[], separator = ' '): string {
+  return cards.map(formatCard).join(separator);
+}
+
+/**
+ * Chuyển lá bài thành tên tiếng Việt đầy đủ (vd: "3 Bích", "10 Rô", "A Cơ", "2 Cơ")
+ */
+export function formatCardVietnamese(card: Card): string {
+  return `${RANK_NAMES[card.rank]} ${SUIT_VIETNAMESE_NAMES[card.suit]}`;
+}
+

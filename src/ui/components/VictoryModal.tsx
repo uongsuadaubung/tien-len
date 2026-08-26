@@ -362,7 +362,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
               leftIcon={<Download className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
               className="text-xs"
             >
-              Xuất JSON
+              Lưu Phân Tích
             </Button>
           </div>
         )}

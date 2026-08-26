@@ -6,6 +6,7 @@ import {
   generateDailyQuestsForDate, 
   DAILY_QUEST_COUNT 
 } from './quests';
+import { CAMPAIGN_CHAPTERS } from './campaign';
 import { ECONOMY_CONSTANTS } from './constants/economy';
 
 export interface PlayerProfile {
@@ -163,6 +164,24 @@ export function loadPlayerProfile(): PlayerProfile {
             currentCount: 0,
             isCompleted: false,
             isClaimed: false
+          };
+        }
+
+        // Tự động chuẩn hóa ach_campaign_all_clear nếu người chơi chưa thực sự vượt đủ 5 chương
+        if (initialAch.id === 'ach_campaign_all_clear') {
+          const winsMap = parsed.campaignChapterWins || {};
+          let actualCompletedChapters = 0;
+          for (const ch of CAMPAIGN_CHAPTERS) {
+            if ((winsMap[ch.id] || 0) >= ch.requiredWins || (parsed.campaignUnlockedChapter || 1) > ch.id) {
+              actualCompletedChapters++;
+            }
+          }
+          const isReallyCompleted = actualCompletedChapters >= 5;
+          return {
+            ...initialAch,
+            currentCount: Math.min(5, actualCompletedChapters),
+            isCompleted: isReallyCompleted,
+            isClaimed: isReallyCompleted ? (saved.isClaimed || false) : false
           };
         }
 

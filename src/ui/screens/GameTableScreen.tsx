@@ -9,13 +9,16 @@ import { BotSeat } from '../components/BotSeat';
 import { TableCenter } from '../components/TableCenter';
 import { DealingDeckAnimation } from '../components/DealingDeckAnimation';
 import { PlayerHandView } from '../components/PlayerHandView';
-import { FallingBlossoms } from '../components/FallingBlossoms';
+import { evaluateSelectionFeedback } from '../../ai/hint-engine';
+import { CardTracker } from '../../ai/card-tracker';
 
 // Stores
 import { useModalStore } from '../../stores/useModalStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useGameStore } from '../../stores/useGameStore';
+import { getSortedQuickSelectCandidates, getNextQuickSelectCards } from '../../engine/quick-response-finder';
+import { soundManager } from '../audio/sound-manager';
 
 interface GameTableScreenProps {
   engineRef: React.MutableRefObject<GameEngine | null>;
@@ -46,6 +49,7 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
   const {
     soundEnabled,
     aiHintEnabled,
+    quickResponseAssistEnabled,
     xrayEnabled,
     botReasoningLogEnabled,
     toggleSound
@@ -72,6 +76,7 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
     handSortMode,
     smartVariantIndex,
     botThinkingThought,
+    setSelectedCardIds,
     toggleCardSelect,
     clearCardSelection
   } = useGameStore();
@@ -99,6 +104,66 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
     !isDealing &&
     !(engineRef.current?.isFirstMoveOfGame ?? false) &&
     !(engineRef.current?.isRoundLeadMove() ?? true);
+
+  // Tính toán danh sách các phương án Chọn Nhanh (Bắt bài vừa khít nhất)
+  const quickSelectCandidates = React.useMemo(() => {
+    if (!engineRef.current || !isP0Turn || !p0 || p0.hand.length === 0) return [];
+    const engine = engineRef.current;
+    return getSortedQuickSelectCandidates({
+      hand: p0.hand,
+      leadingMove: engine.getLeadingMove(),
+      isLeadMove: engine.isRoundLeadMove(),
+      isFirstMoveOfGame: engine.isFirstMoveOfGame,
+      allowFourPairsCutAnytime: engine.rules.chopping.allowFourPairsCutAnytime,
+      prohibitEndingWithTwo: engine.rules.gameFlow.prohibitEndingWithTwo
+    });
+  }, [isP0Turn, p0, currentMove]);
+
+  // Phản hồi nhận xét chiến thuật thời gian thực của Quân Sư khi người chơi chọn bài trên tay
+  const activeAiHint = React.useMemo(() => {
+    if (!aiHintEnabled || !isP0Turn || !p0 || !engineRef.current) return currentHint;
+    if (selectedCards.length === 0) return currentHint;
+
+    const engine = engineRef.current;
+    const tracker = new CardTracker(p0.hand, 1.0);
+
+    const feedback = evaluateSelectionFeedback({
+      selectedCards,
+      hand: p0.hand,
+      leadingMove: engine.getLeadingMove(),
+      isFirstMoveOfGame: engine.isFirstMoveOfGame,
+      isLeadMove: engine.isRoundLeadMove(),
+      tracker,
+      optimalHint: currentHint,
+      prohibitEndingWithTwo: engine.rules.gameFlow.prohibitEndingWithTwo
+    });
+
+    return feedback || currentHint;
+  }, [aiHintEnabled, isP0Turn, p0, selectedCards, currentHint]);
+
+  const canQuickSelect = isP0Turn && !isDealing && quickSelectCandidates.length > 0;
+
+  const handleQuickSelect = React.useCallback(() => {
+    if (!engineRef.current || !isP0Turn || !p0 || p0.hand.length === 0) return;
+    const engine = engineRef.current;
+
+    const nextCards = getNextQuickSelectCards(
+      {
+        hand: p0.hand,
+        leadingMove: engine.getLeadingMove(),
+        isLeadMove: engine.isRoundLeadMove(),
+        isFirstMoveOfGame: engine.isFirstMoveOfGame,
+        allowFourPairsCutAnytime: engine.rules.chopping.allowFourPairsCutAnytime,
+        prohibitEndingWithTwo: engine.rules.gameFlow.prohibitEndingWithTwo
+      },
+      selectedCardIds
+    );
+
+    if (nextCards && nextCards.length > 0) {
+      setSelectedCardIds(new Set(nextCards.map(c => c.id)));
+      soundManager.playCardDeal();
+    }
+  }, [isP0Turn, p0, selectedCardIds, setSelectedCardIds]);
 
   // Solo 1v1: Người duy nhất đối diện p0 là p1 ở Ghế Trên
   const isSolo1v1 = playerCount === 2;
@@ -138,6 +203,9 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
         betAmount={gameSettings.betAmount}
         isDealing={isDealing}
         dealtCounts={dealtCounts}
+        aiHint={activeAiHint}
+        isHumanTurn={isP0Turn}
+        aiHintEnabled={aiHintEnabled}
       />
 
       {/* BẢNG SUY LUẬN BOT AI TRỰC TIẾP BÊN PHẢI (RIGHT BOT REASONING HUD) */}
@@ -273,14 +341,15 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
               onPlaySelectedCards={onPlaySelectedCards}
               onPassTurn={onPassTurn}
               onAutoSort={onAutoSort}
-              onGetAiHint={onApplyAiHint}
+              onQuickSelect={quickResponseAssistEnabled ? handleQuickSelect : undefined}
+              canQuickSelect={quickResponseAssistEnabled ? canQuickSelect : false}
+              quickSelectCandidatesCount={quickSelectCandidates.length}
               isCurrentTurn={isP0Turn}
               canPlay={isValidPlaySelection}
               canPass={canP0Pass}
               isLeader={leadPlayerId === 'p0'}
               isDealing={isDealing}
               dealtCardsCount={dealtCounts['p0']}
-              aiHintEnabled={aiHintEnabled}
               isFirstMoveOfGame={engineRef.current?.isFirstMoveOfGame ?? false}
               sortMode={handSortMode}
               variantIndex={smartVariantIndex}
