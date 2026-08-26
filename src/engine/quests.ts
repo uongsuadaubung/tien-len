@@ -317,7 +317,7 @@ export const MASTER_DAILY_QUESTS_POOL: readonly MasterDailyQuestTemplate[] = [
   },
   {
     id: 'daily_campaign_win',
-    title: 'Chinh Phục Ải Trùm',
+    title: 'Chinh Phục Trùm Sòng',
     description: 'Giành chiến thắng về Nhất 1 ván trong Chiến Dịch Cốt Truyện.',
     rewardCoins: 12000,
     icon: '🗺️',
@@ -889,7 +889,7 @@ export const INITIAL_ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: 'ach_campaign_all_clear',
-    title: 'Thần Bài Tối Thượng 5 Ải',
+    title: 'Thần Bài Toàn Năng 5 Chương',
     description: 'Đánh bại toàn bộ Trùm Sòng và hoàn thành 5 Chương Chiến Dịch.',
     rewardCoins: 500000,
     icon: '🌟',

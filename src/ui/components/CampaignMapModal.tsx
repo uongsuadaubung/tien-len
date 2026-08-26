@@ -37,7 +37,7 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
       height="h-[92vh] sm:h-[680px]"
       headerRight={
         <Badge variant="gold" size="md">
-          Tiến Độ: {profile.campaignUnlockedChapter}/5 Ải
+          Tiến Độ: {profile.campaignUnlockedChapter}/5 Chương
         </Badge>
       }
       footer={
@@ -57,7 +57,7 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
               onClick={() => isUnlocked && onSelectChapter(currentChapter)}
               leftIcon={<Swords className="w-4 h-4" />}
             >
-              <span>{isUnlocked ? 'Khiêu Chiến Ngay' : 'Ải Chưa Mở Khóa'}</span>
+              <span>{isUnlocked ? 'Khiêu Chiến Ngay' : 'Chưa Mở Khóa'}</span>
             </Button>
           </div>
         </div>
@@ -137,10 +137,10 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
             {currentChapter.description}
           </p>
 
-          {/* DANH SÁCH 3 BOT TRÙM TRONG ẢI */}
+          {/* DANH SÁCH 3 BOT TRÙM TRONG CHƯƠNG */}
           <div className="mb-4">
             <span className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider block mb-2">
-              Danh Sách 3 Đối Thủ Trong Ải:
+              Danh Sách 3 Đối Thủ Trong Chương:
             </span>
             <div className="grid grid-cols-3 gap-2">
               {currentChapter.bots.map(bot => (
@@ -162,12 +162,12 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
             </div>
           </div>
 
-          {/* PHẦN THƯỞNG KHI HOÀN THÀNH ẢI */}
+          {/* PHẦN THƯỞNG KHI HOÀN THÀNH CHƯƠNG */}
           <div className="p-3.5 rounded-xl bg-[var(--bg-card)] border border-[var(--color-gold-border)] flex items-center justify-between shadow-sm">
             <div className="flex items-center gap-2.5">
               <Award className="w-6 h-6 text-[var(--color-gold)] flex-shrink-0" />
               <div>
-                <span className="text-xs font-bold text-[var(--text-primary)]">Phần Thưởng Vượt Ải:</span>
+                <span className="text-xs font-bold text-[var(--text-primary)]">Phần Thưởng Hoàn Thành:</span>
                 <p className="text-[11px] text-[var(--text-muted)]">
                   Nhận ngay <strong className="text-[var(--color-gold)]">+{currentChapter.rewardCoins.toLocaleString()} Xu</strong>
                   {currentChapter.rewardTitle && (

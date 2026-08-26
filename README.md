@@ -9,7 +9,7 @@
 * 🃏 **Đầy Đủ Luật Chơi Tiến Lên Miền Nam**: Đánh lẻ, Đôi, Sám, Sảnh (3–12 lá không chứa 2), 3 Đôi Thông, Tứ Quý, 4 Đôi Thông (chặt tự do không cần vòng), Chặt Chồng, Cóng (Cháy bài), Thối Heo/Hàng, Tới Trắng (Sảnh rồng, Tứ quý 2, 5-6 đôi), Cấm Đánh 2 Cuối Cùng (`prohibitEndingWithTwo`), Ăn 3 Bích Về Cuối (`threeSpadesEndingBonus`), Chống Đền Bài khi người kế tiếp báo 1 lá.
 * 🎮 **Chế Độ Chơi Đa Dạng (Strategy Pattern)**:
   1. ⚡ **Chơi Nhanh & Đấu Hạng (Quick Play & Ranked Elo)**: Tự động ghép trận với các Bot cùng trình độ Elo, tùy chọn luật (Đếm Lá, Nhất Ăn Tất, Truyền Thống, Solo 1v1), tính biến động điểm Elo chuẩn FIDE và tích lũy Xu thưởng.
-  2. 🗺️ **Hành Trình Sự Nghiệp (Campaign Story)**: Vượt qua 10 ải giang hồ độc đáo, mở khóa danh hiệu và phần thưởng đặc biệt.
+  2. 🗺️ **Hành Trình Sự Nghiệp (Campaign Story)**: Chinh phục 5 chương cốt truyện độc đáo, mở khóa danh hiệu và phần thưởng đặc biệt.
   3. 🛠️ **Tùy Biến Bàn Chơi (Custom Sandbox)**: Tự do tinh chỉnh số người (2-4), mức cược, phạt chặt, cóng, về 3 bích cuối và độ khó Bot.
 * 🤖 **Hệ Thống Trí Tuệ Nhân Tạo (AI Bot Engine)**:
   - **18 Personas Cá Tính Hóa** thuộc 5 Bậc Elo (Rookie 850 $\to$ God Mode 2500).

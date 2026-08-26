@@ -103,7 +103,7 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
     expect(result.eloDelta).toBeGreaterThan(0);
   });
 
-  test('3. CampaignModeStrategy: 1 người hết bài là dừng, 0 phạt đếm lá, nhận thưởng ải khi thắng', () => {
+  test('3. CampaignModeStrategy: 1 người hết bài là dừng, 0 phạt đếm lá, nhận thưởng chương khi thắng', () => {
     const strategy = new CampaignModeStrategy();
     const players = createSamplePlayers();
     const winners = [players[0]]; // p0 về Nhất

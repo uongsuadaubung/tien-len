@@ -4,7 +4,7 @@
  * - Đếm Lá / Sòng Bạc Ngầm: Tối đa hóa tốc độ xả bài (ưu tiên Sảnh dài, Bộ nhiều lá trước để giảm số lá tồn, tránh bị Cóng).
  * - Truyền Thống / Đấu Hạng Elo: Tẩu rác nhỏ (3, 4, 5...) trước, giữ bộ to và Heo bọc lót đường dài.
  * - Nhất Ăn Tất: "Được ăn cả, ngã về không", đánh bạo lực cướp lượt dứt điểm về Nhất.
- * - Chiến Dịch: Tự thích ứng theo tính cách từng Boss ải.
+ * - Chiến Dịch: Tự thích ứng theo tính cách từng Boss chương.
  */
 
 import { Card, Combination, PlayedMove } from '../engine/types';
@@ -141,7 +141,7 @@ export class WinnerTakesAllAIModePolicy implements AIModePolicyStrategy {
 export class CampaignAIModePolicy implements AIModePolicyStrategy {
   public readonly modeId = 'CAMPAIGN';
   public readonly modeName = 'Bản Đồ Chiến Dịch (Campaign Mode)';
-  public readonly description = 'Chiến thuật cân bằng linh hoạt theo từng ải vượt khó.';
+  public readonly description = 'Chiến thuật cân bằng linh hoạt theo từng chương thử thách.';
 
   public getLeadPolicy(): LeadPolicy {
     return {

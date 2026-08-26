@@ -347,7 +347,7 @@ export class CountCardsModeStrategy implements GameModeStrategy {
 export class CampaignModeStrategy implements GameModeStrategy {
   readonly id = 'CAMPAIGN';
   readonly name = 'Chiến Dịch';
-  readonly description = '1 người hết bài là dừng ván. Không phạt đếm lá giữa các người chơi, thắng ải nhận thưởng xu.';
+  readonly description = '1 người hết bài là dừng ván. Không phạt đếm lá giữa các người chơi, hoàn thành chương nhận thưởng xu.';
   readonly isFreeToPlay = false;
 
   setupMatch(context: MatchSetupContext): MatchSetupResult {

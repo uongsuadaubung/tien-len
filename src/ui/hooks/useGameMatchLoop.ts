@@ -475,7 +475,7 @@ export function useGameMatchLoop() {
         if (p.isBot && prevScore < betAmount) {
           const botIdx = idx - 1; // p1 -> 0, p2 -> 1, p3 -> 2
           if (isCampaign) {
-            // Trong Chiến Dịch: Giữ nguyên Bot Boss của Ải và nạp thêm tiền vốn
+            // Trong Chiến Dịch: Giữ nguyên Bot Boss của Chương và nạp thêm tiền vốn
             const chapterBot = chapter?.bots[botIdx] || setup.customBotConfigs[botIdx];
             const reloadedBankroll = generateRealisticBotBankroll(chapterBot || {}, betAmount);
             return {

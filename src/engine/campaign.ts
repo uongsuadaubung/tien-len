@@ -35,7 +35,7 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
       { ...BOT_PERSONAS.BOT_ELO_900, id: 'BOT_ELO_900', name: 'Tèo Bờ Rào', avatar: '👦', elo: 900, tier: 'Tập Sự Xóm Nhỏ' },
       { ...BOT_PERSONAS.BOT_ELO_950, id: 'BOT_ELO_950', name: 'Bác Ba', avatar: '👴', elo: 950, tier: 'Tập Sự Xóm Nhỏ' }
     ],
-    specialRuleDescription: 'Thắng tích lũy 2 ván để mở khóa ải tiếp theo.'
+    specialRuleDescription: 'Thắng tích lũy 2 ván để mở khóa chương tiếp theo.'
   },
   {
     id: 2,

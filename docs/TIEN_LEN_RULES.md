@@ -118,4 +118,4 @@ Xử thắng ngay sau khi chia bài mà không cần đánh ván đấu:
 - Biến động điểm xếp hạng Elo chuẩn FIDE được cập nhật sau mỗi ván đấu.
 
 ### 6.2. Chế độ Bản Đồ Chiến Dịch (Campaign Mode)
-- Đánh vượt ải 10 Chương theo cốt truyện. Không bị trừ tiền đếm lá khi thua, thưởng Xu và Danh hiệu khi thắng ải.
+- Chinh phục 5 Chương cốt truyện. Không bị trừ tiền đếm lá khi thua, thưởng Xu và Danh hiệu khi hoàn thành chương.

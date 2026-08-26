@@ -143,23 +143,23 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   if (isCampaign) {
     modalIcon = isHumanWinner ? '⭐' : '💀';
     statBox2Title = 'CHƯƠNG CHIẾN DỊCH';
-    statBox2Value = campaignChapter ? `Ải ${campaignChapter.id}: ${campaignChapter.name}` : 'Chiến Dịch';
+    statBox2Value = campaignChapter ? `${campaignChapter.name}: ${campaignChapter.subtitle}` : 'Chiến Dịch';
     statBox2Sub = isHumanWinner 
       ? `Đã thắng ${chapterWins}/${campaignChapter?.requiredWins || 1} ván` 
-      : 'Thử lại để vượt ải';
+      : 'Thử lại để hoàn thành chương';
 
     if (isHumanWinner) {
       if (isChapterUnlockedNext && nextChapter) {
-        modalTitle = 'HOÀN THÀNH ẢI CHIẾN DỊCH!';
+        modalTitle = 'HOÀN THÀNH CHƯƠNG!';
         modalSubtitle = `Xuất sắc! Bạn đã mở khóa ${nextChapter.name}!`;
-        primaryBtnText = 'Ải Tiếp Theo';
+        primaryBtnText = 'Chương Tiếp Theo';
         primaryBtnIcon = <Swords className="w-4 h-4 text-black" />;
-        secondaryBtnText = 'Bản Đồ Ải';
+        secondaryBtnText = 'Bản Đồ Chiến Dịch';
         secondaryBtnIcon = <Map className="w-4 h-4" />;
         secondaryBtnAction = onOpenCampaignMap || onReturnToLobby;
       } else if (isAllCampaignCompleted) {
         modalTitle = 'VÔ ĐỊCH TOÀN BỘ CHIẾN DỊCH!';
-        modalSubtitle = 'Chúc mừng bạn đã chinh phục toàn bộ 10 chương Chiến Dịch Đỉnh Cao!';
+        modalSubtitle = 'Chúc mừng bạn đã chinh phục toàn bộ 5 chương Chiến Dịch Đỉnh Cao!';
         primaryBtnText = 'Về Sảnh';
         primaryBtnIcon = <Home className="w-4 h-4 text-black" />;
       } else {
@@ -170,9 +170,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     } else {
       modalTitle = 'THUA TRẬN CHIẾN DỊCH';
       modalSubtitle = 'Đối thủ quá mạnh! Hãy điều chỉnh chiến thuật và thử lại!';
-      primaryBtnText = 'Thử Lại Ải Này';
+      primaryBtnText = 'Thử Thách Lại';
       primaryBtnIcon = <RotateCcw className="w-4 h-4 text-black" />;
-      secondaryBtnText = 'Bản Đồ Ải';
+      secondaryBtnText = 'Bản Đồ Chiến Dịch';
       secondaryBtnIcon = <Map className="w-4 h-4" />;
       secondaryBtnAction = onOpenCampaignMap || onReturnToLobby;
     }
@@ -344,7 +344,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                     )}
                     {isCampaign && (
                       <div className={`text-xs font-bold ${isWinner ? 'text-[var(--color-gold)]' : 'text-[var(--text-muted)]'}`}>
-                        {isWinner ? 'Thắng Ải' : `Còn ${remainingCards.length} lá`}
+                        {isWinner ? 'Thắng Trận' : `Còn ${remainingCards.length} lá`}
                       </div>
                     )}
                   </div>

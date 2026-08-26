@@ -285,7 +285,7 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
           <SectionHeader
             icon={<Trophy />}
             title="Chế Độ Mở Rộng"
-            subtitle="Vượt ải cốt truyện • Tùy chỉnh bàn chơi nâng cao"
+            subtitle="Hành trình cốt truyện • Tùy chỉnh bàn chơi nâng cao"
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -302,7 +302,7 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
                 <div className="w-12 h-12 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--color-gold)] shadow-sm group-hover:border-[var(--border-gold)] transition-colors">
                   <MapPin className="w-6 h-6" />
                 </div>
-                <Badge variant="neutral" size="sm">5 Chương Ải</Badge>
+                <Badge variant="neutral" size="sm">5 Chương Cốt Truyện</Badge>
               </div>
 
               <div className="my-4">
@@ -310,7 +310,7 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
                   Chiến Dịch Cốt Truyện
                 </h3>
                 <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-2 leading-relaxed">
-                  Hành trình từ Sới Bạc Xóm đến Sòng Bạc Đỉnh Cao. Vượt qua từng ải, đánh bại các Trùm Sòng để mở khóa danh hiệu độc quyền.
+                  Hành trình từ Sới Bạc Xóm đến Sòng Bạc Đỉnh Cao. Chinh phục từng chương, đánh bại các Trùm Sòng để mở khóa danh hiệu độc quyền.
                 </p>
               </div>
 
@@ -321,7 +321,7 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
                   size="sm"
                   rightIcon={<ArrowRight className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
                 >
-                  Vào Bản Đồ Ải
+                  Bản Đồ Chiến Dịch
                 </Button>
               </div>
             </Card>

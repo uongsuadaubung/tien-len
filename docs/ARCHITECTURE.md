@@ -78,7 +78,7 @@ Vận hành tại [`src/engine/strategies/game-mode-strategy.ts`](../src/engine/
 | **`TraditionalModeStrategy`** | Đánh đến khi còn 1 người | Chia tiền 4 bậc: Nhất (+2.0x), Nhì (+1.0x), Ba (-1.0x), Bét (-2.0x) | Có ($\Delta \text{Elo}$) |
 | **`CountCardsModeStrategy`** | 1 người hết bài là dừng | Người thua trả $\text{Bet} \times \text{Số lá tồn} \times \text{Hệ số phạt}$ cho người Nhất | Có ($\Delta \text{Elo}$) |
 | **`WinnerTakesAllModeStrategy`** | 1 người hết bài là dừng | Người về Nhất gom sạch toàn bộ tiền cược của cả bàn | Có ($\Delta \text{Elo}$) |
-| **`CampaignModeStrategy`** | 1 người hết bài là dừng | 0 phạt đếm lá, mở khóa ải kế tiếp và trao thưởng Xu/Danh hiệu | Không |
+| **`CampaignModeStrategy`** | 1 người hết bài là dừng | 0 phạt đếm lá, mở khóa chương kế tiếp và trao thưởng Xu/Danh hiệu | Không |
 
 ---
 
