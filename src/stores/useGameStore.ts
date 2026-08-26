@@ -13,6 +13,7 @@ import {
 import { BotConfig } from '../ai/types';
 import { CampaignChapter } from '../engine/campaign';
 import { MoveHint } from '../ai/hint-engine';
+import { ECONOMY_CONSTANTS } from '../engine/constants/economy';
 
 export type ActiveGameType = 'QUICK' | 'RANKED' | 'CAMPAIGN' | 'UNDERGROUND';
 export type ScreenType = 'LOBBY' | 'GAME_TABLE';
@@ -121,7 +122,7 @@ const DEFAULT_PLAYERS: Player[] = [
     isBot: false,
     hand: [],
     playedCards: [],
-    score: 50000,
+    score: ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS,
     isPassedCurrentRound: false,
     hasPlayedFirstCard: false
   },

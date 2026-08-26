@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PlayerProfile, savePlayerProfile } from '../../engine/storage';
+import { ECONOMY_CONSTANTS } from '../../engine/constants/economy';
 import { Sparkles, User, Check } from 'lucide-react';
 import { soundManager } from '../audio/sound-manager';
 import { Modal, Card, Button } from '../primitives';
@@ -7,9 +8,9 @@ import { Modal, Card, Button } from '../primitives';
 interface NameSetupModalProps {
   isOpen: boolean;
   profile: PlayerProfile;
-  onClose?: () => void;
+  onClose: (() => void) | null;
   onUpdateProfile: (updated: PlayerProfile) => void;
-  isFirstTime?: boolean;
+  isFirstTime: boolean;
 }
 
 const AVATAR_OPTIONS = ['🤠', '🤴', '🥷', '🎩', '🦊', '🐉', '🐯', '🦁', '👸', '😎', '🧙‍♂️', '💎'];
@@ -19,7 +20,7 @@ export const NameSetupModal: React.FC<NameSetupModalProps> = ({
   profile,
   onClose,
   onUpdateProfile,
-  isFirstTime = false
+  isFirstTime
 }) => {
   const [name, setName] = useState<string>(profile.name || '');
   const [avatar, setAvatar] = useState<string>(profile.avatar || '🤠');
@@ -153,9 +154,11 @@ export const NameSetupModal: React.FC<NameSetupModalProps> = ({
               <span>{error}</span>
             </p>
           )}
-          <p className="text-[11px] text-[var(--text-muted)]">
-            Vốn khởi nghiệp mặc định: <strong className="text-[var(--color-gold)] font-bold">1.000.000 Xu</strong>
-          </p>
+          {isFirstTime && (
+            <p className="text-[11px] text-[var(--text-muted)]">
+              Vốn khởi nghiệp: <strong className="text-[var(--color-gold)] font-bold">{ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS.toLocaleString()} Xu</strong>
+            </p>
+          )}
         </Card>
       </form>
     </Modal>

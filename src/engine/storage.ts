@@ -6,6 +6,7 @@ import {
   generateDailyQuestsForDate, 
   DAILY_QUEST_COUNT 
 } from './quests';
+import { ECONOMY_CONSTANTS } from './constants/economy';
 
 export interface PlayerProfile {
   name: string;
@@ -37,8 +38,8 @@ const STORAGE_KEY = 'TIEN_LEN_PLAYER_PROFILE_V2';
 const DEFAULT_PROFILE: PlayerProfile = {
   name: '',
   avatar: '🤠',
-  coins: 50000,
-  elo: 1000,
+  coins: ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS,
+  elo: ECONOMY_CONSTANTS.DEFAULT_STARTING_ELO,
   campaignUnlockedChapter: 1,
   campaignChapterWins: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
   loans: 0,

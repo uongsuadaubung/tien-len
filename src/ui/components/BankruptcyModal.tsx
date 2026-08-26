@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { PlayerProfile, savePlayerProfile } from '../../engine/storage';
+import { ECONOMY_CONSTANTS } from '../../engine/constants/economy';
 import { Landmark, ShieldCheck, HeartHandshake, CheckCircle2 } from 'lucide-react';
 import { Modal, Card, Badge, Button } from '../primitives';
 
@@ -10,12 +11,7 @@ interface BankruptcyModalProps {
   onUpdateProfile: (updated: PlayerProfile) => void;
 }
 
-const LOAN_PACKAGES = [
-  { amount: 100000, label: 'Tiếp Sức', desc: 'Vốn quay vòng nhanh' },
-  { amount: 250000, label: 'Vực Dậy', desc: 'Vốn đánh bàn trung cấp' },
-  { amount: 500000, label: 'Đại Gia', desc: 'Vốn chiến bàn lớn' },
-  { amount: 1000000, label: 'Thần Bài', desc: 'Tất tay phục thù' }
-];
+const LOAN_PACKAGES = ECONOMY_CONSTANTS.LOAN_PACKAGES;
 
 export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
   isOpen,
@@ -23,14 +19,14 @@ export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
   onClose,
   onUpdateProfile
 }) => {
-  const [loanAmountToBorrow, setLoanAmountToBorrow] = useState<number>(250000);
+  const [loanAmountToBorrow, setLoanAmountToBorrow] = useState<number>(ECONOMY_CONSTANTS.LOAN_PACKAGES[1].amount);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const MAX_RELIEF_PER_DAY = 3;
-  const RELIEF_AMOUNT = 100000;
-  const canClaimRelief = profile.dailyReliefClaimedCount < MAX_RELIEF_PER_DAY && profile.coins < 100000;
+  const MAX_RELIEF_PER_DAY = ECONOMY_CONSTANTS.MAX_DAILY_RELIEF_COUNT;
+  const RELIEF_AMOUNT = ECONOMY_CONSTANTS.DAILY_RELIEF_AMOUNT;
+  const canClaimRelief = profile.dailyReliefClaimedCount < MAX_RELIEF_PER_DAY && profile.coins < ECONOMY_CONSTANTS.BANKRUPTCY_RELIEF_THRESHOLD;
 
   const showNotification = (msg: string) => {
     setSuccessMessage(msg);
@@ -141,7 +137,7 @@ export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
           </Badge>
         </div>
         <p className="text-[11px] text-[var(--text-muted)]">
-          Nhận ngay <strong className="text-[var(--color-gold)] font-bold">100.000 Xu</strong> miễn phí không hoàn lại khi số dư dưới 100k Xu.
+          Nhận ngay <strong className="text-[var(--color-gold)] font-bold">{RELIEF_AMOUNT.toLocaleString()} Xu</strong> miễn phí không hoàn lại khi số dư dưới {ECONOMY_CONSTANTS.BANKRUPTCY_RELIEF_THRESHOLD.toLocaleString()} Xu.
         </p>
         <Button
           variant={canClaimRelief ? 'emerald' : 'surface'}
@@ -151,7 +147,7 @@ export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
           onClick={handleClaimRelief}
           leftIcon={<ShieldCheck className="w-4 h-4" />}
         >
-          {canClaimRelief ? 'Nhận Cứu Trợ 100,000 Xu' : 'Chưa Đủ Điều Kiện Nhận'}
+          {canClaimRelief ? `Nhận Cứu Trợ ${RELIEF_AMOUNT.toLocaleString()} Xu` : 'Chưa Đủ Điều Kiện Nhận'}
         </Button>
       </Card>
 

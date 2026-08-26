@@ -6,6 +6,7 @@ import { soundManager } from '../audio/sound-manager';
 import { Modal, Card, Badge, Button } from '../primitives';
 import { GameEventBus, WheelSpunEvent } from '../../engine/events/game-event-bus';
 import { evaluateDailyQuests, evaluateAchievements } from '../../engine/evaluators/progress-evaluators';
+import { ECONOMY_CONSTANTS } from '../../engine/constants/economy';
 
 interface LuckyWheelModalProps {
   isOpen: boolean;
@@ -111,7 +112,7 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
 
   if (!isOpen) return null;
 
-  const SPIN_COST = 10000;
+  const SPIN_COST = ECONOMY_CONSTANTS.LUCKY_WHEEL_SPIN_COST;
   const canSpin = profile.coins >= SPIN_COST;
 
   const sliceAngle = 360 / SLICES.length; // 45 độ
@@ -217,7 +218,7 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Vòng Quay Thần Bài"
-      subtitle="Thử vận may Casino: Cơ hội nổ hũ lên tới 100,000 Xu"
+      subtitle={`Thử vận may Casino: Cơ hội nổ hũ lên tới ${ECONOMY_CONSTANTS.LUCKY_WHEEL_JACKPOT.toLocaleString()} Xu`}
       icon={<Disc className="w-5 h-5 text-[var(--color-gold)]" />}
       maxWidth="lg"
       height="h-[92vh] sm:h-[680px]"
