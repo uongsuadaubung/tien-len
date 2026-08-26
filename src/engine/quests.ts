@@ -27,6 +27,8 @@ export interface Achievement {
 // 1. HÒM THƯỞNG CỘT MỐC NGÀY (DAILY MILESTONE CHESTS - CÂN BẰNG TÂN THỦ)
 // ============================================================================
 
+import { DAILY_MILESTONE_REWARDS } from './constants/economy';
+
 export interface DailyMilestoneReward {
   requiredCount: number;
   rewardCoins: number;
@@ -35,9 +37,9 @@ export interface DailyMilestoneReward {
 }
 
 export const DAILY_MILESTONES: readonly DailyMilestoneReward[] = [
-  { requiredCount: 1, rewardCoins: 5000, title: 'Hộp Gỗ Tân Thủ', icon: '🪵' },
-  { requiredCount: 3, rewardCoins: 15000, title: 'Hộp Bạc Cao Cấp', icon: '🥈' },
-  { requiredCount: 5, rewardCoins: 30000, title: 'Hòm Hoàng Gia Thần Bài', icon: '👑' }
+  { requiredCount: 1, rewardCoins: DAILY_MILESTONE_REWARDS.MILESTONE_1, title: 'Hộp Gỗ Tân Thủ', icon: '🪵' },
+  { requiredCount: 3, rewardCoins: DAILY_MILESTONE_REWARDS.MILESTONE_3, title: 'Hộp Bạc Cao Cấp', icon: '🥈' },
+  { requiredCount: 5, rewardCoins: DAILY_MILESTONE_REWARDS.MILESTONE_5, title: 'Hòm Hoàng Gia Thần Bài', icon: '👑' }
 ];
 
 // ============================================================================

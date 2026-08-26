@@ -2,9 +2,88 @@ import { describe, expect, test } from 'bun:test';
 import { calculateChopPenalty, calculateRottenPenalty, calculateCongPenalty } from '../../src/engine/economy';
 import { Combination } from '../../src/engine/types';
 import { parseCard, parseCards } from '../../src/engine/card';
+import { 
+  ECONOMY_CONSTANTS, 
+  LUCKY_WHEEL_SLICES, 
+  determineWinningWheelSliceIndex 
+} from '../../src/engine/constants/economy';
 
 describe('Economy & Hardcore Penalties (Kinh Tế & Trừng Phạt Cược Lớn)', () => {
   const BET = 1000;
+
+  test('Hằng số kinh tế toàn cục (ECONOMY_CONSTANTS) được định nghĩa chuẩn xác', () => {
+    expect(ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS).toBe(50000);
+    expect(ECONOMY_CONSTANTS.DEFAULT_STARTING_ELO).toBe(1000);
+    expect(ECONOMY_CONSTANTS.LUCKY_WHEEL_SPIN_COST).toBe(10000);
+    expect(ECONOMY_CONSTANTS.LUCKY_WHEEL_JACKPOT).toBe(100000);
+    expect(ECONOMY_CONSTANTS.DAILY_RELIEF_AMOUNT).toBe(20000);
+    expect(ECONOMY_CONSTANTS.BANKRUPTCY_RELIEF_THRESHOLD).toBe(10000);
+    expect(ECONOMY_CONSTANTS.MAX_DAILY_RELIEF_COUNT).toBe(3);
+    expect(ECONOMY_CONSTANTS.LOAN_PACKAGES.length).toBe(4);
+  });
+
+  test('Vòng Quay Thần Bài: Kiểm chứng xác suất & RTP toán học từ hằng số', () => {
+    // 1. Tổng xác suất của các nan quạt phải đúng 100%
+    const totalProb = LUCKY_WHEEL_SLICES.reduce((sum, s) => sum + s.probabilityPercent, 0);
+    expect(Math.abs(totalProb - 100.0)).toBeLessThan(0.0001);
+
+    // 2. Tính Expected Value (EV)
+    const expectedValue = LUCKY_WHEEL_SLICES.reduce((sum, s) => sum + (s.probabilityPercent / 100) * s.value, 0);
+    const rtp = expectedValue / ECONOMY_CONSTANTS.LUCKY_WHEEL_SPIN_COST;
+
+    // EV phải rơi vào khoảng 9,000 - 9,300 Xu (RTP 90% - 93%)
+    expect(expectedValue).toBeGreaterThanOrEqual(9000);
+    expect(expectedValue).toBeLessThanOrEqual(9300);
+    expect(rtp).toBeLessThan(1.0); // Không bị lạm phát vượt 100%
+    expect(rtp).toBeGreaterThan(0.85); // Đảm bảo tính hấp dẫn (> 85%)
+  });
+
+  test('Vòng Quay Thần Bài: Mô phỏng Monte Carlo 100,000 lượt quay với determineWinningWheelSliceIndex', () => {
+    const NUM_SPINS = 100000;
+    let totalPrizes = 0;
+    let jackpotCount = 0;
+    let nonZeroPrizeCount = 0;
+    let profitableCount = 0;
+
+    for (let i = 0; i < NUM_SPINS; i++) {
+      const rand = Math.random() * 100;
+      const winningIdx = determineWinningWheelSliceIndex(rand);
+      const wonSlice = LUCKY_WHEEL_SLICES[winningIdx];
+
+      if (wonSlice.isJackpot) {
+        jackpotCount++;
+      }
+      if (wonSlice.value > 0) {
+        nonZeroPrizeCount++;
+      }
+      if (wonSlice.value >= ECONOMY_CONSTANTS.LUCKY_WHEEL_SPIN_COST) {
+        profitableCount++;
+      }
+
+      totalPrizes += wonSlice.value;
+    }
+
+    const empiricalEV = totalPrizes / NUM_SPINS;
+    const empiricalRTP = empiricalEV / ECONOMY_CONSTANTS.LUCKY_WHEEL_SPIN_COST;
+
+    // Tỷ lệ thực nghiệm 100,000 lượt quay phải tiệm cận lý thuyết 91.5% (+/- 1.5%)
+    expect(empiricalRTP).toBeGreaterThan(0.89);
+    expect(empiricalRTP).toBeLessThan(0.94);
+
+    // Tỷ lệ trúng giải Jackpot x10 tiệm cận 1.5% (+/- 0.5%)
+    expect(jackpotCount / NUM_SPINS).toBeGreaterThan(0.01);
+    expect(jackpotCount / NUM_SPINS).toBeLessThan(0.02);
+
+    // Tỷ lệ nhận quà về ví (> 0 Xu) tiệm cận 60% (+/- 2%)
+    const positiveRewardRate = nonZeroPrizeCount / NUM_SPINS;
+    expect(positiveRewardRate).toBeGreaterThan(0.58);
+    expect(positiveRewardRate).toBeLessThan(0.62);
+
+    // Tỷ lệ hòa vốn hoặc có lãi (>= 10,000 Xu) tiệm cận 35% (+/- 2%)
+    const profitableRate = profitableCount / NUM_SPINS;
+    expect(profitableRate).toBeGreaterThan(0.33);
+    expect(profitableRate).toBeLessThan(0.37);
+  });
 
   test('Chặt 1 Heo Đen vs Heo Đỏ bình thường vs Thế Giới Ngầm', () => {
     const blackTwo = parseCard('2S')!;
