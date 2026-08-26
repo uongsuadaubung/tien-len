@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { PlayerProfile, savePlayerProfile } from '../../engine/storage';
-import { Sparkles, User, Check, X } from 'lucide-react';
+import { Sparkles, User, Check } from 'lucide-react';
 import { soundManager } from '../audio/sound-manager';
+import { Modal, Card, Button } from '../primitives';
 
 interface NameSetupModalProps {
   isOpen: boolean;
@@ -67,103 +68,96 @@ export const NameSetupModal: React.FC<NameSetupModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 select-none">
-      <div className="relative w-full max-w-md bg-[#121724] rounded-2xl border border-[#d4af37]/40 shadow-2xl p-5 sm:p-6 text-white flex flex-col justify-between overflow-hidden">
-        {/* Nút đóng nếu không phải bắt buộc lần đầu */}
-        {!isFirstTime && onClose && profile.name.trim() !== '' && (
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-xl bg-[#182030] hover:bg-[#222c42] text-slate-400 hover:text-white transition-colors cursor-pointer border border-white/10"
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose ? onClose : () => {}}
+      title={isFirstTime || !profile.name ? 'Chào Mừng Thần Bài Mới' : 'Cập Nhật Hồ Sơ'}
+      subtitle={
+        isFirstTime || !profile.name
+          ? 'Thiết lập biệt danh & đại diện để bước vào sòng bạc'
+          : 'Đổi tên hiển thị & biểu tượng đại diện của bạn'
+      }
+      icon={<Sparkles className="w-5 h-5 text-[var(--color-gold)]" />}
+      maxWidth="md"
+      height="auto"
+      footer={
+        <div className="w-full flex items-center justify-end gap-2">
+          {!isFirstTime && onClose && profile.name.trim() !== '' && (
+            <Button variant="surface" size="md" onClick={onClose}>
+              Hủy
+            </Button>
+          )}
+          <Button
+            variant="gold"
+            size="md"
+            onClick={handleSubmit}
+            leftIcon={<Check className="w-4 h-4" />}
           >
-            <X className="w-5 h-5" />
-          </button>
-        )}
-
-        {/* Header Title */}
-        <div className="flex items-center gap-3 pb-3.5 border-b border-white/10">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#d4af37] to-[#aa8620] flex items-center justify-center text-[#0a0d14] font-black shadow-md">
-            <Sparkles className="w-6 h-6 text-[#0a0d14]" />
-          </div>
-          <div>
-            <h2 className="text-lg sm:text-xl font-black text-[#f3e5ab] uppercase tracking-wide">
-              {isFirstTime || !profile.name ? 'Chào Mừng Thần Bài Mới' : 'Cập Nhật Hồ Sơ'}
-            </h2>
-            <p className="text-xs text-slate-400">
-              {isFirstTime || !profile.name
-                ? 'Thiết lập biệt danh & đại diện để bước vào sòng bạc'
-                : 'Đổi tên hiển thị & biểu tượng đại diện của bạn'}
-            </p>
-          </div>
+            {isFirstTime || !profile.name ? 'Bắt Đầu Chơi' : 'Lưu Thay Đổi'}
+          </Button>
         </div>
-
-        {/* Form Body */}
-        <form onSubmit={handleSubmit} className="my-4 space-y-4">
-          {/* 1. Chọn Avatar Đại Diện */}
-          <div>
-            <label className="block text-xs font-black text-[#f3e5ab] uppercase tracking-wider mb-2">
-              Chọn Biểu Tượng Đại Diện:
-            </label>
-            <div className="grid grid-cols-6 gap-2 p-2.5 rounded-xl bg-[#0a0d14] border border-white/10">
-              {AVATAR_OPTIONS.map((av) => (
+      }
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* 1. Chọn Avatar Đại Diện */}
+        <Card variant="card" className="p-3.5 space-y-2">
+          <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
+            Chọn Biểu Tượng Đại Diện:
+          </label>
+          <div className="grid grid-cols-6 gap-2">
+            {AVATAR_OPTIONS.map((av) => {
+              const isSelected = avatar === av;
+              return (
                 <button
                   type="button"
                   key={av}
                   onClick={() => setAvatar(av)}
                   className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl text-2xl flex items-center justify-center transition-all cursor-pointer ${
-                    avatar === av
-                      ? 'bg-gradient-to-br from-[#d4af37] to-[#aa8620] scale-105 shadow ring-2 ring-[#d4af37]'
-                      : 'bg-[#182030] hover:bg-[#222c42] hover:scale-105 opacity-80 hover:opacity-100'
+                    isSelected
+                      ? 'bg-[var(--bg-card-active)] border-2 border-[var(--color-gold)] scale-105 shadow-md'
+                      : 'bg-[var(--bg-container)] border border-[var(--border-container)] hover:border-white/25 hover:scale-105'
                   }`}
                 >
                   {av}
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
+        </Card>
 
-          {/* 2. Nhập Tên Biệt Danh */}
-          <div>
-            <label className="block text-xs font-black text-[#f3e5ab] uppercase tracking-wider mb-2">
-              Biệt Danh Thần Bài:
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                <User className="w-4 h-4 text-[#d4af37]" />
-              </div>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  if (error) setError(null);
-                }}
-                placeholder="Ví dụ: Thần Bài Sài Gòn..."
-                maxLength={20}
-                autoFocus
-                className="w-full pl-10 pr-4 py-3 bg-[#0a0d14] border border-[#d4af37]/40 rounded-xl text-sm font-bold text-white placeholder-slate-500 focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all"
-              />
+        {/* 2. Nhập Tên Biệt Danh */}
+        <Card variant="card" className="p-3.5 space-y-2">
+          <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
+            Biệt Danh Thần Bài:
+          </label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[var(--text-muted)]">
+              <User className="w-4 h-4 text-[var(--color-gold)]" />
             </div>
-            {error && (
-              <p className="mt-1.5 text-xs text-red-400 font-bold flex items-center gap-1">
-                <span>⚠️</span>
-                <span>{error}</span>
-              </p>
-            )}
-            <p className="mt-1 text-[11px] text-slate-400">
-              Vốn khởi nghiệp mặc định: <strong className="text-[#f3e5ab] font-bold">1.000.000 Xu</strong>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (error) setError(null);
+              }}
+              placeholder="Ví dụ: Thần Bài Sài Gòn..."
+              maxLength={20}
+              autoFocus
+              className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-input)] border border-[var(--border-card)] rounded-xl text-sm font-bold text-[var(--text-primary)] placeholder-[var(--text-dim)] focus:outline-none focus:border-[var(--color-gold)] transition-all"
+            />
+          </div>
+          {error && (
+            <p className="text-xs text-red-400 font-bold flex items-center gap-1">
+              <span>⚠️</span>
+              <span>{error}</span>
             </p>
-          </div>
-
-          {/* Nút xác nhận */}
-          <button
-            type="submit"
-            className="w-full mt-3 py-3.5 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#f3e5ab] to-[#aa8620] hover:from-[#f3e5ab] hover:to-[#d4af37] text-[#0a0d14] font-black text-sm uppercase tracking-wider shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer border border-[#ffe699]"
-          >
-            <Check className="w-5 h-5 stroke-[3]" />
-            <span>{isFirstTime || !profile.name ? 'Bắt Đầu Gia Nhập Sòng Bạc' : 'Lưu Thay Đổi'}</span>
-          </button>
-        </form>
-      </div>
-    </div>
+          )}
+          <p className="text-[11px] text-[var(--text-muted)]">
+            Vốn khởi nghiệp mặc định: <strong className="text-[var(--color-gold)] font-bold">1.000.000 Xu</strong>
+          </p>
+        </Card>
+      </form>
+    </Modal>
   );
 };

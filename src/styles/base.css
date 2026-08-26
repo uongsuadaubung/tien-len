@@ -3,38 +3,65 @@
    ========================================================= */
 
 :root {
-  /* Casino Luxury Color Palette */
-  --casino-bg-deep: #0a0d14;
-  --casino-bg-surface: #121722;
-  --casino-bg-card: #182030;
-  
-  /* Felt & Table Tones */
-  --casino-felt-dark: #062319;
-  --casino-felt: #0c382b;
-  --casino-felt-bright: #124e3d;
-  --casino-felt-border: #1a6b53;
-  --casino-leather: #161210;
-  --casino-leather-border: #261f1b;
-  --casino-wood: #2c150c;
-  --casino-wood-light: #4a2415;
+  /* ========================================================
+     CASINO LUXURY THEME PALETTE (SINGLE SOURCE OF TRUTH)
+     Tông màu sáng rõ, sang trọng, tươi mới - Không bị u tối!
+     Muốn chỉnh độ sáng tối toàn bộ game chỉ cần sửa tại đây!
+     ======================================================== */
 
-  /* Gold & Accents */
-  --casino-gold: #d4af37;
-  --casino-gold-bright: #f3e5ab;
-  --casino-gold-dark: #997a15;
-  --casino-gold-glow: rgba(212, 175, 55, 0.35);
+  /* 3-Tier Elevation Layers (Tone sáng rõ, thanh lịch, có chiều sâu nổi bật) */
+  --bg-canvas: #161e2e;          /* Tầng 0: Nền chính sáng rõ, thoáng đãng, sắc than chì sapphire */
+  --bg-container: #202b40;       /* Tầng 1: Khung bao lớn / Modal Shell / Header Bar */
+  --bg-card: #2b3954;            /* Tầng 2: Thẻ con / Item / Button / Widget nổi bật rõ rệt */
+  --bg-card-hover: #364769;      /* Tầng 2+: Trạng thái Hover sáng mượt mà */
+  --bg-card-active: #3e527a;     /* Tầng 2+: Trạng thái Active / Selected */
+  --bg-input: #151d2c;           /* Nền input / Box lồng sâu */
 
-  /* Card Colors */
-  --card-ruby: #c81d25;
-  --card-onyx: #181a24;
-  --card-porcelain: #fcfdfe;
+  /* Royal Champagne Gold (Vàng Kim Rực Rỡ & Tươi Sáng) */
+  --color-gold: #f3be53;         /* Vàng Gold tươi sáng, nổi bật rõ trên nền */
+  --color-gold-hover: #fcd34d;   /* Vàng Gold sáng chói khi hover */
+  --color-gold-text: #ffffff;    /* Chữ ánh vàng kem trắng */
+  --color-gold-dim: rgba(243, 190, 83, 0.18);
+  --color-gold-border: rgba(243, 190, 83, 0.70);
+  --color-gold-solid: #f3be53;
 
-  /* Text & Utility */
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-gold: rgba(212, 175, 55, 0.4);
+  /* Card & Suit Colors (Sắc Nét Chuẩn Quốc Tế) */
+  --card-red: #f87171;
+  --card-black: #cbd5e1;
+  --card-ruby: #dc2626;
+  --card-onyx: #1e293b;
+  --card-porcelain: #f8fafc;
+
+  /* Typography Hierarchy (Tương phản cao, chữ sáng rõ ràng 100%) */
+  --text-primary: #ffffff;       /* Tiêu đề & nội dung chính trắng tinh khiết */
+  --text-secondary: #e2e8f0;     /* Chữ phụ bạch kim sáng rõ */
+  --text-muted: #94a3b8;         /* Chữ mô tả / nhãn phụ dịu mắt */
+  --text-dim: #64748b;           /* Chú thích mờ */
+
+  /* 3-Tier Ambient Borders */
+  --border-container: rgba(255, 255, 255, 0.12);
+  --border-card: rgba(255, 255, 255, 0.16);
+  --border-card-hover: rgba(255, 255, 255, 0.28);
+  --border-gold: rgba(243, 190, 83, 0.75);
+  --border-gold-solid: #f3be53;
+
+  /* Status Colors */
+  --color-emerald-bg: #14402a;
+  --color-emerald-border: #15803d;
+  --color-emerald-text: #4ade80;
+
+  --color-sapphire-bg: #1e3a66;
+  --color-sapphire-border: #2563eb;
+  --color-sapphire-text: #60a5fa;
+
+  --color-ruby-bg: #4a1520;
+  --color-ruby-border: #b91c1c;
+  --color-ruby-text: #f87171;
+
+  /* Shadows & Depth */
+  --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
+  --shadow-modal: 0 20px 60px -10px rgba(0, 0, 0, 0.65);
+  --shadow-gold: 0 4px 20px -2px rgba(243, 190, 83, 0.30);
 }
 
 * {
@@ -45,302 +72,58 @@
 
 html, body {
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: radial-gradient(circle at 50% 30%, #161c28 0%, #0a0d14 100%);
+  background-color: var(--bg-canvas);
   color: var(--text-primary);
   min-height: 100vh;
-  min-height: 100dvh;
-  user-select: none;
-  margin: 0;
-  padding: 0;
   overflow-x: hidden;
+  letter-spacing: -0.01em;
 }
 
-#root {
-  min-height: 100vh;
-  min-height: 100dvh;
-  width: 100%;
-  overflow-x: hidden;
-}
-
-/* Custom Scrollbar */
+/* Custom Scrollbar Tối Giản Cao Cấp */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
-  background: #0d1117;
+  background: var(--bg-canvas);
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #252d3d;
+  background: var(--border-card);
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #d4af37;
+  background: var(--color-gold-border);
 }
 
-/* Utilities Layout */
-.flex { display: flex; }
-.flex-col { flex-direction: column; }
-.flex-1 { flex: 1 1 0%; }
-.flex-shrink-0 { flex-shrink: 0; }
-.items-center { align-items: center; }
-.items-start { align-items: flex-start; }
-.items-end { align-items: flex-end; }
-.justify-center { justify-content: center; }
-.justify-between { justify-content: space-between; }
-.justify-start { justify-content: flex-start; }
-.justify-end { justify-content: flex-end; }
-.relative { position: relative; }
-.absolute { position: absolute; }
-.fixed { position: fixed; }
-.inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
-
-.w-full { width: 100%; }
-.h-full { height: 100%; }
-.min-h-screen { min-height: 100vh; }
-.max-w-7xl { max-width: 80rem; }
-.max-w-4xl { max-width: 56rem; }
-.max-w-2xl { max-width: 42rem; }
-.max-w-lg { max-width: 32rem; }
-.max-w-md { max-width: 28rem; }
-.mx-auto { margin-left: auto; margin-right: auto; }
-.my-auto { margin-top: auto; margin-bottom: auto; }
-.z-10 { z-index: 10; }
-.z-20 { z-index: 20; }
-.z-30 { z-index: 30; }
-.z-40 { z-index: 40; }
-.z-50 { z-index: 50; }
-.z-60 { z-index: 60; }
-.grid { display: grid; }
-.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.grid-cols-13 { grid-template-columns: repeat(13, minmax(0, 1fr)); }
-.gap-1 { gap: 0.25rem; }
-.gap-1\.5 { gap: 0.375rem; }
-.gap-2 { gap: 0.5rem; }
-.gap-3 { gap: 0.75rem; }
-.gap-4 { gap: 1rem; }
-.gap-6 { gap: 1.5rem; }
-.space-x-2 > * + * { margin-left: 0.5rem; }
-.space-x-3 > * + * { margin-left: 0.75rem; }
-.space-x-4 > * + * { margin-left: 1rem; }
-.space-y-2 > * + * { margin-top: 0.5rem; }
-.space-y-6 > * + * { margin-top: 1.5rem; }
-.-space-x-8 > * + * { margin-left: -2rem; }
-
-/* Text & Typography */
-.text-center { text-align: center; }
-.text-left { text-align: left; }
-.text-right { text-align: right; }
-.font-bold { font-weight: 700; }
-.font-extrabold { font-weight: 800; }
-.font-black { font-weight: 900; }
-.uppercase { text-transform: uppercase; }
-.tracking-wide { letter-spacing: 0.025em; }
-.tracking-wider { letter-spacing: 0.05em; }
-.tracking-tighter { letter-spacing: -0.05em; }
-.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.text-xs { font-size: 0.75rem; line-height: 1rem; }
-.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
-.text-base { font-size: 1rem; line-height: 1.5rem; }
-.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
-.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
-.text-2xl { font-size: 1.5rem; line-height: 2rem; }
-.text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
-.text-4xl { font-size: 2.25rem; line-height: 2.5rem; }
-.text-5xl { font-size: 3rem; line-height: 1; }
-
-/* Casino Colors */
-.text-yellow-100 { color: #fef9c3; }
-.text-yellow-200 { color: #fef08a; }
-.text-yellow-300 { color: #fde047; }
-.text-yellow-400 { color: #facc15; }
-.text-amber-200 { color: #fde68a; }
-.text-amber-300 { color: #fcd34d; }
-.text-amber-400 { color: #fbbf24; }
-.text-gold { color: var(--casino-gold); }
-.text-gold-bright { color: var(--casino-gold-bright); }
-.text-red-400 { color: #f87171; }
-.text-red-500 { color: #ef4444; }
-.text-red-600 { color: #dc2626; }
-.text-red-950 { color: #450a0a; }
-.text-slate-200 { color: #e2e8f0; }
-.text-slate-300 { color: #cbd5e1; }
-.text-slate-400 { color: #94a3b8; }
-.text-slate-800 { color: #1e293b; }
-.text-slate-900 { color: #0f172a; }
-.text-purple-200 { color: #e9d5ff; }
-.text-purple-300 { color: #d8b4fe; }
-.text-purple-400 { color: #c084fc; }
-.text-emerald-400 { color: #34d399; }
-.text-emerald-500 { color: #10b981; }
-.text-white { color: #ffffff; }
-
-/* Radius & Borders */
-.rounded-xs { border-radius: 0.125rem; }
-.rounded-sm { border-radius: 0.125rem; }
-.rounded { border-radius: 0.25rem; }
-.rounded-md { border-radius: 0.375rem; }
-.rounded-lg { border-radius: 0.5rem; }
-.rounded-xl { border-radius: 0.75rem; }
-.rounded-2xl { border-radius: 1rem; }
-.rounded-3xl { border-radius: 1.5rem; }
-.rounded-full { border-radius: 9999px; }
-
-.border { border-width: 1px; }
-.border-2 { border-width: 2px; }
-.border-4 { border-width: 4px; }
-.border-b { border-bottom-width: 1px; }
-.border-b-2 { border-bottom-width: 2px; }
-
-.border-gold { border-color: var(--border-gold); }
-.border-subtle { border-color: var(--border-subtle); }
-.border-yellow-400 { border-color: #facc15; }
-.border-yellow-500 { border-color: #eab308; }
-.border-yellow-500\/20 { border-color: rgba(234, 179, 8, 0.2); }
-.border-yellow-500\/30 { border-color: rgba(234, 179, 8, 0.3); }
-.border-yellow-500\/40 { border-color: rgba(234, 179, 8, 0.4); }
-.border-yellow-500\/50 { border-color: rgba(234, 179, 8, 0.5); }
-.border-yellow-500\/60 { border-color: rgba(234, 179, 8, 0.6); }
-.border-yellow-500\/80 { border-color: rgba(234, 179, 8, 0.8); }
-
-.border-red-400 { border-color: #f87171; }
-.border-red-500 { border-color: #ef4444; }
-.border-emerald-500\/40 { border-color: rgba(16, 185, 129, 0.4); }
-.border-neutral-700 { border-color: #334155; }
-.border-neutral-800 { border-color: #1e293b; }
-
-/* Backgrounds */
-.bg-black\/40 { background-color: rgba(0, 0, 0, 0.4); }
-.bg-black\/50 { background-color: rgba(0, 0, 0, 0.5); }
-.bg-black\/60 { background-color: rgba(0, 0, 0, 0.6); }
-.bg-black\/70 { background-color: rgba(0, 0, 0, 0.7); }
-.bg-black\/80 { background-color: rgba(0, 0, 0, 0.8); }
-.bg-black\/85 { background-color: rgba(0, 0, 0, 0.85); }
-.bg-casino-card { background-color: var(--casino-bg-card); }
-.bg-casino-surface { background-color: var(--casino-bg-surface); }
-.bg-slate-800 { background-color: #1e293b; }
-.bg-slate-900 { background-color: #0f172a; }
-.bg-slate-950 { background-color: #020617; }
-.bg-neutral-800 { background-color: #1e2533; }
-.bg-neutral-800\/80 { background-color: rgba(30, 37, 51, 0.8); }
-.bg-neutral-800\/90 { background-color: rgba(30, 37, 51, 0.9); }
-.bg-neutral-900 { background-color: #111622; }
-.bg-neutral-900\/80 { background-color: rgba(17, 22, 34, 0.8); }
-.bg-amber-400 { background-color: #fbbf24; }
-.bg-amber-500\/20 { background-color: rgba(245, 158, 11, 0.2); }
-.bg-amber-500\/30 { background-color: rgba(245, 158, 11, 0.3); }
-.bg-yellow-400 { background-color: #facc15; }
-.bg-yellow-500 { background-color: #eab308; }
-.bg-emerald-950\/80 { background-color: rgba(6, 35, 25, 0.8); }
-.bg-emerald-900\/60 { background-color: rgba(6, 78, 59, 0.6); }
-
-/* Padding & Margin */
-.p-1 { padding: 0.25rem; }
-.p-1\.5 { padding: 0.375rem; }
-.p-2 { padding: 0.5rem; }
-.p-2\.5 { padding: 0.625rem; }
-.p-3 { padding: 0.75rem; }
-.p-3\.5 { padding: 0.875rem; }
-.p-4 { padding: 1rem; }
-.p-6 { padding: 1.5rem; }
-.px-1 { padding-left: 0.25rem; padding-right: 0.25rem; }
-.px-1\.5 { padding-left: 0.375rem; padding-right: 0.375rem; }
-.px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
-.px-2\.5 { padding-left: 0.625rem; padding-right: 0.625rem; }
-.px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
-.px-4 { padding-left: 1rem; padding-right: 1rem; }
-.px-5 { padding-left: 1.25rem; padding-right: 1.25rem; }
-.px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
-.py-0\.5 { padding-top: 0.125rem; padding-bottom: 0.125rem; }
-.py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
-.py-1\.5 { padding-top: 0.375rem; padding-bottom: 0.375rem; }
-.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
-.py-2\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
-.py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
-.py-3\.5 { padding-top: 0.875rem; padding-bottom: 0.875rem; }
-.mt-0\.5 { margin-top: 0.125rem; }
-.mt-1 { margin-top: 0.25rem; }
-.mt-1\.5 { margin-top: 0.375rem; }
-.mt-2 { margin-top: 0.5rem; }
-.mt-6 { margin-top: 1.5rem; }
-.mb-1 { margin-bottom: 0.25rem; }
-.mb-2 { margin-bottom: 0.5rem; }
-.mb-3 { margin-bottom: 0.75rem; }
-.mb-4 { margin-bottom: 1rem; }
-.mb-5 { margin-bottom: 1.25rem; }
-.mb-6 { margin-bottom: 1.5rem; }
-.pb-1 { padding-bottom: 0.25rem; }
-.pb-1\.5 { padding-bottom: 0.375rem; }
-.pb-2 { padding-bottom: 0.5rem; }
-.pb-4 { padding-bottom: 1rem; }
-
-/* GPU Acceleration & Optimized Transitions */
-.gpu-layer {
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  will-change: transform;
-}
-
-.transition-all { 
-  transition-property: transform, opacity, background-color, border-color, box-shadow; 
-  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1); 
-  transition-duration: 160ms; 
-}
-.duration-150 { transition-duration: 150ms; }
-.duration-200 { transition-duration: 200ms; }
-.duration-300 { transition-duration: 300ms; }
-.cursor-pointer { cursor: pointer; }
-.cursor-not-allowed { cursor: not-allowed; }
-.cursor-default { cursor: default; }
-
-/* Luxury Buttons */
-button {
-  outline: none;
-  border: none;
-  font-family: inherit;
-}
-button:hover { filter: brightness(1.08); }
-button:active { transform: scale(0.98); }
-
-.btn-casino-gold {
-  background: linear-gradient(135deg, #f5d77f 0%, #d4af37 50%, #aa8620 100%);
-  color: #1a1205;
+/* Hiệu Ứng Nút Vàng Hoàng Gia */
+.btn-gold-luxury {
+  background: linear-gradient(135deg, #f3be53 0%, #e5a73b 50%, #d49524 100%);
+  color: #0c0e14;
   font-weight: 700;
-  border: 1px solid #ffe699;
-  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.35);
-  border-radius: 0.5rem;
+  box-shadow: 0 2px 12px rgba(243, 190, 83, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.btn-casino-gold:hover {
-  box-shadow: 0 6px 16px rgba(212, 175, 55, 0.5);
+
+.btn-gold-luxury:hover {
+  background: linear-gradient(135deg, #fcd34d 0%, #f3be53 50%, #e5a73b 100%);
+  box-shadow: 0 4px 18px rgba(243, 190, 83, 0.5);
   transform: translateY(-1px);
 }
 
-.btn-casino-emerald {
-  background: linear-gradient(135deg, #1b8062 0%, #0d523e 100%);
-  color: #ffffff;
-  font-weight: 700;
-  border: 1px solid #2bc498;
-  box-shadow: 0 4px 12px rgba(13, 82, 62, 0.4);
-  border-radius: 0.5rem;
+.btn-gold-luxury:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(243, 190, 83, 0.2);
 }
 
-.btn-casino-dark {
-  background: linear-gradient(135deg, #252d3e 0%, #161b26 100%);
-  color: #e2e8f0;
-  font-weight: 600;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 0.5rem;
+/* Keyframes cho hiệu ứng fade in mềm mại */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-/* Modal Surface */
-.modal-glass-surface {
-  background: rgba(18, 23, 34, 0.96);
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.8), 0 0 24px rgba(212, 175, 55, 0.15);
+.animate-fade-in {
+  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-
-/* Shadows */
-.shadow-casino-card { box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.6); }
-.shadow-gold-glow { box-shadow: 0 0 16px var(--casino-gold-glow); }

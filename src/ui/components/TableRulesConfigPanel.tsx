@@ -12,6 +12,7 @@ import {
   Edit3, 
   ShieldAlert
 } from 'lucide-react';
+import { Card, Badge } from '../primitives';
 
 export interface TableConfigState {
   playerCount: PlayerCount;
@@ -69,62 +70,39 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
     }
   }, [config.betAmount]);
 
-  // 1. Tính toán tiền cọc an toàn & % rủi ro tài chính thời gian thực
+  // Tính toán tiền cọc an toàn
   const currentMultiplier = config.choppingMultiplier || 1;
   const depositRequired = 26 * config.betAmount * currentMultiplier;
   const depositPercent = playerCoins > 0 ? (depositRequired / playerCoins) * 100 : 100;
   const isInsufficientCoins = playerCoins < depositRequired;
 
-  // Tính toán các mức phạt cụ thể hiển thị theo cược
   const congPenaltyAmount = config.betAmount * 26 * currentMultiplier;
   const minThoiAmount = config.betAmount * 0.5 * currentMultiplier;
   const maxThoiAmount = config.betAmount * 4 * currentMultiplier;
   const fourPairsRewardAmount = config.betAmount * 4 * currentMultiplier;
 
-  // Xác định phân cấp rủi ro & lời khuyên tài chính
-  let riskLevelData = {
-    badge: '🛡️ AN TOÀN (VỐN DỒI DÀO)',
-    badgeColor: 'bg-emerald-950 text-emerald-300 border-emerald-500/50',
-    containerColor: 'bg-emerald-950/40 border-emerald-500/40 text-emerald-100',
-    iconColor: 'text-emerald-400',
-    advice: 'Mức cược an toàn, số dư ví đủ khả năng chống chịu 50+ ván đấu có sát phạt cao.'
-  };
+  let riskBadgeVariant: 'gold' | 'neutral' | 'danger' = 'neutral';
+  let riskBadgeText = '🛡️ Vốn An Toàn';
+  let riskAdvice = 'Mức cược an toàn, số dư ví đủ khả năng chống chịu nhiều ván đấu.';
 
   if (isInsufficientCoins) {
-    riskLevelData = {
-      badge: '🚨 NGUY HIỂM (THIẾU CỌC)',
-      badgeColor: 'bg-red-950 text-red-200 border-red-500/50 animate-pulse',
-      containerColor: 'bg-red-950/60 border-red-500/60 text-red-100 shadow-[0_0_20px_rgba(239,68,68,0.2)]',
-      iconColor: 'text-red-400 animate-pulse',
-      advice: `Số dư ví (${playerCoins.toLocaleString()} Xu) không đủ mức cọc an toàn tối thiểu (${depositRequired.toLocaleString()} Xu)!`
-    };
+    riskBadgeVariant = 'danger';
+    riskBadgeText = '🚨 Thiếu Tiền Cọc';
+    riskAdvice = `Số dư ví (${playerCoins.toLocaleString()} Xu) không đủ mức cọc an toàn tối thiểu (${depositRequired.toLocaleString()} Xu)!`;
   } else if (depositPercent > 65) {
-    riskLevelData = {
-      badge: '🔥 TỬ ĐỊA (CƯỢC TẤT TAY)',
-      badgeColor: 'bg-red-950 text-red-300 border-red-500/50',
-      containerColor: 'bg-red-950/50 border-red-500/50 text-red-100 shadow-[0_0_15px_rgba(239,68,68,0.2)]',
-      iconColor: 'text-red-400 animate-pulse',
-      advice: 'Cảnh báo tất tay: Tiền cọc chiếm hơn 65% tổng tài sản. Một ván thua Cóng có thể khiến bạn phá sản ngay lập tức!'
-    };
+    riskBadgeVariant = 'danger';
+    riskBadgeText = '🔥 Cược Rất Lớn';
+    riskAdvice = 'Cảnh báo: Tiền cọc chiếm hơn 65% tổng tài sản. Một ván thua Cóng có thể khiến bạn mất nhiều vốn!';
   } else if (depositPercent > 40) {
-    riskLevelData = {
-      badge: '⚠️ RỦI RO CAO (CẢNH BÁO)',
-      badgeColor: 'bg-amber-950 text-amber-300 border-amber-500/50',
-      containerColor: 'bg-amber-950/40 border-amber-500/40 text-amber-100',
-      iconColor: 'text-amber-400',
-      advice: 'Cảnh báo rủi ro: Cọc an toàn chiếm gần nửa tài sản ví. Hãy đánh cẩn trọng, tránh giữ Heo quá lâu kẻo bị chặt chồng.'
-    };
+    riskBadgeVariant = 'gold';
+    riskBadgeText = '⚠️ Cân Nhắc Vốn';
+    riskAdvice = 'Cọc an toàn chiếm gần nửa tài sản ví. Hãy đánh cẩn trọng, tránh giữ Heo quá lâu.';
   } else if (depositPercent > 20) {
-    riskLevelData = {
-      badge: '⚖️ VỪA PHẢI (HỢP LÝ)',
-      badgeColor: 'bg-yellow-950 text-[#f3e5ab] border-[#d4af37]/50',
-      containerColor: 'bg-yellow-950/30 border-[#d4af37]/40 text-[#f3e5ab]',
-      iconColor: 'text-[#d4af37]',
-      advice: 'Mức cược hợp lý, quản lý vốn tốt. Phù hợp để chơi lâu dài và gia tăng tài sản bền vững.'
-    };
+    riskBadgeVariant = 'gold';
+    riskBadgeText = '⚖️ Hợp Lý';
+    riskAdvice = 'Mức cược hợp lý, quản lý vốn tốt. Phù hợp để chơi lâu dài.';
   }
 
-  // Chọn Preset cược có sẵn
   const handleSelectPresetBet = (amt: number) => {
     setIsCustomBet(false);
     setBetError(null);
@@ -132,13 +110,11 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
     onChange({ betAmount: amt });
   };
 
-  // Chọn mở khung nhập cược tự do
   const handleToggleCustomBet = () => {
     setIsCustomBet(true);
     setBetError(null);
   };
 
-  // Nhập cược tự do
   const handleCustomBetChange = (rawVal: string) => {
     const cleanDigits = rawVal.replace(/\D/g, '');
     setCustomBetInput(cleanDigits);
@@ -164,7 +140,6 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
     onChange({ betAmount: parsed });
   };
 
-  // Nút % số dư (Tính toán mức cược an toàn tối đa theo % ví)
   const handleApplyQuickPercent = (fraction: number) => {
     const maxSafeBet = Math.max(10, Math.floor((playerCoins * fraction) / (26 * currentMultiplier)));
     setBetError(null);
@@ -175,95 +150,91 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
   const activeBotCount = config.playerCount - 1;
 
   return (
-    <div className="space-y-4 animate-fade-in text-white select-none">
-      {/* ========================================================================= */}
-      {/* 1. BẢNG ĐÁNH GIÁ RỦI RO TÀI CHÍNH (COMPACT & TIẾT KIỆM DIỆN TÍCH) */}
-      {/* ========================================================================= */}
-      <div className={`p-3 rounded-2xl border transition-all shadow-md ${riskLevelData.containerColor}`}>
+    <div className="space-y-3.5 text-[var(--text-primary)] select-none">
+      
+      {/* 1. BẢNG ĐÁNH GIÁ RỦI RO TÀI CHÍNH */}
+      <Card variant="nested" className="p-3">
         <div className="flex items-center justify-between gap-3">
-          {/* Cọc an toàn + Tỷ lệ % ví */}
           <div className="flex items-center gap-2.5 min-w-0">
-            <ShieldAlert className={`w-4 h-4 flex-shrink-0 ${riskLevelData.iconColor}`} />
+            <ShieldAlert className="w-4 h-4 flex-shrink-0 text-[var(--color-gold)]" />
             <div className="text-xs truncate">
-              <span className="text-[#f3e5ab] font-bold">Cọc an toàn: </span>
-              <strong className="text-white font-black">{depositRequired.toLocaleString()} Xu</strong>
-              <span className="text-slate-300 text-[11px] ml-1">({depositPercent.toFixed(1)}% ví)</span>
+              <span className="text-[var(--text-muted)]">Cọc an toàn: </span>
+              <strong className="text-[var(--text-primary)] font-bold">{depositRequired.toLocaleString()} Xu</strong>
+              <span className="text-[var(--text-muted)] text-[11px] ml-1">({depositPercent.toFixed(1)}% ví)</span>
             </div>
           </div>
 
-          {/* Badge phân cấp rủi ro */}
-          <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border uppercase tracking-wider shadow-sm flex-shrink-0 ${riskLevelData.badgeColor}`}>
-            {riskLevelData.badge}
-          </span>
+          <Badge variant={riskBadgeVariant} size="sm">
+            {riskBadgeText}
+          </Badge>
         </div>
 
-        {/* Mini Progress Bar + Lời khuyên 1 dòng nhỏ gọn */}
-        <div className="mt-2 pt-1.5 border-t border-white/10 flex items-center gap-2.5">
-          <div className="w-20 sm:w-28 h-1.5 bg-black/60 rounded-full overflow-hidden border border-white/10 flex-shrink-0">
+        {/* Mini Progress Bar */}
+        <div className="mt-2 pt-1.5 border-t border-[var(--border-container)] flex items-center gap-2.5">
+          <div className="w-20 sm:w-28 h-1.5 bg-[var(--bg-input)] rounded-full overflow-hidden border border-[var(--border-container)] flex-shrink-0">
             <div 
               className={`h-full rounded-full transition-all duration-500 ${
                 depositPercent > 65
-                  ? 'bg-gradient-to-r from-amber-500 via-red-500 to-purple-600 animate-pulse'
+                  ? 'bg-red-500'
                   : depositPercent > 40
-                  ? 'bg-gradient-to-r from-yellow-400 via-amber-500 to-red-500'
-                  : 'bg-gradient-to-r from-emerald-400 to-teal-400'
+                  ? 'bg-[var(--color-gold)]'
+                  : 'bg-emerald-500'
               }`}
               style={{ width: `${Math.min(100, Math.max(5, depositPercent))}%` }}
             />
           </div>
-          <p className="text-[10px] text-slate-300 font-medium truncate flex-1 leading-tight">
-            💡 {riskLevelData.advice}
+          <p className="text-[11px] text-[var(--text-muted)] truncate flex-1 leading-tight">
+            💡 {riskAdvice}
           </p>
         </div>
-      </div>
+      </Card>
 
-      {/* ========================================================================= */}
-      {/* 2. SỐ LƯỢNG NGƯỜI CHƠI (2, 3, 4 NGƯỜI) */}
-      {/* ========================================================================= */}
-      <div className="bg-[#121724] p-4 rounded-2xl border border-[#d4af37]/30 shadow-md">
-        <div className="flex items-center justify-between flex-wrap gap-2 mb-2.5">
-          <label className="text-xs font-black text-[#f3e5ab] uppercase tracking-wider flex items-center gap-1.5">
-            <Users className="w-4 h-4 text-[#d4af37]" />
-            <span>Số Lượng Người Chơi Trên Bàn</span>
+      {/* 2. SỐ LƯỢNG NGƯỜI CHƠI */}
+      <Card variant="surface" className="p-3.5 space-y-2.5">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <label className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
+            <Users className="w-4 h-4 text-[var(--color-gold)]" />
+            <span>Số Lượng Người Chơi</span>
           </label>
-          <span className="text-xs text-slate-400 font-semibold">
+          <span className="text-[11px] text-[var(--text-muted)]">
             (1 Bạn + {activeBotCount} Bot AI)
           </span>
         </div>
-        <div className="grid grid-cols-3 gap-2.5">
-          {PLAYER_COUNT_OPTIONS.map(item => (
-            <button
-              key={item.count}
-              type="button"
-              onClick={() => onChange({ playerCount: item.count })}
-              className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
-                config.playerCount === item.count
-                  ? 'bg-[#0c4031] border-2 border-[#d4af37] text-[#f3e5ab] shadow-[0_0_12px_rgba(12,64,49,0.5)] font-black scale-[1.02]'
-                  : 'bg-[#182030] hover:bg-[#222c42] border border-white/10 text-slate-300 hover:text-white'
-              }`}
-            >
-              <div className="text-xs font-black">{item.label}</div>
-              <div className={`text-[10px] mt-0.5 ${config.playerCount === item.count ? 'text-emerald-200/90 font-medium' : 'text-slate-400'}`}>{item.desc}</div>
-            </button>
-          ))}
+        <div className="grid grid-cols-3 gap-2">
+          {PLAYER_COUNT_OPTIONS.map(item => {
+            const isSelected = config.playerCount === item.count;
+            return (
+              <button
+                key={item.count}
+                type="button"
+                onClick={() => onChange({ playerCount: item.count })}
+                className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-[var(--bg-card-active)] border-2 border-[var(--color-gold)] text-[var(--text-primary)] font-bold shadow-sm'
+                    : 'bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border-[var(--border-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <div className="text-xs font-bold">{item.label}</div>
+                <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-[var(--color-gold)]' : 'text-[var(--text-muted)]'}`}>{item.desc}</div>
+              </button>
+            );
+          })}
         </div>
-      </div>
+      </Card>
 
-      {/* ========================================================================= */}
       {/* 3. QUY TẮC KẾT THÚC VÁN & TÍNH TIỀN */}
-      {/* ========================================================================= */}
-      <div className="bg-[#121724] p-4 rounded-2xl border border-[#d4af37]/30 shadow-md space-y-3">
+      <Card variant="surface" className="p-3.5 space-y-2.5">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-black text-[#f3e5ab] uppercase tracking-wider flex items-center gap-1.5">
-            <Crown className="w-4 h-4 text-[#d4af37]" />
-            <span>Quy Tắc Kết Thúc Ván & Tính Tiền</span>
+          <label className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
+            <Crown className="w-4 h-4 text-[var(--color-gold)]" />
+            <span>Quy Tắc Tính Điểm &amp; Kết Thúc</span>
           </label>
-          <span className="text-[11px] text-slate-400">
-            Số đối thủ: <strong className="text-[#f3e5ab]">{activeBotCount} người</strong>
+          <span className="text-[11px] text-[var(--text-muted)]">
+            Đối thủ: <strong className="text-[var(--color-gold)]">{activeBotCount} người</strong>
           </span>
         </div>
 
-        {/* 3 Nút Chuyển Tab Chế Độ */}
+        {/* 3 Nút Chuyển Tab */}
         <div className="grid grid-cols-3 gap-2">
           {GAME_MODE_TABS.map(tab => {
             const isSelected = config.mode === tab.mode;
@@ -272,10 +243,10 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
                 key={tab.mode}
                 type="button"
                 onClick={() => onChange({ mode: tab.mode })}
-                className={`py-2.5 px-2 rounded-xl text-xs font-black transition-all cursor-pointer border text-center ${
+                className={`py-2 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer border text-center ${
                   isSelected
-                    ? 'bg-[#0c4031] border-2 border-[#d4af37] text-[#f3e5ab] shadow-[0_0_12px_rgba(12,64,49,0.5)] scale-[1.02]'
-                    : 'bg-[#182030] hover:bg-[#222c42] border border-white/10 text-slate-300 hover:text-white'
+                    ? 'bg-[var(--bg-card-active)] border-2 border-[var(--color-gold)] text-[var(--text-primary)] shadow-sm'
+                    : 'bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border-[var(--border-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                 }`}
               >
                 {tab.label}
@@ -284,7 +255,7 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
           })}
         </div>
 
-        {/* KHUNG HUD TRÌNH DIỄN CHI TIẾT QUY TẮC ĐƯỢC CHỌN */}
+        {/* KHUNG HUD TRÌNH DIỄN CHI TIẾT QUY TẮC */}
         {(() => {
           const ruleInfoMap: Record<GameMode, {
             title: string;
@@ -326,62 +297,58 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
           const activeInfo = ruleInfoMap[config.mode] || ruleInfoMap.COUNT_CARDS;
 
           return (
-            <div className="p-3.5 rounded-xl bg-[#0e131f] border border-white/10 shadow-inner space-y-2.5 animate-fade-in">
+            <div className="p-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-container)] space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-black text-[#f3e5ab]">{activeInfo.title}</span>
-                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-[#d4af37]/20 text-[#f3e5ab] border border-[#d4af37]/40">
-                    {activeInfo.badge}
-                  </span>
+                  <span className="text-xs font-bold text-[var(--text-primary)]">{activeInfo.title}</span>
+                  <Badge variant="gold" size="sm">{activeInfo.badge}</Badge>
                 </div>
-                <span className="text-[10px] text-slate-400">
-                  Bàn {config.playerCount} người ({activeBotCount} đối thủ)
+                <span className="text-[10px] text-[var(--text-muted)]">
+                  Bàn {config.playerCount} người
                 </span>
               </div>
 
-              <p className="text-[11px] text-slate-300 font-medium leading-relaxed">
+              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
                 {activeInfo.desc}
               </p>
 
-              {/* 2 Hộp Thống Kê Tiền Thắng / Thua */}
-              <div className="grid grid-cols-2 gap-2.5 pt-1">
-                <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-between">
-                  <div className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider flex items-center gap-1">
+              {/* 2 Hộp Thống Kê */}
+              <div className="grid grid-cols-2 gap-2 pt-0.5">
+                <div className="p-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-between">
+                  <div className="text-[10px] text-[var(--text-secondary)] font-medium flex items-center gap-1">
                     <span>🏆</span>
                     <span>Thắng Nhất:</span>
                   </div>
-                  <div className="text-xs font-black text-emerald-300 font-mono">{activeInfo.maxWin}</div>
+                  <div className="text-xs font-bold text-[#4ade80] font-mono">{activeInfo.maxWin}</div>
                 </div>
 
-                <div className="p-2.5 rounded-xl bg-red-950/40 border border-red-500/30 flex items-center justify-between">
-                  <div className="text-[10px] text-red-300 font-bold uppercase tracking-wider flex items-center gap-1">
+                <div className="p-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-between">
+                  <div className="text-[10px] text-[var(--text-secondary)] font-medium flex items-center gap-1">
                     <span>💀</span>
                     <span>Thua Tối Đa:</span>
                   </div>
-                  <div className="text-xs font-black text-red-300 font-mono">{activeInfo.maxLoss}</div>
+                  <div className="text-xs font-bold text-[#f87171] font-mono">{activeInfo.maxLoss}</div>
                 </div>
               </div>
             </div>
           );
         })()}
-      </div>
+      </Card>
 
-      {/* ========================================================================= */}
-      {/* 4. MỨC CƯỢC VÁN ĐẤU (4 PRESETS CÂN ĐỐI + NÚT TỰ CHỌN TÁCH BIỆT) */}
-      {/* ========================================================================= */}
-      <div className="bg-[#121724] p-4 rounded-2xl border border-[#d4af37]/30 shadow-md space-y-3">
+      {/* 4. MỨC CƯỢC VÁN ĐẤU */}
+      <Card variant="surface" className="p-3.5 space-y-2.5">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-black text-[#f3e5ab] uppercase tracking-wider block flex items-center gap-1.5">
-            <Coins className="w-4 h-4 text-[#d4af37]" />
+          <label className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
+            <Coins className="w-4 h-4 text-[var(--color-gold)]" />
             <span>Mức Cược Ván Đấu (Xu)</span>
           </label>
-          <div className="text-xs text-slate-400">
-            Số dư khả dụng: <span className="text-[#f3e5ab] font-black">{playerCoins.toLocaleString()} Xu</span>
+          <div className="text-xs text-[var(--text-muted)]">
+            Số dư ví: <span className="text-[var(--color-gold)] font-bold">{playerCoins.toLocaleString()} Xu</span>
           </div>
         </div>
 
-        {/* Lưới 4 Preset Cược Cân Đối (2x2 Mobile, 4 cột Desktop) */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        {/* Lưới 4 Preset */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {PRESET_BETS.map(amt => {
             const isSelected = !isCustomBet && config.betAmount === amt;
             const requiredDepositForPreset = 26 * amt * currentMultiplier;
@@ -394,12 +361,12 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
                 disabled={isPresetDisabled}
                 onClick={() => handleSelectPresetBet(amt)}
                 title={isPresetDisabled ? `Số dư không đủ mức cọc an toàn (${requiredDepositForPreset.toLocaleString()} Xu)` : `Cược ${amt.toLocaleString()} Xu`}
-                className={`py-3 px-2 rounded-xl font-black text-xs transition-all border text-center ${
+                className={`py-2.5 px-2 rounded-xl font-bold text-xs transition-all border text-center ${
                   isPresetDisabled
-                    ? 'opacity-30 cursor-not-allowed bg-[#0a0d14] border-white/5 text-slate-600 line-through'
+                    ? 'opacity-30 cursor-not-allowed bg-[var(--bg-input)] border-white/5 text-[var(--text-dim)] line-through'
                     : isSelected
-                    ? 'bg-[#0c4031] border-2 border-[#d4af37] text-[#f3e5ab] shadow-[0_0_12px_rgba(12,64,49,0.5)] scale-105 font-black cursor-pointer'
-                    : 'bg-[#182030] hover:bg-[#222c42] border border-white/10 text-slate-300 hover:text-white cursor-pointer'
+                    ? 'bg-[var(--bg-card-active)] border-2 border-[var(--color-gold)] text-[var(--color-gold)] font-bold shadow-sm cursor-pointer'
+                    : 'bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border-[var(--border-card)] text-[var(--text-secondary)] hover:text-white cursor-pointer'
                 }`}
               >
                 {amt.toLocaleString()} Xu
@@ -408,14 +375,14 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
           })}
         </div>
 
-        {/* Nút Chọn Mức Cược Tùy Chọn Tách Biệt */}
+        {/* Nút Tự Do */}
         <button
           type="button"
           onClick={handleToggleCustomBet}
-          className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs transition-all border cursor-pointer flex items-center justify-center gap-2 ${
+          className={`w-full py-2 px-3 rounded-xl font-semibold text-xs transition-all border cursor-pointer flex items-center justify-center gap-2 ${
             isCustomBet
-              ? 'bg-[#0c4031] border-2 border-[#d4af37] text-[#f3e5ab] shadow-[0_0_12px_rgba(12,64,49,0.5)] font-black'
-              : 'bg-[#182030] hover:bg-[#222c42] border border-white/10 text-slate-300 hover:text-white'
+              ? 'bg-[var(--bg-card-active)] border-2 border-[var(--color-gold)] text-[var(--color-gold)] font-bold shadow-sm'
+              : 'bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border-[var(--border-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
           }`}
         >
           <Edit3 className="w-3.5 h-3.5" />
@@ -424,15 +391,15 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
 
         {/* KHUNG NHẬP SỐ TIỀN & CÁC NÚT % KHI CHỌN TÙY CHỌN */}
         {isCustomBet && (
-          <div className="pt-2 space-y-3 animate-fade-in bg-[#0e131f] p-3.5 rounded-xl border border-[#d4af37]/30">
-            <div className="text-[11px] font-bold text-[#f3e5ab] flex items-center justify-between">
+          <div className="pt-1 space-y-2.5 bg-[var(--bg-input)] p-3 rounded-xl border border-[var(--border-container)]">
+            <div className="text-[11px] text-[var(--text-secondary)] flex items-center justify-between">
               <span>✍️ Nhập mức cược mong muốn:</span>
-              <span className="text-slate-400">
-                Đang cược: <strong className="text-[#f3e5ab]">{config.betAmount.toLocaleString()} Xu</strong>
+              <span className="text-[var(--text-muted)]">
+                Đang cược: <strong className="text-[var(--color-gold)]">{config.betAmount.toLocaleString()} Xu</strong>
               </span>
             </div>
 
-            {/* Ô Nhập Số Tiền Cược */}
+            {/* Ô Nhập Số Tiền */}
             <div className="relative">
               <input
                 type="text"
@@ -441,19 +408,19 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
                 value={customBetInput}
                 onChange={(e) => handleCustomBetChange(e.target.value)}
                 placeholder="Nhập mức cược mong muốn..."
-                className={`w-full bg-[#182030] border rounded-xl px-4 py-2.5 text-sm font-mono font-bold text-[#f3e5ab] focus:outline-none transition-all pr-14 shadow-inner ${
+                className={`w-full bg-[var(--bg-card)] border rounded-xl px-3.5 py-2 text-sm font-mono font-bold text-[var(--text-primary)] focus:outline-none transition-all pr-12 ${
                   betError 
-                    ? 'border-red-500 focus:border-red-400 ring-1 ring-red-500/40' 
-                    : 'border-[#d4af37]/50 focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37]/40'
+                    ? 'border-red-500 focus:border-red-400' 
+                    : 'border-[var(--border-card)] focus:border-[var(--color-gold)]'
                 }`}
               />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-[#d4af37] font-black pointer-events-none">
+              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-[var(--color-gold)] font-bold pointer-events-none">
                 Xu
               </span>
             </div>
 
-            {/* Lưới 4 Nút % Số Dư Cân Đối */}
-            <div className="grid grid-cols-4 gap-2">
+            {/* Lưới 4 Nút % */}
+            <div className="grid grid-cols-4 gap-1.5">
               {[
                 { label: '10%', fraction: 0.1 },
                 { label: '25%', fraction: 0.25 },
@@ -465,8 +432,7 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
                   type="button"
                   disabled={playerCoins <= 0}
                   onClick={() => handleApplyQuickPercent(p.fraction)}
-                  className="w-full py-2 px-2 rounded-lg bg-[#182030] hover:bg-[#222c42] border border-white/10 hover:border-[#d4af37]/50 text-[11px] font-black text-slate-300 hover:text-white transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed text-center whitespace-nowrap shadow"
-                  title={`Cược ${p.label} số dư (${Math.floor(playerCoins * p.fraction).toLocaleString()} Xu)`}
+                  className="w-full py-1.5 px-1 rounded-lg bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-card)] text-[11px] font-semibold text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed text-center whitespace-nowrap"
                 >
                   {p.label}
                 </button>
@@ -474,46 +440,41 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
             </div>
 
             {betError && (
-              <div className="flex items-center gap-1.5 text-[11px] text-red-400 font-bold animate-fade-in pt-1">
+              <div className="flex items-center gap-1.5 text-[11px] text-red-400 font-medium pt-0.5">
                 <span>⚠️</span>
                 <span>{betError}</span>
               </div>
             )}
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* ========================================================================= */}
-      {/* 5. HỆ SỐ PHẠT CHẶT HEO / CHẶT HÀNG */}
-      {/* ========================================================================= */}
-      <div className="bg-[#121724] p-4 rounded-2xl border border-[#d4af37]/30 shadow-md space-y-2.5">
+      {/* 5. HỆ SỐ PHẠT CHẶT */}
+      <Card variant="surface" className="p-3.5 space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Flame className="w-5 h-5 text-red-400 animate-pulse" />
+            <Flame className="w-4 h-4 text-[var(--color-gold)]" />
             <div>
-              <div className="text-xs font-black text-[#f3e5ab] uppercase tracking-wider flex items-center gap-2">
-                <span>Hệ Số Sát Phạt Bàn Đấu</span>
-                <span className="text-[10px] px-2 py-0.2 rounded-full bg-red-950 text-red-300 border border-red-500/40 font-black">
-                  {currentMultiplier === 1 ? 'Chuẩn (x1)' : currentMultiplier === 2 ? 'Sát Phạt (x2)' : currentMultiplier === 3 ? 'Khốc Liệt (x3)' : currentMultiplier === 4 ? 'Tử Địa (x4)' : 'Hủy Diệt (x5)'}
-                </span>
+              <div className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
+                <span>Hệ Số Phạt Chặt Bàn Đấu</span>
+                <Badge variant="gold" size="sm">
+                  {currentMultiplier === 1 ? 'Chuẩn (x1)' : `Nhân ${currentMultiplier}x`}
+                </Badge>
               </div>
-              <div className="text-[10px] text-slate-400">
-                Nhân {currentMultiplier}x toàn bộ tiền phạt Đếm lá, Chặt Heo/Hàng, Thối bài và Phạt Cóng
+              <div className="text-[10px] text-[var(--text-muted)]">
+                Nhân {currentMultiplier}x tiền phạt Đếm lá, Chặt Heo/Hàng và Cóng
               </div>
             </div>
           </div>
-          <span className="text-sm font-black text-[#f3e5ab] hidden sm:inline">
-            x{currentMultiplier}
-          </span>
         </div>
 
-        <div className="grid grid-cols-5 gap-2 pt-1">
+        <div className="grid grid-cols-5 gap-1.5 pt-1">
           {[
-            { mult: 1, label: 'x1', desc: 'Chuẩn', color: 'border-white/10 text-slate-300' },
-            { mult: 2, label: 'x2', desc: 'Sát Phạt', color: 'border-amber-500/40 text-amber-300' },
-            { mult: 3, label: 'x3', desc: 'Khốc Liệt', color: 'border-orange-500/50 text-orange-300' },
-            { mult: 4, label: 'x4', desc: 'Tử Địa', color: 'border-red-500/60 text-red-300' },
-            { mult: 5, label: 'x5', desc: 'Hủy Diệt', color: 'border-purple-500/70 text-purple-300' }
+            { mult: 1, label: 'x1', desc: 'Chuẩn' },
+            { mult: 2, label: 'x2', desc: 'Sát Phạt' },
+            { mult: 3, label: 'x3', desc: 'Khốc Liệt' },
+            { mult: 4, label: 'x4', desc: 'Tử Địa' },
+            { mult: 5, label: 'x5', desc: 'Hủy Diệt' }
           ].map(item => {
             const isSelected = currentMultiplier === item.mult;
             return (
@@ -521,59 +482,53 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
                 key={item.mult}
                 type="button"
                 onClick={() => onChange({ choppingMultiplier: item.mult })}
-                className={`py-2.5 px-1 rounded-xl text-center border transition-all cursor-pointer ${
+                className={`py-2 px-1 rounded-xl text-center border transition-all cursor-pointer ${
                   isSelected
-                    ? item.mult >= 4
-                      ? 'bg-[#4a0d24] border-2 border-red-400 text-red-100 font-black shadow-lg scale-105'
-                      : item.mult >= 2
-                      ? 'bg-[#3b1d0c] border-2 border-amber-400 text-amber-100 font-black shadow-md scale-105'
-                      : 'bg-[#0c4031] border-2 border-[#d4af37] text-[#f3e5ab] font-black shadow-md scale-105'
-                    : `bg-[#182030] hover:bg-[#222c42] ${item.color} hover:text-white`
+                    ? 'bg-[var(--bg-card-active)] border-2 border-[var(--color-gold)] text-[var(--color-gold)] font-bold shadow-sm'
+                    : 'bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border-[var(--border-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
                 }`}
               >
-                <div className="text-sm font-black">{item.label}</div>
-                <div className="text-[9px] opacity-80 mt-0.5">{item.desc}</div>
+                <div className="text-xs font-bold">{item.label}</div>
+                <div className="text-[9px] opacity-70 mt-0.5">{item.desc}</div>
               </button>
             );
           })}
         </div>
-      </div>
+      </Card>
 
-      {/* ========================================================================= */}
       {/* 6. CÁC TÙY CHỌN LUẬT PHỤ */}
-      {/* ========================================================================= */}
-      <div className="bg-[#121724] p-4 rounded-2xl border border-[#d4af37]/30 shadow-md space-y-3">
-        <label className="text-xs font-black text-[#f3e5ab] uppercase tracking-wider block flex items-center gap-1.5">
-          <Sparkles className="w-4 h-4 text-[#d4af37]" />
-          <span>Tùy Chọn Luật Phạt Bàn Đấu</span>
+      <Card variant="surface" className="p-3.5 space-y-2.5">
+        <label className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-[var(--color-gold)]" />
+          <span>Tùy Chọn Luật Bàn Đấu</span>
         </label>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {/* Cấm 2 Cuối Cùng */}
           <div 
             onClick={() => onChange({ prohibitEndingWithTwo: config.prohibitEndingWithTwo !== false ? false : true })}
-            className={`flex items-center justify-between p-3.5 rounded-xl border transition-all cursor-pointer ${
+            className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
               config.prohibitEndingWithTwo !== false 
-                ? 'bg-[#182030] border-[#d4af37]/60 shadow-sm' 
-                : 'bg-[#121724] border-white/5 hover:border-white/20'
+                ? 'bg-[var(--bg-card)] border-[var(--color-gold-border)] shadow-sm' 
+                : 'bg-[var(--bg-input)] border-[var(--border-container)] opacity-75'
             }`}
           >
-            <div className="flex items-start gap-2.5 pr-2">
-              <Ban className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+            <div className="flex items-start gap-2 pr-2">
+              <Ban className="w-3.5 h-3.5 text-[#f87171] mt-0.5 flex-shrink-0" />
               <div>
-                <div className="text-xs font-bold text-white">
+                <div className="text-xs font-semibold text-[var(--text-primary)]">
                   Cấm Đánh 2 Cuối Cùng
                 </div>
-                <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">
-                  Cấm về Heo • Thối phạt từ <strong className="text-[#f3e5ab]">{minThoiAmount.toLocaleString()}</strong> đến <strong className="text-[#f3e5ab]">{maxThoiAmount.toLocaleString()} Xu</strong>
+                <div className="text-[10px] text-[var(--text-muted)] mt-0.5 leading-tight">
+                  Cấm về Heo • Thối phạt từ <strong className="text-[var(--color-gold)]">{minThoiAmount.toLocaleString()}</strong> đến <strong className="text-[var(--color-gold)]">{maxThoiAmount.toLocaleString()} Xu</strong>
                 </div>
               </div>
             </div>
-            <div className={`w-10 h-5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
-              config.prohibitEndingWithTwo !== false ? 'bg-[#d4af37]' : 'bg-slate-700'
+            <div className={`w-9 h-4.5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
+              config.prohibitEndingWithTwo !== false ? 'bg-[var(--color-gold)]' : 'bg-[var(--bg-container)] border border-[var(--border-container)]'
             }`}>
-              <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                config.prohibitEndingWithTwo !== false ? 'translate-x-5' : 'translate-x-0'
+              <div className={`bg-[#0a0c0e] w-3.5 h-3.5 rounded-full shadow transform transition-transform ${
+                config.prohibitEndingWithTwo !== false ? 'translate-x-4.5 bg-white' : 'translate-x-0'
               }`} />
             </div>
           </div>
@@ -581,147 +536,147 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
           {/* 4 Đôi Thông Cắt Tự Do */}
           <div 
             onClick={() => onChange({ allowFourPairsCutAnytime: !config.allowFourPairsCutAnytime })}
-            className={`flex items-center justify-between p-3.5 rounded-xl border transition-all cursor-pointer ${
+            className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
               config.allowFourPairsCutAnytime 
-                ? 'bg-[#182030] border-[#d4af37]/60 shadow-sm' 
-                : 'bg-[#121724] border-white/5 hover:border-white/20'
+                ? 'bg-[var(--bg-card)] border-[var(--color-gold-border)] shadow-sm' 
+                : 'bg-[var(--bg-input)] border-[var(--border-container)] opacity-75'
             }`}
           >
-            <div className="flex items-start gap-2.5 pr-2">
-              <Zap className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+            <div className="flex items-start gap-2 pr-2">
+              <Zap className="w-3.5 h-3.5 text-[var(--color-gold)] mt-0.5 flex-shrink-0" />
               <div>
-                <div className="text-xs font-bold text-white">
+                <div className="text-xs font-semibold text-[var(--text-primary)]">
                   4 Đôi Thông Cắt Tự Do
                 </div>
-                <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">
-                  Chặt bất kỳ lúc nào • Thắng ngay <strong className="text-[#f3e5ab]">+{fourPairsRewardAmount.toLocaleString()} Xu</strong>
+                <div className="text-[10px] text-[var(--text-muted)] mt-0.5 leading-tight">
+                  Chặt bất kỳ lúc nào • Thắng ngay <strong className="text-[var(--color-gold)]">+{fourPairsRewardAmount.toLocaleString()} Xu</strong>
                 </div>
               </div>
             </div>
-            <div className={`w-10 h-5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
-              config.allowFourPairsCutAnytime ? 'bg-[#d4af37]' : 'bg-slate-700'
+            <div className={`w-9 h-4.5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
+              config.allowFourPairsCutAnytime ? 'bg-[var(--color-gold)]' : 'bg-[var(--bg-container)] border border-[var(--border-container)]'
             }`}>
-              <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                config.allowFourPairsCutAnytime ? 'translate-x-5' : 'translate-x-0'
+              <div className={`bg-[#0a0c0e] w-3.5 h-3.5 rounded-full shadow transform transition-transform ${
+                config.allowFourPairsCutAnytime ? 'translate-x-4.5 bg-white' : 'translate-x-0'
               }`} />
             </div>
           </div>
 
-          {/* Về 3 Bích Cuối Cùng (Ăn Ba Bích) */}
+          {/* Về 3 Bích Cuối Cùng */}
           <div 
             onClick={() => onChange({ threeSpadesEndingBonus: config.threeSpadesEndingBonus !== false ? false : true })}
-            className={`flex items-center justify-between p-3.5 rounded-xl border transition-all cursor-pointer ${
+            className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
               config.threeSpadesEndingBonus !== false 
-                ? 'bg-[#182030] border-[#d4af37]/60 shadow-sm' 
-                : 'bg-[#121724] border-white/5 hover:border-white/20'
+                ? 'bg-[var(--bg-card)] border-[var(--color-gold-border)] shadow-sm' 
+                : 'bg-[var(--bg-input)] border-[var(--border-container)] opacity-75'
             }`}
           >
-            <div className="flex items-start gap-2.5 pr-2">
-              <Sparkles className="w-4 h-4 text-[#d4af37] mt-0.5 flex-shrink-0" />
+            <div className="flex items-start gap-2 pr-2">
+              <Sparkles className="w-3.5 h-3.5 text-[var(--color-gold)] mt-0.5 flex-shrink-0" />
               <div>
-                <div className="text-xs font-bold text-white">
+                <div className="text-xs font-semibold text-[var(--text-primary)]">
                   Về 3 Bích Cuối Cùng
                 </div>
-                <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">
-                  Từ ván 2+, đánh lá đơn 3♠ cuối cùng để về Nhất nhận <strong className="text-[#f3e5ab]">gấp đôi (x2)</strong> tiền thắng cả làng
+                <div className="text-[10px] text-[var(--text-muted)] mt-0.5 leading-tight">
+                  Từ ván 2+, dứt điểm bằng 3♠ nhận <strong className="text-[var(--color-gold)]">gấp đôi (2x)</strong> tiền thắng cả bàn
                 </div>
               </div>
             </div>
-            <div className={`w-10 h-5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
-              config.threeSpadesEndingBonus !== false ? 'bg-[#d4af37]' : 'bg-slate-700'
+            <div className={`w-9 h-4.5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
+              config.threeSpadesEndingBonus !== false ? 'bg-[var(--color-gold)]' : 'bg-[var(--bg-container)] border border-[var(--border-container)]'
             }`}>
-              <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                config.threeSpadesEndingBonus !== false ? 'translate-x-5' : 'translate-x-0'
+              <div className={`bg-[#0a0c0e] w-3.5 h-3.5 rounded-full shadow transform transition-transform ${
+                config.threeSpadesEndingBonus !== false ? 'translate-x-4.5 bg-white' : 'translate-x-0'
               }`} />
             </div>
           </div>
 
-          {/* Chặt Chồng Tích Lũy (Chop Cascade) */}
+          {/* Chặt Chồng Tích Lũy */}
           <div 
             onClick={() => onChange({ cascadeChopEnabled: config.cascadeChopEnabled !== false ? false : true })}
-            className={`flex items-center justify-between p-3.5 rounded-xl border transition-all cursor-pointer ${
+            className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
               config.cascadeChopEnabled !== false 
-                ? 'bg-[#182030] border-[#d4af37]/60 shadow-sm' 
-                : 'bg-[#121724] border-white/5 hover:border-white/20'
+                ? 'bg-[var(--bg-card)] border-[var(--color-gold-border)] shadow-sm' 
+                : 'bg-[var(--bg-input)] border-[var(--border-container)] opacity-75'
             }`}
           >
-            <div className="flex items-start gap-2.5 pr-2">
-              <Flame className="w-4 h-4 text-orange-400 mt-0.5 flex-shrink-0" />
+            <div className="flex items-start gap-2 pr-2">
+              <Flame className="w-3.5 h-3.5 text-[var(--color-gold)] mt-0.5 flex-shrink-0" />
               <div>
-                <div className="text-xs font-bold text-white">
+                <div className="text-xs font-semibold text-[var(--text-primary)]">
                   Chặt Chồng Tích Lũy
                 </div>
-                <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">
-                  Tiền phạt chặt đè cộng dồn liên hoàn • Người bị chặt cuối đền toàn bộ chuỗi cho người chặt chót
+                <div className="text-[10px] text-[var(--text-muted)] mt-0.5 leading-tight">
+                  Cộng dồn phạt đè • Người bị chặt cuối đền toàn bộ chuỗi
                 </div>
               </div>
             </div>
-            <div className={`w-10 h-5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
-              config.cascadeChopEnabled !== false ? 'bg-[#d4af37]' : 'bg-slate-700'
+            <div className={`w-9 h-4.5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
+              config.cascadeChopEnabled !== false ? 'bg-[var(--color-gold)]' : 'bg-[var(--bg-container)] border border-[var(--border-container)]'
             }`}>
-              <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                config.cascadeChopEnabled !== false ? 'translate-x-5' : 'translate-x-0'
+              <div className={`bg-[#0a0c0e] w-3.5 h-3.5 rounded-full shadow transform transition-transform ${
+                config.cascadeChopEnabled !== false ? 'translate-x-4.5 bg-white' : 'translate-x-0'
               }`} />
             </div>
           </div>
 
-          {/* Phạt Cóng (Cháy Bài) */}
+          {/* Phạt Cóng */}
           {showCongOption && (
             <div 
               onClick={() => onChange({ congEnabled: !config.congEnabled })}
-              className={`flex items-center justify-between p-3.5 rounded-xl border transition-all cursor-pointer ${
+              className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
                 config.congEnabled 
-                  ? 'bg-[#182030] border-[#d4af37]/60 shadow-sm' 
-                  : 'bg-[#121724] border-white/5 hover:border-white/20'
+                  ? 'bg-[var(--bg-card)] border-[var(--color-gold-border)] shadow-sm' 
+                  : 'bg-[var(--bg-input)] border-[var(--border-container)] opacity-75'
               }`}
             >
-              <div className="flex items-start gap-2.5 pr-2">
-                <Snowflake className="w-4 h-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-2 pr-2">
+                <Snowflake className="w-3.5 h-3.5 text-[#60a5fa] mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="text-xs font-bold text-white">
+                  <div className="text-xs font-semibold text-[var(--text-primary)]">
                     Luật Phạt Cóng (Cháy Bài)
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">
-                    Không ra được lá nào đền <strong className="text-[#f3e5ab]">{26 * currentMultiplier} lá</strong> ({congPenaltyAmount.toLocaleString()} Xu)
+                  <div className="text-[10px] text-[var(--text-muted)] mt-0.5 leading-tight">
+                    Không ra được lá nào đền <strong className="text-[var(--color-gold)]">{26 * currentMultiplier} lá</strong> ({congPenaltyAmount.toLocaleString()} Xu)
                   </div>
                 </div>
               </div>
-              <div className={`w-10 h-5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
-                config.congEnabled ? 'bg-[#d4af37]' : 'bg-slate-700'
+              <div className={`w-9 h-4.5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
+                config.congEnabled ? 'bg-[var(--color-gold)]' : 'bg-[var(--bg-container)] border border-[var(--border-container)]'
               }`}>
-                <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                  config.congEnabled ? 'translate-x-5' : 'translate-x-0'
+                <div className={`bg-[#0a0c0e] w-3.5 h-3.5 rounded-full shadow transform transition-transform ${
+                  config.congEnabled ? 'translate-x-4.5 bg-white' : 'translate-x-0'
                 }`} />
               </div>
             </div>
           )}
 
-          {/* Tới Trắng Tức Thì (Nếu bật) */}
+          {/* Tới Trắng Tức Thì */}
           {showInstantWin && (
             <div 
               onClick={() => onChange({ instantWinEnabled: !config.instantWinEnabled })}
-              className={`flex items-center justify-between p-3.5 rounded-xl border transition-all cursor-pointer ${
+              className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
                 config.instantWinEnabled 
-                  ? 'bg-[#182030] border-[#d4af37]/60 shadow-sm' 
-                  : 'bg-[#121724] border-white/5 hover:border-white/20'
+                  ? 'bg-[var(--bg-card)] border-[var(--color-gold-border)] shadow-sm' 
+                  : 'bg-[var(--bg-input)] border-[var(--border-container)] opacity-75'
               }`}
             >
-              <div className="flex items-start gap-2.5 pr-2">
-                <Crown className="w-4 h-4 text-[#d4af37] mt-0.5 flex-shrink-0" />
+              <div className="flex items-start gap-2 pr-2">
+                <Crown className="w-3.5 h-3.5 text-[var(--color-gold)] mt-0.5 flex-shrink-0" />
                 <div>
-                  <div className="text-xs font-bold text-white">
+                  <div className="text-xs font-semibold text-[var(--text-primary)]">
                     Tới Trắng Tức Thì
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">
+                  <div className="text-[10px] text-[var(--text-muted)] mt-0.5 leading-tight">
                     Sảnh rồng, 5 đôi thông, 6 đôi... ăn trắng ván đấu
                   </div>
                 </div>
               </div>
-              <div className={`w-10 h-5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
-                config.instantWinEnabled ? 'bg-[#d4af37]' : 'bg-slate-700'
+              <div className={`w-9 h-4.5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
+                config.instantWinEnabled ? 'bg-[var(--color-gold)]' : 'bg-[var(--bg-container)] border border-[var(--border-container)]'
               }`}>
-                <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                  config.instantWinEnabled ? 'translate-x-5' : 'translate-x-0'
+                <div className={`bg-[#0a0c0e] w-3.5 h-3.5 rounded-full shadow transform transition-transform ${
+                  config.instantWinEnabled ? 'translate-x-4.5 bg-white' : 'translate-x-0'
                 }`} />
               </div>
             </div>
@@ -730,12 +685,12 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
 
         {/* TỐC ĐỘ SUY NGHĨ CỦA BOT */}
         {showBotThinkDelay && config.botThinkDelayMs !== undefined && (
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-[#0e131f] border border-white/10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-container)]">
             <div>
-              <div className="text-xs font-bold text-white">Độ Trễ Nước Đi Của Bot (Bot Think Delay)</div>
-              <div className="text-[10px] text-slate-400">Thời gian nghỉ để người chơi quan sát nước đánh: <span className="text-[#f3e5ab] font-black">{config.botThinkDelayMs}ms</span></div>
+              <div className="text-xs font-semibold text-[var(--text-primary)]">Độ Trễ Nước Đi Của Bot</div>
+              <div className="text-[10px] text-[var(--text-muted)]">Thời gian quan sát nước đánh: <span className="text-[var(--color-gold)] font-bold">{config.botThinkDelayMs}ms</span></div>
             </div>
-            <div className="flex items-center gap-2 w-full sm:w-48">
+            <div className="flex items-center gap-2 w-full sm:w-44">
               <input
                 type="range"
                 min={300}
@@ -743,12 +698,12 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
                 step={50}
                 value={config.botThinkDelayMs}
                 onChange={(e) => onChange({ botThinkDelayMs: parseInt(e.target.value, 10) })}
-                className="w-full accent-[#d4af37] cursor-pointer"
+                className="w-full accent-[var(--color-gold)] cursor-pointer"
               />
             </div>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   );
 };

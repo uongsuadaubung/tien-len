@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PlayerProfile, savePlayerProfile } from '../../engine/storage';
-import { X, Landmark, AlertTriangle, ShieldCheck, HeartHandshake, DollarSign, Wallet, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Landmark, ShieldCheck, HeartHandshake, CheckCircle2 } from 'lucide-react';
+import { Modal, Card, Badge, Button } from '../primitives';
 
 interface BankruptcyModalProps {
   isOpen: boolean;
@@ -84,150 +85,140 @@ export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 select-none">
-      <div className="relative w-full max-w-lg bg-[#121724] rounded-2xl border border-[#d4af37]/40 shadow-2xl p-5 sm:p-6 text-white flex flex-col justify-between overflow-hidden max-h-[90vh]">
-        {/* Nút đóng */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-xl bg-[#182030] hover:bg-[#222c42] text-slate-400 hover:text-white transition-colors cursor-pointer border border-white/10"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Ngân Hàng & Quỹ Cứu Trợ"
+      subtitle="Vay vốn quay vòng hoặc nhận cứu trợ khi cạn kiệt Xu"
+      icon={<Landmark className="w-5 h-5 text-[var(--color-gold)]" />}
+      maxWidth="lg"
+      height="h-[88vh] sm:h-[640px]"
+      headerRight={
+        <Badge variant="neutral" size="md">
+          🪙 {profile.coins.toLocaleString()} Xu
+        </Badge>
+      }
+      footer={
+        <Button variant="surface" size="md" onClick={onClose}>
+          Đóng
+        </Button>
+      }
+    >
+      {/* Thông báo Thành công */}
+      {successMessage && (
+        <Card variant="card" className="p-3 border-emerald-500/50 text-xs font-bold text-emerald-300 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+          <span>{successMessage}</span>
+        </Card>
+      )}
 
-        {/* Header */}
-        <div className="flex items-center gap-3 pb-3 border-b border-white/10">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#d4af37] to-[#aa8620] flex items-center justify-center text-[#0a0d14] shadow font-black">
-            <Landmark className="w-6 h-6" />
+      {/* Tình Trạng Tài Chính */}
+      <div className="grid grid-cols-2 gap-2.5">
+        <Card variant="card" className="p-3">
+          <span className="text-[10px] uppercase font-bold text-[var(--text-muted)]">Số Dư Trong Ví</span>
+          <div className="text-base font-bold text-[var(--text-primary)] mt-0.5">
+            {profile.coins.toLocaleString()} 🪙
           </div>
-          <div>
-            <h2 className="text-lg sm:text-xl font-black text-[#f3e5ab] uppercase tracking-wide">
-              Ngân Hàng & Quỹ Cứu Trợ
-            </h2>
-            <p className="text-xs text-slate-400">Vay vốn quay vòng hoặc nhận cứu trợ khi cạn kiệt Xu</p>
+        </Card>
+
+        <Card variant="card" className="p-3">
+          <span className="text-[10px] uppercase font-bold text-[var(--text-muted)]">Dư Nợ Hiện Tại</span>
+          <div className="text-base font-bold text-[#f87171] mt-0.5">
+            {profile.loans.toLocaleString()} 🪙
           </div>
-        </div>
-
-        {/* Thông báo Thành công nếu có */}
-        {successMessage && (
-          <div className="mt-3 p-3 bg-emerald-950/90 border border-emerald-500/50 rounded-xl text-xs font-bold text-emerald-200 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-            <span>{successMessage}</span>
-          </div>
-        )}
-
-        {/* Body Content */}
-        <div className="flex-1 overflow-y-auto space-y-4 my-3 pr-1">
-          {/* Tình Trạng Tài Chính Hiện Tại */}
-          <div className="grid grid-cols-2 gap-2.5 p-3 rounded-xl bg-[#0a0d14] border border-white/5">
-            <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400">Số Dư Trong Ví</span>
-              <div className="text-base font-black text-[#f3e5ab] mt-0.5">
-                {profile.coins.toLocaleString()} 🪙
-              </div>
-            </div>
-            <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400">Tổng Dư Nợ Hiện Tại</span>
-              <div className="text-base font-black text-red-400 mt-0.5">
-                {profile.loans.toLocaleString()} 🪙
-              </div>
-            </div>
-          </div>
-
-          {/* 1. Gói Cứu Trợ Miễn Phí Mỗi Ngày */}
-          <div className="p-3.5 rounded-xl bg-[#182030] border border-emerald-500/30 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <HeartHandshake className="w-5 h-5 text-emerald-400" />
-                <span className="font-bold text-xs text-emerald-300">Cứu Trợ Khẩn Cấp Miễn Phí</span>
-              </div>
-              <span className="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/40 font-bold">
-                {MAX_RELIEF_PER_DAY - profile.dailyReliefClaimedCount}/{MAX_RELIEF_PER_DAY} lượt hôm nay
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-300">
-              Nhận ngay <strong className="text-[#f3e5ab] font-bold">100.000 Xu</strong> miễn phí không hoàn lại khi số dư dưới 100k Xu.
-            </p>
-            <button
-              onClick={handleClaimRelief}
-              disabled={!canClaimRelief}
-              className={`w-full py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                canClaimRelief
-                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow'
-                  : 'bg-[#0a0d14] text-slate-500 cursor-not-allowed border border-white/5'
-              }`}
-            >
-              <ShieldCheck className="w-4 h-4" />
-              <span>{canClaimRelief ? 'Nhận Cứu Trợ 100,000 Xu' : 'Chưa Đủ Điều Kiện Nhận'}</span>
-            </button>
-          </div>
-
-          {/* 2. Vay Vốn Ngân Hàng VIP */}
-          <div className="p-3.5 rounded-xl bg-[#182030] border border-[#d4af37]/30 space-y-3">
-            <div className="flex items-center gap-2">
-              <Landmark className="w-5 h-5 text-[#d4af37]" />
-              <span className="font-bold text-xs text-[#f3e5ab]">Vay Vốn Ngân Hàng Casino</span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              {LOAN_PACKAGES.map(pkg => (
-                <button
-                  key={pkg.amount}
-                  onClick={() => setLoanAmountToBorrow(pkg.amount)}
-                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
-                    loanAmountToBorrow === pkg.amount
-                      ? 'bg-[#d4af37]/20 border-[#d4af37] text-white'
-                      : 'bg-[#0a0d14] border-white/5 text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <div className="text-xs font-black text-[#f3e5ab]">+{pkg.amount.toLocaleString()} Xu</div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">{pkg.label} • {pkg.desc}</div>
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={handleBorrowLoan}
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#aa8620] hover:from-[#f3e5ab] hover:to-[#d4af37] text-[#0a0d14] font-black text-xs uppercase tracking-wider shadow cursor-pointer transition-all"
-            >
-              Vay Ngay +{loanAmountToBorrow.toLocaleString()} Xu
-            </button>
-          </div>
-
-          {/* 3. Thanh Toán Trả Nợ */}
-          {profile.loans > 0 && (
-            <div className="p-3.5 rounded-xl bg-red-950/40 border border-red-500/30 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-xs text-red-300">Thanh Toán Nợ Gốc</span>
-                <span className="text-xs font-black text-red-400">Nợ: {profile.loans.toLocaleString()} Xu</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => handleRepayDebt(0.5)}
-                  className="flex-1 py-1.5 rounded-lg bg-[#182030] hover:bg-[#222c42] border border-white/10 text-xs font-bold text-slate-300 cursor-pointer"
-                >
-                  Trả 50%
-                </button>
-                <button
-                  onClick={() => handleRepayDebt(1)}
-                  className="flex-1 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold shadow cursor-pointer"
-                >
-                  Tất Toán 100%
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="pt-3 border-t border-white/10 flex items-center justify-end">
-          <button
-            onClick={onClose}
-            className="px-5 py-2 rounded-xl bg-[#182030] hover:bg-[#222c42] text-slate-300 text-xs font-bold border border-white/10 cursor-pointer"
-          >
-            Đóng
-          </button>
-        </div>
+        </Card>
       </div>
-    </div>
+
+      {/* 1. Gói Cứu Trợ Miễn Phí */}
+      <Card variant="card" className="p-3.5 space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <HeartHandshake className="w-5 h-5 text-emerald-400" />
+            <span className="font-bold text-xs text-[var(--text-primary)]">Cứu Trợ Khẩn Cấp Miễn Phí</span>
+          </div>
+          <Badge variant="emerald" size="sm">
+            {MAX_RELIEF_PER_DAY - profile.dailyReliefClaimedCount}/{MAX_RELIEF_PER_DAY} Lượt Hôm Nay
+          </Badge>
+        </div>
+        <p className="text-[11px] text-[var(--text-muted)]">
+          Nhận ngay <strong className="text-[var(--color-gold)] font-bold">100.000 Xu</strong> miễn phí không hoàn lại khi số dư dưới 100k Xu.
+        </p>
+        <Button
+          variant={canClaimRelief ? 'emerald' : 'surface'}
+          size="md"
+          fullWidth
+          disabled={!canClaimRelief}
+          onClick={handleClaimRelief}
+          leftIcon={<ShieldCheck className="w-4 h-4" />}
+        >
+          {canClaimRelief ? 'Nhận Cứu Trợ 100,000 Xu' : 'Chưa Đủ Điều Kiện Nhận'}
+        </Button>
+      </Card>
+
+      {/* 2. Vay Vốn Ngân Hàng VIP */}
+      <Card variant="card" className="p-3.5 space-y-3">
+        <div className="flex items-center gap-2">
+          <Landmark className="w-5 h-5 text-[var(--color-gold)]" />
+          <span className="font-bold text-xs text-[var(--text-primary)]">Vay Vốn Ngân Hàng Casino</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          {LOAN_PACKAGES.map(pkg => {
+            const isSelected = loanAmountToBorrow === pkg.amount;
+            return (
+              <button
+                key={pkg.amount}
+                onClick={() => setLoanAmountToBorrow(pkg.amount)}
+                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-[var(--bg-card-active)] border-2 border-[var(--color-gold)] shadow-sm'
+                    : 'bg-[var(--bg-container)] border-[var(--border-container)] hover:border-white/20 text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                }`}
+              >
+                <div className="text-xs font-bold text-[var(--text-primary)]">+{pkg.amount.toLocaleString()} Xu</div>
+                <div className="text-[10px] text-[var(--text-muted)] mt-0.5">{pkg.label} • {pkg.desc}</div>
+              </button>
+            );
+          })}
+        </div>
+
+        <Button
+          variant="gold"
+          size="md"
+          fullWidth
+          onClick={handleBorrowLoan}
+        >
+          Vay Ngay +{loanAmountToBorrow.toLocaleString()} Xu
+        </Button>
+      </Card>
+
+      {/* 3. Thanh Toán Trả Nợ */}
+      {profile.loans > 0 && (
+        <Card variant="card" className="p-3.5 space-y-2 border-[var(--color-ruby-border)]">
+          <div className="flex items-center justify-between">
+            <span className="font-bold text-xs text-[#f87171]">Thanh Toán Nợ Gốc</span>
+            <span className="text-xs font-bold text-[#f87171]">Nợ: {profile.loans.toLocaleString()} Xu</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="surface"
+              size="sm"
+              className="flex-1"
+              onClick={() => handleRepayDebt(0.5)}
+            >
+              Trả 50%
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              className="flex-1"
+              onClick={() => handleRepayDebt(1)}
+            >
+              Tất Toán 100%
+            </Button>
+          </div>
+        </Card>
+      )}
+    </Modal>
   );
 };

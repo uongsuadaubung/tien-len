@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { GameSettlementRule } from '../../engine/types';
-import { X, Play, Sliders } from 'lucide-react';
+import { Play, Sliders } from 'lucide-react';
 import { TableRulesConfigPanel, TableConfigState } from './TableRulesConfigPanel';
+import { Modal, Button } from '../primitives';
 
 export interface QuickSetupConfig {
   playerCount: 2 | 3 | 4;
@@ -42,8 +43,6 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
     botThinkDelayMs: 800
   });
 
-  if (!isOpen) return null;
-
   const currentMultiplier = config.choppingMultiplier || 1;
   const depositRequired = 26 * config.betAmount * currentMultiplier;
   const isInsufficientCoins = playerCoins < depositRequired;
@@ -76,73 +75,52 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 select-none">
-      <div className="relative w-full max-w-2xl bg-[#121724] rounded-2xl border border-[#d4af37]/40 shadow-2xl p-5 sm:p-6 text-white flex flex-col justify-between overflow-hidden max-h-[90vh]">
-        {/* TIÊU ĐỀ MODAL & NÚT ĐÓNG */}
-        <div className="flex items-center justify-between gap-3 pb-3 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#d4af37] to-[#aa8620] flex items-center justify-center text-[#0a0d14] shadow flex-shrink-0">
-              <Sliders className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-black text-[#f3e5ab] uppercase tracking-wide flex items-center gap-2">
-                Cấu Hình Bàn Chơi Nhanh
-              </h2>
-              <p className="text-xs text-slate-400">Tùy chỉnh tiền cược, luật phạt và vào bàn chơi ngay</p>
-            </div>
-          </div>
-
-          {/* Nút đóng */}
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl bg-[#182030] hover:bg-[#222c42] text-slate-400 hover:text-white transition-colors cursor-pointer border border-white/10 flex-shrink-0 shadow"
-            title="Đóng modal"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* FORM THIẾT LẬP BÀN ĐẤU DÙNG CHUNG */}
-        <div className="flex-1 overflow-y-auto py-3 my-1 pr-1 space-y-4">
-          <TableRulesConfigPanel
-            playerCoins={playerCoins}
-            config={config}
-            onChange={handleConfigChange}
-            showBotThinkDelay={false}
-            showInstantWin={false}
-            showCongOption={true}
-          />
-        </div>
-
-        {/* NÚT BẮT ĐẦU VÁN ĐẤU */}
-        <div className="pt-3 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="text-xs text-slate-400 text-center sm:text-left">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Cấu Hình Bàn Chơi Nhanh"
+      subtitle="Tùy chỉnh tiền cược, luật phạt và vào bàn chơi ngay"
+      icon={<Sliders className="w-5 h-5 text-[var(--color-gold)]" />}
+      maxWidth="2xl"
+      height="h-[90vh] sm:h-[680px]"
+      footer={
+        <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="text-xs text-[var(--text-muted)] text-center sm:text-left">
             <span>Tiền cọc an toàn: </span>
-            <strong className="text-[#f3e5ab] font-bold">{depositRequired.toLocaleString()} Xu</strong>
+            <strong className="text-[var(--color-gold)] font-bold">{depositRequired.toLocaleString()} Xu</strong>
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button
+            <Button
+              variant="surface"
+              size="md"
               onClick={onClose}
-              className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-[#182030] hover:bg-[#222c42] border border-white/10 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+              className="flex-1 sm:flex-none"
             >
               Đóng
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="gold"
+              size="md"
               onClick={handleStart}
               disabled={isInsufficientCoins}
-              className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider shadow-md transition-all border ${
-                isInsufficientCoins
-                  ? 'bg-[#182030] text-slate-500 border-white/5 cursor-not-allowed opacity-60'
-                  : 'bg-gradient-to-r from-[#d4af37] to-[#aa8620] hover:from-[#e5c158] hover:to-[#be982d] text-[#0a0d14] hover:scale-105 active:scale-95 transition-all cursor-pointer border border-[#d4af37]'
-              }`}
+              leftIcon={<Play className="w-4 h-4 fill-current" />}
+              className="flex-1 sm:flex-none"
             >
-              <Play className="w-4 h-4 fill-current" />
               <span>{isInsufficientCoins ? 'Không Đủ Tiền Cọc' : 'Vào Bàn Chơi Ngay'}</span>
-            </button>
+            </Button>
           </div>
         </div>
-      </div>
-    </div>
+      }
+    >
+      <TableRulesConfigPanel
+        playerCoins={playerCoins}
+        config={config}
+        onChange={handleConfigChange}
+        showBotThinkDelay={false}
+        showInstantWin={false}
+        showCongOption={true}
+      />
+    </Modal>
   );
 };

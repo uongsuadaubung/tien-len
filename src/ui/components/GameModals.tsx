@@ -173,7 +173,6 @@ export const GameModals: React.FC<GameModalsProps> = ({
         onToggleAiHint={toggleAiHint}
         xrayEnabled={xrayEnabled}
         onToggleXRay={toggleXRay}
-        onOpenRules={() => openModal('RULES')}
       />
 
       {/* 8. X-Ray Inspector */}
