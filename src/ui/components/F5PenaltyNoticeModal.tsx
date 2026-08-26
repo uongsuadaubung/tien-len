@@ -35,27 +35,31 @@ export const F5PenaltyNoticeModal: React.FC = () => {
     >
       <div className="space-y-3">
         <Card variant="card" className="p-3.5 space-y-3 border-[var(--color-ruby-border)]">
-          {!isRanked ? (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-container)] border border-[var(--border-container)]">
-              <div>
-                <div className="text-xs font-bold text-[var(--text-primary)]">Tiền Cọc Bàn Bị Tịch Thu</div>
-                <div className="text-[10px] text-[var(--text-muted)]">Đền bù tiền Cóng cho bàn đấu</div>
+          <div className="space-y-2">
+            {depositLost > 0 && (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-container)] border border-[var(--border-container)]">
+                <div>
+                  <div className="text-xs font-bold text-[var(--text-primary)]">Tiền Cọc Bàn Bị Tịch Thu</div>
+                  <div className="text-[10px] text-[var(--text-muted)]">Đền bù tiền Cóng cho bàn đấu</div>
+                </div>
+                <Badge variant="danger" size="md">
+                  -{depositLost.toLocaleString()} Xu
+                </Badge>
               </div>
-              <Badge variant="danger" size="md">
-                -{depositLost.toLocaleString()} Xu
-              </Badge>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-container)] border border-[var(--border-container)]">
-              <div>
-                <div className="text-xs font-bold text-[var(--text-primary)]">Điểm Xếp Hạng Bị Trừ</div>
-                <div className="text-[10px] text-[var(--text-muted)]">Xử thua Hạng 4 Bét Bảng</div>
+            )}
+
+            {eloLost > 0 && (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-container)] border border-[var(--border-container)]">
+                <div>
+                  <div className="text-xs font-bold text-[var(--text-primary)]">Điểm Xếp Hạng Bị Trừ</div>
+                  <div className="text-[10px] text-[var(--text-muted)]">Xử thua Hạng 4 Bét Bảng</div>
+                </div>
+                <Badge variant="danger" size="md">
+                  -{eloLost} Elo
+                </Badge>
               </div>
-              <Badge variant="danger" size="md">
-                -{eloLost} Elo
-              </Badge>
-            </div>
-          )}
+            )}
+          </div>
 
           <div className="text-[11px] text-[var(--text-muted)] space-y-1">
             <p>• Đã ghi nhận <strong>+1 Trận Thua</strong> vào hồ sơ cá nhân.</p>

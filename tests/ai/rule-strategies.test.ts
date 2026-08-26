@@ -190,14 +190,14 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
         .build();
       expect(choppingNormal.getChoppingRiskFactor()).toBe(1.0);
 
-      const choppingUnderground = new ChoppingRuleStrategyBuilder()
+      const choppingHardcore = new ChoppingRuleStrategyBuilder()
         .allowFourPairsCutAnytime(true)
         .multiplier(2)
         .cascadeMultiplier(false)
         .build();
       // multiplier = 2 * 1.25 (allowFourPairsCutAnytime) = 2.5
-      expect(choppingUnderground.getChoppingRiskFactor()).toBe(2.5);
-      expect(choppingUnderground.getTrapScoreModifier()).toBe(40);
+      expect(choppingHardcore.getChoppingRiskFactor()).toBe(2.5);
+      expect(choppingHardcore.getTrapScoreModifier()).toBe(40);
 
       const choppingCascade = new ChoppingRuleStrategyBuilder()
         .allowFourPairsCutAnytime(true)
@@ -470,15 +470,14 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
     });
 
     it('GameRulesBuilder hỗ trợ Preset Profiles kế thừa và ghi đè linh hoạt', () => {
-      const undergroundCustom = GameRulesBuilder.underground()
+      const countCardsCustom = GameRulesBuilder.countCards()
         .withTable(t => t.betAmount(5000))
         .withGameFlow(f => f.threeSpadesEndingBonus(true))
         .build();
 
-      expect(undergroundCustom.settlementRule).toBe('CARD_COUNT');
-      expect(undergroundCustom.chopping.multiplier).toBe(2);
-      expect(undergroundCustom.table.betAmount).toBe(5000);
-      expect(undergroundCustom.gameFlow.threeSpadesEndingBonus).toBe(true);
+      expect(countCardsCustom.settlementRule).toBe('CARD_COUNT');
+      expect(countCardsCustom.table.betAmount).toBe(5000);
+      expect(countCardsCustom.gameFlow.threeSpadesEndingBonus).toBe(true);
 
       const soloRules = GameRulesBuilder.fromPreset('SOLO_1V1').build();
       expect(soloRules.table.playerCount).toBe(2);

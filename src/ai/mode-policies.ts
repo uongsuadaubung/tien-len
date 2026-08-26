@@ -33,12 +33,12 @@ export interface AIModePolicyStrategy {
 }
 
 /**
- * 1. Chế Độ Đếm Lá & Sòng Bạc Ngầm (Count Cards & Underground Policy)
+ * 1. Chế Độ Đếm Lá (Count Cards Policy)
  * Mục tiêu: Tốc độ xả bài tối đa (Card Dumping Velocity) để giảm thiểu tiền phạt khi có người về Nhất.
  */
 export class CountCardsAIModePolicy implements AIModePolicyStrategy {
   public readonly modeId = 'COUNT_CARDS';
-  public readonly modeName = 'Đếm Lá Sát Phạt & Sòng Bạc Ngầm';
+  public readonly modeName = 'Đếm Lá Sát Phạt';
   public readonly description = 'Ưu tiên xả Sảnh dài và Bộ nhiều lá trước để giảm nhanh số lá tồn, không om Heo quá muộn.';
 
   public getLeadPolicy(): LeadPolicy {
@@ -170,7 +170,6 @@ export function resolveAIModePolicy(gameMode?: string): AIModePolicyStrategy {
 
   switch (normalizedMode) {
     case 'COUNT_CARDS':
-    case 'UNDERGROUND':
       return COUNT_CARDS_POLICY;
 
     case 'WINNER_TAKES_ALL':
@@ -179,7 +178,6 @@ export function resolveAIModePolicy(gameMode?: string): AIModePolicyStrategy {
     case 'CAMPAIGN':
       return CAMPAIGN_POLICY;
 
-    case 'RANKED':
     case 'TRADITIONAL':
     case 'CUSTOM':
     case 'QUICK':

@@ -105,7 +105,7 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
     expect(payouts['p0']).toBe(18000);
   });
 
-  test('3. Chế độ Thế Giới Ngầm (UNDERGROUND): Đếm lá sát phạt x2 khốc liệt', () => {
+  test('3. Đếm lá sát phạt hệ số nhân x2: Phạt nhân đôi lá và thối heo x2', () => {
     const players: Player[] = [
       {
         id: 'p0',
@@ -145,7 +145,7 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
         name: 'Bà Son',
         avatar: '🦹‍♀️',
         isBot: true,
-        hand: parseCards('3D 4C 5C 6C 7C 8C 9C 10C JC QC KC AC 2D'), // Cóng thế giới ngầm: 52 x 500 = 26,000 + thối heo đỏ x2 = 2,000 = 28,000
+        hand: parseCards('3D 4C 5C 6C 7C 8C 9C 10C JC QC KC AC 2D'), // Cóng hệ số x2: 52 x 500 = 26,000 + thối heo đỏ x2 = 2,000 = 28,000
         playedCards: [],
         score: 50000,
         isPassedCurrentRound: false,
@@ -153,7 +153,7 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
       }
     ];
 
-    const payouts = calculateCountCardsSettlement(players, 'p0', BET, true);
+    const payouts = calculateCountCardsSettlement(players, 'p0', BET, 2);
 
     expect(payouts['p1']).toBe(-2000);
     expect(payouts['p2']).toBe(-2000);

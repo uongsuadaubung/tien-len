@@ -4,7 +4,7 @@ import { Settings, Eye, Volume2, VolumeX, RotateCcw, Home, BookOpen } from 'luci
 import { getRankTierByElo } from '../../engine/elo';
 import { Button, Badge } from '../primitives';
 
-export type ActiveGameType = 'QUICK' | 'RANKED' | 'CAMPAIGN' | 'UNDERGROUND';
+export type ActiveGameType = 'QUICK' | 'CAMPAIGN';
 
 interface HeaderBarProps {
   gameNumber: number;
@@ -43,9 +43,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
 
   const modeBadgeText = {
     QUICK: 'Chơi Nhanh',
-    RANKED: 'Đấu Hạng',
-    CAMPAIGN: 'Chiến Dịch',
-    UNDERGROUND: 'Sòng VIP'
+    CAMPAIGN: 'Chiến Dịch'
   }[activeGameType];
 
   return (
@@ -77,10 +75,12 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
             <span>Ván #{gameNumber}</span>
             <span>•</span>
-            {activeGameType === 'RANKED' ? (
-              <span className="text-[var(--color-gold)] font-semibold">Đua Rank Elo</span>
-            ) : (
-              <span>Cược: <strong className="text-[var(--text-primary)]">{betAmount.toLocaleString()} Xu</strong></span>
+            <span>Cược: <strong className="text-[var(--text-primary)]">{betAmount.toLocaleString()} Xu</strong></span>
+            {activeGameType === 'QUICK' && (
+              <>
+                <span>•</span>
+                <span className="text-[var(--color-gold)] font-semibold">{currentRank.badge} {currentRank.name}</span>
+              </>
             )}
           </div>
         </div>

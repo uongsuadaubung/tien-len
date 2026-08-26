@@ -16,7 +16,7 @@ import { MoveHint } from '../ai/hint-engine';
 import { ECONOMY_CONSTANTS } from '../engine/constants/economy';
 import { MatchLogReport } from '../engine/match-logger';
 
-export type ActiveGameType = 'QUICK' | 'RANKED' | 'CAMPAIGN' | 'UNDERGROUND';
+export type ActiveGameType = 'QUICK' | 'CAMPAIGN';
 export type ScreenType = 'LOBBY' | 'GAME_TABLE';
 
 export type HandSortMode = 'NATURAL' | 'SMART_GROUP';
@@ -255,11 +255,15 @@ export const useGameStore = create<GameState>((set) => ({
   setChopNotification: (notif) => set({ chopNotification: notif }),
   setQuestToast: (toast) => set({ questToast: toast }),
 
-  setPlayers: (players) => set({ players }),
+  setPlayers: (players) => set({
+    players: players.map(p => ({ ...p, hand: [...p.hand], playedCards: [...p.playedCards] }))
+  }),
   setCurrentTurnPlayerId: (id) => set({ currentTurnPlayerId: id }),
   setLeadPlayerId: (id) => set({ leadPlayerId: id }),
   setCurrentMove: (move) => set({ currentMove: move }),
-  setWinners: (winners) => set({ winners }),
+  setWinners: (winners) => set({
+    winners: winners.map(p => ({ ...p, hand: [...p.hand], playedCards: [...p.playedCards] }))
+  }),
   setIsGameOver: (gameOver) => set({ isGameOver: gameOver }),
   setInstantWinType: (type) => set({ instantWinType: type }),
   setIsThreeSpadesWin: (win) => set({ isThreeSpadesWin: win }),

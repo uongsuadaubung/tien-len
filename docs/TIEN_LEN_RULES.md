@@ -101,7 +101,7 @@ Xử thắng ngay sau khi chia bài mà không cần đánh ván đấu:
 ### 5.5. Luật Về 3 Bích Cuối Cùng (`threeSpadesEndingBonus` / Ăn 3 Bích)
 - **Định nghĩa**: Ở các ván thứ 2 trở đi (không áp dụng ván đầu vì ván đầu bắt buộc ra 3 Bích trước), nếu người chơi về Nhất bằng **lá đơn 3 Bích ($3\spadesuit$)** ở nước đi dứt điểm, người đó kích hoạt chiến thắng **Ăn 3 Bích**.
 - **Cơ chế nhân thưởng kinh tế**:
-  - **Đếm Lá / Thế Giới Ngầm**: Nhân đôi ($2\times$) toàn bộ số tiền phạt đếm lá từ tất cả người thua.
+  - **Đếm Lá**: Nhân đôi ($2\times$) toàn bộ số tiền phạt đếm lá từ tất cả người thua.
   - **Nhất Ăn Tất**: Mỗi người thua mất gấp đôi tiền cược cho người về Nhất.
   - **Truyền Thống**: Nhân đôi ($2\times$) tiền thắng Nhất từ các người thua.
 
@@ -109,20 +109,13 @@ Xử thắng ngay sau khi chia bài mà không cần đánh ván đấu:
 
 ## 6. CƠ CHẾ TÍNH ĐIỂM THEO CHẾ ĐỘ CHƠI (GAME MODES SETTLEMENT)
 
-### 6.1. Chế độ Truyền Thống (Traditional)
-- Đánh đến khi xác định đủ 4 thứ hạng Nhất, Nhì, Ba, Bét.
-- Tiền thưởng/phạt: Nhất ($+2.0\times$), Nhì ($+1.0\times$), Ba ($-1.0\times$), Bét ($-2.0\times$).
+### 6.1. Chế độ Chơi Nhanh & Đấu Hạng (Quick Play & Ranked)
+- Tự động ghép đối thủ Bot theo bậc Elo hiện tại của người chơi.
+- Tùy chọn luật bàn chơi:
+  - **Đếm Lá (Count Cards)**: Ngay khi 1 người hết bài (về Nhất), ván đấu dừng lập tức. Tiền phạt: $\text{Số lá bài còn lại} \times \text{Mức cược} \times \text{Hệ số phạt}$.
+  - **Nhất Ăn Tất (Winner Takes All)**: Người về Nhất gom toàn bộ tổng tiền cược của người thua trong bàn.
+  - **Truyền Thống (Traditional)**: Đánh đến khi xác định đủ thứ tự Nhất, Nhì, Ba, Bét (Nhất $+2\times$, Nhì $+1\times$, Ba $-1\times$, Bét $-2\times$).
+- Biến động điểm xếp hạng Elo chuẩn FIDE được cập nhật sau mỗi ván đấu.
 
-### 6.2. Chế độ Đếm Lá Sát Phạt (Count Cards)
-- Ngay khi 1 người hết bài (về Nhất), ván đấu dừng lập tức.
-- Tiền phạt của mỗi người thua: $\text{Số lá bài còn lại trên tay} \times \text{Mức cược}$.
-
-### 6.3. Chế độ Nhất Ăn Tất (Winner Takes All)
-- Ngay khi 1 người về Nhất, người đó gom toàn bộ tổng tiền cược của tất cả người chơi trong bàn.
-
-### 6.4. Chế độ Sòng Bạc Ngầm (Underground Casino)
-- Đếm lá sát phạt hệ số nhân đôi ($\times 2.0$).
-- Cho phép vay nợ nóng chợ đen khi hết tiền và tự động trích nợ $10\%$ mỗi ván thắng.
-
-### 6.5. Chế độ Bản Đồ Chiến Dịch (Campaign Mode)
-- Đánh vượt ải 5 Chương theo phong cách RPG. 0 phạt đếm lá khi thua, thưởng Xu và Danh hiệu khi thắng ải.
+### 6.2. Chế độ Bản Đồ Chiến Dịch (Campaign Mode)
+- Đánh vượt ải 10 Chương theo cốt truyện. Không bị trừ tiền đếm lá khi thua, thưởng Xu và Danh hiệu khi thắng ải.

@@ -22,7 +22,6 @@ interface LobbyHubProps {
   profile: PlayerProfile;
   onOpenQuickSetup: () => void;
   onOpenCustomGameModal: () => void;
-  onOpenRanked: () => void;
   onOpenCampaign: () => void;
   onOpenQuests: () => void;
   onOpenLuckyWheel: () => void;
@@ -36,7 +35,6 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
   profile,
   onOpenQuickSetup,
   onOpenCustomGameModal,
-  onOpenRanked,
   onOpenCampaign,
   onOpenQuests,
   onOpenLuckyWheel,
@@ -191,13 +189,13 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
       <main className="relative z-10 w-full max-w-6xl mx-auto my-auto py-3 space-y-6">
         
         {/* ========================================================================= */}
-        {/* HÀNG 1: SÒNG BẠC CHƠI NHANH (HERO CONTAINER TIER 1) */}
+        {/* HÀNG 1: SÒNG BẠC CHƠI NHANH & ĐẤU HẠNG (HERO CONTAINER TIER 1) */}
         {/* ========================================================================= */}
         <section className="space-y-3">
           <SectionHeader
             icon={<Flame />}
-            title="Sòng Bạc Sát Phạt Tự Do"
-            subtitle="Vào bàn tức thì • Cược linh hoạt • Phạt chặt nhân tới x5"
+            title="Sòng Bạc Chơi Nhanh & Đấu Hạng"
+            subtitle="Ghép đối thủ tự động theo Bậc Rank • Thắng cược Xu & Tăng hạng Elo"
           />
 
           {/* HERO CARD: TIER 1 CONTAINER */}
@@ -217,34 +215,37 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] group-hover:text-white transition-colors">
-                      Sòng Bạc Chơi Nhanh
+                      Chơi Nhanh &amp; Đấu Hạng
                     </h3>
-                    <Badge variant="gold" size="sm">Phổ Biến Nhất</Badge>
+                    <Badge variant="gold" size="sm">Cốt Lõi</Badge>
                   </div>
                   <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1.5 leading-relaxed">
-                    Tùy chỉnh nhanh số người (2-4), cược từ 500 Xu (hoặc tự do tùy chọn), phạt chặt nhân từ x1 đến x5, đếm lá sát phạt hoặc nhất ăn tất.
+                    Tự động ghép 3 Bot theo bậc <strong className="text-[var(--color-gold)]">{currentRank.badge} {currentRank.name} ({profile.elo} Elo)</strong>. Ăn thua tiền cược Xu và tích lũy điểm Elo leo hạng!
                   </p>
                 </div>
               </div>
 
-              {/* Nút tùy chỉnh chuyên sâu */}
+              {/* Nút tùy chỉnh nhanh */}
               <Button
                 variant="surface"
                 size="md"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onOpenCustomGameModal();
+                  onOpenQuickSetup();
                 }}
                 leftIcon={<Sliders className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
-                title="Tùy chỉnh chuyên sâu từng Bot AI và luật chơi"
+                title="Tùy chỉnh tiền cược và luật phạt"
               >
-                <span>Tùy Chỉnh Nâng Cao</span>
+                <span>Cấu Hình Bàn</span>
               </Button>
             </div>
 
             {/* Dải Tags & CTA */}
             <div className="pt-4 mt-4 border-t border-[var(--border-container)] flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="gold" size="md">
+                  {currentRank.badge} {currentRank.name} ({profile.elo} Elo)
+                </Badge>
                 <Badge variant="neutral" size="md">
                   💰 Cược: 500+ Xu
                 </Badge>
@@ -268,54 +269,18 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
         </section>
 
         {/* ========================================================================= */}
-        {/* HÀNG 2: CHINH PHỤC & ĐẤU TRÍ (2 THẺ LỚN TIER 1) */}
+        {/* HÀNG 2: CHẾ ĐỘ MỞ RỘNG (2 THẺ LỚN TIER 1) */}
         {/* ========================================================================= */}
         <section className="space-y-3">
           <SectionHeader
             icon={<Trophy />}
-            title="Chinh Phục & Đấu Trí"
-            subtitle="Leo hạng Elo • Vượt ải cốt truyện"
+            title="Chế Độ Mở Rộng"
+            subtitle="Vượt ải cốt truyện • Tùy chỉnh bàn chơi nâng cao"
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             
-            {/* 1. ĐẤU HẠNG ELO */}
-            <Card 
-              variant="container"
-              hoverable
-              clickable
-              onClick={onOpenRanked}
-              className="group p-5 sm:p-6 flex flex-col justify-between"
-            >
-              <div className="flex items-start justify-between">
-                <div className="w-12 h-12 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--color-gold)] shadow-sm group-hover:border-[var(--border-gold)] transition-colors">
-                  <Trophy className="w-6 h-6" />
-                </div>
-                <Badge variant="neutral" size="sm">Bàn VIP Elo</Badge>
-              </div>
-
-              <div className="my-4">
-                <h3 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] group-hover:text-white transition-colors">
-                  Đấu Hạng Elo
-                </h3>
-                <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-2 leading-relaxed">
-                  Đấu trường thuần kỹ năng (không tốn Xu). Ghép 3 Bot cùng trình độ Elo, leo hạng từ Tân Thủ lên Thần Bài để nhận thưởng lớn!
-                </p>
-              </div>
-
-              <div className="pt-4 border-t border-[var(--border-container)] flex items-center justify-between">
-                <span className="text-xs font-semibold text-[var(--text-secondary)]">Cược: 0 Xu • Tính Điểm Elo</span>
-                <Button
-                  variant="surface"
-                  size="sm"
-                  rightIcon={<ArrowRight className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
-                >
-                  Ghép Trận Rank
-                </Button>
-              </div>
-            </Card>
-
-            {/* 2. CHIẾN DỊCH CỐT TRUYỆN */}
+            {/* 1. CHIẾN DỊCH CỐT TRUYỆN */}
             <Card 
               variant="container"
               hoverable
@@ -347,6 +312,42 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
                   rightIcon={<ArrowRight className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
                 >
                   Vào Bản Đồ Ải
+                </Button>
+              </div>
+            </Card>
+
+            {/* 2. TÙY CHỈNH NÂNG CAO (SANDBOX) */}
+            <Card 
+              variant="container"
+              hoverable
+              clickable
+              onClick={onOpenCustomGameModal}
+              className="group p-5 sm:p-6 flex flex-col justify-between"
+            >
+              <div className="flex items-start justify-between">
+                <div className="w-12 h-12 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--color-gold)] shadow-sm group-hover:border-[var(--border-gold)] transition-colors">
+                  <Sliders className="w-6 h-6" />
+                </div>
+                <Badge variant="neutral" size="sm">Sandbox</Badge>
+              </div>
+
+              <div className="my-4">
+                <h3 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] group-hover:text-white transition-colors">
+                  Tùy Chỉnh Nâng Cao
+                </h3>
+                <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-2 leading-relaxed">
+                  Tự do chọn đối thủ từng Bot AI, tinh chỉnh độ khó, thuật toán suy luận, luật đếm lá, cóng, phạt chặt và mức cược.
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-[var(--border-container)] flex items-center justify-between">
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Tùy Biến 100% Luật &amp; Bot</span>
+                <Button
+                  variant="surface"
+                  size="sm"
+                  rightIcon={<ArrowRight className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
+                >
+                  Tùy Chỉnh
                 </Button>
               </div>
             </Card>

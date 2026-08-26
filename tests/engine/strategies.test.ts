@@ -1,9 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { 
   TraditionalModeStrategy,
-  RankedModeStrategy,
   CountCardsModeStrategy,
-  UndergroundModeStrategy,
   CampaignModeStrategy,
   WinnerTakesAllModeStrategy,
   resolveStrategyForMatch,
@@ -78,29 +76,11 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
     expect(result.payouts['p1']).toBe(500);
     expect(result.payouts['p2']).toBe(-1000);
     expect(result.payouts['p3']).toBe(-15500);
-    expect(result.isVictoryModalRanked).toBe(false);
-  });
-
-  test('2. RankedModeStrategy: Thuần kỹ năng, 0 Xu cược, tính Elo', () => {
-    const strategy = new RankedModeStrategy();
-    const players = createSamplePlayers();
-    const winners = [players[0], players[1], players[2], players[3]]; // p0 về Nhất
-
-    expect(strategy.isFreeToPlay).toBe(true);
-    const result = strategy.settleMatch({
-      players,
-      winners,
-      betAmount: 0,
-      playerElo: 1200
-    });
-
-    expect(result.payouts['p0']).toBe(500); // Về Nhất được thưởng 500 Xu
-    expect(result.payouts['p1']).toBe(0);
-    expect(result.eloDelta).toBeGreaterThan(0); // Về Nhất được cộng Elo
     expect(result.isVictoryModalRanked).toBe(true);
+    expect(result.eloDelta).toBeGreaterThan(0);
   });
 
-  test('3. CountCardsModeStrategy: 1 người hết bài là dừng, đếm lá thường', () => {
+  test('2. CountCardsModeStrategy: 1 người hết bài là dừng, đếm lá thường', () => {
     const strategy = new CountCardsModeStrategy();
     const players = createSamplePlayers();
     const winners = [players[0]]; // p0 về Nhất
@@ -119,35 +99,11 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
     expect(result.payouts['p3']).toBe(-14000);
     // p0: Ăn trọn 1,000 + 2,000 + 14,000 = +17,000
     expect(result.payouts['p0']).toBe(17000);
+    expect(result.isVictoryModalRanked).toBe(true);
+    expect(result.eloDelta).toBeGreaterThan(0);
   });
 
-  test('4. UndergroundModeStrategy: 1 người hết bài là dừng, đếm lá sát phạt x2 và trích nợ 10%', () => {
-    const strategy = new UndergroundModeStrategy();
-    const players = createSamplePlayers();
-    const winners = [players[0]];
-
-    const result = strategy.settleMatch({
-      players,
-      winners,
-      betAmount: BET,
-      isBankLoanActive: true
-    });
-
-    // Sát phạt x2:
-    // Bot 1: 4 lá x 500 = -2,000
-    expect(result.payouts['p1']).toBe(-2000);
-    // Bot 2: 6 lá x 500 + thối heo đen x2 (1,000) = -4,000
-    expect(result.payouts['p2']).toBe(-4000);
-    // Bot 3: Cóng x2 52 x 500 (26,000) + thối heo đỏ x2 (2,000) = -28,000
-    expect(result.payouts['p3']).toBe(-28000);
-
-    // Tổng tiền thắng thô: 2,000 + 4,000 + 28,000 = 34,000
-    // Trích 10% trả nợ: 3,400 xu
-    expect(result.loanDeduction).toBe(3400);
-    expect(result.payouts['p0']).toBe(30600); // 34,000 - 3,400
-  });
-
-  test('5. CampaignModeStrategy: 1 người hết bài là dừng, 0 phạt đếm lá, nhận thưởng ải khi thắng', () => {
+  test('3. CampaignModeStrategy: 1 người hết bài là dừng, 0 phạt đếm lá, nhận thưởng ải khi thắng', () => {
     const strategy = new CampaignModeStrategy();
     const players = createSamplePlayers();
     const winners = [players[0]]; // p0 về Nhất
@@ -168,7 +124,7 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
     expect(result.campaignReward).toBe(5000);
   });
 
-  test('6. WinnerTakesAllModeStrategy: 1 người về Nhất gom trọn cược cơ bản của cả bàn', () => {
+  test('4. WinnerTakesAllModeStrategy: 1 người về Nhất gom trọn cược cơ bản của cả bàn', () => {
     const strategy = new WinnerTakesAllModeStrategy();
     const players = createSamplePlayers();
     const winners = [players[0]];
@@ -178,6 +134,9 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       winners,
       betAmount: BET
     });
+
+    expect(result.isVictoryModalRanked).toBe(true);
+    expect(result.eloDelta).toBeGreaterThan(0);
 
     // Bot 1: -500
     expect(result.payouts['p1']).toBe(-500);
@@ -189,16 +148,14 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
     expect(result.payouts['p0']).toBe(16000);
   });
 
-  test('7. Strategy Resolver Factory: Định vị đúng Strategy cho từng chế độ game', () => {
-    expect(resolveStrategyForMatch('RANKED').id).toBe('RANKED');
-    expect(resolveStrategyForMatch('UNDERGROUND').id).toBe('UNDERGROUND');
+  test('5. Strategy Resolver Factory: Định vị đúng Strategy cho từng chế độ game', () => {
     expect(resolveStrategyForMatch('CAMPAIGN').id).toBe('CAMPAIGN');
     expect(resolveStrategyForMatch('QUICK', 'COUNT_CARDS').id).toBe('COUNT_CARDS');
     expect(resolveStrategyForMatch('QUICK', 'WINNER_TAKES_ALL').id).toBe('WINNER_TAKES_ALL');
     expect(resolveStrategyForMatch('QUICK', 'TRADITIONAL').id).toBe('TRADITIONAL');
   });
 
-  test('8. Strategy Setup Match: Khởi tạo chính xác cấu hình, bot và người chơi cho từng chế độ', () => {
+  test('6. Strategy Setup Match: Khởi tạo chính xác cấu hình, bot và người chơi cho từng chế độ', () => {
     const mockProfile = {
       name: 'Cao Thủ Sài Gòn',
       avatar: '🤠',
@@ -224,25 +181,17 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       dailyMilestonesClaimed: { 1: false, 3: false, 5: false }
     };
 
-    // 1. Underground Mode Setup
-    const undergroundStrat = new UndergroundModeStrategy();
-    const ugSetup = undergroundStrat.setupMatch({ profile: mockProfile, undergroundBetAmount: 2000 });
-    expect(ugSetup.settings.mode).toBe('COUNT_CARDS');
-    expect(ugSetup.settings.betAmount).toBe(2000);
-    expect(ugSetup.playerCount).toBe(4);
-    expect(ugSetup.initialPlayers.length).toBe(4);
-    expect(ugSetup.initialPlayers[0].name).toBe('Cao Thủ Sài Gòn');
-    expect(ugSetup.botPersonaIds.length).toBe(3);
+    // 1. Traditional Quick Setup
+    const tradStrat = new TraditionalModeStrategy();
+    const tradSetup = tradStrat.setupMatch({ profile: mockProfile, customSettings: { betAmount: 2000 } });
+    expect(tradSetup.settings.mode).toBe('TRADITIONAL');
+    expect(tradSetup.settings.betAmount).toBe(2000);
+    expect(tradSetup.playerCount).toBe(4);
+    expect(tradSetup.initialPlayers.length).toBe(4);
+    expect(tradSetup.initialPlayers[0].name).toBe('Cao Thủ Sài Gòn');
+    expect(tradSetup.botPersonaIds.length).toBe(3);
 
-    // 2. Ranked Mode Setup
-    const rankedStrat = new RankedModeStrategy();
-    const rkSetup = rankedStrat.setupMatch({ profile: mockProfile });
-    expect(rkSetup.settings.mode).toBe('TRADITIONAL');
-    expect(rkSetup.settings.betAmount).toBe(0);
-    expect(rkSetup.playerCount).toBe(4);
-    expect(rkSetup.initialPlayers[0].score).toBe(50000);
-
-    // 3. Count Cards Mode Setup (Solo 1v1)
+    // 2. Count Cards Mode Setup (Solo 1v1)
     const countCardsStrat = new CountCardsModeStrategy();
     const ccSetup = countCardsStrat.setupMatch({ profile: mockProfile, playerCount: 2, customSettings: { betAmount: 1000 } });
     expect(ccSetup.settings.mode).toBe('COUNT_CARDS');
@@ -251,10 +200,10 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
     expect(ccSetup.initialPlayers.length).toBe(2);
   });
 
-  test('9. GameEngine Lifecycle: Bot về Nhất trong Thế Giới Ngầm & Đếm Lá kết thúc ván ngay lập tức', () => {
+  test('7. GameEngine Lifecycle: Bot về Nhất trong Đếm Lá kết thúc ván ngay lập tức', () => {
     const { GameEngine } = require('../../src/engine/game');
     
-    // --- KỊCH BẢN 1: THẾ GIỚI NGẦM (UNDERGROUND) ---
+    // --- KỊCH BẢN 1: ĐẾM LÁ (COUNT_CARDS) ---
     const ugPlayers: Player[] = [
       { id: 'p0', name: 'Player', avatar: '🤠', isBot: false, hand: parseCards('4D 5D 6D'), playedCards: [], score: 10000, isPassedCurrentRound: false, hasPlayedFirstCard: true },
       { id: 'p1', name: 'Bot 1', avatar: '🤖', isBot: true, hand: parseCards('9S'), playedCards: [], score: 10000, isPassedCurrentRound: false, hasPlayedFirstCard: true },
@@ -262,7 +211,7 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       { id: 'p3', name: 'Bot 3', avatar: '🤖', isBot: true, hand: parseCards('10D JD QD'), playedCards: [], score: 10000, isPassedCurrentRound: false, hasPlayedFirstCard: true }
     ];
 
-    const ugEngine = new GameEngine(ugPlayers, { mode: 'COUNT_CARDS', betAmount: 1000 }, 'UNDERGROUND');
+    const ugEngine = new GameEngine(ugPlayers, { mode: 'COUNT_CARDS', betAmount: 1000 }, 'QUICK');
     ugEngine.startCustomGame(2);
     ugEngine.isFirstMoveOfGame = false;
     ugEngine.currentRound.currentTurnPlayerId = 'p1';
@@ -337,7 +286,7 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
     expect(tradEngine.winners.length).toBe(1);
   });
 
-  test('10. Modular Composable Rules: Tự do kết hợp các module luật độc lập', () => {
+  test('8. Modular Composable Rules: Tự do kết hợp các module luật độc lập', () => {
     const { GameEngine } = require('../../src/engine/game');
     const { createDefaultGameRules } = require('../../src/engine/types');
 

@@ -64,27 +64,31 @@ export const ConfirmForfeitModal: React.FC<ConfirmForfeitModalProps> = ({ onConf
             )}
           </div>
 
-          {!isRanked ? (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-container)] border border-[var(--border-container)]">
-              <div>
-                <div className="text-xs font-bold text-[var(--text-primary)]">Mất Tiền Cọc Bàn Đấu</div>
-                <div className="text-[10px] text-[var(--text-muted)]">Đền phạt Cóng theo quy định</div>
+          <div className="space-y-2">
+            {depositAmount > 0 && (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-container)] border border-[var(--border-container)]">
+                <div>
+                  <div className="text-xs font-bold text-[var(--text-primary)]">Mất Tiền Cọc Bàn Đấu</div>
+                  <div className="text-[10px] text-[var(--text-muted)]">Đền phạt Cóng theo quy định</div>
+                </div>
+                <Badge variant="danger" size="md">
+                  -{depositAmount.toLocaleString()} Xu
+                </Badge>
               </div>
-              <Badge variant="danger" size="md">
-                -{depositAmount.toLocaleString()} Xu
-              </Badge>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-container)] border border-[var(--border-container)]">
-              <div>
-                <div className="text-xs font-bold text-[var(--text-primary)]">Phạt Điểm Rank (Elo)</div>
-                <div className="text-[10px] text-[var(--text-muted)]">Xử thua Hạng 4 Bét Bảng</div>
+            )}
+
+            {eloPenalty > 0 && (
+              <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-container)] border border-[var(--border-container)]">
+                <div>
+                  <div className="text-xs font-bold text-[var(--text-primary)]">Phạt Điểm Rank (Elo)</div>
+                  <div className="text-[10px] text-[var(--text-muted)]">Xử thua Hạng 4 Bét Bảng</div>
+                </div>
+                <Badge variant="danger" size="md">
+                  -{eloPenalty} Elo
+                </Badge>
               </div>
-              <Badge variant="danger" size="md">
-                -{eloPenalty} Elo
-              </Badge>
-            </div>
-          )}
+            )}
+          </div>
 
           <div className="text-[11px] text-[var(--text-muted)] flex items-center gap-1.5">
             <AlertTriangle className="w-3.5 h-3.5 text-[var(--color-gold)] shrink-0" />

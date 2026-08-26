@@ -74,9 +74,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 }) => {
   const matchReport = MatchLogger.getInstance().getLatestFinalizedReport();
   const isHumanWinner = winners.length > 0 && winners[0].id === 'p0';
-  const isRanked = activeGameType === 'RANKED';
   const isCampaign = activeGameType === 'CAMPAIGN';
-  const isUnderground = activeGameType === 'UNDERGROUND';
   const isCountCards = matchReport?.gameMode === 'COUNT_CARDS';
   const isWinnerTakesAll = matchReport?.gameMode === 'WINNER_TAKES_ALL';
 
@@ -177,36 +175,17 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
       secondaryBtnIcon = <Map className="w-4 h-4" />;
       secondaryBtnAction = onOpenCampaignMap || onReturnToLobby;
     }
-  } else if (isRanked) {
-    modalIcon = isHumanWinner ? '🎖️' : '📉';
+  } else {
+    // Chế độ Chơi Nhanh & Đấu Hạng Tích Hợp
     const rankTier = getRankTierByElo(playerElo);
-    modalTitle = isHumanWinner ? 'CHIẾN THẮNG ĐẤU HẠNG' : 'KẾT THÚC ĐẤU HẠNG';
-    modalSubtitle = `Điểm Rank hiện tại: ${playerElo} Elo (${rankTier.name})`;
+    const eloDeltaText = eloDelta > 0 ? `+${eloDelta}` : `${eloDelta}`;
+    modalIcon = isHumanWinner ? '🏆' : (eloDelta < 0 ? '📉' : '💥');
+    modalTitle = isHumanWinner ? 'CHIẾN THẮNG TRẬN ĐẤU!' : 'KẾT THÚC VÁN ĐẤU';
+    modalSubtitle = `Bậc Rank: ${rankTier.badge} ${rankTier.name} (${playerElo} Elo)`;
 
-    statBox1Title = 'ĐIỂM ELO NHẬN ĐƯỢC';
-    statBox1Value = eloDelta > 0 ? `+${eloDelta} Elo` : `${eloDelta} Elo`;
-    statBox1Sub = `Xếp hạng hiện tại: ${rankTier.name}`;
-
-    statBox2Title = 'BẬC CAO THỦ';
-    statBox2Value = `${rankTier.name} (${playerElo} Elo)`;
-    statBox2Sub = rankTier.description;
-  } else if (isUnderground) {
-    modalIcon = isHumanWinner ? '💰' : '💸';
-    modalTitle = isHumanWinner ? 'THẮNG LỚN SÒNG ĐEN!' : 'THUA SÒNG ĐEN';
-    modalSubtitle = isHumanWinner 
-      ? 'Bạn đã vét sạch túi của các đối thủ tại Sòng Đen Chợ Lớn!' 
-      : 'Không có sự khoan nhượng tại Sòng Đen!';
-    statBox2Title = 'SÒNG ĐEN CHỢ LỚN';
-    statBox2Value = `Mức cược ${betAmount.toLocaleString()} Xu`;
-    statBox2Sub = 'Luật đền Cóng x2, Thối heo x2';
-  } else if (isCountCards) {
-    statBox2Title = 'CHẾ ĐỘ ĐẾM LÁ';
-    statBox2Value = `Cược ${betAmount.toLocaleString()} Xu/Lá`;
-    statBox2Sub = isHumanWinner ? 'Về nhất ăn trọn số lá của cả làng' : 'Thua tính theo số lá còn lại';
-  } else if (isWinnerTakesAll) {
-    statBox2Title = 'NHẤT ĂN TẤT';
-    statBox2Value = `Cược ${betAmount.toLocaleString()} Xu`;
-    statBox2Sub = isHumanWinner ? 'Về nhất ăn toàn bộ tiền cược' : 'Chỉ có 1 người duy nhất chiến thắng';
+    statBox2Title = 'BẬC RANK & ELO';
+    statBox2Value = `${rankTier.badge} ${rankTier.name} (${eloDeltaText})`;
+    statBox2Sub = `Tổng điểm: ${playerElo} Elo • Cược ${betAmount.toLocaleString()} Xu`;
   }
 
   // TỚI TRẮNG (INSTANT WIN)
@@ -304,7 +283,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                 {statBox1Sub}
               </span>
             )}
-            {loanDeduction > 0 && !isUnderground && (
+            {loanDeduction > 0 && (
               <span className="text-[10px] text-[var(--color-gold)] block mt-0.5">
                 (Đã trừ {loanDeduction.toLocaleString()} Xu trả nợ)
               </span>
@@ -352,14 +331,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                 </div>
 
                 <div className="text-right">
-                  {!isCampaign && !isRanked && netPay !== undefined && (
+                  {!isCampaign && netPay !== undefined && (
                     <div className={`font-bold text-xs sm:text-sm ${netPay > 0 ? 'text-[var(--color-gold)]' : netPay < 0 ? 'text-[#f87171]' : 'text-[var(--text-muted)]'}`}>
                       {netPay > 0 ? `+${netPay.toLocaleString()}` : netPay < 0 ? `${netPay.toLocaleString()}` : '0'} 🪙
-                    </div>
-                  )}
-                  {isRanked && (
-                    <div className="text-[10px] font-bold text-[var(--color-gold)]">
-                      Hạng {idx + 1}
                     </div>
                   )}
                   {isCampaign && (

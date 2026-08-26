@@ -85,7 +85,7 @@ describe('Economy & Hardcore Penalties (Kinh Tế & Trừng Phạt Cược Lớn
     expect(profitableRate).toBeLessThan(0.37);
   });
 
-  test('Chặt 1 Heo Đen vs Heo Đỏ bình thường vs Thế Giới Ngầm', () => {
+  test('Chặt 1 Heo Đen vs Heo Đỏ bình thường vs Hệ số nhân phạt x2', () => {
     const blackTwo = parseCard('2S')!;
     const redTwo = parseCard('2H')!;
 
@@ -94,16 +94,16 @@ describe('Economy & Hardcore Penalties (Kinh Tế & Trừng Phạt Cược Lớn
     const threePairs: Combination = { type: 'THREE_PAIRS_SEQUENTIAL', length: 6, cards: parseCards('3S 3D 4S 4D 5S 5D'), highestCard: parseCard('5D')! };
 
     // Heo đen bàn thường: 1x cược (1,000)
-    const chopBlackNormal = calculateChopPenalty(comboBlackTwo, threePairs, BET, false);
+    const chopBlackNormal = calculateChopPenalty(comboBlackTwo, threePairs, BET, 1);
     expect(chopBlackNormal.amount).toBe(1000);
 
     // Heo đỏ bàn thường: 2x cược (2,000)
-    const chopRedNormal = calculateChopPenalty(comboRedTwo, threePairs, BET, false);
+    const chopRedNormal = calculateChopPenalty(comboRedTwo, threePairs, BET, 1);
     expect(chopRedNormal.amount).toBe(2000);
 
-    // Heo đỏ Thế Giới Ngầm: 4x cược (4,000)
-    const chopRedUnderground = calculateChopPenalty(comboRedTwo, threePairs, BET, true);
-    expect(chopRedUnderground.amount).toBe(4000);
+    // Heo đỏ khi có hệ số nhân phạt x2: 4x cược (4,000)
+    const chopRedMult2 = calculateChopPenalty(comboRedTwo, threePairs, BET, 2);
+    expect(chopRedMult2.amount).toBe(4000);
   });
 
   test('Chặt Đôi Heo (2 Đen vs 1 Đỏ 1 Đen vs 2 Đỏ)', () => {
@@ -113,28 +113,28 @@ describe('Economy & Hardcore Penalties (Kinh Tế & Trừng Phạt Cược Lớn
     const fourOfAKind: Combination = { type: 'FOUR_OF_A_KIND', length: 4, cards: parseCards('5S 5D 5C 5H'), highestCard: parseCard('5H')! };
 
     // 2 Heo đen: 2x cược (2,000)
-    expect(calculateChopPenalty(pairBlackTwos, fourOfAKind, BET, false).amount).toBe(2000);
+    expect(calculateChopPenalty(pairBlackTwos, fourOfAKind, BET, 1).amount).toBe(2000);
     // 1 Đỏ 1 Đen: 3x cược (3,000)
-    expect(calculateChopPenalty(pairMixedTwos, fourOfAKind, BET, false).amount).toBe(3000);
+    expect(calculateChopPenalty(pairMixedTwos, fourOfAKind, BET, 1).amount).toBe(3000);
     // 2 Heo đỏ: 4x cược (4,000)
-    expect(calculateChopPenalty(pairRedTwos, fourOfAKind, BET, false).amount).toBe(4000);
+    expect(calculateChopPenalty(pairRedTwos, fourOfAKind, BET, 1).amount).toBe(4000);
   });
 
   test('Tính tiền Thối Heo/Hàng cuối ván', () => {
     const handWithRotten = parseCards('3S 4S 2S 2H 7S 7D 7C 7H'); // 1 heo đen + 1 heo đỏ + Tứ quý 7
     // Heo đen (1x) + Heo đỏ (2x) + Tứ quý (4x) = 7x cược = 7,000 xu
-    const penaltyNormal = calculateRottenPenalty(handWithRotten, BET, false);
+    const penaltyNormal = calculateRottenPenalty(handWithRotten, BET, 1);
     expect(penaltyNormal).toBe(7000);
 
-    // Thế Giới Ngầm: Nhân đôi = 14,000 xu
-    const penaltyUnderground = calculateRottenPenalty(handWithRotten, BET, true);
-    expect(penaltyUnderground).toBe(14000);
+    // Hệ số nhân phạt x2: Nhân đôi = 14,000 xu
+    const penaltyMult2 = calculateRottenPenalty(handWithRotten, BET, 2);
+    expect(penaltyMult2).toBe(14000);
   });
 
   test('Tính tiền đền Cóng (Cháy bài)', () => {
-    // Bàn thường: 26x cược = 26,000 xu
-    expect(calculateCongPenalty(BET, false)).toBe(26000);
-    // Thế giới ngầm: 52x cược = 52,000 xu
-    expect(calculateCongPenalty(BET, true)).toBe(52000);
+    // Bàn thường (x1): 26x cược = 26,000 xu
+    expect(calculateCongPenalty(BET, 1)).toBe(26000);
+    // Hệ số nhân phạt x2: 52x cược = 52,000 xu
+    expect(calculateCongPenalty(BET, 2)).toBe(52000);
   });
 });

@@ -331,9 +331,9 @@ export class GameEngine {
     const playedIds = new Set(cards.map(c => c.id));
     const handSizeBeforeMove = player.hand.length;
     player.hand = player.hand.filter(c => !playedIds.has(c.id));
-    player.playedCards.push(...cards);
+    player.playedCards = [...player.playedCards, ...cards];
     player.hasPlayedFirstCard = true;
-    this.playedCardsInGame.push(...cards);
+    this.playedCardsInGame = [...this.playedCardsInGame, ...cards];
     const handAfterTurn = [...player.hand];
 
     const nextPlayerId = this.getNextActivePlayerId(playerId);
@@ -426,7 +426,7 @@ export class GameEngine {
       chopChainTotalAmount
     };
 
-    this.currentRound.moves.push(playedMoveRecord);
+    this.currentRound.moves = [...this.currentRound.moves, playedMoveRecord];
 
     MatchLogger.getInstance().recordTurn({
       roundNumber: this.roundNumber,
@@ -456,7 +456,7 @@ export class GameEngine {
     // 4. Kiểm tra người chơi đã Hết Bài (Về Nhất/Nhì/Ba)
     if (player.hand.length === 0) {
       player.rankPosition = this.winners.length + 1;
-      this.winners.push(player);
+      this.winners = [...this.winners, player];
 
       // Kiểm tra Về 3 Bích Cuối Cùng (Ăn Ba Bích):
       // Chỉ kích hoạt khi người về Nhất đánh lá ĐƠN 3 Bích và không phải ván 1 bắt buộc 3 Bích đi đầu
@@ -478,7 +478,7 @@ export class GameEngine {
           const lastPlayer = this.players.find(p => !this.winners.some(w => w.id === p.id));
           if (lastPlayer) {
             lastPlayer.rankPosition = this.players.length;
-            this.winners.push(lastPlayer);
+            this.winners = [...this.winners, lastPlayer];
           }
         }
         this.isGameOver = true;
@@ -535,7 +535,7 @@ export class GameEngine {
 
     player.isPassedCurrentRound = true;
     if (!this.currentRound.passedPlayerIds.includes(playerId)) {
-      this.currentRound.passedPlayerIds.push(playerId);
+      this.currentRound.passedPlayerIds = [...this.currentRound.passedPlayerIds, playerId];
     }
 
     const leadingMove = this.getLeadingMove();
@@ -741,7 +741,7 @@ export class GameEngine {
         const lastPlayer = this.players.find(p => p.hand.length > 0);
         if (lastPlayer && !lastPlayer.rankPosition) {
           lastPlayer.rankPosition = this.players.length;
-          this.winners.push(lastPlayer);
+          this.winners = [...this.winners, lastPlayer];
         }
       }
       this.isGameOver = true;

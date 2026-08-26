@@ -6,22 +6,25 @@ import { createCard } from '../../src/engine/card';
 import { Card, createDefaultGameRules } from '../../src/engine/types';
 import { resolveAIModePolicy, CountCardsAIModePolicy, TraditionalAIModePolicy, WinnerTakesAllAIModePolicy } from '../../src/ai/mode-policies';
 
+import { OpponentProfiler } from '../../src/ai/opponent-profiler';
+
 describe('Chiến Thuật AI Thích Ứng Theo Từng Chế Độ Chơi (Mode-Specific AI Strategies)', () => {
   let tracker: CardTracker;
 
   beforeEach(() => {
     tracker = new CardTracker();
+    OpponentProfiler.getInstance().reset();
   });
 
   test('1. Strategy Resolver: Định vị chính xác Strategy cho từng chế độ game', () => {
     expect(resolveAIModePolicy('COUNT_CARDS')).toBeInstanceOf(CountCardsAIModePolicy);
-    expect(resolveAIModePolicy('UNDERGROUND')).toBeInstanceOf(CountCardsAIModePolicy);
     expect(resolveAIModePolicy('TRADITIONAL')).toBeInstanceOf(TraditionalAIModePolicy);
     expect(resolveAIModePolicy('RANKED')).toBeInstanceOf(TraditionalAIModePolicy);
     expect(resolveAIModePolicy('WINNER_TAKES_ALL')).toBeInstanceOf(WinnerTakesAllAIModePolicy);
   });
 
   test('2. Chế độ Đếm Lá (COUNT_CARDS): Cầm Sảnh 5 lá và Rác lẻ, Bot ưu tiên xả Sảnh 5 lá trước để giảm số lá tồn cấp tốc', () => {
+    const localTracker = new CardTracker();
     // Bot có Sảnh 5 lá [3-4-5-6-7] và các lá rác lẻ [9, 10, K]
     const hand: Card[] = [
       createCard(3, 'SPADES'),
@@ -39,8 +42,8 @@ describe('Chiến Thuật AI Thích Ứng Theo Từng Chế Độ Chơi (Mode-Sp
       currentRoundLeadingMove: null,
       isFirstMoveOfGame: false,
       isLeadMove: true,
-      tracker,
-      config: BOT_PERSONAS.BOT_ELO_1750,
+      tracker: localTracker,
+      config: { ...BOT_PERSONAS.BOT_ELO_1750, mctsSimulations: 0 },
       remainingPlayerCards: { p0: 8, p1: 8, p2: 8, p3: 8 },
       nextPlayerId: 'p1',
       rules: createDefaultGameRules({ settlementRule: 'CARD_COUNT' }),
@@ -60,6 +63,7 @@ describe('Chiến Thuật AI Thích Ứng Theo Từng Chế Độ Chơi (Mode-Sp
   });
 
   test('3. Chế độ Truyền Thống / Đấu Hạng (TRADITIONAL / RANKED): Cùng bộ bài trên, Bot tẩu rác nhỏ (9♣) trước để thăm dò và giữ Sảnh bọc lót', () => {
+    const localTracker = new CardTracker();
     // Cùng một bài: Sảnh 5 lá [3-4-5-6-7] và các lá rác lẻ [9, 10, K]
     const hand: Card[] = [
       createCard(3, 'SPADES'),
@@ -77,8 +81,8 @@ describe('Chiến Thuật AI Thích Ứng Theo Từng Chế Độ Chơi (Mode-Sp
       currentRoundLeadingMove: null,
       isFirstMoveOfGame: false,
       isLeadMove: true,
-      tracker,
-      config: BOT_PERSONAS.BOT_ELO_1750,
+      tracker: localTracker,
+      config: { ...BOT_PERSONAS.BOT_ELO_1750, mctsSimulations: 0 },
       remainingPlayerCards: { p0: 8, p1: 8, p2: 8, p3: 8 },
       nextPlayerId: 'p1',
       rules: createDefaultGameRules({ settlementRule: 'TRADITIONAL_RANK_BASED' }),
@@ -97,7 +101,7 @@ describe('Chiến Thuật AI Thích Ứng Theo Từng Chế Độ Chơi (Mode-Sp
     expect(decision.cards?.[0].rank).toBe(9);
   });
 
-  test('4. Chế độ Sòng Bạc Ngầm (UNDERGROUND): Tương tự Đếm Lá, Bot xả Sảnh dài trước để tránh bị sát phạt x2 và tránh Cóng', () => {
+  test('4. Chế độ Đếm Lá Sát Phạt: Bot xả Sảnh dài trước để tránh bị phạt và tránh Cóng', () => {
     const hand: Card[] = [
       createCard(4, 'SPADES'),
       createCard(5, 'DIAMONDS'),
@@ -113,14 +117,14 @@ describe('Chiến Thuật AI Thích Ứng Theo Từng Chế Độ Chơi (Mode-Sp
       isFirstMoveOfGame: false,
       isLeadMove: true,
       tracker,
-      config: BOT_PERSONAS.BOT_ELO_1750,
+      config: { ...BOT_PERSONAS.BOT_ELO_1750, mctsSimulations: 0 },
       remainingPlayerCards: { p0: 6, p1: 6, p2: 6, p3: 6 },
       nextPlayerId: 'p1',
       rules: createDefaultGameRules({ settlementRule: 'CARD_COUNT' }),
       hasPlayedFirstCard: true,
       isNextPlayerOneCard: false,
       prohibitEndingWithTwo: true,
-      gameMode: 'UNDERGROUND',
+      gameMode: 'COUNT_CARDS',
       mctsMap: null,
       compositeRuleStrategy: null,
       opponentProfiles: null

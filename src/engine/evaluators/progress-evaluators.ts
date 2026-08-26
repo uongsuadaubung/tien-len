@@ -238,7 +238,11 @@ export class ModeWinEvaluator implements ProgressEvaluator {
 
   evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
     if (event.type === 'MATCH_COMPLETED' && event.isHumanWinner) {
-      if (event.activeGameType === this.matchGameType || (this.matchGameType === 'TRADITIONAL' && event.activeGameType === 'QUICK')) {
+      if (
+        event.activeGameType === this.matchGameType ||
+        (this.matchGameType === 'TRADITIONAL' && event.activeGameType === 'QUICK') ||
+        (this.matchGameType === 'RANKED' && event.activeGameType === 'QUICK')
+      ) {
         return Math.min(targetCount, currentCount + 1);
       }
     }
@@ -250,7 +254,7 @@ export class RankedMatchEvaluator implements ProgressEvaluator {
   readonly id = 'daily_ranked_match';
 
   evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'MATCH_COMPLETED' && event.activeGameType === 'RANKED') {
+    if (event.type === 'MATCH_COMPLETED' && (event.activeGameType === 'RANKED' || event.activeGameType === 'QUICK')) {
       return Math.min(targetCount, currentCount + 1);
     }
     return currentCount;
@@ -427,7 +431,7 @@ export class RankedEloAchievementEvaluator implements ProgressEvaluator {
   }
 
   evaluate(event: GameEvent, _currentCount: number, targetCount: number, profile: PlayerProfile): number {
-    if (event.type === 'MATCH_COMPLETED' && event.activeGameType === 'RANKED') {
+    if (event.type === 'MATCH_COMPLETED' && (event.activeGameType === 'RANKED' || event.activeGameType === 'QUICK')) {
       return Math.min(targetCount, Math.max(0, profile.elo));
     }
     return Math.min(targetCount, Math.max(0, profile.elo));

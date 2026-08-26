@@ -34,13 +34,34 @@ describe('Elo & Ranked Matchmaking System', () => {
     expect(lastRes.delta).toBeLessThan(-30);
   });
 
-  test('Matchmaking chọn đúng 3 bot có Elo tương đồng', () => {
-    const playerElo = 1800; // Rank Kim Cương
-    const matchedBots = matchmakeRankedOpponents(playerElo);
+  test('Matchmaking chọn đúng 3 bot có Elo tương đồng ở mọi bậc rank', () => {
+    // 1. Rookie / Bronze (Elo 850) -> Bot nằm ở nhóm dưới / trung
+    const bronzeBots = matchmakeRankedOpponents(850);
+    expect(bronzeBots.length).toBe(3);
+    const bronzeIds = new Set(bronzeBots.map(b => b.id));
+    expect(bronzeIds.size).toBe(3);
+    bronzeBots.forEach(b => {
+      expect(b.name).toBeDefined();
+      expect(b.avatar).toBeDefined();
+      expect(b.elo).toBeLessThanOrEqual(1600); // Không thể bị ghép nhầm với God Mode
+    });
 
-    expect(matchedBots.length).toBe(3);
-    // Các bot không được trùng nhau
-    const uniqueIds = new Set(matchedBots.map(b => b.id));
-    expect(uniqueIds.size).toBe(3);
+    // 2. Diamond / Master (Elo 1900) -> Bot nằm ở nhóm cao thủ
+    const diamondBots = matchmakeRankedOpponents(1900);
+    expect(diamondBots.length).toBe(3);
+    const diamondIds = new Set(diamondBots.map(b => b.id));
+    expect(diamondIds.size).toBe(3);
+    diamondBots.forEach(b => {
+      expect(b.name).toBeDefined();
+      expect(b.avatar).toBeDefined();
+      expect(b.elo).toBeGreaterThanOrEqual(1300); // Không bị ghép với Rookie 850
+    });
+
+    // 3. Grandmaster / God Mode (Elo 2450) -> Bot đẳng cấp cao nhất
+    const gmBots = matchmakeRankedOpponents(2450);
+    expect(gmBots.length).toBe(3);
+    gmBots.forEach(b => {
+      expect(b.elo).toBeGreaterThanOrEqual(1800);
+    });
   });
 });

@@ -448,15 +448,6 @@ export class GameRulesBuilder {
     }));
   }
 
-  public static underground(): GameRulesBuilder {
-    return new GameRulesBuilder(createDefaultGameRules({
-      settlementRule: 'CARD_COUNT',
-      chopping: { allowFourPairsCutAnytime: true, allowThreePairsCutTwo: true, allowFourOfAKindCutPairsOfTwos: true, multiplier: 2, cascadeMultiplier: true },
-      cong: { enabled: true, penaltyCards: 26, multiplier: 2 },
-      table: { playerCount: 4, betAmount: 1000, botThinkDelayMs: 700, soundEnabled: true }
-    }));
-  }
-
   public static winnerTakesAll(): GameRulesBuilder {
     return new GameRulesBuilder(createDefaultGameRules({
       settlementRule: 'WINNER_TAKES_ALL',
@@ -471,10 +462,9 @@ export class GameRulesBuilder {
     }));
   }
 
-  public static fromPreset(preset: GameMode | 'UNDERGROUND' | 'SOLO_1V1'): GameRulesBuilder {
+  public static fromPreset(preset: GameMode | 'SOLO_1V1'): GameRulesBuilder {
     switch (preset) {
       case 'COUNT_CARDS': return GameRulesBuilder.countCards();
-      case 'UNDERGROUND': return GameRulesBuilder.underground();
       case 'WINNER_TAKES_ALL': return GameRulesBuilder.winnerTakesAll();
       case 'SOLO_1V1': return GameRulesBuilder.solo1v1();
       case 'TRADITIONAL':

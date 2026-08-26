@@ -147,7 +147,7 @@ export class ScaledMctsEngine {
       });
     }
 
-    return results.sort((a, b) => b.winRate - a.winRate);
+    return [...results].sort((a, b) => b.winRate - a.winRate);
   }
 
   /**

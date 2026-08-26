@@ -54,41 +54,27 @@ export const App: React.FC = () => {
     const interruptedSession = getActiveMatchSession();
     if (interruptedSession) {
       clearActiveMatchSession();
-      if (interruptedSession.isRanked) {
-        const nextElo = Math.max(0, profile.elo - 30);
-        const updatedProfile = {
-          ...profile,
-          elo: nextElo,
-          stats: {
-            ...profile.stats,
-            gamesPlayed: profile.stats.gamesPlayed + 1,
-            currentStreak: 0
-          }
-        };
-        setProfile(updatedProfile);
-        savePlayerProfile(updatedProfile);
-        setF5PenaltyData({
-          depositLost: 0,
-          eloLost: 30,
-          isRanked: true
-        });
-      } else {
-        const updatedProfile = {
-          ...profile,
-          stats: {
-            ...profile.stats,
-            gamesPlayed: profile.stats.gamesPlayed + 1,
-            currentStreak: 0
-          }
-        };
-        setProfile(updatedProfile);
-        savePlayerProfile(updatedProfile);
-        setF5PenaltyData({
-          depositLost: interruptedSession.depositAmount,
-          eloLost: 0,
-          isRanked: false
-        });
-      }
+      const isQuickOrRanked = interruptedSession.gameType === 'QUICK' || interruptedSession.isRanked;
+      const eloLost = isQuickOrRanked ? 30 : 0;
+      const depositLost = interruptedSession.depositAmount || 0;
+      const nextElo = isQuickOrRanked ? Math.max(0, profile.elo - 30) : profile.elo;
+
+      const updatedProfile = {
+        ...profile,
+        elo: nextElo,
+        stats: {
+          ...profile.stats,
+          gamesPlayed: profile.stats.gamesPlayed + 1,
+          currentStreak: 0
+        }
+      };
+      setProfile(updatedProfile);
+      savePlayerProfile(updatedProfile);
+      setF5PenaltyData({
+        depositLost,
+        eloLost,
+        isRanked: isQuickOrRanked
+      });
       openModal('F5_PENALTY_NOTICE');
     }
   }, []);
@@ -169,14 +155,6 @@ export const App: React.FC = () => {
     });
   };
 
-  const handleStartRanked = () => {
-    setActiveGameType('RANKED');
-    setCurrentScreen('GAME_TABLE');
-    startNewGame(1, {
-      playerCount: 4
-    });
-  };
-
   const handleStartCampaignChapter = (chapter: CampaignChapter) => {
     setCurrentCampaignChapter(chapter);
     setActiveGameType('CAMPAIGN');
@@ -202,7 +180,6 @@ export const App: React.FC = () => {
             profile={profile}
             onOpenQuickSetup={() => openModal('QUICK_SETUP')}
             onOpenCustomGameModal={() => openModal('CUSTOM_GAME')}
-            onOpenRanked={handleStartRanked}
             onOpenCampaign={() => openModal('CAMPAIGN')}
             onOpenQuests={() => openModal('QUEST')}
             onOpenLuckyWheel={() => openModal('WHEEL')}
@@ -241,7 +218,7 @@ export const App: React.FC = () => {
         onNextGame={() => {
           closeModal('VICTORY');
           const betAmount = gameSettings.betAmount || 0;
-          if (activeGameType !== 'RANKED' && activeGameType !== 'CAMPAIGN' && betAmount > 0 && profile.coins < betAmount) {
+          if (activeGameType !== 'CAMPAIGN' && betAmount > 0 && profile.coins < betAmount) {
             openModal('BANK');
             return;
           }
@@ -252,11 +229,8 @@ export const App: React.FC = () => {
             } else {
               startNewGame(gameNumber + 1);
             }
-          } else if (activeGameType === 'RANKED') {
-            // Chế độ Đấu Hạng (Ranked): Tìm đối thủ mới (tên, avatar, rank ngẫu nhiên) và mở màn ván 1 với 3 Bích
-            startNewGame(1);
           } else {
-            // Các chế độ còn lại: Ván tiếp theo trong cùng bàn, người về Nhất ván trước được quyền đi trước
+            // Ván tiếp theo trong bàn, người về Nhất ván trước được quyền đi trước
             startNewGame(gameNumber + 1);
           }
         }}

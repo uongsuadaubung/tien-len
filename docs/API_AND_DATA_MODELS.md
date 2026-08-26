@@ -243,8 +243,8 @@ export type GameEvent =
 - `showXRay: boolean`: Trạng thái bật/tắt Soi bài đối thủ.
 
 ### 6.2. `useUserStore` ([`src/stores/useUserStore.ts`](../src/stores/useUserStore.ts))
-- `profile: PlayerProfile`: Thông tin cá nhân, level, EXP, danh hiệu.
+- `profile: PlayerProfile`: Thông tin cá nhân, cấp bậc, Elo, avatar, danh hiệu.
 - `coins: number`: Số dư Xu hiện tại.
-- `undergroundDebt: number`: Số nợ chợ đen cần trả.
-- `quests: Quest[]`: Danh sách 4 nhiệm vụ ngày.
+- `loans: number`: Số tiền vay ngân hàng cứu trợ.
+- `quests: Quest[]`: Danh sách nhiệm vụ ngày.
 - `achievements: Achievement[]`: Danh sách thành tựu trọn đời.

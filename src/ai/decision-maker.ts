@@ -1165,7 +1165,7 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
       // 3. Liên minh tạm thời dìm người dẫn đầu bàn 4 người (Semi-Cooperative Passing)
       if (
         config.semiCooperativeCooperation >= 0.5 &&
-        (context.gameMode === 'TRADITIONAL' || context.gameMode === 'RANKED') &&
+        (context.gameMode === 'TRADITIONAL' || context.gameMode === 'QUICK') &&
         isEmergencyAntiLeader &&
         activeOpponentsCount >= 2 &&
         currentRoundLeadingMove

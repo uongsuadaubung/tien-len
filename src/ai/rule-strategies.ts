@@ -247,7 +247,7 @@ export class ChoppingRuleStrategy implements RuleStrategyEvaluator {
   constructor(public readonly config: ChoppingRules) {}
 
   getChoppingRiskFactor(): number {
-    // Hệ số nhân rủi ro chặt: Nếu multiplier = 2 (Thế giới ngầm) hoặc 4 đôi thông chặt tự do -> tăng cảnh giác
+    // Hệ số nhân rủi ro chặt: Nếu multiplier >= 2 hoặc 4 đôi thông chặt tự do -> tăng cảnh giác
     let factor = this.config.multiplier;
     if (this.config.allowFourPairsCutAnytime) {
       factor *= 1.25;
@@ -362,8 +362,8 @@ export class GameFlowRuleStrategy implements RuleStrategyEvaluator {
         // 2. Không có bộ: Buộc đánh lá rác TO NHẤT (Heo, Át, Rác to nhất)
         const singles = validMoves.filter(m => m.combination.type === 'SINGLE');
         if (singles.length > 0) {
-          singles.sort((a, b) => b.combination.highestCard.weight - a.combination.highestCard.weight);
-          const topSingle = singles[0];
+          const sortedDesc = [...singles].sort((a, b) => b.combination.highestCard.weight - a.combination.highestCard.weight);
+          const topSingle = sortedDesc[0];
           return {
             type: 'PLAY',
             cards: topSingle.cards,
@@ -375,8 +375,8 @@ export class GameFlowRuleStrategy implements RuleStrategyEvaluator {
         // Người báo 1 lá là người khác -> Tẩu rác nhỏ
         const singles = validMoves.filter(m => m.combination.type === 'SINGLE' && !isTwo(m.combination.highestCard));
         if (singles.length > 0) {
-          singles.sort((a, b) => a.combination.highestCard.weight - b.combination.highestCard.weight);
-          const smallestSingle = singles[0];
+          const sortedAsc = [...singles].sort((a, b) => a.combination.highestCard.weight - b.combination.highestCard.weight);
+          const smallestSingle = sortedAsc[0];
           return {
             type: 'PLAY',
             cards: smallestSingle.cards,
@@ -653,12 +653,6 @@ export function resolveCompositeRuleStrategy(
       });
       break;
 
-    case 'UNDERGROUND':
-      defaultRules = GameRulesBuilder.underground()
-        .withTable(t => t.playerCount(4).betAmount(1000).botThinkDelayMs(700).soundEnabled(true))
-        .build();
-      break;
-
     case 'WINNER_TAKES_ALL':
       defaultRules = createDefaultGameRules({
         settlementRule: 'WINNER_TAKES_ALL',
@@ -677,13 +671,6 @@ export function resolveCompositeRuleStrategy(
       defaultRules = createDefaultGameRules({
         settlementRule: 'CARD_COUNT',
         table: { playerCount: 4, betAmount: 100, botThinkDelayMs: 850, soundEnabled: true }
-      });
-      break;
-
-    case 'RANKED':
-      defaultRules = createDefaultGameRules({
-        settlementRule: 'TRADITIONAL_RANK_BASED',
-        table: { playerCount: 4, betAmount: 0, botThinkDelayMs: 850, soundEnabled: true }
       });
       break;
 

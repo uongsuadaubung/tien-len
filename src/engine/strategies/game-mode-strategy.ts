@@ -29,7 +29,6 @@ export interface MatchSetupContext {
   customBotPersonaIds?: [string, string, string];
   customBotConfigs?: [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>];
   campaignChapter?: CampaignChapter;
-  undergroundBetAmount?: number;
   playerCount?: number;
 }
 
@@ -160,7 +159,11 @@ function createMatchSetupResult(
     ];
   } else {
     bConfigs = defaultBotConfigs;
-    botPersonaIds = [bConfigs[0].id, bConfigs[1].id, bConfigs[2].id];
+    botPersonaIds = [
+      bConfigs[0]?.id || 'BOT_ELO_850',
+      bConfigs[1]?.id || 'BOT_ELO_1150',
+      bConfigs[2]?.id || 'BOT_ELO_1450'
+    ];
   }
 
   let legacyMode: GameMode = 'TRADITIONAL';
@@ -207,13 +210,35 @@ export interface GameModeStrategy {
   settleMatch(context: MatchSettlementContext): MatchSettlementResult;
 }
 
+/**
+ * Hàm trợ giúp tính toán biến động điểm Elo sau mỗi ván đấu dựa trên thứ hạng và Elo đối thủ
+ */
+function computeMatchEloDelta(context: MatchSettlementContext): number {
+  const p0Index = context.winners.findIndex(p => p.id === 'p0');
+  const playerRank = p0Index !== -1 ? p0Index + 1 : context.players.length;
+  const playerElo = context.playerElo ?? 1000;
+
+  const opponentBots = context.players.filter(p => p.id !== 'p0');
+  const opponentsAvgElo = opponentBots.length > 0
+    ? Math.round(
+        opponentBots.reduce((sum, p) => {
+          const config = getBotConfig((p.botPersonaId || 'BOT_ELO_1150') as any);
+          return sum + (config.elo || 1000);
+        }, 0) / opponentBots.length
+      )
+    : 1000;
+
+  const eloRes = calculateEloDelta(playerRank, playerElo, opponentsAvgElo);
+  return eloRes.delta;
+}
+
 // ============================================================================
 // 1. TRUYỀN THỐNG (TRADITIONAL STRATEGY)
 // ============================================================================
 export class TraditionalModeStrategy implements GameModeStrategy {
   readonly id = 'TRADITIONAL';
   readonly name = 'Truyền Thống';
-  readonly description = 'Đánh đến người áp chót, tính tiền Nhất Nhì Ba Bét theo số người chơi.';
+  readonly description = 'Đánh đến người áp chót, tính tiền Nhất Nhì Ba Bét theo số người chơi & tích lũy Elo.';
   readonly isFreeToPlay = false;
 
   setupMatch(context: MatchSetupContext): MatchSetupResult {
@@ -233,7 +258,8 @@ export class TraditionalModeStrategy implements GameModeStrategy {
       )
       .build();
 
-    const defaultBots = getRandomBotConfigsForTable([1, 2, 3], 3);
+    // Tự động ghép đối thủ Bot theo mức Elo hiện tại của người chơi
+    const defaultBots = matchmakeRankedOpponents(context.profile?.elo ?? 1000);
     return createMatchSetupResult(context, rules, defaultBots);
   }
 
@@ -246,64 +272,12 @@ export class TraditionalModeStrategy implements GameModeStrategy {
       context.isThreeSpadesWin || false
     );
 
-    return {
-      strategyId: this.id,
-      payouts,
-      eloDelta: 0,
-      loanDeduction: 0,
-      isVictoryModalRanked: false
-    };
-  }
-}
-
-// ============================================================================
-// 2. ĐẤU HẠNG ELO (RANKED STRATEGY - THUẦN KỸ NĂNG)
-// ============================================================================
-export class RankedModeStrategy implements GameModeStrategy {
-  readonly id = 'RANKED';
-  readonly name = 'Đấu Hạng Elo';
-  readonly description = 'Thi đấu xếp hạng kỹ năng (0 Xu cược), tính biến động điểm Elo & thưởng Vàng cho người về Nhất.';
-  readonly isFreeToPlay = true;
-
-  setupMatch(context: MatchSetupContext): MatchSetupResult {
-    const matchedBots = matchmakeRankedOpponents(context.profile.elo);
-    const rules = GameRulesBuilder.traditional()
-      .withTable(t => t
-        .playerCount(4)
-        .betAmount(0)
-        .botThinkDelayMs(850)
-      )
-      .build();
-
-    const rankedContext: MatchSetupContext = {
-      ...context,
-      customBotPersonaIds: undefined,
-      customBotConfigs: undefined
-    };
-
-    return createMatchSetupResult(rankedContext, rules, matchedBots);
-  }
-
-  settleMatch(context: MatchSettlementContext): MatchSettlementResult {
-    const payouts: Record<string, number> = {};
-    for (const p of context.players) {
-      payouts[p.id] = 0;
-    }
-
-    if (context.winners.length > 0) {
-      const winnerFirst = context.winners[0];
-      payouts[winnerFirst.id] = 500;
-    }
-
-    const p0Index = context.winners.findIndex(p => p.id === 'p0');
-    const playerRank = p0Index !== -1 ? p0Index + 1 : context.players.length;
-    const playerElo = context.playerElo ?? 1000;
-    const eloRes = calculateEloDelta(playerRank, playerElo, 1000);
+    const eloDelta = computeMatchEloDelta(context);
 
     return {
       strategyId: this.id,
       payouts,
-      eloDelta: eloRes.delta,
+      eloDelta,
       loanDeduction: 0,
       isVictoryModalRanked: true
     };
@@ -311,12 +285,12 @@ export class RankedModeStrategy implements GameModeStrategy {
 }
 
 // ============================================================================
-// 3. ĐẾM LÁ (COUNT CARDS STRATEGY)
+// 2. ĐẾM LÁ (COUNT CARDS STRATEGY)
 // ============================================================================
 export class CountCardsModeStrategy implements GameModeStrategy {
   readonly id = 'COUNT_CARDS';
   readonly name = 'Đếm Lá';
-  readonly description = '1 người hết bài là dừng ván. Người thua đền theo số lá còn lại + thối heo + cóng.';
+  readonly description = '1 người hết bài là dừng ván. Người thua đền theo số lá còn lại + thối heo + cóng & tích lũy Elo.';
   readonly isFreeToPlay = false;
 
   setupMatch(context: MatchSetupContext): MatchSetupResult {
@@ -343,7 +317,8 @@ export class CountCardsModeStrategy implements GameModeStrategy {
       )
       .build();
 
-    const defaultBots = getRandomBotConfigsForTable([1, 2, 3], 3);
+    // Tự động ghép đối thủ Bot theo mức Elo hiện tại của người chơi
+    const defaultBots = matchmakeRankedOpponents(context.profile?.elo ?? 1000);
     return createMatchSetupResult(context, rules, defaultBots);
   }
 
@@ -357,68 +332,20 @@ export class CountCardsModeStrategy implements GameModeStrategy {
       context.isThreeSpadesWin || false
     );
 
+    const eloDelta = computeMatchEloDelta(context);
+
     return {
       strategyId: this.id,
       payouts,
-      eloDelta: 0,
+      eloDelta,
       loanDeduction: 0,
-      isVictoryModalRanked: false
+      isVictoryModalRanked: true
     };
   }
 }
 
 // ============================================================================
-// 4. THẾ GIỚI NGẦM (UNDERGROUND CASINO STRATEGY)
-// ============================================================================
-export class UndergroundModeStrategy implements GameModeStrategy {
-  readonly id = 'UNDERGROUND';
-  readonly name = 'Sòng Bạc Ngầm';
-  readonly description = '1 người hết bài là dừng ván. Đếm lá sát phạt x2 khốc liệt, trích 10% trả nợ ngân hàng khi thắng.';
-  readonly isFreeToPlay = false;
-
-  setupMatch(context: MatchSetupContext): MatchSetupResult {
-    const betAmount = context.undergroundBetAmount ?? context.customRules?.table?.betAmount ?? context.customSettings?.betAmount ?? 500;
-
-    const rules = GameRulesBuilder.underground()
-      .withTable(t => t
-        .betAmount(betAmount)
-        .botThinkDelayMs(850)
-      )
-      .build();
-
-    const defaultBots = getRandomBotConfigsForTable([3, 4, 5], 3);
-    return createMatchSetupResult(context, rules, defaultBots);
-  }
-
-  settleMatch(context: MatchSettlementContext): MatchSettlementResult {
-    const winnerFirst = context.winners[0] || context.players[0];
-    const payouts = calculateCountCardsSettlement(
-      context.players,
-      winnerFirst.id,
-      context.betAmount,
-      context.penaltyMultiplier || 2,
-      context.isThreeSpadesWin || false
-    );
-
-    let loanDeduction = 0;
-    const humanNet = payouts['p0'] || 0;
-    if (context.isBankLoanActive && humanNet > 0) {
-      loanDeduction = Math.round(humanNet * 0.10);
-      payouts['p0'] = humanNet - loanDeduction;
-    }
-
-    return {
-      strategyId: this.id,
-      payouts,
-      eloDelta: 0,
-      loanDeduction,
-      isVictoryModalRanked: false
-    };
-  }
-}
-
-// ============================================================================
-// 5. CHIẾN DỊCH (CAMPAIGN STRATEGY)
+// 4. CHIẾN DỊCH (CAMPAIGN STRATEGY)
 // ============================================================================
 export class CampaignModeStrategy implements GameModeStrategy {
   readonly id = 'CAMPAIGN';
@@ -473,7 +400,7 @@ export class CampaignModeStrategy implements GameModeStrategy {
 export class WinnerTakesAllModeStrategy implements GameModeStrategy {
   readonly id = 'WINNER_TAKES_ALL';
   readonly name = 'Nhất Ăn Tất';
-  readonly description = '1 người hết bài là dừng ván. Người về Nhất gom trọn tiền cược cơ bản của cả bàn + thối heo.';
+  readonly description = '1 người hết bài là dừng ván. Người về Nhất gom trọn tiền cược cơ bản của cả bàn + thối heo & tích lũy Elo.';
   readonly isFreeToPlay = false;
 
   setupMatch(context: MatchSetupContext): MatchSetupResult {
@@ -500,7 +427,8 @@ export class WinnerTakesAllModeStrategy implements GameModeStrategy {
       )
       .build();
 
-    const defaultBots = getRandomBotConfigsForTable([2, 3, 4], 3);
+    // Tự động ghép đối thủ Bot theo mức Elo hiện tại của người chơi
+    const defaultBots = matchmakeRankedOpponents(context.profile?.elo ?? 1000);
     return createMatchSetupResult(context, rules, defaultBots);
   }
 
@@ -514,12 +442,14 @@ export class WinnerTakesAllModeStrategy implements GameModeStrategy {
       context.isThreeSpadesWin || false
     );
 
+    const eloDelta = computeMatchEloDelta(context);
+
     return {
       strategyId: this.id,
       payouts,
-      eloDelta: 0,
+      eloDelta,
       loanDeduction: 0,
-      isVictoryModalRanked: false
+      isVictoryModalRanked: true
     };
   }
 }
@@ -530,9 +460,7 @@ export class WinnerTakesAllModeStrategy implements GameModeStrategy {
 
 export const GAME_MODE_STRATEGIES: Record<string, GameModeStrategy> = {
   TRADITIONAL: new TraditionalModeStrategy(),
-  RANKED: new RankedModeStrategy(),
   COUNT_CARDS: new CountCardsModeStrategy(),
-  UNDERGROUND: new UndergroundModeStrategy(),
   CAMPAIGN: new CampaignModeStrategy(),
   WINNER_TAKES_ALL: new WinnerTakesAllModeStrategy(),
   SOLO_1V1: new CountCardsModeStrategy(),
@@ -549,20 +477,16 @@ export function getGameModeStrategy(strategyId: string): GameModeStrategy {
 
 /**
  * Định vị Strategy chính xác nhất cho phiên đấu hiện tại
- * @param activeGameType 'QUICK' | 'RANKED' | 'CAMPAIGN' | 'UNDERGROUND'
+ * @param activeGameType 'QUICK' | 'CAMPAIGN'
  * @param customMode 'TRADITIONAL' | 'COUNT_CARDS' | 'WINNER_TAKES_ALL' | 'CUSTOM'
  */
 export function resolveStrategyForMatch(
-  activeGameType: 'QUICK' | 'RANKED' | 'CAMPAIGN' | 'UNDERGROUND',
+  activeGameType: 'QUICK' | 'CAMPAIGN' | string,
   customMode: string = 'TRADITIONAL'
 ): GameModeStrategy {
   switch (activeGameType) {
-    case 'RANKED':
-      return GAME_MODE_STRATEGIES.RANKED;
     case 'CAMPAIGN':
       return GAME_MODE_STRATEGIES.CAMPAIGN;
-    case 'UNDERGROUND':
-      return GAME_MODE_STRATEGIES.UNDERGROUND;
     case 'QUICK':
     default:
       if (customMode === 'COUNT_CARDS') {

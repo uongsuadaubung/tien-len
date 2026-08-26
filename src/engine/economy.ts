@@ -3,7 +3,7 @@ import { isRedCard, isTwo } from './card';
 
 export interface EconomySettings {
   betAmount: number;
-  isUnderground?: boolean;
+  penaltyMultiplier?: number;
   hardcoreMultiplier?: number;
 }
 
@@ -24,7 +24,7 @@ export interface EndGameSettlementResult {
 /**
  * Helper trích xuất hệ số nhân sát phạt (multiplier: 1x, 2x, 3x, 4x, 5x...)
  */
-function getMultiplier(val: boolean | number = false): number {
+function getMultiplier(val: boolean | number = 1): number {
   if (typeof val === 'number') return Math.max(1, val);
   return val ? 2 : 1;
 }
@@ -36,9 +36,9 @@ export function calculateChopPenalty(
   target: Combination,
   candidate: Combination,
   betAmount: number,
-  isUnderground: boolean | number = false
+  penaltyMultiplier: boolean | number = 1
 ): { amount: number; description: string } {
-  const mult = getMultiplier(isUnderground);
+  const mult = getMultiplier(penaltyMultiplier);
   const bet = betAmount;
 
   // 1. Chặt 1 Heo
@@ -99,9 +99,9 @@ export function calculateChopPenalty(
 /**
  * Tính tiền phạt Thối Heo/Hàng khi ván đấu kết thúc
  */
-export function calculateRottenPenalty(hand: Card[], betAmount: number, isUnderground: boolean | number = false): number {
+export function calculateRottenPenalty(hand: Card[], betAmount: number, penaltyMultiplier: boolean | number = 1): number {
   let penalty = 0;
-  const mult = getMultiplier(isUnderground);
+  const mult = getMultiplier(penaltyMultiplier);
   const bet = betAmount;
 
   // 1. Thối Heo
@@ -129,18 +129,12 @@ export function calculateRottenPenalty(hand: Card[], betAmount: number, isUnderg
 /**
  * Tính toán tiền phạt Cóng (Cháy bài)
  */
-export function calculateCongPenalty(betAmount: number, isUnderground: boolean | number = false): number {
-  const mult = getMultiplier(isUnderground);
+export function calculateCongPenalty(betAmount: number, penaltyMultiplier: boolean | number = 1): number {
+  const mult = getMultiplier(penaltyMultiplier);
   // Cóng đền 26 mức cược (hoặc 52, 78, 104... mức cược tùy theo multiplier)
   return 26 * betAmount * mult;
 }
 
-/**
- * Tính toán kết quả cho chế độ Đếm Lá (Count Cards) & Sòng Bạc Ngầm
- * - Ván dừng khi 1 người về Nhất.
- * - Người thua bị phạt: (Số lá còn lại × Cược × Mult) + Thối heo/hàng + Cóng.
- * - Người về Nhất ăn trọn số tiền phạt này.
- */
 /**
  * Tính toán kết quả cho chế độ Đếm Lá (Card-Count / Sát Phạt)
  * - Ván dừng khi 1 người về Nhất.
@@ -152,13 +146,13 @@ export function calculateCountCardsSettlement(
   players: Player[],
   winnerId: string,
   betAmount: number,
-  isUnderground: boolean | number = false,
+  penaltyMultiplier: boolean | number = 1,
   isThreeSpadesWin: boolean = false
 ): Record<string, number> {
   const payouts: Record<string, number> = {};
   players.forEach(p => { payouts[p.id] = 0; });
 
-  const mult = getMultiplier(isUnderground);
+  const mult = getMultiplier(penaltyMultiplier);
   const threeSpadesMultiplier = isThreeSpadesWin ? 2 : 1;
   let totalWinnerEarn = 0;
 
@@ -198,13 +192,13 @@ export function calculateWinnerTakesAllSettlement(
   players: Player[],
   winnerId: string,
   betAmount: number,
-  isUnderground: boolean | number = false,
+  penaltyMultiplier: boolean | number = 1,
   isThreeSpadesWin: boolean = false
 ): Record<string, number> {
   const payouts: Record<string, number> = {};
   players.forEach(p => { payouts[p.id] = 0; });
 
-  const mult = getMultiplier(isUnderground);
+  const mult = getMultiplier(penaltyMultiplier);
   const threeSpadesMultiplier = isThreeSpadesWin ? 2 : 1;
   let totalWinnerEarn = 0;
 
@@ -238,12 +232,12 @@ export function calculateTraditionalSettlement(
   players: Player[],
   winners: Player[],
   betAmount: number,
-  isUnderground: boolean | number = false,
+  penaltyMultiplier: boolean | number = 1,
   isThreeSpadesWin: boolean = false
 ): Record<string, number> {
   const payouts: Record<string, number> = {};
   players.forEach(p => { payouts[p.id] = 0; });
-  const mult = getMultiplier(isUnderground);
+  const mult = getMultiplier(penaltyMultiplier);
   const threeSpadesMultiplier = isThreeSpadesWin ? 2 : 1;
 
   if (winners.length === 4) {

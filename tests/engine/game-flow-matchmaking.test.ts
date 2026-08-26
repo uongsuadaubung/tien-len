@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'bun:test';
 import { GameEngine } from '../../src/engine/game';
 import { Player, Card, createDefaultGameRules } from '../../src/engine/types';
-import { RankedModeStrategy } from '../../src/engine/strategies/game-mode-strategy';
+import { CountCardsModeStrategy } from '../../src/engine/strategies/game-mode-strategy';
 import { PlayerProfile } from '../../src/engine/storage';
 
 describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu Hạng', () => {
@@ -109,8 +109,8 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
     expect(engine.currentRound.leadPlayerId).toBe('p0');
   });
 
-  test('5. Đấu Hạng (RankedModeStrategy): Luôn sinh đối thủ mới với tên, avatar và Elo ngẫu nhiên mới', () => {
-    const rankedStrategy = new RankedModeStrategy();
+  test('5. Ghép Trận Đấu Hạng (Ranked Matchmaking): Tự động sinh đối thủ Bot theo Elo', () => {
+    const strategy = new CountCardsModeStrategy();
     const mockProfile: PlayerProfile = {
       name: 'Người Chơi',
       avatar: '🤠',
@@ -136,8 +136,8 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
       dailyMilestonesClaimed: { 1: false, 3: false, 5: false }
     };
 
-    const match1 = rankedStrategy.setupMatch({ profile: mockProfile, playerCount: 4 });
-    const match2 = rankedStrategy.setupMatch({ profile: mockProfile, playerCount: 4 });
+    const match1 = strategy.setupMatch({ profile: mockProfile, playerCount: 4 });
+    const match2 = strategy.setupMatch({ profile: mockProfile, playerCount: 4 });
 
     expect(match1.initialPlayers.length).toBe(4);
     expect(match2.initialPlayers.length).toBe(4);

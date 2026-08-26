@@ -372,10 +372,7 @@ export function useGameMatchLoop() {
     setWinners([]);
     setIsGameOver(false);
     setInstantWinType(undefined);
-    setIsThreeSpadesWin(false);
-
-    const isRanked = activeGameType === 'RANKED';
-    const effectiveGameNumber = isRanked ? 1 : nextGameNumber;
+    const effectiveGameNumber = nextGameNumber;
     setGameNumber(effectiveGameNumber);
 
     if (effectiveGameNumber === 1) {
@@ -392,12 +389,11 @@ export function useGameMatchLoop() {
     const strategy = resolveStrategyForMatch(activeGameType, effectiveMode);
 
     // 2. Strategy tự động thiết lập toàn bộ cấu hình ván đấu
-    // Đối với Đấu Hạng (Ranked): Matchmaker sẽ ghép 3 Bot có tên, avatar và Elo mới
     const setup = strategy.setupMatch({
       profile,
       customSettings: { ...gameSettings, ...setupContext?.customSettings },
-      customBotPersonaIds: isRanked ? undefined : botPersonaIds,
-      customBotConfigs: isRanked ? undefined : customBotConfigs,
+      customBotPersonaIds: botPersonaIds,
+      customBotConfigs: customBotConfigs,
       campaignChapter: currentCampaignChapter || undefined,
       playerCount,
       ...setupContext
@@ -413,7 +409,7 @@ export function useGameMatchLoop() {
     // 3.1. Tính toán và Tạm giữ tiền cọc an toàn (Buy-in Deposit)
     const penaltyMultiplier = setup.rules.chopping.multiplier || setup.rules.cong.multiplier || 1;
     const tableBetAmount = setup.rules.table.betAmount || 0;
-    const requiredDeposit = isRanked ? 0 : 26 * tableBetAmount * penaltyMultiplier;
+    const requiredDeposit = 26 * tableBetAmount * penaltyMultiplier;
 
     if (requiredDeposit > 0) {
       if (profile.coins < requiredDeposit) {
@@ -443,7 +439,7 @@ export function useGameMatchLoop() {
       penaltyMultiplier: penaltyMultiplier !== undefined ? penaltyMultiplier : null,
       activeGameType: activeGameType,
       playerCount: setup.playerCount,
-      isRanked,
+      isRanked: activeGameType === 'QUICK',
       startedAt: Date.now(),
       timestamp: Date.now()
     });
@@ -454,7 +450,7 @@ export function useGameMatchLoop() {
     const currentPersonaIds = botPersonaIds;
     const currentConfigs = customBotConfigs;
 
-    if (!isRanked && effectiveGameNumber > 1 && engineRef.current) {
+    if (effectiveGameNumber > 1 && engineRef.current) {
       const prevEngine = engineRef.current;
       const betAmount = setup.settings.betAmount || 100;
       const usedNames = [profile.name];
@@ -518,7 +514,7 @@ export function useGameMatchLoop() {
       setup.rules
     );
 
-    const resolvedWinnerId = (isRanked || effectiveGameNumber === 1)
+    const resolvedWinnerId = (effectiveGameNumber === 1)
       ? undefined
       : (preserveWinnerId || lastWinnerIdRef.current || undefined);
     engine.startNewGame(effectiveGameNumber, resolvedWinnerId);
@@ -937,7 +933,7 @@ export function useGameMatchLoop() {
       setForfeitData({
         depositAmount: session?.depositAmount || 0,
         eloPenalty: 30,
-        isRanked: activeGameType === 'RANKED'
+        isRanked: activeGameType === 'QUICK'
       });
       openModal('CONFIRM_FORFEIT');
     } else {

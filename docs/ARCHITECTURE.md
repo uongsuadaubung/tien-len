@@ -75,12 +75,10 @@ Vận hành tại [`src/engine/strategies/game-mode-strategy.ts`](../src/engine/
 
 | Strategy | Kết Thúc Ván | Cách Tính Tiền / Phạt | Elo Rating |
 | :--- | :--- | :--- | :--- |
-| **`TraditionalModeStrategy`** | Đánh đến khi còn 1 người | Chia tiền 4 bậc: Nhất (+2.0x), Nhì (+1.0x), Ba (-1.0x), Bét (-2.0x) | Không |
-| **`CountCardsModeStrategy`** | 1 người hết bài là dừng | Người thua trả $1\times \text{Bet} \times \text{Số lá tồn}$ cho người Nhất | Không |
-| **`WinnerTakesAllModeStrategy`** | 1 người hết bài là dừng | Người về Nhất gom sạch toàn bộ tiền cược của cả bàn | Không |
-| **`UndergroundModeStrategy`** | 1 người hết bài là dừng | Đếm lá sát phạt $\times 2.0$, vay nợ chợ đen, trích nợ 10% mỗi ván thắng | Không |
+| **`TraditionalModeStrategy`** | Đánh đến khi còn 1 người | Chia tiền 4 bậc: Nhất (+2.0x), Nhì (+1.0x), Ba (-1.0x), Bét (-2.0x) | Có ($\Delta \text{Elo}$) |
+| **`CountCardsModeStrategy`** | 1 người hết bài là dừng | Người thua trả $\text{Bet} \times \text{Số lá tồn} \times \text{Hệ số phạt}$ cho người Nhất | Có ($\Delta \text{Elo}$) |
+| **`WinnerTakesAllModeStrategy`** | 1 người hết bài là dừng | Người về Nhất gom sạch toàn bộ tiền cược của cả bàn | Có ($\Delta \text{Elo}$) |
 | **`CampaignModeStrategy`** | 1 người hết bài là dừng | 0 phạt đếm lá, mở khóa ải kế tiếp và trao thưởng Xu/Danh hiệu | Không |
-| **`RankedModeStrategy`** | Đánh đến còn 1 người | 0 Xu cược, tính điểm Elo tăng/giảm theo hiệu suất chuẩn FIDE | Có ($\Delta \text{Elo}$) |
 
 ---
 

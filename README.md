@@ -7,13 +7,10 @@
 ## 🌟 ĐẶC ĐIỂM NỔI BẬT (HIGHLIGHTS)
 
 * 🃏 **Đầy Đủ Luật Chơi Tiến Lên Miền Nam**: Đánh lẻ, Đôi, Sám, Sảnh (3–12 lá không chứa 2), 3 Đôi Thông, Tứ Quý, 4 Đôi Thông (chặt tự do không cần vòng), Chặt Chồng, Cóng (Cháy bài), Thối Heo/Hàng, Tới Trắng (Sảnh rồng, Tứ quý 2, 5-6 đôi), Cấm Đánh 2 Cuối Cùng (`prohibitEndingWithTwo`), Ăn 3 Bích Về Cuối (`threeSpadesEndingBonus`), Chống Đền Bài khi người kế tiếp báo 1 lá.
-* 🎮 **6 Chế Độ Chơi Độc Lập (Strategy Pattern)**:
-  1. 🏆 **Truyền Thống (Traditional)**: Đánh đến khi còn 1 người, phân chia tiền thưởng 4 bậc Nhất (+2x), Nhì (+1x), Ba (-1x), Bét (-2x).
-  2. 🥇 **Đấu Hạng Elo (Ranked)**: 0 Xu cược, thi đấu thuần kỹ năng, tính biến động điểm Elo chuẩn FIDE từ Đồng đến Thần Bài.
-  3. ⚡ **Đếm Lá (Count Cards)**: 1 người hết bài là kết thúc, phạt người thua theo đúng số lá bài còn lại trên tay.
-  4. 🎲 **Nhất Ăn Tất (Winner Takes All)**: 1 người về Nhất gom sạch toàn bộ tiền cược cơ bản của cả bàn.
-  5. 🕶️ **Sòng Bạc Ngầm (Underground Casino)**: Đếm lá sát phạt cực hạn nhân đôi ($\times 2.0$), hỗ trợ vay mượn tín dụng đen, tự động trích nợ 10% mỗi ván thắng.
-  6. 🗺️ **Hành Trình Sự Nghiệp (Campaign Story)**: Vượt qua các ải giang hồ độc đáo, mở khóa danh hiệu và phần thưởng đặc biệt.
+* 🎮 **Chế Độ Chơi Đa Dạng (Strategy Pattern)**:
+  1. ⚡ **Chơi Nhanh & Đấu Hạng (Quick Play & Ranked Elo)**: Tự động ghép trận với các Bot cùng trình độ Elo, tùy chọn luật (Đếm Lá, Nhất Ăn Tất, Truyền Thống, Solo 1v1), tính biến động điểm Elo chuẩn FIDE và tích lũy Xu thưởng.
+  2. 🗺️ **Hành Trình Sự Nghiệp (Campaign Story)**: Vượt qua 10 ải giang hồ độc đáo, mở khóa danh hiệu và phần thưởng đặc biệt.
+  3. 🛠️ **Tùy Biến Bàn Chơi (Custom Sandbox)**: Tự do tinh chỉnh số người (2-4), mức cược, phạt chặt, cóng, về 3 bích cuối và độ khó Bot.
 * 🤖 **Hệ Thống Trí Tuệ Nhân Tạo (AI Bot Engine)**:
   - **18 Personas Cá Tính Hóa** thuộc 5 Bậc Elo (Rookie 850 $\to$ God Mode 2500).
   - **Composite Rule-First Strategy**: AI tự động thích ứng với bất kỳ tổ hợp luật nào đang được cấu hình.
