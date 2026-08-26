@@ -173,7 +173,7 @@ export type DeepPartial<T> = {
  */
 export function createDefaultGameRules(partial?: DeepPartial<GameRules>): GameRules {
   return {
-    settlementRule: partial?.settlementRule || 'TRADITIONAL_RANK_BASED',
+    settlementRule: partial?.settlementRule || 'CARD_COUNT',
     chopping: {
       allowFourPairsCutAnytime: partial?.chopping?.allowFourPairsCutAnytime ?? true,
       allowThreePairsCutTwo: partial?.chopping?.allowThreePairsCutTwo ?? true,
@@ -198,7 +198,7 @@ export function createDefaultGameRules(partial?: DeepPartial<GameRules>): GameRu
     },
     table: {
       playerCount: normalizePlayerCount(partial?.table?.playerCount),
-      betAmount: partial?.table?.betAmount ?? 500,
+      betAmount: partial?.table?.betAmount ?? 1000,
       botThinkDelayMs: partial?.table?.botThinkDelayMs ?? 800,
       soundEnabled: partial?.table?.soundEnabled ?? true
     }
@@ -234,7 +234,7 @@ export function convertSettingsToGameRules(settings?: Partial<GameSettings>): Ga
     },
     table: {
       playerCount: normalizePlayerCount(settings?.playerCount),
-      betAmount: settings?.betAmount ?? 500,
+      betAmount: settings?.betAmount ?? 1000,
       botThinkDelayMs: settings?.botThinkDelayMs ?? 800,
       soundEnabled: settings?.soundEnabled ?? true
     }
@@ -389,7 +389,7 @@ export class TableRulesBuilder {
   constructor(initial?: TableRules) {
     this.config = initial ? { ...initial } : {
       playerCount: 4,
-      betAmount: 500,
+      betAmount: 1000,
       botThinkDelayMs: 800,
       soundEnabled: true
     };
@@ -437,14 +437,14 @@ export class GameRulesBuilder {
   public static traditional(): GameRulesBuilder {
     return new GameRulesBuilder(createDefaultGameRules({
       settlementRule: 'TRADITIONAL_RANK_BASED',
-      table: { playerCount: 4, betAmount: 500, botThinkDelayMs: 850, soundEnabled: true }
+      table: { playerCount: 4, betAmount: 1000, botThinkDelayMs: 850, soundEnabled: true }
     }));
   }
 
   public static countCards(): GameRulesBuilder {
     return new GameRulesBuilder(createDefaultGameRules({
       settlementRule: 'CARD_COUNT',
-      table: { playerCount: 4, betAmount: 500, botThinkDelayMs: 750, soundEnabled: true }
+      table: { playerCount: 4, betAmount: 1000, botThinkDelayMs: 750, soundEnabled: true }
     }));
   }
 

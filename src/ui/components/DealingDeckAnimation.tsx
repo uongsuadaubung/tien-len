@@ -227,8 +227,8 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
               );
             })}
 
-            {/* Lá trên cùng (Lưng bài Tết đỏ ánh kim VIP) */}
-            <div className="absolute inset-0 card-back-premium flex items-center justify-center shadow-2xl">
+            {/* Lá trên cùng (Lưng bài Tết đỏ ánh kim) */}
+            <div className="absolute inset-0 rounded-lg sm:rounded-xl bg-gradient-to-br from-red-800 via-red-900 to-amber-950 border-2 border-[#d4af37] shadow-2xl flex items-center justify-center overflow-hidden">
               <span className="text-[10px] font-black text-yellow-300 drop-shadow">
                 {isShuffling ? 'XÀO BÀI' : `${remainingDeckCards}`}
               </span>

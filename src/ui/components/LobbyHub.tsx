@@ -1,6 +1,7 @@
 import React from 'react';
 import { PlayerProfile } from '../../engine/storage';
 import { getRankTierByElo, RANK_TIERS } from '../../engine/elo';
+import { calculateAdaptiveQuickBet } from '../../engine/economy';
 import { 
   Trophy, 
   Flame, 
@@ -20,6 +21,7 @@ import { Button, Badge, Card, SectionHeader } from '../primitives';
 
 interface LobbyHubProps {
   profile: PlayerProfile;
+  onPlayNow?: () => void;
   onOpenQuickSetup: () => void;
   onOpenCustomGameModal: () => void;
   onOpenCampaign: () => void;
@@ -33,6 +35,7 @@ interface LobbyHubProps {
 
 export const LobbyHub: React.FC<LobbyHubProps> = ({
   profile,
+  onPlayNow,
   onOpenQuickSetup,
   onOpenCustomGameModal,
   onOpenCampaign,
@@ -203,7 +206,7 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
             variant="container"
             hoverable
             clickable
-            onClick={onOpenQuickSetup}
+            onClick={onPlayNow || onOpenQuickSetup}
             className="group p-6 sm:p-7 flex flex-col justify-between"
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -224,20 +227,6 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
                   </p>
                 </div>
               </div>
-
-              {/* Nút tùy chỉnh nhanh */}
-              <Button
-                variant="surface"
-                size="md"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenQuickSetup();
-                }}
-                leftIcon={<Sliders className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
-                title="Tùy chỉnh tiền cược và luật phạt"
-              >
-                <span>Cấu Hình Bàn</span>
-              </Button>
             </div>
 
             {/* Dải Tags & CTA */}
@@ -247,7 +236,7 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
                   {currentRank.badge} {currentRank.name} ({profile.elo} Elo)
                 </Badge>
                 <Badge variant="neutral" size="md">
-                  💰 Cược: 500+ Xu
+                  💰 Cược: {calculateAdaptiveQuickBet(profile.coins).toLocaleString()} Xu / Lá
                 </Badge>
                 <Badge variant="neutral" size="md">
                   ⚡ Phạt Chặt: x1 - x5
@@ -257,13 +246,34 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
                 </Badge>
               </div>
 
-              <Button
-                variant="gold"
-                size="md"
-                rightIcon={<ArrowRight className="w-4 h-4" />}
-              >
-                Vào Bàn Chơi Ngay
-              </Button>
+              {/* Nhóm nút hành động: Cấu Hình Bàn (bên trái) + Chơi Ngay (bên phải) */}
+              <div className="flex items-center gap-2.5">
+                <Button
+                  variant="surface"
+                  size="md"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenQuickSetup();
+                  }}
+                  leftIcon={<Sliders className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
+                  title="Tùy chỉnh tiền cược và luật phạt"
+                >
+                  <span>Cấu Hình Bàn</span>
+                </Button>
+
+                <Button
+                  variant="gold"
+                  size="md"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onPlayNow) onPlayNow();
+                    else onOpenQuickSetup();
+                  }}
+                  rightIcon={<ArrowRight className="w-4 h-4" />}
+                >
+                  Chơi Ngay
+                </Button>
+              </div>
             </div>
           </Card>
         </section>
@@ -358,7 +368,7 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
       {/* FOOTER */}
       <footer className="relative z-10 w-full max-w-6xl mx-auto flex items-center justify-between text-xs text-[var(--text-muted)] pt-3 border-t border-[var(--border-container)]">
         <div className="flex items-center gap-2">
-          <span>Tiến Lên Miền Nam VIP • Luxury Edition</span>
+          <span>Tiến Lên Miền Nam</span>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">

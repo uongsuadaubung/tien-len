@@ -56,7 +56,7 @@ export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
 
     savePlayerProfile(updated);
     onUpdateProfile(updated);
-    showNotification(`💸 Đã vay thành công +${loanAmountToBorrow.toLocaleString()} Xu từ Ngân Hàng VIP!`);
+    showNotification(`💸 Đã vay thành công +${loanAmountToBorrow.toLocaleString()} Xu từ Ngân Hàng!`);
   };
 
   const handleRepayDebt = (portion: number = 1) => {
@@ -151,7 +151,6 @@ export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
         </Button>
       </Card>
 
-      {/* 2. Vay Vốn Ngân Hàng VIP */}
       <Card variant="card" className="p-3.5 space-y-3">
         <div className="flex items-center gap-2">
           <Landmark className="w-5 h-5 text-[var(--color-gold)]" />

@@ -731,7 +731,7 @@ export const INITIAL_ACHIEVEMENTS: Achievement[] = [
   },
   {
     id: 'ach_billionaire',
-    title: 'Tỷ Phú Sòng Bạc VIP',
+    title: 'Tỷ Phú Sòng Bạc',
     description: 'Tích lũy số dư tài sản đạt mốc 10,000,000 Xu.',
     rewardCoins: 800000,
     icon: '🏛️',

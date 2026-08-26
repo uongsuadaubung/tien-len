@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { Card } from '../../engine/types';
-import { sortCards } from '../../engine/card';
+import { sortCards, isTwo } from '../../engine/card';
+import { calculateDynamicBotDelay } from '../../engine/game-speed';
 import { sortCardsSmart, getAvailableSmartVariants } from '../../engine/hand-sorter';
 import { GameEngine } from '../../engine/game';
 import { getBotConfig, generateRandomBotConfig, generateRealisticBotBankroll } from '../../ai/bot-factory';
@@ -43,7 +44,8 @@ export function useGameMatchLoop() {
   const {
     autoSortEnabled,
     aiHintEnabled,
-    botThinkDelayMs
+    botThinkDelayMs,
+    gameSpeed
   } = useSettingsStore();
 
   const {
@@ -86,6 +88,7 @@ export function useGameMatchLoop() {
     setIsGameOver,
     setInstantWinType,
     setIsThreeSpadesWin,
+    setBotThinkingThought,
     setSelectedCardIds,
     clearCardSelection,
     setCurrentHint,
@@ -657,7 +660,7 @@ export function useGameMatchLoop() {
     triggerChopAlertRef.current = triggerChopAlert;
   }, [triggerChopAlert]);
 
-  // VÒNG LẶP AI CHO BOT (Tự động tính toán & đi bài)
+  // VÒNG LẶP AI CHO BOT (Tự động tính toán & đi bài với Giả lập suy nghĩ động)
   useEffect(() => {
     if (!engineRef.current || isDealing || isGameOver) return;
     const engine = engineRef.current;
@@ -668,11 +671,42 @@ export function useGameMatchLoop() {
     }
 
     const currentPlayer = engine.getCurrentPlayer();
-    if (!currentPlayer || !currentPlayer.isBot || currentPlayer.hand.length === 0) return;
+    if (!currentPlayer || !currentPlayer.isBot || currentPlayer.hand.length === 0) {
+      setBotThinkingThought(null);
+      return;
+    }
 
-    const thinkDelay = Math.max(UI_TIMINGS.MIN_BOT_THINK_DELAY_MS, gameSettings.botThinkDelayMs);
+    const isLead = engine.isRoundLeadMove();
+    const leading = engine.getLeadingMove();
+    const isFacingHeoOrChop = leading ? (
+      leading.combination.type === 'FOUR_OF_A_KIND' ||
+      leading.combination.type === 'THREE_PAIRS_SEQUENTIAL' ||
+      leading.combination.type === 'FOUR_PAIRS_SEQUENTIAL' ||
+      (leading.combination.type === 'SINGLE' && isTwo(leading.combination.highestCard)) ||
+      (leading.combination.type === 'PAIR' && isTwo(leading.combination.highestCard))
+    ) : false;
+
+    const nextPlayerId = engine.getNextActivePlayerId(currentPlayer.id);
+    const nextPlayer = engine.getPlayer(nextPlayerId);
+    const isNextOneCard = nextPlayer ? nextPlayer.hand.length === 1 : false;
+
+    // Tính toán thời gian suy nghĩ động và biểu cảm tâm lý
+    const { delayMs, thoughtText } = calculateDynamicBotDelay(
+      {
+        isLead,
+        leadingMove: leading,
+        botHandLength: currentPlayer.hand.length,
+        isNextOneCard,
+        hasValidMoves: true,
+        isFacingHeoOrChop
+      },
+      gameSpeed
+    );
+
+    setBotThinkingThought({ botId: currentPlayer.id, text: thoughtText });
 
     const timer = setTimeout(() => {
+      setBotThinkingThought(null);
       if (!engineRef.current || engineRef.current.isGameOver) return;
 
       const botConfig = getBotConfig(currentPlayer.botPersonaId || 'BOT_ELO_1150');
@@ -702,10 +736,10 @@ export function useGameMatchLoop() {
         }
       } else {
         soundManager.playPass();
-        const leading = engine.getLeadingMove();
-        if (leading) {
+        const leadingMove = engine.getLeadingMove();
+        if (leadingMove) {
           for (const t of Object.values(trackersRef.current)) {
-            t.recordPassWithDetails(currentPlayer.id, leading.combination);
+            t.recordPassWithDetails(currentPlayer.id, leadingMove.combination);
           }
         }
       }
@@ -714,10 +748,12 @@ export function useGameMatchLoop() {
       if (engine.isGameOver) {
         handleGameCompletionRef.current(engine);
       }
-    }, thinkDelay);
+    }, delayMs);
 
-    return () => clearTimeout(timer);
-  }, [currentTurnPlayerId, isDealing, isGameOver, gameSettings.botThinkDelayMs]);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [currentTurnPlayerId, isDealing, isGameOver, gameSpeed]);
 
   // Người Chơi Đánh Bài
   const handlePlaySelectedCards = useCallback(() => {

@@ -10,6 +10,7 @@ interface BotSeatProps {
   isLeader?: boolean;
   displayCardCount?: number;
   isDealing?: boolean;
+  thoughtText?: string | null;
 }
 
 export const BotSeat: React.FC<BotSeatProps> = ({
@@ -18,7 +19,8 @@ export const BotSeat: React.FC<BotSeatProps> = ({
   isCurrentTurn,
   isLeader,
   displayCardCount,
-  isDealing
+  isDealing,
+  thoughtText
 }) => {
   if (!player) return null;
 
@@ -30,6 +32,13 @@ export const BotSeat: React.FC<BotSeatProps> = ({
       id={`seat-${player.id}`}
       className="relative flex flex-col items-center justify-center z-20 select-none"
     >
+      {/* Bong bóng suy nghĩ động (Thought Bubble) */}
+      {isCurrentTurn && !player.isPassedCurrentRound && !player.rankPosition && thoughtText && (
+        <div className="absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#121724]/95 text-[#f3e5ab] text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full border border-[#d4af37] shadow-lg animate-pulse flex items-center gap-1 z-30 pointer-events-none">
+          <span>{thoughtText}</span>
+        </div>
+      )}
+
       {/* Avatar Bot */}
       <div className="relative group">
         <div

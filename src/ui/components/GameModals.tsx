@@ -76,12 +76,14 @@ export const GameModals: React.FC<GameModalsProps> = ({
     aiHintEnabled,
     xrayEnabled,
     botReasoningLogEnabled,
+    gameSpeed,
     toggleSound,
     toggleBlossom,
     toggleAutoSort,
     toggleAiHint,
     toggleXRay,
-    toggleBotReasoningLog
+    toggleBotReasoningLog,
+    setGameSpeed
   } = useSettingsStore();
 
   // Game Store
@@ -177,6 +179,8 @@ export const GameModals: React.FC<GameModalsProps> = ({
         onToggleXRay={toggleXRay}
         botReasoningLogEnabled={botReasoningLogEnabled}
         onToggleBotReasoningLog={toggleBotReasoningLog}
+        gameSpeed={gameSpeed}
+        onSetGameSpeed={setGameSpeed}
       />
 
       {/* 8. X-Ray Inspector */}

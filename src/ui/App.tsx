@@ -14,6 +14,7 @@ import {
   savePlayerProfile 
 } from '../engine/storage';
 import { GameRulesBuilder } from '../engine/types';
+import { calculateAdaptiveQuickBet } from '../engine/economy';
 
 // Stores
 import { useModalStore } from '../stores/useModalStore';
@@ -143,6 +144,29 @@ export const App: React.FC = () => {
     });
   };
 
+  const handlePlayNowDefault = () => {
+    // Nếu hết sạch tiền (cháy túi), tự động mở Ngân hàng / Quỹ cứu trợ
+    if (profile.coins <= 0) {
+      openModal('BANK');
+      return;
+    }
+
+    // Mức cược thích ứng: 1.000 Xu / lá nếu có từ 26.000 Xu trở lên; tự động giảm tỷ lệ thuận nếu không đủ
+    const adaptiveBet = calculateAdaptiveQuickBet(profile.coins);
+
+    handleStartQuickGame({
+      playerCount: 4,
+      betAmount: Math.max(1, adaptiveBet),
+      settlementRule: 'CARD_COUNT',
+      choppingMultiplier: 1,
+      congEnabled: true,
+      prohibitEndingWithTwo: true,
+      allowFourPairsCutAnytime: true,
+      threeSpadesEndingBonus: true,
+      cascadeChopEnabled: true
+    });
+  };
+
   const handleStartCustomGameWithConfig = (config: CustomGameModalConfig) => {
     setActiveGameType('QUICK');
     closeModal('CUSTOM_GAME');
@@ -178,6 +202,7 @@ export const App: React.FC = () => {
           <FallingBlossoms />
           <LobbyHub
             profile={profile}
+            onPlayNow={handlePlayNowDefault}
             onOpenQuickSetup={() => openModal('QUICK_SETUP')}
             onOpenCustomGameModal={() => openModal('CUSTOM_GAME')}
             onOpenCampaign={() => openModal('CAMPAIGN')}

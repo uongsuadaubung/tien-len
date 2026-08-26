@@ -67,7 +67,7 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
     id: 4,
     name: 'Chương 4',
     subtitle: 'Đêm Sài Thành Rực Lửa',
-    venueName: 'Câu Lạc Bộ VIP Sài Gòn',
+    venueName: 'Câu Lạc Bộ Sài Gòn',
     icon: '💎',
     backgroundTheme: 'from-purple-950/80 to-slate-950/90',
     description: 'Sân chơi của các đại gia và cao thủ bán chuyên. Bắt đầu áp dụng chiến thuật ép nhịp cờ tàn.',

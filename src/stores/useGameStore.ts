@@ -59,6 +59,7 @@ interface GameState {
   isGameOver: boolean;
   instantWinType?: InstantWinType;
   isThreeSpadesWin: boolean;
+  botThinkingThought: { botId: string; text: string } | null;
 
   // Player Hand Interaction
   selectedCardIds: Set<string>;
@@ -101,6 +102,7 @@ interface GameState {
   setIsGameOver: (gameOver: boolean) => void;
   setInstantWinType: (type?: InstantWinType) => void;
   setIsThreeSpadesWin: (win: boolean) => void;
+  setBotThinkingThought: (thought: { botId: string; text: string } | null) => void;
 
   setSelectedCardIds: (idsOrUpdater: Set<string> | ((prev: Set<string>) => Set<string>)) => void;
   toggleCardSelect: (cardId: string) => void;
@@ -170,13 +172,13 @@ const DEFAULT_PLAYERS: Player[] = [
 const DEFAULT_GAME_RULES: GameRules = createDefaultGameRules();
 
 const DEFAULT_GAME_SETTINGS: GameSettings = {
-  mode: 'TRADITIONAL',
+  mode: 'COUNT_CARDS',
   playerCount: 4,
-  betAmount: 100,
+  betAmount: 1000,
   allowFourPairsCutAnytime: true,
   instantWinEnabled: true,
   soundEnabled: true,
-  botThinkDelayMs: 850,
+  botThinkDelayMs: 800,
   prohibitEndingWithTwo: true,
   threeSpadesEndingBonus: true,
   cascadeChopEnabled: true
@@ -208,6 +210,7 @@ export const useGameStore = create<GameState>((set) => ({
   isGameOver: false,
   instantWinType: undefined,
   isThreeSpadesWin: false,
+  botThinkingThought: null,
 
   selectedCardIds: new Set<string>(),
   currentHint: null,
@@ -267,6 +270,7 @@ export const useGameStore = create<GameState>((set) => ({
   setIsGameOver: (gameOver) => set({ isGameOver: gameOver }),
   setInstantWinType: (type) => set({ instantWinType: type }),
   setIsThreeSpadesWin: (win) => set({ isThreeSpadesWin: win }),
+  setBotThinkingThought: (thought) => set({ botThinkingThought: thought }),
 
   setSelectedCardIds: (idsOrUpdater) => set((state) => ({
     selectedCardIds: typeof idsOrUpdater === 'function' ? idsOrUpdater(state.selectedCardIds) : idsOrUpdater
@@ -305,6 +309,7 @@ export const useGameStore = create<GameState>((set) => ({
     isGameOver: false,
     instantWinType: undefined,
     isThreeSpadesWin: false,
+    botThinkingThought: null,
     selectedCardIds: new Set<string>(),
     currentHint: null,
     smartVariantIndex: 0,

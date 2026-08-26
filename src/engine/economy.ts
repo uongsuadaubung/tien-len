@@ -30,6 +30,21 @@ function getMultiplier(val: boolean | number = 1): number {
 }
 
 /**
+ * Tính toán mức cược Chơi Nhanh thích ứng tự động theo số dư tài sản hiện tại
+ * - Mặc định 1.000 Xu / lá nếu số dư ví >= 26.000 Xu (đủ 26 mức cược an toàn).
+ * - Nếu không đủ 26.000 Xu: tự động giảm tỷ lệ thuận theo công thức an toàn Math.floor(coins / 26).
+ */
+export function calculateAdaptiveQuickBet(playerCoins: number): number {
+  if (playerCoins <= 0) return 0;
+  if (playerCoins >= 26000) return 1000;
+  const rawSafe = Math.floor(playerCoins / 26);
+  if (rawSafe >= 10) {
+    return Math.floor(rawSafe / 10) * 10;
+  }
+  return Math.max(1, rawSafe);
+}
+
+/**
  * Tính toán tiền phạt chặt tức thì (Instant Chop Penalty)
  */
 export function calculateChopPenalty(

@@ -57,7 +57,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
   const allPersonas = getAllBotConfigs();
 
   const initialBet = Math.min(
-    initialConfig?.settings?.betAmount || 500,
+    initialConfig?.settings?.betAmount || 1000,
     Math.max(1, playerCoins)
   );
 
@@ -71,7 +71,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
     allowFourPairsCutAnytime: initialConfig?.settings?.allowFourPairsCutAnytime ?? true,
     instantWinEnabled: initialConfig?.settings?.instantWinEnabled ?? true,
     soundEnabled: initialConfig?.settings?.soundEnabled ?? true,
-    botThinkDelayMs: initialConfig?.settings?.botThinkDelayMs ?? 850,
+    botThinkDelayMs: initialConfig?.settings?.botThinkDelayMs ?? 800,
     prohibitEndingWithTwo: initialConfig?.settings?.prohibitEndingWithTwo ?? true,
     threeSpadesEndingBonus: initialConfig?.settings?.threeSpadesEndingBonus ?? true,
     cascadeChopEnabled: initialConfig?.settings?.cascadeChopEnabled ?? true

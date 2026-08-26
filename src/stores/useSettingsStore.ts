@@ -1,10 +1,11 @@
 import { create } from 'zustand';
 import { UI_TIMINGS } from '../ui/constants/ui-timings';
+import { GameSpeedMode } from '../engine/game-speed';
 
 /**
  * ============================================================================
  * USER SETTINGS STORE (CẤU HÌNH TÙY CHỌN NGƯỜI DÙNG)
- * Chuyên biệt lưu trữ tùy chọn cá nhân (Âm thanh, Xếp bài, Gợi ý, Hiệu ứng, Debug Log)
+ * Chuyên biệt lưu trữ tùy chọn cá nhân (Âm thanh, Xếp bài, Gợi ý, Tốc độ trận đấu, Hiệu ứng, Debug Log)
  * ============================================================================
  */
 interface SettingsState {
@@ -15,6 +16,7 @@ interface SettingsState {
   xrayEnabled: boolean;
   botReasoningLogEnabled: boolean;
   botThinkDelayMs: number;
+  gameSpeed: GameSpeedMode;
 
   // Actions
   toggleSound: () => void;
@@ -30,6 +32,7 @@ interface SettingsState {
   setXRayEnabled: (enabled: boolean) => void;
   setBotReasoningLogEnabled: (enabled: boolean) => void;
   setBotThinkDelayMs: (delay: number) => void;
+  setGameSpeed: (speed: GameSpeedMode) => void;
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
@@ -40,6 +43,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   xrayEnabled: false, // Mặc định TẮT soi bài
   botReasoningLogEnabled: false, // Mặc định TẮT (người chơi có thể bật trong Settings)
   botThinkDelayMs: UI_TIMINGS.DEFAULT_BOT_THINK_DELAY_MS,
+  gameSpeed: 'REALISTIC', // Mặc định: Giả lập thời gian suy nghĩ chân thực động
 
   toggleSound: () => set((state) => ({ soundEnabled: !state.soundEnabled })),
   toggleBlossom: () => set((state) => ({ blossomEnabled: !state.blossomEnabled })),
@@ -54,5 +58,6 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setAiHintEnabled: (enabled) => set({ aiHintEnabled: enabled }),
   setXRayEnabled: (enabled) => set({ xrayEnabled: enabled }),
   setBotReasoningLogEnabled: (enabled) => set({ botReasoningLogEnabled: enabled }),
-  setBotThinkDelayMs: (delay) => set({ botThinkDelayMs: delay })
+  setBotThinkDelayMs: (delay) => set({ botThinkDelayMs: delay }),
+  setGameSpeed: (speed) => set({ gameSpeed: speed })
 }));

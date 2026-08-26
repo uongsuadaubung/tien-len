@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { GameSettlementRule } from '../../engine/types';
+import { calculateAdaptiveQuickBet } from '../../engine/economy';
 import { Play, Sliders } from 'lucide-react';
 import { TableRulesConfigPanel, TableConfigState } from './TableRulesConfigPanel';
 import { Modal, Button } from '../primitives';
@@ -32,7 +33,7 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
   const [config, setConfig] = useState<TableConfigState>({
     playerCount: 4,
     mode: 'COUNT_CARDS',
-    betAmount: Math.min(1000, Math.max(100, Math.floor(playerCoins / 26))),
+    betAmount: Math.max(1, calculateAdaptiveQuickBet(playerCoins) || 100),
     choppingMultiplier: 1,
     congEnabled: true,
     prohibitEndingWithTwo: true,

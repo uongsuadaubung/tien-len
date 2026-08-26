@@ -71,6 +71,7 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
     currentHint,
     handSortMode,
     smartVariantIndex,
+    botThinkingThought,
     toggleCardSelect,
     clearCardSelection
   } = useGameStore();
@@ -185,6 +186,7 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
               isLeader={leadPlayerId === topBot.id}
               isDealing={isDealing}
               displayCardCount={dealtCounts[topBot.id]}
+              thoughtText={botThinkingThought?.botId === topBot.id ? botThinkingThought.text : null}
             />
           )}
         </div>
@@ -202,6 +204,7 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
                 isLeader={leadPlayerId === leftBot.id}
                 isDealing={isDealing}
                 displayCardCount={dealtCounts[leftBot.id]}
+                thoughtText={botThinkingThought?.botId === leftBot.id ? botThinkingThought.text : null}
               />
             ) : (
               <div className="w-24 hidden md:block" />
@@ -251,6 +254,7 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
                 isLeader={leadPlayerId === rightBot.id}
                 isDealing={isDealing}
                 displayCardCount={dealtCounts[rightBot.id]}
+                thoughtText={botThinkingThought?.botId === rightBot.id ? botThinkingThought.text : null}
               />
             ) : (
               <div className="w-24 hidden md:block" />
