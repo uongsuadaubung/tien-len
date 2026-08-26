@@ -10,7 +10,7 @@ interface CardViewProps {
   disabled?: boolean;
   style?: React.CSSProperties;
   className?: string;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
 }
 
 export const CardView: React.FC<CardViewProps> = ({
@@ -28,24 +28,28 @@ export const CardView: React.FC<CardViewProps> = ({
   const suitSym = SUIT_SYMBOLS[card.suit];
 
   const sizeClasses = {
+    xs: 'w-6 h-9 sm:w-7 sm:h-10 text-[8px] rounded-[4px] p-0.5',
     sm: 'w-12 h-18 text-xs',
     md: 'w-[74px] h-[106px] text-sm',
     lg: 'w-24 h-34 text-base'
   }[size];
 
   const centerIconSizes = {
+    xs: 'text-xs sm:text-sm',
     sm: 'text-2xl',
     md: 'text-4xl',
     lg: 'text-5xl'
   }[size];
 
   const rankTextSizes = {
+    xs: 'text-[8px] sm:text-[9px] font-black leading-none',
     sm: 'text-xs',
     md: 'text-sm sm:text-base',
     lg: 'text-lg'
   }[size];
 
   const miniSuitSizes = {
+    xs: 'text-[6px] sm:text-[7px] leading-none',
     sm: 'text-[9px]',
     md: 'text-xs',
     lg: 'text-sm'
@@ -87,6 +91,45 @@ export const CardView: React.FC<CardViewProps> = ({
       >
         <span className={rankTextSizes}>{rankStr}</span>
         <span className={`${miniSuitSizes} mt-0.5 opacity-90`}>{suitSym}</span>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Thẻ bài thu nhỏ (Miniature Playing Card) dùng cho màn hình kết thúc trận và xem bài tàn cuộc
+ */
+export const MiniCardView: React.FC<{ card: Card; className?: string }> = ({ card, className = '' }) => {
+  const isRed = isRedCard(card);
+  const rankStr = RANK_NAMES[card.rank];
+  const suitSym = SUIT_SYMBOLS[card.suit];
+  const isTwo = card.rank === 15;
+  const colorClass = isRed ? 'text-red-600' : 'text-slate-900';
+
+  return (
+    <div
+      className={`
+        w-6 h-9 sm:w-7 sm:h-10 bg-white rounded-[4px] shadow-sm select-none relative overflow-hidden flex flex-col justify-between p-0.5 border flex-shrink-0
+        ${isTwo ? 'border-amber-400 ring-1 ring-amber-400/80 shadow-amber-500/20' : 'border-zinc-300'}
+        ${className}
+      `}
+      title={`${rankStr} ${suitSym}`}
+    >
+      {/* Góc trên */}
+      <div className={`flex items-center gap-0.5 leading-none ${colorClass}`}>
+        <span className="text-[9px] font-black">{rankStr}</span>
+        <span className="text-[7px]">{suitSym}</span>
+      </div>
+
+      {/* Biểu tượng chất chính giữa */}
+      <div className={`self-center text-xs font-black leading-none ${colorClass} opacity-90`}>
+        {suitSym}
+      </div>
+
+      {/* Góc dưới đảo ngược */}
+      <div className={`flex items-center gap-0.5 leading-none self-end rotate-180 ${colorClass}`}>
+        <span className="text-[9px] font-black">{rankStr}</span>
+        <span className="text-[7px]">{suitSym}</span>
       </div>
     </div>
   );

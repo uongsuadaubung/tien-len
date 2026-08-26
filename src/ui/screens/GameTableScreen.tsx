@@ -206,6 +206,7 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
         aiHint={activeAiHint}
         isHumanTurn={isP0Turn}
         aiHintEnabled={aiHintEnabled}
+        customBotConfigs={customBotConfigs}
       />
 
       {/* BẢNG SUY LUẬN BOT AI TRỰC TIẾP BÊN PHẢI (RIGHT BOT REASONING HUD) */}

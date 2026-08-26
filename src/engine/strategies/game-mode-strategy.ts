@@ -362,7 +362,12 @@ export class CampaignModeStrategy implements GameModeStrategy {
       .build();
 
     const defaultBots = chapter ? chapter.bots : getRandomBotConfigsForTable([1, 2, 3], 3);
-    return createMatchSetupResult(context, rules, defaultBots);
+    const campaignContext: MatchSetupContext = {
+      ...context,
+      customBotPersonaIds: chapter ? [chapter.bots[0].id, chapter.bots[1].id, chapter.bots[2].id] : undefined,
+      customBotConfigs: chapter ? [chapter.bots[0], chapter.bots[1], chapter.bots[2]] : undefined
+    };
+    return createMatchSetupResult(campaignContext, rules, defaultBots);
   }
 
   settleMatch(context: MatchSettlementContext): MatchSettlementResult {

@@ -20,6 +20,7 @@ import { ActiveGameType } from '../../stores/useGameStore';
 import { clearActiveMatchSession } from '../../engine/storage';
 import { MatchLogger } from '../../engine/match-logger';
 import { Modal, Card, Badge, Button } from '../primitives';
+import { MiniCardView } from './CardView';
 
 interface VictoryModalProps {
   isOpen: boolean;
@@ -219,7 +220,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
       title={modalTitle}
       subtitle={modalSubtitle}
       icon={<span className="text-xl">{modalIcon}</span>}
-      maxWidth="md"
+      maxWidth="2xl"
       height="auto"
       footer={
         <div className="w-full flex items-center justify-between gap-2">
@@ -305,8 +306,8 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
           </Card>
         </div>
 
-        {/* Bảng Xếp Hạng Người Chơi */}
-        <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+        {/* Bảng Xếp Hạng & Bài Tàn Cuộc Của Người Chơi */}
+        <div className="space-y-2.5 max-h-64 sm:max-h-80 overflow-y-auto pr-1">
           {displayPlayers.map((p, idx) => {
             const isWinner = idx === 0;
             const rankLabel = isWinner
@@ -315,37 +316,72 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                 ? (idx === 1 ? '🥈 VỀ NHÌ' : idx === 2 ? '🥉 VỀ BA' : '💥 VỀ BÉT')
                 : '💥 THUA ĐẾM LÁ';
             const netPay = payouts ? payouts[p.id] : undefined;
+            const remainingCards = p.hand ? [...p.hand].sort((a, b) => a.weight - b.weight) : [];
+            const hasRottenTwo = remainingCards.some(c => c.rank === 15);
+            const isCong = remainingCards.length === 13;
 
             return (
               <Card
                 key={p.id}
                 variant={isWinner ? 'active' : 'card'}
-                className="flex items-center justify-between p-2.5 sm:p-3"
+                className="p-2.5 sm:p-3 flex flex-col gap-2"
               >
-                <div className="flex items-center gap-2.5">
-                  <span className="text-xl">{p.avatar}</span>
-                  <div className="text-left">
-                    <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)]">{p.name}</div>
-                    <span className="text-[10px] font-semibold text-[var(--color-gold)]">{rankLabel}</span>
+                {/* Hàng 1: Thông tin người chơi & Tiền thưởng / kết quả */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-xl">{p.avatar}</span>
+                    <div className="text-left">
+                      <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)]">{p.name}</div>
+                      <span className="text-[10px] font-semibold text-[var(--color-gold)]">{rankLabel}</span>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    {!isCampaign && netPay !== undefined && (
+                      <div className={`font-bold text-xs sm:text-sm ${netPay > 0 ? 'text-[var(--color-gold)]' : netPay < 0 ? 'text-[#f87171]' : 'text-[var(--text-muted)]'}`}>
+                        {netPay > 0 ? `+${netPay.toLocaleString()}` : netPay < 0 ? `${netPay.toLocaleString()}` : '0'} 🪙
+                      </div>
+                    )}
+                    {isCampaign && (
+                      <div className={`text-xs font-bold ${isWinner ? 'text-[var(--color-gold)]' : 'text-[var(--text-muted)]'}`}>
+                        {isWinner ? 'Thắng Ải' : `Còn ${remainingCards.length} lá`}
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                <div className="text-right">
-                  {!isCampaign && netPay !== undefined && (
-                    <div className={`font-bold text-xs sm:text-sm ${netPay > 0 ? 'text-[var(--color-gold)]' : netPay < 0 ? 'text-[#f87171]' : 'text-[var(--text-muted)]'}`}>
-                      {netPay > 0 ? `+${netPay.toLocaleString()}` : netPay < 0 ? `${netPay.toLocaleString()}` : '0'} 🪙
+                {/* Hàng 2: Hiển thị bộ bài tàn cuộc thu nhỏ (Endgame Cards Reveal) */}
+                <div className="pt-1.5 border-t border-white/[0.06] flex items-center justify-between flex-wrap gap-1.5">
+                  {remainingCards.length > 0 ? (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] text-zinc-400 font-medium mr-0.5">
+                        Còn {remainingCards.length} lá:
+                      </span>
+                      <div className="flex items-center gap-1 flex-wrap">
+                        {remainingCards.map((c) => (
+                          <MiniCardView key={c.id} card={c} />
+                        ))}
+                      </div>
                     </div>
+                  ) : (
+                    <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+                      👑 Đã xả hết sạch bài
+                    </span>
                   )}
-                  {isCampaign && (
-                    <div className={`text-xs font-bold ${isWinner ? 'text-[var(--color-gold)]' : 'text-[var(--text-muted)]'}`}>
-                      {isWinner ? 'Thắng Ải' : `Còn ${p.hand?.length || 0} lá`}
-                    </div>
-                  )}
-                  {!isCampaign && p.hand && p.hand.length > 0 && (
-                    <div className="text-[10px] font-medium text-[#f87171]">
-                      Còn {p.hand.length} lá
-                    </div>
-                  )}
+
+                  {/* Huy hiệu cảnh báo đặc biệt: Thối Heo / Bị Cóng */}
+                  <div className="flex items-center gap-1">
+                    {hasRottenTwo && (
+                      <span className="text-[9px] font-bold text-amber-300 bg-amber-500/20 border border-amber-400/40 px-1.5 py-0.5 rounded animate-pulse">
+                        ⚠️ Thối Heo
+                      </span>
+                    )}
+                    {isCong && (
+                      <span className="text-[9px] font-bold text-rose-300 bg-rose-500/20 border border-rose-500/40 px-1.5 py-0.5 rounded animate-pulse">
+                        🚨 Bị Cóng (13 lá)
+                      </span>
+                    )}
+                  </div>
                 </div>
               </Card>
             );

@@ -19,4 +19,16 @@ describe('Campaign Mode 5 Chapters', () => {
       expect(next.rewardCoins).toBeGreaterThan(current.rewardCoins);
     }
   });
+
+  test('Toàn bộ Bot Boss trong 5 Chương đều có định danh Tên, Avatar và Elo đồng bộ 100%', () => {
+    for (const chapter of CAMPAIGN_CHAPTERS) {
+      for (const bot of chapter.bots) {
+        expect(bot.name).toBeDefined();
+        expect(bot.name!.length).toBeGreaterThan(0);
+        expect(bot.avatar).toBeDefined();
+        expect(bot.elo).toBeGreaterThan(0);
+        expect(bot.tier).toBeDefined();
+      }
+    }
+  });
 });

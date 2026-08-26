@@ -151,7 +151,7 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
                   <span className="text-2xl">{bot.avatar || '🤖'}</span>
                   <div className="min-w-0">
                     <h5 className="font-bold text-xs text-[var(--text-primary)] truncate">
-                      {bot.tier || 'Bot'}
+                      {bot.name || bot.tier || 'Bot'}
                     </h5>
                     <span className="text-[10px] text-[var(--color-gold)] font-bold block">
                       Elo {bot.elo}

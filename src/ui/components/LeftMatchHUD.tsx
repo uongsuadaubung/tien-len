@@ -6,6 +6,8 @@ import { Badge } from '../primitives';
 import { MoveHint } from '../../ai/hint-engine';
 import { AIAssistantMascot } from './AIAssistantMascot';
 
+import { BotConfig } from '../../ai/types';
+
 interface LeftMatchHUDProps {
   players: Player[];
   currentTurnPlayerId: string;
@@ -17,6 +19,7 @@ interface LeftMatchHUDProps {
   aiHint?: MoveHint | null;
   isHumanTurn?: boolean;
   aiHintEnabled?: boolean;
+  customBotConfigs?: [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>];
 }
 
 export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
@@ -29,7 +32,8 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
   dealtCounts,
   aiHint,
   isHumanTurn = false,
-  aiHintEnabled = true
+  aiHintEnabled = true,
+  customBotConfigs
 }) => {
   const [isOpen] = useState<boolean>(true);
 
@@ -74,7 +78,9 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                 const isLeader = leadPlayerId === p.id;
                 const cardCount = isDealing && dealtCounts[p.id] !== undefined ? dealtCounts[p.id] : p.hand.length;
                 const isOneCardLeft = !isDealing && cardCount === 1 && !p.rankPosition;
-                const cfg = p.isBot ? getBotConfig(p.botPersonaId || 'BOT_ELO_1150') : null;
+                const botIdx = parseInt(p.id.replace('p', '')) - 1;
+                const botOverride = customBotConfigs && botIdx >= 0 && botIdx < customBotConfigs.length ? customBotConfigs[botIdx] : undefined;
+                const cfg = p.isBot ? getBotConfig(p.botPersonaId || 'BOT_ELO_1150', botOverride) : null;
 
                 return (
                   <tr

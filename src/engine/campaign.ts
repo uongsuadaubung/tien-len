@@ -30,7 +30,11 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
     betAmount: 200,
     rewardCoins: 5000,
     rewardTitle: 'Tân Thủ Xuất Sắc',
-    bots: [BOT_PERSONAS.BOT_ELO_850, BOT_PERSONAS.BOT_ELO_900, BOT_PERSONAS.BOT_ELO_950],
+    bots: [
+      { ...BOT_PERSONAS.BOT_ELO_850, id: 'BOT_ELO_850', name: 'Tí Chuột', avatar: '🐭', elo: 850, tier: 'Tập Sự Xóm Nhỏ' },
+      { ...BOT_PERSONAS.BOT_ELO_900, id: 'BOT_ELO_900', name: 'Tèo Bờ Rào', avatar: '👦', elo: 900, tier: 'Tập Sự Xóm Nhỏ' },
+      { ...BOT_PERSONAS.BOT_ELO_950, id: 'BOT_ELO_950', name: 'Bác Ba', avatar: '👴', elo: 950, tier: 'Tập Sự Xóm Nhỏ' }
+    ],
     specialRuleDescription: 'Thắng tích lũy 2 ván để mở khóa ải tiếp theo.'
   },
   {
@@ -45,7 +49,11 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
     betAmount: 500,
     rewardCoins: 15000,
     rewardTitle: 'Anh Hùng Bến Xe',
-    bots: [BOT_PERSONAS.BOT_ELO_1150, BOT_PERSONAS.BOT_ELO_1200, BOT_PERSONAS.BOT_ELO_1250],
+    bots: [
+      { ...BOT_PERSONAS.BOT_ELO_1150, id: 'BOT_ELO_1150', name: 'Bảy Xe Lôi', avatar: '🛺', elo: 1150, tier: 'Phong Trào Bến Xe' },
+      { ...BOT_PERSONAS.BOT_ELO_1200, id: 'BOT_ELO_1200', name: 'Năm Xích Lô', avatar: '🚴', elo: 1200, tier: 'Phong Trào Bến Xe' },
+      { ...BOT_PERSONAS.BOT_ELO_1250, id: 'BOT_ELO_1250', name: 'Ba Gác', avatar: '🛵', elo: 1250, tier: 'Phong Trào Bến Xe' }
+    ],
     specialRuleDescription: 'Thắng 3 ván trước các tay chơi liều lĩnh bậc nhất.'
   },
   {
@@ -60,7 +68,11 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
     betAmount: 1500,
     rewardCoins: 40000,
     rewardTitle: 'Bậc Thầy Nhớ Bài',
-    bots: [BOT_PERSONAS.BOT_ELO_1450, BOT_PERSONAS.BOT_ELO_1550, BOT_PERSONAS.BOT_ELO_1600],
+    bots: [
+      { ...BOT_PERSONAS.BOT_ELO_1450, id: 'BOT_ELO_1450', name: 'Chú Tư Cờ', avatar: '🍵', elo: 1450, tier: 'Kinh Nghiệm' },
+      { ...BOT_PERSONAS.BOT_ELO_1550, id: 'BOT_ELO_1550', name: 'Cụ Tám', avatar: '🧘', elo: 1550, tier: 'Kinh Nghiệm' },
+      { ...BOT_PERSONAS.BOT_ELO_1600, id: 'BOT_ELO_1600', name: 'Bác Sáu', avatar: '🧮', elo: 1600, tier: 'Kinh Nghiệm' }
+    ],
     specialRuleDescription: 'Thắng 3 ván trước các cao thủ già dơ chuyên gài bẫy.'
   },
   {
@@ -75,7 +87,11 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
     betAmount: 5000,
     rewardCoins: 100000,
     rewardTitle: 'Cao Thủ Sài Thành',
-    bots: [BOT_PERSONAS.BOT_ELO_1750, BOT_PERSONAS.BOT_ELO_1850, BOT_PERSONAS.BOT_ELO_1950],
+    bots: [
+      { ...BOT_PERSONAS.BOT_ELO_1750, id: 'BOT_ELO_1750', name: 'Thiếu Gia Ken', avatar: '💎', elo: 1750, tier: 'Cao Thủ' },
+      { ...BOT_PERSONAS.BOT_ELO_1850, id: 'BOT_ELO_1850', name: 'Đại Gia Long', avatar: '🎩', elo: 1850, tier: 'Cao Thủ' },
+      { ...BOT_PERSONAS.BOT_ELO_1950, id: 'BOT_ELO_1950', name: 'Madam Ruby', avatar: '💃', elo: 1950, tier: 'Cao Thủ' }
+    ],
     specialRuleDescription: 'Thắng 3 ván trước các cao thủ kiểm soát nhịp độ bàn chơi.'
   },
   {
@@ -90,7 +106,11 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
     betAmount: 20000,
     rewardCoins: 300000,
     rewardTitle: 'Thần Bài Huyền Thoại',
-    bots: [BOT_PERSONAS.BOT_ELO_2150, BOT_PERSONAS.BOT_ELO_2300, BOT_PERSONAS.BOT_ELO_2500],
+    bots: [
+      { ...BOT_PERSONAS.BOT_ELO_2150, id: 'BOT_ELO_2150', name: 'Phantom Apex', avatar: '🎭', elo: 2150, tier: 'Thần Bài' },
+      { ...BOT_PERSONAS.BOT_ELO_2300, id: 'BOT_ELO_2300', name: 'Nova Legend', avatar: '⚡', elo: 2300, tier: 'Thần Bài' },
+      { ...BOT_PERSONAS.BOT_ELO_2500, id: 'BOT_ELO_2500', name: 'Alpha-TL Supreme', avatar: '👑', elo: 2500, tier: 'Tối Thượng' }
+    ],
     specialRuleDescription: 'Đánh bại 3 Trùm Thần Bài với MCTS Rollout và Endgame Solver để trở thành Huyền Thoại!'
   }
 ];

@@ -49,10 +49,12 @@ export function useGameMatchLoop() {
 
   const {
     activeGameType,
+    setActiveGameType,
     playerCount,
     botPersonaIds,
     customBotConfigs,
     currentCampaignChapter,
+    setCurrentCampaignChapter,
     gameNumber,
     gameRules,
     gameSettings,
@@ -387,21 +389,29 @@ export function useGameMatchLoop() {
     }
 
     // 1. Phân giải Strategy tương ứng theo chế độ đấu
+    const effectiveGameType = setupContext?.campaignChapter ? 'CAMPAIGN' : activeGameType;
     const effectiveMode = setupContext?.customSettings?.mode || gameSettings.mode;
-    const strategy = resolveStrategyForMatch(activeGameType, effectiveMode);
+    const strategy = resolveStrategyForMatch(effectiveGameType, effectiveMode);
+
+    const isCampaign = effectiveGameType === 'CAMPAIGN' || Boolean(setupContext?.campaignChapter);
+    const chapter = setupContext?.campaignChapter || (isCampaign ? currentCampaignChapter : null) || undefined;
 
     // 2. Strategy tự động thiết lập toàn bộ cấu hình ván đấu
     const setup = strategy.setupMatch({
       profile,
       customSettings: { ...gameSettings, ...setupContext?.customSettings },
-      customBotPersonaIds: botPersonaIds,
-      customBotConfigs: customBotConfigs,
-      campaignChapter: currentCampaignChapter || undefined,
-      playerCount,
+      customBotPersonaIds: isCampaign ? (chapter ? [chapter.bots[0].id, chapter.bots[1].id, chapter.bots[2].id] : undefined) : setupContext?.customBotPersonaIds,
+      customBotConfigs: isCampaign ? (chapter ? [chapter.bots[0], chapter.bots[1], chapter.bots[2]] : undefined) : setupContext?.customBotConfigs,
+      campaignChapter: chapter,
+      playerCount: isCampaign ? 4 : playerCount,
       ...setupContext
     });
 
     // 3. Đồng bộ lại cấu hình chuẩn vào Stores
+    if (isCampaign && chapter) {
+      setCurrentCampaignChapter(chapter);
+      setActiveGameType('CAMPAIGN');
+    }
     setGameRules(setup.rules);
     setGameSettings(setup.settings);
     setBotPersonaIds(setup.botPersonaIds);
@@ -463,8 +473,21 @@ export function useGameMatchLoop() {
         const prevScore = prevPlayer ? prevPlayer.score : p.score;
 
         if (p.isBot && prevScore < betAmount) {
-          // Bot bị cháy túi -> Đứng dậy rời bàn và thay thế bằng Bot mới
           const botIdx = idx - 1; // p1 -> 0, p2 -> 1, p3 -> 2
+          if (isCampaign) {
+            // Trong Chiến Dịch: Giữ nguyên Bot Boss của Ải và nạp thêm tiền vốn
+            const chapterBot = chapter?.bots[botIdx] || setup.customBotConfigs[botIdx];
+            const reloadedBankroll = generateRealisticBotBankroll(chapterBot || {}, betAmount);
+            return {
+              ...p,
+              name: chapterBot?.name || p.name,
+              avatar: chapterBot?.avatar || p.avatar,
+              botPersonaId: chapterBot?.id || p.botPersonaId,
+              score: reloadedBankroll
+            };
+          }
+
+          // Bot bị cháy túi trong chế độ thường -> Đứng dậy rời bàn và thay thế bằng Bot mới
           let tierNum = 2;
           const currentPersonaId = currentPersonaIds[botIdx] || 'BOT_ELO_1150';
           if (currentPersonaId.includes('850') || currentPersonaId.includes('900') || currentPersonaId.includes('950') || currentPersonaId.includes('1000')) tierNum = 1;
