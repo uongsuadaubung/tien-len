@@ -11,6 +11,7 @@ import { CampaignChapter, CAMPAIGN_CHAPTERS } from '../../engine/campaign';
 import { resolveStrategyForMatch, MatchSetupContext } from '../../engine/strategies/game-mode-strategy';
 import { GameEventBus, MatchCompletedEvent, ChopExecutedEvent, CardPlayedEvent } from '../../engine/events/game-event-bus';
 import { evaluateDailyQuests, evaluateAchievements } from '../../engine/evaluators/progress-evaluators';
+import { Quest, Achievement } from '../../engine/quests';
 import { 
   PlayerProfile, 
   saveActiveMatchSession, 
@@ -56,6 +57,7 @@ export function useGameMatchLoop() {
     isDealing,
     currentTurnPlayerId,
     isGameOver,
+    instantWinType,
     selectedCardIds,
     currentHint,
     handSortMode,
@@ -74,6 +76,7 @@ export function useGameMatchLoop() {
     setDealtCounts,
     setDealBanner,
     setChopNotification,
+    setQuestToast,
     setPlayers,
     setCurrentTurnPlayerId,
     setLeadPlayerId,
@@ -93,6 +96,29 @@ export function useGameMatchLoop() {
   } = useGameStore();
 
   const [campaignResultMeta, setCampaignResultMeta] = useState<CampaignResultMeta | null>(null);
+
+  // Helper thông báo hoàn thành nhiệm vụ ngay trong trận
+  const triggerQuestToastIfNewlyCompleted = useCallback((
+    oldQuests: Quest[],
+    newQuests: Quest[],
+    oldAchs: Achievement[],
+    newAchs: Achievement[]
+  ) => {
+    const newlyCompletedQuest = newQuests.find((q, idx) => q.isCompleted && !oldQuests[idx]?.isCompleted);
+    const newlyCompletedAch = newAchs.find((a, idx) => a.isCompleted && !oldAchs[idx]?.isCompleted);
+    const completedItem = newlyCompletedQuest || newlyCompletedAch;
+    if (completedItem) {
+      soundManager.playVictory();
+      setQuestToast({
+        title: completedItem.title,
+        rewardCoins: completedItem.rewardCoins,
+        icon: completedItem.icon
+      });
+      setTimeout(() => {
+        setQuestToast(null);
+      }, 3500);
+    }
+  }, [setQuestToast]);
 
   // Engine & Trackers
   const engineRef = useRef<GameEngine | null>(null);
@@ -275,6 +301,7 @@ export function useGameMatchLoop() {
       }
     };
 
+    const congsGivenCount = isPlayerWin ? engine.players.filter(p => p.id !== 'p0' && p.hand.length === 13).length : 0;
     const matchCompletedEvent: MatchCompletedEvent = {
       type: 'MATCH_COMPLETED',
       activeGameType,
@@ -285,11 +312,19 @@ export function useGameMatchLoop() {
       payouts: settlement.payouts,
       humanNetCoins: humanNetEarned,
       totalHumanCoins: nextCoins,
-      betAmount: engine.rules.table.betAmount
+      betAmount: engine.rules.table.betAmount,
+      isThreeSpadesWin: engine.isThreeSpadesWin,
+      playerCount: engine.players.length,
+      congsGivenCount,
+      cascadeChopCount: 0,
+      loanDeduction: settlement.loanDeduction,
+      instantWinType: instantWinType || null
     };
 
     const finalQuests = evaluateDailyQuests([matchCompletedEvent], updatedProfile.dailyQuests, updatedProfile);
     const finalAchievements = evaluateAchievements([matchCompletedEvent], updatedProfile.achievements, updatedProfile);
+
+    triggerQuestToastIfNewlyCompleted(profile.dailyQuests, finalQuests, profile.achievements, finalAchievements);
 
     updatedProfile.dailyQuests = finalQuests;
     updatedProfile.achievements = finalAchievements;
@@ -309,7 +344,8 @@ export function useGameMatchLoop() {
     setLoanDeductionAmount,
     setMatchPayouts,
     setProfile,
-    syncGameState
+    syncGameState,
+    triggerQuestToastIfNewlyCompleted
   ]);
 
   // Khởi tạo ván bài mới
@@ -387,11 +423,15 @@ export function useGameMatchLoop() {
       gameId: `match_${Date.now()}`,
       gameType: activeGameType,
       mode: setup.settings.mode,
+      gameNumber: effectiveGameNumber,
       depositAmount: requiredDeposit,
       betAmount: tableBetAmount,
-      penaltyMultiplier,
+      penaltyMultiplier: penaltyMultiplier !== undefined ? penaltyMultiplier : null,
+      activeGameType: activeGameType,
+      playerCount: setup.playerCount,
       isRanked,
-      startedAt: Date.now()
+      startedAt: Date.now(),
+      timestamp: Date.now()
     });
 
     // 4. Giữ lại số tiền của các người chơi nếu là ván tiếp theo trong cùng bàn VÀ thay thế Bot nếu Bot cháy túi
@@ -700,7 +740,9 @@ export function useGameMatchLoop() {
           chopperPlayerId: 'p0',
           victimPlayerId: moveRes.choppedPlayerId,
           penaltyAmount: penalty,
-          choppingCards: cardsToPlay
+          choppingCards: cardsToPlay,
+          isCascadeChop: !!moveRes.isCascadeChop,
+          chopChainCount: moveRes.chopChainCount || 1
         };
 
         const updatedProfile: PlayerProfile = {
@@ -713,6 +755,8 @@ export function useGameMatchLoop() {
 
         const finalQuests = evaluateDailyQuests([chopEvent], updatedProfile.dailyQuests, updatedProfile);
         const finalAchievements = evaluateAchievements([chopEvent], updatedProfile.achievements, updatedProfile);
+
+        triggerQuestToastIfNewlyCompleted(profile.dailyQuests, finalQuests, profile.achievements, finalAchievements);
 
         updatedProfile.dailyQuests = finalQuests;
         updatedProfile.achievements = finalAchievements;
@@ -733,6 +777,8 @@ export function useGameMatchLoop() {
 
         const finalQuests = evaluateDailyQuests([cardPlayedEvent], profile.dailyQuests, profile);
         const finalAchievements = evaluateAchievements([cardPlayedEvent], profile.achievements, profile);
+
+        triggerQuestToastIfNewlyCompleted(profile.dailyQuests, finalQuests, profile.achievements, finalAchievements);
 
         setProfile({
           ...profile,

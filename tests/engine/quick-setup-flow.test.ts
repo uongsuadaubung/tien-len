@@ -20,6 +20,7 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
     campaignChapterWins: {},
     dailyReliefClaimedCount: 0,
     lastDailyResetTimestamp: Date.now(),
+    lastDailyResetDate: '2026-08-26',
     stats: {
       gamesPlayed: 10,
       wins: 5,
@@ -30,7 +31,8 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
       congsGiven: 0
     },
     dailyQuests: [],
-    achievements: []
+    achievements: [],
+    dailyMilestonesClaimed: { 1: false, 3: false, 5: false }
   };
 
   test('1. Bàn Chơi Nhanh: 4 Người, Đếm Lá, Cược 500 Xu, Phạt Chặt x2', () => {

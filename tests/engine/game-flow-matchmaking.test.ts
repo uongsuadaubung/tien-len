@@ -121,6 +121,7 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
       campaignChapterWins: {},
       dailyReliefClaimedCount: 0,
       lastDailyResetTimestamp: Date.now(),
+      lastDailyResetDate: '2026-08-26',
       stats: {
         gamesPlayed: 10,
         wins: 6,
@@ -131,7 +132,8 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
         congsGiven: 0
       },
       dailyQuests: [],
-      achievements: []
+      achievements: [],
+      dailyMilestonesClaimed: { 1: false, 3: false, 5: false }
     };
 
     const match1 = rankedStrategy.setupMatch({ profile: mockProfile, playerCount: 4 });

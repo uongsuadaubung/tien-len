@@ -10,7 +10,8 @@ export type GameEventType =
   | 'CHOP_EXECUTED'
   | 'INSTANT_WIN'
   | 'MATCH_COMPLETED'
-  | 'COINS_CHANGED';
+  | 'COINS_CHANGED'
+  | 'WHEEL_SPUN';
 
 export interface CardPlayedEvent {
   type: 'CARD_PLAYED';
@@ -36,6 +37,8 @@ export interface ChopExecutedEvent {
   victimPlayerId: string;
   penaltyAmount: number;
   choppingCards: Card[];
+  isCascadeChop: boolean;
+  chopChainCount: number;
 }
 
 export interface InstantWinEvent {
@@ -55,6 +58,12 @@ export interface MatchCompletedEvent {
   humanNetCoins: number;
   totalHumanCoins: number;
   betAmount: number;
+  isThreeSpadesWin: boolean;
+  playerCount: number;
+  congsGivenCount: number;
+  cascadeChopCount: number;
+  loanDeduction: number;
+  instantWinType: string | null;
 }
 
 export interface CoinsChangedEvent {
@@ -64,6 +73,11 @@ export interface CoinsChangedEvent {
   newBalance: number;
 }
 
+export interface WheelSpunEvent {
+  type: 'WHEEL_SPUN';
+  prizeValue: number;
+}
+
 export type GameEvent =
   | CardPlayedEvent
   | TurnPassedEvent
@@ -71,7 +85,8 @@ export type GameEvent =
   | ChopExecutedEvent
   | InstantWinEvent
   | MatchCompletedEvent
-  | CoinsChangedEvent;
+  | CoinsChangedEvent
+  | WheelSpunEvent;
 
 export type GameEventMap = {
   CARD_PLAYED: CardPlayedEvent;
@@ -81,6 +96,7 @@ export type GameEventMap = {
   INSTANT_WIN: InstantWinEvent;
   MATCH_COMPLETED: MatchCompletedEvent;
   COINS_CHANGED: CoinsChangedEvent;
+  WHEEL_SPUN: WheelSpunEvent;
 };
 
 export type EventListener<T extends GameEvent = GameEvent> = (event: T) => void;
@@ -105,44 +121,46 @@ export class GameEventBus {
   }
 
   /**
-   * Đăng ký lắng nghe sự kiện (Subscribe) với kiểu dữ liệu chính xác cho từng loại sự kiện
+   * Đăng ký lắng nghe sự kiện
    */
-  public subscribe<K extends GameEventType>(eventType: K, listener: (event: GameEventMap[K]) => void): () => void {
+  public subscribe<K extends GameEventType>(
+    eventType: K,
+    listener: EventListener<GameEventMap[K]>
+  ): () => void {
     if (!this.listeners.has(eventType)) {
       this.listeners.set(eventType, new Set());
     }
+
     const set = this.listeners.get(eventType)!;
-    const genericListener: GenericEventListener = (event) => {
-      if (isMatchingEvent(eventType, event)) {
-        listener(event);
-      }
-    };
+    const genericListener = listener as GenericEventListener;
     set.add(genericListener);
 
-    // Trả về hàm Unsubscribe tiện lợi
     return () => {
       set.delete(genericListener);
+      if (set.size === 0) {
+        this.listeners.delete(eventType);
+      }
     };
   }
 
   /**
-   * Phát đi sự kiện tới tất cả Observers đã đăng ký (Publish)
+   * Phát đi một sự kiện tới các listeners
    */
   public publish(event: GameEvent): void {
     const set = this.listeners.get(event.type);
-    if (set) {
-      for (const listener of set) {
-        try {
-          listener(event);
-        } catch (err) {
-          console.error(`[GameEventBus] Error in listener for event ${event.type}:`, err);
-        }
+    if (!set || set.size === 0) return;
+
+    for (const listener of set) {
+      try {
+        listener(event);
+      } catch (err) {
+        console.error(`[GameEventBus] Error executing listener for event ${event.type}:`, err);
       }
     }
   }
 
   /**
-   * Xóa toàn bộ listeners (dùng cho teardown / test)
+   * Xóa toàn bộ listeners (phục vụ reset/testing)
    */
   public clear(): void {
     this.listeners.clear();

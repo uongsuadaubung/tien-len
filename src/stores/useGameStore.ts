@@ -46,6 +46,7 @@ interface GameState {
   dealtCounts: Record<string, number>;
   dealBanner: string | null;
   chopNotification: ChopNotificationData | null;
+  questToast: { title: string; rewardCoins: number; icon: string } | null;
 
   // Board State
   players: Player[];
@@ -87,6 +88,7 @@ interface GameState {
   setDealtCounts: (countsOrUpdater: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)) => void;
   setDealBanner: (banner: string | null) => void;
   setChopNotification: (notif: ChopNotificationData | null) => void;
+  setQuestToast: (toast: { title: string; rewardCoins: number; icon: string } | null) => void;
 
   setPlayers: (players: Player[]) => void;
   setCurrentTurnPlayerId: (id: string | null) => void;
@@ -119,7 +121,7 @@ const DEFAULT_PLAYERS: Player[] = [
     isBot: false,
     hand: [],
     playedCards: [],
-    score: 1000000,
+    score: 50000,
     isPassedCurrentRound: false,
     hasPlayedFirstCard: false
   },
@@ -192,6 +194,7 @@ export const useGameStore = create<GameState>((set) => ({
   dealtCounts: {},
   dealBanner: null,
   chopNotification: null,
+  questToast: null,
 
   players: DEFAULT_PLAYERS,
   currentTurnPlayerId: null,
@@ -245,6 +248,7 @@ export const useGameStore = create<GameState>((set) => ({
   })),
   setDealBanner: (banner) => set({ dealBanner: banner }),
   setChopNotification: (notif) => set({ chopNotification: notif }),
+  setQuestToast: (toast) => set({ questToast: toast }),
 
   setPlayers: (players) => set({ players }),
   setCurrentTurnPlayerId: (id) => set({ currentTurnPlayerId: id }),
@@ -283,6 +287,7 @@ export const useGameStore = create<GameState>((set) => ({
     dealtCounts: {},
     dealBanner: null,
     chopNotification: null,
+    questToast: null,
     currentTurnPlayerId: null,
     leadPlayerId: null,
     currentMove: null,

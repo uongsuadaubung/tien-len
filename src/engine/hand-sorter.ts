@@ -61,16 +61,24 @@ function findAllCandidateCombinations(cards: Card[]): Combination[] {
       if (distinctRanks[nextIdx] === consecutive[consecutive.length - 1] + 1) {
         consecutive.push(distinctRanks[nextIdx]);
         if (consecutive.length >= 3) {
-          const sampleCards: Card[] = [];
-          let validStraight = true;
+          const sampleCards1: Card[] = [];
           for (const r of consecutive) {
-            const cardOfRank = nonTwos.find(c => c.rank === r);
-            if (cardOfRank) sampleCards.push(cardOfRank);
-            else { validStraight = false; break; }
+            const list = rankMap.get(r) || [];
+            if (list.length > 0) sampleCards1.push(list[0]);
           }
-          if (validStraight) {
-            const straightCombo = identifyCombination(sampleCards);
-            if (straightCombo) candidates.push(straightCombo);
+          if (sampleCards1.length === consecutive.length) {
+            const combo1 = identifyCombination(sampleCards1);
+            if (combo1) candidates.push(combo1);
+          }
+
+          const sampleCards2: Card[] = [];
+          for (const r of consecutive) {
+            const list = rankMap.get(r) || [];
+            if (list.length > 0) sampleCards2.push(list[list.length - 1]);
+          }
+          if (sampleCards2.length === consecutive.length && sampleCards2.some((c, i) => c.id !== sampleCards1[i]?.id)) {
+            const combo2 = identifyCombination(sampleCards2);
+            if (combo2) candidates.push(combo2);
           }
         }
       } else {
@@ -130,13 +138,13 @@ function evaluateCombinationScoreByStrategy(combo: Combination, strategy: Partit
 
   if (strategy === 'MAX_STRAIGHTS') {
     switch (combo.type) {
-      case 'FIVE_PAIRS_SEQUENTIAL': return 800;
-      case 'FOUR_PAIRS_SEQUENTIAL': return 600;
-      case 'FOUR_OF_A_KIND': return 400;
-      case 'THREE_PAIRS_SEQUENTIAL': return 300;
-      case 'STRAIGHT': return 30 + combo.length * 25; // Ưu tiên sảnh dài
-      case 'TRIPLE': return 35;
-      case 'PAIR': return 20;
+      case 'FIVE_PAIRS_SEQUENTIAL': return 300;
+      case 'FOUR_PAIRS_SEQUENTIAL': return 200;
+      case 'FOUR_OF_A_KIND': return 150;
+      case 'THREE_PAIRS_SEQUENTIAL': return 50;
+      case 'STRAIGHT': return 60 + combo.length * 35; // Ưu tiên cực đại sảnh
+      case 'TRIPLE': return 20;
+      case 'PAIR': return 10;
       default: return 0;
     }
   }

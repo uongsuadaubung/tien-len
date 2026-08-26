@@ -37,6 +37,7 @@ describe('Design Patterns Architecture Unit Tests (Kiểm Thử Mẫu Thiết K�
     loans: 0,
     dailyReliefClaimedCount: 0,
     lastDailyResetTimestamp: Date.now(),
+    lastDailyResetDate: '2026-08-26',
     dailyQuests: [
       {
         id: 'daily_win_three_matches',
@@ -95,7 +96,8 @@ describe('Design Patterns Architecture Unit Tests (Kiểm Thử Mẫu Thiết K�
       totalEarned: 50000,
       highestStreak: 2,
       currentStreak: 1
-    }
+    },
+    dailyMilestonesClaimed: { 1: false, 3: false, 5: false }
   });
 
   // ==========================================================================
@@ -121,7 +123,13 @@ describe('Design Patterns Architecture Unit Tests (Kiểm Thử Mẫu Thiết K�
         payouts: { p0: 5000 },
         humanNetCoins: 5000,
         totalHumanCoins: 55000,
-        betAmount: 5000
+        betAmount: 5000,
+        isThreeSpadesWin: false,
+        playerCount: 4,
+        congsGivenCount: 0,
+        cascadeChopCount: 0,
+        loanDeduction: 0,
+        instantWinType: null
       };
 
       bus.publish(sampleEvent);
@@ -152,7 +160,13 @@ describe('Design Patterns Architecture Unit Tests (Kiểm Thử Mẫu Thiết K�
           payouts: {},
           betAmount: 5000,
           humanNetCoins: 10000,
-          totalHumanCoins: 60000
+          totalHumanCoins: 60000,
+          isThreeSpadesWin: false,
+          playerCount: 4,
+          congsGivenCount: 0,
+          cascadeChopCount: 0,
+          loanDeduction: 0,
+          instantWinType: null
         }
       ];
 
@@ -179,7 +193,13 @@ describe('Design Patterns Architecture Unit Tests (Kiểm Thử Mẫu Thiết K�
           payouts: {},
           betAmount: 5000,
           humanNetCoins: 950000,
-          totalHumanCoins: 1000000 // Đạt 1 triệu xu
+          totalHumanCoins: 1000000, // Đạt 1 triệu xu
+          isThreeSpadesWin: false,
+          playerCount: 4,
+          congsGivenCount: 0,
+          cascadeChopCount: 0,
+          loanDeduction: 0,
+          instantWinType: null
         }
       ];
 

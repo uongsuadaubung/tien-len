@@ -4,6 +4,8 @@ import { PlayerProfile, savePlayerProfile } from '../../engine/storage';
 import { Sparkles, Gift, Flame, Frown, Disc } from 'lucide-react';
 import { soundManager } from '../audio/sound-manager';
 import { Modal, Card, Badge, Button } from '../primitives';
+import { GameEventBus, WheelSpunEvent } from '../../engine/events/game-event-bus';
+import { evaluateDailyQuests, evaluateAchievements } from '../../engine/evaluators/progress-evaluators';
 
 interface LuckyWheelModalProps {
   isOpen: boolean;
@@ -18,18 +20,19 @@ interface WheelSlice {
   icon: string;
   gradient: [string, string];
   textColor: string;
-  isJackpot?: boolean;
-  isLoss?: boolean;
+  isJackpot: boolean;
+  isLoss: boolean;
 }
 
 const SLICES: WheelSlice[] = [
   {
-    label: '500K JACKPOT',
-    value: 500000,
+    label: '100K JACKPOT',
+    value: 100000,
     icon: '👑',
     gradient: ['#991b1b', '#450a0a'],
     textColor: '#ffffff',
-    isJackpot: true
+    isJackpot: true,
+    isLoss: false
   },
   {
     label: 'MẤT TRẮNG',
@@ -37,29 +40,35 @@ const SLICES: WheelSlice[] = [
     icon: '💨',
     gradient: ['#1e2942', '#151d30'],
     textColor: '#94a3b8',
+    isJackpot: false,
     isLoss: true
   },
   {
-    label: '100,000',
-    value: 100000,
+    label: '30,000',
+    value: 30000,
     icon: '💰',
     gradient: ['#103828', '#081c14'],
-    textColor: '#e5b869'
+    textColor: '#e5b869',
+    isJackpot: false,
+    isLoss: false
   },
   {
-    label: '5,000',
-    value: 5000,
+    label: '2,000',
+    value: 2000,
     icon: '🪙',
     gradient: ['#273554', '#151d30'],
     textColor: '#d4deec',
+    isJackpot: false,
     isLoss: true
   },
   {
-    label: '250K XU',
-    value: 250000,
+    label: '50K XU',
+    value: 50000,
     icon: '💎',
     gradient: ['#3b1c54', '#1a0c26'],
-    textColor: '#ffffff'
+    textColor: '#ffffff',
+    isJackpot: false,
+    isLoss: false
   },
   {
     label: 'TRƯỢT TAY',
@@ -67,21 +76,26 @@ const SLICES: WheelSlice[] = [
     icon: '❌',
     gradient: ['#3d141e', '#1f080e'],
     textColor: '#fca5a5',
+    isJackpot: false,
     isLoss: true
   },
   {
-    label: '50,000',
-    value: 50000,
+    label: '20,000',
+    value: 20000,
     icon: '🪙',
     gradient: ['#422c10', '#1c1105'],
-    textColor: '#ffffff'
+    textColor: '#ffffff',
+    isJackpot: false,
+    isLoss: false
   },
   {
-    label: '20,000 (HÒA)',
-    value: 20000,
+    label: '10,000 (HÒA)',
+    value: 10000,
     icon: '🍀',
     gradient: ['#103833', '#071716'],
-    textColor: '#4ade80'
+    textColor: '#4ade80',
+    isJackpot: false,
+    isLoss: false
   }
 ];
 
@@ -97,7 +111,7 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
 
   if (!isOpen) return null;
 
-  const SPIN_COST = 20000;
+  const SPIN_COST = 10000;
   const canSpin = profile.coins >= SPIN_COST;
 
   const sliceAngle = 360 / SLICES.length; // 45 độ
@@ -160,7 +174,7 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
       setIsSpinning(false);
       setPrizeWon(wonSlice);
 
-      if (wonSlice.value >= 100000) {
+      if (wonSlice.value >= 50000) {
         soundManager.playVictory();
         confetti({
           particleCount: 120,
@@ -171,13 +185,30 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
         soundManager.playCardSlap();
       }
 
-      const updated: PlayerProfile = {
-        ...profile,
-        coins: Math.max(0, profile.coins - SPIN_COST + wonSlice.value)
+      const wheelEvent: WheelSpunEvent = {
+        type: 'WHEEL_SPUN',
+        prizeValue: wonSlice.value
       };
 
-      savePlayerProfile(updated);
-      onUpdateProfile(updated);
+      const updatedCoins = Math.max(0, profile.coins - SPIN_COST + wonSlice.value);
+
+      const baseUpdated: PlayerProfile = {
+        ...profile,
+        coins: updatedCoins
+      };
+
+      const finalQuests = evaluateDailyQuests([wheelEvent], profile.dailyQuests, baseUpdated);
+      const finalAchievements = evaluateAchievements([wheelEvent], profile.achievements, baseUpdated);
+
+      const finalProfile: PlayerProfile = {
+        ...baseUpdated,
+        dailyQuests: finalQuests,
+        achievements: finalAchievements
+      };
+
+      savePlayerProfile(finalProfile);
+      onUpdateProfile(finalProfile);
+      GameEventBus.getInstance().publish(wheelEvent);
     }, 4600);
   };
 
@@ -186,7 +217,7 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Vòng Quay Thần Bài"
-      subtitle="Thử vận may Casino: Cơ hội nổ hũ lên tới 500,000 Xu"
+      subtitle="Thử vận may Casino: Cơ hội nổ hũ lên tới 100,000 Xu"
       icon={<Disc className="w-5 h-5 text-[var(--color-gold)]" />}
       maxWidth="lg"
       height="h-[92vh] sm:h-[680px]"

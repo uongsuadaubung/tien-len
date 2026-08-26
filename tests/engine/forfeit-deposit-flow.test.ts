@@ -1,24 +1,25 @@
-import { describe, test, expect, beforeEach } from 'bun:test';
+import { describe, expect, test, beforeEach } from 'bun:test';
 import { 
   PlayerProfile, 
+  loadPlayerProfile, 
+  savePlayerProfile, 
+  resetPlayerProfile, 
   ActiveMatchSession, 
   saveActiveMatchSession, 
   getActiveMatchSession, 
-  clearActiveMatchSession,
-  savePlayerProfile,
-  loadPlayerProfile
+  clearActiveMatchSession 
 } from '../../src/engine/storage';
-import { GameEngine } from '../../src/engine/game';
-import { Player, createDefaultGameRules } from '../../src/engine/types';
-import { CountCardsModeStrategy, RankedModeStrategy } from '../../src/engine/strategies/game-mode-strategy';
+import { INITIAL_DAILY_QUESTS, INITIAL_ACHIEVEMENTS } from '../../src/engine/quests';
 
-describe('Hệ Thống Tiền Cọc An Toàn (Buy-in Deposit), Chống Gian Lận F5 & Xử Thua Bỏ Cuộc (Forfeit)', () => {
+describe('Luồng Tiền Cọc & Xử Phạt Thoát Game / Bỏ Cuộc (Forfeit & Penalty Workflow)', () => {
   let mockProfile: PlayerProfile;
 
   beforeEach(() => {
+    resetPlayerProfile();
     clearActiveMatchSession();
+
     mockProfile = {
-      name: 'Người Chơi',
+      name: 'Thần Bài Cọc',
       avatar: '🤠',
       coins: 50000,
       elo: 1200,
@@ -27,25 +28,27 @@ describe('Hệ Thống Tiền Cọc An Toàn (Buy-in Deposit), Chống Gian Lậ
       loans: 0,
       dailyReliefClaimedCount: 0,
       lastDailyResetTimestamp: Date.now(),
-      dailyQuests: [],
-      achievements: [],
+      lastDailyResetDate: '2026-08-26',
+      dailyQuests: INITIAL_DAILY_QUESTS.map(q => ({ ...q })),
+      achievements: INITIAL_ACHIEVEMENTS.map(a => ({ ...a })),
+      dailyMilestonesClaimed: { 1: false, 3: false, 5: false },
       stats: {
         gamesPlayed: 10,
         wins: 6,
-        chopsDone: 2,
+        chopsDone: 3,
         congsGiven: 1,
-        totalEarned: 15000,
-        highestStreak: 4,
+        totalEarned: 150000,
+        highestStreak: 5,
         currentStreak: 3
       }
     };
     savePlayerProfile(mockProfile);
   });
 
-  test('1. Tính toán chính xác mức tiền cọc an toàn (Buy-in = 26 x Bet x Multiplier)', () => {
-    // Cược 100 xu, x1 -> Cọc 2,600 xu
-    const bet100x1 = 100 * 26 * 1;
-    expect(bet100x1).toBe(2600);
+  test('1. Tính toán chuẩn xác số tiền cọc (Deposit = 26 lá x Bet x Hệ số phạt)', () => {
+    // Cược 500 xu, x1 -> Cọc 13,000 xu
+    const bet500x1 = 500 * 26 * 1;
+    expect(bet500x1).toBe(13000);
 
     // Cược 500 xu, x2 -> Cọc 26,000 xu
     const bet500x2 = 500 * 26 * 2;
@@ -67,11 +70,15 @@ describe('Hệ Thống Tiền Cọc An Toàn (Buy-in Deposit), Chống Gian Lậ
       gameId: 'match_12345',
       gameType: 'QUICK',
       mode: 'CARD_COUNT',
+      gameNumber: 1,
       depositAmount: 13000,
       betAmount: 500,
       penaltyMultiplier: 1,
+      activeGameType: 'QUICK',
+      playerCount: 4,
       isRanked: false,
-      startedAt: Date.now()
+      startedAt: Date.now(),
+      timestamp: Date.now()
     };
 
     saveActiveMatchSession(session);
@@ -97,11 +104,15 @@ describe('Hệ Thống Tiền Cọc An Toàn (Buy-in Deposit), Chống Gian Lậ
       gameId: 'match_test_forfeit',
       gameType: 'QUICK',
       mode: 'CARD_COUNT',
+      gameNumber: 1,
       depositAmount: requiredDeposit,
       betAmount,
       penaltyMultiplier: mult,
+      activeGameType: 'QUICK',
+      playerCount: 4,
       isRanked: false,
-      startedAt: Date.now()
+      startedAt: Date.now(),
+      timestamp: Date.now()
     });
 
     // 2. Người chơi chủ động Bỏ Cuộc (Forfeit)
@@ -126,11 +137,15 @@ describe('Hệ Thống Tiền Cọc An Toàn (Buy-in Deposit), Chống Gian Lậ
       gameId: 'match_ranked_forfeit',
       gameType: 'RANKED',
       mode: 'TRADITIONAL_RANK_BASED',
+      gameNumber: 1,
       depositAmount: 0,
       betAmount: 0,
       penaltyMultiplier: 1,
+      activeGameType: 'RANKED',
+      playerCount: 4,
       isRanked: true,
-      startedAt: Date.now()
+      startedAt: Date.now(),
+      timestamp: Date.now()
     });
 
     const activeSession = getActiveMatchSession();
@@ -158,11 +173,15 @@ describe('Hệ Thống Tiền Cọc An Toàn (Buy-in Deposit), Chống Gian Lậ
       gameId: 'match_interrupted_f5',
       gameType: 'QUICK',
       mode: 'CARD_COUNT',
+      gameNumber: 1,
       depositAmount: requiredDeposit,
       betAmount: 500,
       penaltyMultiplier: 2,
+      activeGameType: 'QUICK',
+      playerCount: 4,
       isRanked: false,
-      startedAt: Date.now()
+      startedAt: Date.now(),
+      timestamp: Date.now()
     });
 
     // Giả lập App khởi động lại (F5 Recovery Logic)
@@ -194,11 +213,15 @@ describe('Hệ Thống Tiền Cọc An Toàn (Buy-in Deposit), Chống Gian Lậ
       gameId: 'match_normal_end',
       gameType: 'QUICK',
       mode: 'CARD_COUNT',
+      gameNumber: 1,
       depositAmount: requiredDeposit,
       betAmount,
       penaltyMultiplier: 1,
+      activeGameType: 'QUICK',
+      playerCount: 4,
       isRanked: false,
-      startedAt: Date.now()
+      startedAt: Date.now(),
+      timestamp: Date.now()
     });
 
     // Giả sử kết thúc trận: Thắng ăn được 3,500 xu

@@ -59,6 +59,7 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
     dealtCounts,
     dealBanner,
     chopNotification,
+    questToast,
     players,
     currentTurnPlayerId,
     leadPlayerId,
@@ -137,6 +138,21 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
 
       {/* SÀN ĐẤU TIẾN LÊN: NGƯỜI CHƠI BAO QUANH BÀN TRÒN TRUNG TÂM */}
       <main className="flex-1 flex flex-col items-center justify-between px-2 py-1 max-w-7xl mx-auto w-full min-h-0 overflow-hidden relative">
+        {/* Banner thông báo hoàn thành nhiệm vụ ngay trong trận */}
+        {questToast && (
+          <div className="absolute top-2 z-50 bg-[var(--bg-container)]/95 text-[var(--text-primary)] px-4 py-2 rounded-2xl border-2 border-[var(--color-gold)] shadow-2xl animate-fade-in flex items-center gap-2.5 backdrop-blur-md">
+            <span className="text-xl">{questToast.icon}</span>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-extrabold uppercase text-[var(--color-gold)] tracking-wider">
+                🎯 Hoàn Thành Nhiệm Vụ!
+              </span>
+              <span className="text-xs font-bold text-[var(--text-primary)]">
+                {questToast.title} <span className="text-[var(--color-gold)] font-mono">(+{questToast.rewardCoins.toLocaleString()} Xu)</span>
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Banner thông báo người đi trước mở màn ván */}
         {dealBanner && (
           <div className="absolute top-16 z-50 bg-[#121724]/95 text-[#f3e5ab] font-extrabold px-6 py-2 rounded-full border border-[#d4af37] shadow-2xl animate-bounce text-sm sm:text-base flex items-center gap-2">

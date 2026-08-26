@@ -209,6 +209,7 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       loans: 0,
       dailyReliefClaimedCount: 0,
       lastDailyResetTimestamp: Date.now(),
+      lastDailyResetDate: '2026-08-26',
       dailyQuests: [],
       achievements: [],
       stats: {
@@ -219,7 +220,8 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
         totalEarned: 0,
         highestStreak: 0,
         currentStreak: 0
-      }
+      },
+      dailyMilestonesClaimed: { 1: false, 3: false, 5: false }
     };
 
     // 1. Underground Mode Setup
