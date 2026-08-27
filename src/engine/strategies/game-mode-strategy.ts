@@ -17,6 +17,7 @@ import { generateRandomBotConfig, getBotConfig, getRandomBotConfigsForTable, gen
 import { BotConfig } from '../../ai/types';
 import { CampaignChapter } from '../campaign';
 import { PlayerProfile } from '../storage';
+import { getTierFromElo } from '../ecosystem/ecosystem-types';
 
 /**
  * Ngữ cảnh đầu vào để khởi tạo bàn đấu (Match Setup Context)
@@ -107,7 +108,7 @@ function buildInitialPlayers(
     let botAvatar = config.avatar;
 
     if (!botName || !botAvatar) {
-      const tierNum = config.elo ? Math.min(5, Math.max(1, Math.floor((config.elo - 800) / 350) + 1)) : 2;
+      const tierNum = config.elo ? getTierFromElo(config.elo).tierNum : 2;
       const dyn = generateRandomBotConfig(tierNum, {
         excludeNames: usedNames,
         excludeAvatars: usedAvatars,

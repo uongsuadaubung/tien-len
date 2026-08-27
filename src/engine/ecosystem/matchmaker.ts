@@ -1,5 +1,5 @@
 import { ECOSYSTEM_CONSTANTS } from '../constants/ecosystem';
-import { BotEntity, TableGroup } from './ecosystem-types';
+import { BotEntity, TableGroup, getTierFromElo } from './ecosystem-types';
 
 /**
  * ============================================================================
@@ -132,7 +132,7 @@ export function matchSimulatedTables(
 
     while (botsInGroup.length >= 4) {
       const quad = botsInGroup.splice(0, 4);
-      const avgTier = Math.round(quad.reduce((acc, b) => acc + b.tierNum, 0) / 4);
+      const avgTier = Math.round(quad.reduce((acc, b) => acc + getTierFromElo(b.elo).tierNum, 0) / 4);
 
       activeTables.push({
         tableId: `sim_table_${betAmount}_${tableCounter++}`,

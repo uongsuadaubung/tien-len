@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { LobbyHub } from './components/LobbyHub';
 import { GameModals } from './components/GameModals';
+import { SplashScreen } from './components/SplashScreen';
 import { CustomGameModalConfig } from './components/CustomGameModal';
 import { QuickSetupConfig } from './components/QuickSetupModal';
 import { CampaignChapter } from '../engine/campaign';
@@ -8,11 +9,11 @@ import { useGameMatchLoop } from './hooks/useGameMatchLoop';
 import { GameTableScreen } from './screens/GameTableScreen';
 import { getRandomBotConfigsForTable } from '../ai/bot-factory';
 import { 
-  getActiveMatchSession, 
   clearActiveMatchSession, 
   savePlayerProfile,
   hydrateStorageFromIndexedDB
 } from '../engine/storage';
+import { dbGetGameSettings } from '../engine/db/indexed-db';
 import { GameRulesBuilder } from '../engine/types';
 import { calculateAdaptiveQuickBet } from '../engine/economy';
 import { matchBotsForPlayerTable } from '../engine/ecosystem/matchmaker';
@@ -21,12 +22,14 @@ import { matchBotsForPlayerTable } from '../engine/ecosystem/matchmaker';
 import { useModalStore } from '../stores/useModalStore';
 import { useUserStore } from '../stores/useUserStore';
 import { useGameStore } from '../stores/useGameStore';
+import { useSettingsStore, SavedSettings } from '../stores/useSettingsStore';
 import { useEcosystemStore } from '../stores/useEcosystemStore';
 import { BotConfig } from '../ai/types';
 
 export const App: React.FC = () => {
   const { openModal, closeModal, setF5PenaltyData } = useModalStore();
   const { profile, setProfile, hydrateProfile } = useUserStore();
+  const [isHydrated, setIsHydrated] = useState(false);
   const {
     currentScreen,
     activeGameType,
@@ -53,51 +56,62 @@ export const App: React.FC = () => {
     handleRequestReturnToLobby
   } = useGameMatchLoop();
 
-  // Khởi động nạp dữ liệu từ IndexedDB thuần túy
+  // Khởi động nạp dữ liệu từ Dexie IndexedDB thuần túy (Tối thiểu 3s)
   useEffect(() => {
-    hydrateStorageFromIndexedDB().then((hydrated) => {
+    const minDelay = new Promise(resolve => setTimeout(resolve, 3000));
+
+    Promise.all([
+      hydrateStorageFromIndexedDB(),
+      dbGetGameSettings<SavedSettings>(),
+      minDelay
+    ]).then(([hydrated, savedSettings]) => {
+      let currentProfile = profile;
       if (hydrated.profile) {
+        currentProfile = hydrated.profile;
         hydrateProfile(hydrated.profile);
       }
+      if (savedSettings) {
+        useSettingsStore.getState().hydrateSettings(savedSettings);
+      }
+
+      // Xử lý gián đoạn do F5 / Đóng ứng dụng khi đang chơi dở
+      if (hydrated.activeSession) {
+        clearActiveMatchSession();
+        const isQuickOrRanked = hydrated.activeSession.gameType === 'QUICK' || hydrated.activeSession.isRanked;
+        const eloLost = isQuickOrRanked ? 30 : 0;
+        const depositLost = hydrated.activeSession.depositAmount || 0;
+        const nextElo = isQuickOrRanked ? Math.max(0, currentProfile.elo - 30) : currentProfile.elo;
+
+        const updatedProfile = {
+          ...currentProfile,
+          elo: nextElo,
+          stats: {
+            ...currentProfile.stats,
+            gamesPlayed: (currentProfile.stats?.gamesPlayed || 0) + 1,
+            currentStreak: 0
+          }
+        };
+        setProfile(updatedProfile);
+        savePlayerProfile(updatedProfile);
+        setF5PenaltyData({
+          depositLost,
+          eloLost,
+          isRanked: isQuickOrRanked
+        });
+        openModal('F5_PENALTY_NOTICE');
+      }
+
+      setIsHydrated(true);
     });
-  }, [hydrateProfile]);
+  }, [hydrateProfile, setProfile, openModal, setF5PenaltyData]);
 
-  // Kiểm tra gián đoạn do F5 / Đóng ứng dụng khi mở trang
+  // Kiểm tra nếu chưa đặt tên thì mở Modal tạo tên khởi nghiệp (chỉ chạy SAU KHI đã nạp xong từ Dexie)
   useEffect(() => {
-    const interruptedSession = getActiveMatchSession();
-    if (interruptedSession) {
-      clearActiveMatchSession();
-      const isQuickOrRanked = interruptedSession.gameType === 'QUICK' || interruptedSession.isRanked;
-      const eloLost = isQuickOrRanked ? 30 : 0;
-      const depositLost = interruptedSession.depositAmount || 0;
-      const nextElo = isQuickOrRanked ? Math.max(0, profile.elo - 30) : profile.elo;
-
-      const updatedProfile = {
-        ...profile,
-        elo: nextElo,
-        stats: {
-          ...profile.stats,
-          gamesPlayed: profile.stats.gamesPlayed + 1,
-          currentStreak: 0
-        }
-      };
-      setProfile(updatedProfile);
-      savePlayerProfile(updatedProfile);
-      setF5PenaltyData({
-        depositLost,
-        eloLost,
-        isRanked: isQuickOrRanked
-      });
-      openModal('F5_PENALTY_NOTICE');
-    }
-  }, []);
-
-  // Kiểm tra nếu chưa đặt tên thì mở Modal tạo tên khởi nghiệp
-  useEffect(() => {
+    if (!isHydrated) return;
     if (!profile.name || profile.name.trim() === '') {
       openModal('NAME_SETUP');
     }
-  }, [profile.name, openModal]);
+  }, [isHydrated, profile.name, openModal]);
 
   // Khởi tạo game khi vào bàn (nếu chưa có engine)
   useEffect(() => {
@@ -212,6 +226,11 @@ export const App: React.FC = () => {
   const handleReturnToLobby = () => {
     handleRequestReturnToLobby();
   };
+
+  // Màn hình Loading Gate khởi động (Tối thiểu 3s)
+  if (!isHydrated) {
+    return <SplashScreen />;
+  }
 
   return (
     <>

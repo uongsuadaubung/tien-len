@@ -8,7 +8,8 @@ import {
 import { 
   BotEntity, 
   EcosystemNewsItem, 
-  SimulatedTableResult 
+  SimulatedTableResult,
+  getTierFromElo
 } from './ecosystem-types';
 import { 
   generateInitial200Bots, 
@@ -270,7 +271,7 @@ class EcosystemManager {
         bot.status = 'BANKRUPT';
 
         // Draft tân binh mới thế chỗ kế thừa trình độ AI của bot vừa vỡ nợ
-        const rookie = draftRookieBot(existingNames, bot.tierNum);
+        const rookie = draftRookieBot(existingNames, getTierFromElo(bot.elo).tierNum);
         if (rookie.name) {
           existingNames.add(rookie.name);
         }

@@ -1,26 +1,14 @@
-import { BOT_PERSONAS, GLOBAL_BOT_NAMES, GLOBAL_NICKNAMES_BY_TIER, GLOBAL_AVATARS } from '../../ai/bot-factory';
+import { 
+  BOT_PERSONAS, 
+  GLOBAL_BOT_NAMES, 
+  GLOBAL_NICKNAMES_BY_TIER, 
+  GLOBAL_AVATARS,
+  TIER_BASE_PERSONAS 
+} from '../../ai/bot-factory';
 import { BotConfig } from '../../ai/types';
 import { ECOSYSTEM_CONSTANTS } from '../constants/ecosystem';
+import { ECONOMY_CONSTANTS } from '../constants/economy';
 import { BotEntity } from './ecosystem-types';
-
-/**
- * Danh sách base persona ID phân theo 5 Tier
- */
-const TIER_DNA_KEYS: Record<number, string[]> = {
-  1: ['BOT_ELO_850', 'BOT_ELO_900', 'BOT_ELO_950', 'BOT_ELO_1000'],
-  2: ['BOT_ELO_1150', 'BOT_ELO_1200', 'BOT_ELO_1250', 'BOT_ELO_1350'],
-  3: ['BOT_ELO_1450', 'BOT_ELO_1550', 'BOT_ELO_1600', 'BOT_ELO_1650'],
-  4: ['BOT_ELO_1750', 'BOT_ELO_1850', 'BOT_ELO_1900', 'BOT_ELO_1950'],
-  5: ['BOT_ELO_2050', 'BOT_ELO_2150', 'BOT_ELO_2300', 'BOT_ELO_2500']
-};
-
-const TIER_BADGES: Record<number, string> = {
-  1: '🥉',
-  2: '🥈',
-  3: '🥇',
-  4: '💎',
-  5: '👑'
-};
 
 const TIER_NAMES: Record<number, string> = {
   1: 'Tập Sự',
@@ -105,7 +93,7 @@ export function createBotEntityFromDNA(
   index: number,
   usedNames: Set<string>
 ): BotEntity {
-  const dnaKeys = TIER_DNA_KEYS[tierNum] || TIER_DNA_KEYS[2];
+  const dnaKeys = TIER_BASE_PERSONAS[tierNum] || TIER_BASE_PERSONAS[2];
   const chosenDnaKey = dnaKeys[index % dnaKeys.length];
   const baseDna = BOT_PERSONAS[chosenDnaKey] || BOT_PERSONAS.BOT_ELO_1150;
 
@@ -146,7 +134,7 @@ export function createBotEntityFromDNA(
     avatar,
     elo: finalElo,
     tier: `Tier ${tierNum}: ${TIER_NAMES[tierNum]}`,
-    description: `Bot ${TIER_NAMES[tierNum]} (Elo ${finalElo}). Lối đánh độc lập, cá tính riêng.`,
+    description: `Đấu thủ ${TIER_NAMES[tierNum]} (Elo ${finalElo}). Lối đánh chiến thuật, cá tính riêng.`,
     memoryDepth: applyJitter(baseDna.memoryDepth),
     riskAppetite,
     trapTendency: applyJitter(baseDna.trapTendency),
@@ -171,7 +159,6 @@ export function createBotEntityFromDNA(
   return {
     ...config,
     coins,
-    tierNum,
     currentStreak: 0,
     highestStreak: 0,
     stats: {
@@ -191,7 +178,6 @@ export function createBotEntityFromDNA(
     status: 'ACTIVE',
     activityStatus: 'IDLE',
     createdAt: Date.now(),
-    rankBadge: TIER_BADGES[tierNum] || '🥈',
     title
   };
 }
@@ -217,8 +203,8 @@ export function generateInitial200Bots(): BotEntity[] {
 /**
  * Sinh 1 Tân Binh mới thay thế khi có bot bị phá sản:
  * - Kế thừa bộ chỉ số AI (DNA/Skill attributes) tương ứng với Bậc Rank của Bot vừa bị đào thải (bankruptTierNum).
- * - Vị trí Elo được reset về mức khởi điểm (850 - 1000).
- * - Số tiền vốn (vàng) được cấp mức khởi tạo tân binh (Tier 1 Starting Bankroll: 3.000 - 6.000 xu).
+ * - Vị trí Elo được đặt về mức khởi điểm chuẩn người chơi thật (1.000 Elo).
+ * - Số tiền vốn (vàng) được cấp mặc định 50.000 Xu (như người chơi thật khi mới tạo tài khoản).
  * - Bot sẽ bắt đầu từ Tier 1 (Tập Sự) và tự đánh, tích lũy tiền và leo lại rank bằng chính thực lực của nó.
  */
 export function draftRookieBot(
@@ -230,23 +216,20 @@ export function draftRookieBot(
   // Tạo bot kế thừa DNA của bậc vừa bị đào thải
   const rookie = createBotEntityFromDNA(targetTier, index, existingNames);
 
-  // Reset Elo về mức khởi đầu (850 - 1000)
-  rookie.elo = Math.floor(Math.random() * 150) + 850;
+  // Đặt Elo về mức khởi nghiệp chuẩn (1.000 Elo kèm độ lệch nhẹ ±50)
+  rookie.elo = ECONOMY_CONSTANTS.DEFAULT_STARTING_ELO + Math.floor(Math.random() * 100) - 50;
 
-  // Cấp vốn khởi tạo tân binh (Tier 1: 3.000 - 6.000 xu)
-  rookie.coins = generateEcosystemBankroll(1, rookie.riskAppetite);
+  // Cấp vốn khởi tạo tân binh mặc định 50.000 Xu như người chơi thật mới gia nhập sới
+  rookie.coins = ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS;
 
-  // Hiển thị ban đầu ở Bậc Tập sự để bot tự leo lại
-  rookie.tierNum = 1;
   rookie.tier = 'Tier 1: Tập Sự';
-  rookie.rankBadge = TIER_BADGES[1];
   rookie.title = targetTier >= 4 ? 'Thần Đồng Ẩn Danh' : targetTier >= 3 ? 'Ẩn Sĩ Giang Hồ' : 'Tân Binh';
-  rookie.name = (rookie.name || 'Bot Tân Binh').replace(/\(.*?\)/, `(${rookie.title})`);
+  rookie.name = (rookie.name || 'Tân Binh').replace(/\(.*?\)/, `(${rookie.title})`);
   rookie.description = targetTier >= 4
-    ? 'Thiên tài bài bạc mang tư duy đỉnh cao, vừa gia nhập sới với số vốn tân binh để tự mình leo lên đỉnh vinh quang.'
+    ? 'Thiên tài bài bạc mang tư duy đỉnh cao, vừa gia nhập sới với số vốn 50.000 Xu để tự mình leo lên đỉnh vinh quang.'
     : targetTier >= 3
     ? 'Cao thủ ẩn dật bước vào sới với lối đánh lão luyện, bắt đầu hành trình gầy dựng lại cơ đồ từ những bàn đấu cơ bản.'
-    : 'Tân binh mới gia nhập sới bạc với quyết tâm làm lại từ đầu.';
+    : 'Đấu thủ mới gia nhập sới bạc với quyết tâm khởi nghiệp làm giàu.';
 
   return rookie;
 }

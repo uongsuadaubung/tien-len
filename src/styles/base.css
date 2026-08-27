@@ -127,3 +127,11 @@ html, body {
 .animate-fade-in {
   animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+@keyframes loadingProgress {
+  0% { width: 0%; }
+  25% { width: 30%; }
+  60% { width: 70%; }
+  85% { width: 90%; }
+  100% { width: 100%; }
+}

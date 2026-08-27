@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, Card, Badge, Button } from '../primitives';
-import { BotEntity } from '../../engine/ecosystem/ecosystem-types';
+import { BotEntity, getTierFromElo } from '../../engine/ecosystem/ecosystem-types';
 import { 
   Trophy, 
   Coins, 
@@ -24,6 +24,8 @@ export const BotProfileModal: React.FC<BotProfileModalProps> = ({
   onClose
 }) => {
   if (!bot) return null;
+
+  const tierInfo = getTierFromElo(bot.elo);
 
   const winRate = bot.stats.gamesPlayed > 0
     ? Math.round((bot.stats.wins / bot.stats.gamesPlayed) * 100)
@@ -49,8 +51,8 @@ export const BotProfileModal: React.FC<BotProfileModalProps> = ({
       subtitle={bot.title || 'Cao Thủ Sới Bạc'}
       icon={<span className="text-xl">{bot.avatar || '🤠'}</span>}
       headerRight={
-        <Badge variant={bot.tierNum >= 4 ? 'gold' : 'neutral'} size="md">
-          {bot.rankBadge} {bot.tier}
+        <Badge variant={tierInfo.tierNum >= 4 ? 'gold' : 'neutral'} size="md">
+          {tierInfo.rankBadge} {tierInfo.tier}
         </Badge>
       }
       footer={
@@ -90,7 +92,7 @@ export const BotProfileModal: React.FC<BotProfileModalProps> = ({
               <Trophy className="w-3.5 h-3.5 text-[var(--color-gold)]" /> Điểm Elo
             </span>
             <div className="text-lg font-black text-[var(--color-gold)] mt-1">{bot.elo}</div>
-            <span className="text-[10px] text-[var(--text-muted)]">Bậc {bot.tierNum}</span>
+            <span className="text-[10px] text-[var(--text-muted)]">Bậc {tierInfo.tierNum} ({tierInfo.label})</span>
           </Card>
 
           <Card variant="nested" className="p-3 text-center">

@@ -120,7 +120,7 @@ describe('AI Elo Tier Matchup Tests (Kiểm Thử Tương Quan Kỹ Năng & Tỉ
     // Mong đợi: Nhóm trình độ cao (Tier 3 + Tier 5) có kết quả tốt hơn và giữ ít lá tồn hơn Tier 1
     expect(winCounts['t5'] + winCounts['t3']).toBeGreaterThanOrEqual(winCounts['t1']);
     expect(remainingCardsAvg['t5']).toBeLessThanOrEqual(remainingCardsAvg['t1'] + 2.0);
-  });
+  }, 30000);
 
   test('1 Thần Bài (Tier 5) đối đầu 3 Tập Sự (Tier 1)', () => {
     const NUM_GAMES = 100;

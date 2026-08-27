@@ -3,7 +3,7 @@ import { Modal, Card, Badge, Button, Tabs, TabOption } from '../primitives';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { useModalStore } from '../../stores/useModalStore';
 import { useUserStore } from '../../stores/useUserStore';
-import { BotActivityStatus, BotEntity } from '../../engine/ecosystem/ecosystem-types';
+import { BotActivityStatus, BotEntity, getTierFromElo } from '../../engine/ecosystem/ecosystem-types';
 import { 
   Trophy, 
   Flame, 
@@ -78,13 +78,7 @@ export const EcosystemModal: React.FC = () => {
     const totalGames = profile.stats.gamesPlayed || 0;
     const wins = profile.stats.wins || 0;
     const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
-
-    let tierNum = 2;
-    if (profile.elo <= 1050) tierNum = 1;
-    else if (profile.elo <= 1350) tierNum = 2;
-    else if (profile.elo <= 1650) tierNum = 3;
-    else if (profile.elo <= 1950) tierNum = 4;
-    else tierNum = 5;
+    const tierInfo = getTierFromElo(profile.elo);
 
     return {
       id: 'human_player',
@@ -92,9 +86,9 @@ export const EcosystemModal: React.FC = () => {
       avatar: profile.avatar || '🤠',
       elo: profile.elo,
       coins: profile.coins,
-      tierNum,
-      tier: `Tier ${tierNum}`,
-      rankBadge: tierNum === 5 ? '👑' : tierNum === 4 ? '💎' : tierNum === 3 ? '🥇' : tierNum === 2 ? '🥈' : '🥉',
+      tierNum: tierInfo.tierNum,
+      tier: tierInfo.tier,
+      rankBadge: tierInfo.rankBadge,
       currentStreak: profile.stats.currentStreak || 0,
       highestStreak: profile.stats.highestStreak || 0,
       title: 'Đại Hiệp',
@@ -119,7 +113,7 @@ export const EcosystemModal: React.FC = () => {
     id: 'human_player',
     name: profile.name || 'Bạn',
     avatar: profile.avatar || '🤠',
-    tier: `Tier ${humanPlayerRankEntity.tierNum}`,
+    tier: humanPlayerRankEntity.tier,
     tierNum: humanPlayerRankEntity.tierNum,
     rankBadge: humanPlayerRankEntity.rankBadge,
     elo: profile.elo,
@@ -163,14 +157,20 @@ export const EcosystemModal: React.FC = () => {
     }
   }), [profile, humanPlayerRankEntity]);
 
-  // Lọc và Sắp xếp danh sách
+  // Lọc và Sắp xếp danh sách (Tự động phái sinh Tier từ Elo cho mọi Bot)
   const sortedAndFilteredList: EcosystemTableItem[] = useMemo(() => {
-    let list: EcosystemTableItem[] = bots.filter(b => b.status === 'ACTIVE').map(b => ({
-      ...b,
-      rawBot: b,
-      winRate: b.stats.gamesPlayed > 0 ? Math.round((b.stats.wins / b.stats.gamesPlayed) * 100) : 0,
-      isHuman: false
-    }));
+    let list: EcosystemTableItem[] = bots.filter(b => b.status === 'ACTIVE').map(b => {
+      const tierInfo = getTierFromElo(b.elo);
+      return {
+        ...b,
+        tierNum: tierInfo.tierNum,
+        tier: tierInfo.tier,
+        rankBadge: tierInfo.rankBadge,
+        rawBot: b,
+        winRate: b.stats.gamesPlayed > 0 ? Math.round((b.stats.wins / b.stats.gamesPlayed) * 100) : 0,
+        isHuman: false
+      };
+    });
 
     // Bổ sung Người Chơi vào danh sách
     list.push(humanPlayerRankEntity);

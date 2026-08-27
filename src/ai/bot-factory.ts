@@ -574,7 +574,7 @@ export const GLOBAL_AVATARS = [
   '🎲', '⚡', '🌪️', '🔥', '🛡️', '⚔️', '💎', '👓'
 ];
 
-const TIER_BASE_PERSONAS: Record<number, string[]> = {
+export const TIER_BASE_PERSONAS: Record<number, string[]> = {
   1: ['BOT_ELO_850', 'BOT_ELO_900', 'BOT_ELO_950', 'BOT_ELO_1000'],
   2: ['BOT_ELO_1150', 'BOT_ELO_1200', 'BOT_ELO_1250', 'BOT_ELO_1350'],
   3: ['BOT_ELO_1450', 'BOT_ELO_1550', 'BOT_ELO_1600', 'BOT_ELO_1650'],
@@ -630,7 +630,7 @@ export function generateRandomBotConfig(
     id: `dyn_${chosenBaseId}_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
     name: generatedName,
     avatar: chosenAvatar,
-    description: `Bot đối thủ Bậc ${baseConfig.tier}. Lối đánh chiến thuật, độc lập.`
+    description: `Đấu thủ Bậc ${baseConfig.tier}. Lối đánh chiến thuật, độc lập.`
   };
 }
 
@@ -638,7 +638,7 @@ export function generateRandomBotConfig(
  * Trả về nhãn định danh chuẩn hóa cho Persona (ví dụ: "Tier 1: Rookie (Elo 850)")
  */
 export function getBotArchetypeLabel(config: BotConfig): string {
-  return `${config.tier || 'Bot'} (Elo ${config.elo || 1000})`;
+  return `${config.tier || 'Đấu Thủ'} (Elo ${config.elo || 1000})`;
 }
 
 /**

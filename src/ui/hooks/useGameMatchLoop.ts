@@ -22,6 +22,7 @@ import {
 } from '../../engine/storage';
 import { UI_TIMINGS } from '../constants/ui-timings';
 import { MatchLogger } from '../../engine/match-logger';
+import { getTierFromElo } from '../../engine/ecosystem/ecosystem-types';
 
 import { OpponentProfiler } from '../../ai/opponent-profiler';
 
@@ -527,12 +528,9 @@ export function useGameMatchLoop() {
           }
 
           // Bot bị cháy túi trong chế độ thường -> Đứng dậy rời bàn và thay thế bằng Bot mới
-          let tierNum = 2;
           const currentPersonaId = currentPersonaIds[botIdx] || 'BOT_ELO_1150';
-          if (currentPersonaId.includes('850') || currentPersonaId.includes('900') || currentPersonaId.includes('950') || currentPersonaId.includes('1000')) tierNum = 1;
-          else if (currentPersonaId.includes('1450') || currentPersonaId.includes('1550') || currentPersonaId.includes('1600') || currentPersonaId.includes('1650')) tierNum = 3;
-          else if (currentPersonaId.includes('1750') || currentPersonaId.includes('1850') || currentPersonaId.includes('1900') || currentPersonaId.includes('1950')) tierNum = 4;
-          else if (currentPersonaId.includes('2050') || currentPersonaId.includes('2150') || currentPersonaId.includes('2300') || currentPersonaId.includes('2500')) tierNum = 5;
+          const personaConfig = getBotConfig(currentPersonaId);
+          const tierNum = personaConfig ? getTierFromElo(personaConfig.elo).tierNum : 2;
 
           const newBotConfig = generateRandomBotConfig(tierNum, {
             excludeNames: usedNames,

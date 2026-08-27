@@ -1,5 +1,6 @@
 import { BOT_PERSONAS, generateRandomBotConfig } from '../ai/bot-factory';
 import { BotConfig } from '../ai/types';
+import { getTierFromElo } from './ecosystem/ecosystem-types';
 
 export interface RankTierInfo {
   id: string;
@@ -140,13 +141,7 @@ export function matchmakeRankedOpponents(playerElo: number): BotConfig[] {
   const usedNames: string[] = [];
   const usedAvatars: string[] = [];
   return selected.map(bot => {
-    let tierNum = 2;
-    const tierStr = bot.tier || '';
-    if (tierStr.includes('1')) tierNum = 1;
-    else if (tierStr.includes('2')) tierNum = 2;
-    else if (tierStr.includes('3')) tierNum = 3;
-    else if (tierStr.includes('4')) tierNum = 4;
-    else if (tierStr.includes('5')) tierNum = 5;
+    const tierNum = getTierFromElo(bot.elo).tierNum;
 
     const dynamicBot = generateRandomBotConfig(tierNum, {
       baseId: bot.id,

@@ -49,8 +49,8 @@ interface CustomTab {
 
 const customTabs: CustomTab[] = [
   { id: 'MODE_RULES', label: '1. Luật & Bàn Đấu', icon: <Zap className="w-4 h-4" /> },
-  { id: 'BOT_ROSTER', label: '2. Đội Hình Bot AI', icon: <Users className="w-4 h-4" /> },
-  { id: 'ADVANCED_AI', label: '3. Tinh Chỉnh Chỉ Số AI', icon: <BrainCircuit className="w-4 h-4" /> }
+  { id: 'BOT_ROSTER', label: '2. Đội Hình Đối Thủ', icon: <Users className="w-4 h-4" /> },
+  { id: 'ADVANCED_AI', label: '3. Tinh Chỉnh Chiến Thuật', icon: <BrainCircuit className="w-4 h-4" /> }
 ];
 
 export const CustomGameModal: React.FC<CustomGameModalProps> = ({
@@ -263,7 +263,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
               <div className="flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[var(--color-gold)]" />
                 <span className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
-                  Đội Hình Bot Khuyên Dùng
+                  Đội Hình Đối Thủ Khuyên Dùng
                 </span>
               </div>
               <Button
@@ -272,7 +272,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
                 onClick={handleRandomizeBots}
                 leftIcon={<Dice5 className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
               >
-                Random 3 Bot
+                Chọn Nhanh Đối Thủ
               </Button>
             </div>
 

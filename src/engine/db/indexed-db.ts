@@ -1,18 +1,49 @@
-import { ECOSYSTEM_CONSTANTS } from '../constants/ecosystem';
+import Dexie, { type Table } from 'dexie';
 import { BotEntity, EcosystemNewsItem, SimulatedTableResult } from '../ecosystem/ecosystem-types';
 import type { PlayerProfile, ActiveMatchSession } from '../storage';
 import type { MatchLogReport } from '../match-logger';
+import { ECOSYSTEM_CONSTANTS } from '../constants/ecosystem';
 
 /**
  * ============================================================================
- * UNIFIED INDEXED DB DATABASE LAYER FOR TIEN LEN MIEN NAM
- * Hỗ trợ lưu trữ cấu trúc lớn, async, tương thích cả Main Thread lẫn Web Worker.
- * Tích hợp In-Memory fallback an toàn cho môi trường test/SSR.
+ * TIEN LEN DEXIE DATABASE (100% PURE INDEXEDDB)
+ * Quản lý 8 Object Store chuyên nghiệp, an toàn, hỗ trợ transactions & indexes
  * ============================================================================
  */
 
-let dbInstance: IDBDatabase | null = null;
-const memoryStore: {
+export interface KeyValueRecord<T> {
+  key: string;
+  data: T;
+  updatedAt?: number;
+}
+
+export class TienLenDatabase extends Dexie {
+  bots!: Table<BotEntity, string>;
+  newsfeed!: Table<EcosystemNewsItem, string>;
+  match_history!: Table<SimulatedTableResult, string>;
+  player_profile!: Table<KeyValueRecord<PlayerProfile>, string>;
+  game_settings!: Table<KeyValueRecord<unknown>, string>;
+  active_session!: Table<KeyValueRecord<ActiveMatchSession>, string>;
+  human_behavior!: Table<KeyValueRecord<unknown>, string>;
+  match_logs!: Table<MatchLogReport, string>;
+
+  constructor() {
+    super(ECOSYSTEM_CONSTANTS.DB_NAME);
+    this.version(1).stores({
+      bots: 'id, elo, coins, status',
+      newsfeed: 'id, timestamp, type',
+      match_history: 'id, timestamp',
+      player_profile: 'key',
+      game_settings: 'key',
+      active_session: 'key',
+      human_behavior: 'key',
+      match_logs: 'matchId, startedAt, gameMode'
+    });
+  }
+}
+
+// In-Memory RAM Cache dự phòng (hỗ trợ môi trường SSR / Web Worker / Test)
+export const memoryStore: {
   bots: Map<string, BotEntity>;
   newsfeed: EcosystemNewsItem[];
   match_history: SimulatedTableResult[];
@@ -32,96 +63,15 @@ const memoryStore: {
   match_logs: new Map()
 };
 
-/**
- * Khởi tạo hoặc lấy kết nối IndexedDB (Hỗ trợ cả window.indexedDB lẫn self.indexedDB trong Worker)
- */
-export async function getGameDB(): Promise<IDBDatabase | null> {
-  const idb = typeof indexedDB !== 'undefined' 
-    ? indexedDB 
-    : (typeof window !== 'undefined' ? window.indexedDB : (typeof self !== 'undefined' ? self.indexedDB : null));
+let dbInstance: TienLenDatabase | null = null;
 
-  if (!idb) {
-    return null; // Fallback sang in-memory
+export function getGameDB(): TienLenDatabase {
+  if (!dbInstance) {
+    dbInstance = new TienLenDatabase();
   }
-
-  if (dbInstance) {
-    return dbInstance;
-  }
-
-  return new Promise((resolve) => {
-    try {
-      const request = idb.open(ECOSYSTEM_CONSTANTS.DB_NAME, ECOSYSTEM_CONSTANTS.DB_VERSION);
-
-      request.onupgradeneeded = () => {
-        const db = request.result;
-
-        // Store 1: Bots
-        if (!db.objectStoreNames.contains(ECOSYSTEM_CONSTANTS.BOT_STORE_NAME)) {
-          const botStore = db.createObjectStore(ECOSYSTEM_CONSTANTS.BOT_STORE_NAME, { keyPath: 'id' });
-          botStore.createIndex('elo', 'elo', { unique: false });
-          botStore.createIndex('coins', 'coins', { unique: false });
-          botStore.createIndex('tier', 'tier', { unique: false });
-          botStore.createIndex('status', 'status', { unique: false });
-        }
-
-        // Store 2: Newsfeed
-        if (!db.objectStoreNames.contains(ECOSYSTEM_CONSTANTS.NEWS_STORE_NAME)) {
-          const newsStore = db.createObjectStore(ECOSYSTEM_CONSTANTS.NEWS_STORE_NAME, { keyPath: 'id' });
-          newsStore.createIndex('timestamp', 'timestamp', { unique: false });
-          newsStore.createIndex('type', 'type', { unique: false });
-        }
-
-        // Store 3: Match History
-        if (!db.objectStoreNames.contains(ECOSYSTEM_CONSTANTS.MATCH_HISTORY_STORE_NAME)) {
-          const historyStore = db.createObjectStore(ECOSYSTEM_CONSTANTS.MATCH_HISTORY_STORE_NAME, { keyPath: 'id' });
-          historyStore.createIndex('timestamp', 'timestamp', { unique: false });
-        }
-
-        // Store 4: Player Profile
-        if (!db.objectStoreNames.contains(ECOSYSTEM_CONSTANTS.PLAYER_PROFILE_STORE_NAME)) {
-          db.createObjectStore(ECOSYSTEM_CONSTANTS.PLAYER_PROFILE_STORE_NAME);
-        }
-
-        // Store 5: Game Settings
-        if (!db.objectStoreNames.contains(ECOSYSTEM_CONSTANTS.GAME_SETTINGS_STORE_NAME)) {
-          db.createObjectStore(ECOSYSTEM_CONSTANTS.GAME_SETTINGS_STORE_NAME);
-        }
-
-        // Store 6: Active Match Session
-        if (!db.objectStoreNames.contains(ECOSYSTEM_CONSTANTS.ACTIVE_SESSION_STORE_NAME)) {
-          db.createObjectStore(ECOSYSTEM_CONSTANTS.ACTIVE_SESSION_STORE_NAME);
-        }
-
-        // Store 7: Human Behavior Profile
-        if (!db.objectStoreNames.contains(ECOSYSTEM_CONSTANTS.HUMAN_BEHAVIOR_STORE_NAME)) {
-          db.createObjectStore(ECOSYSTEM_CONSTANTS.HUMAN_BEHAVIOR_STORE_NAME);
-        }
-
-        // Store 8: Match Logs (Nhật ký phân tích trận đấu chi tiết)
-        if (!db.objectStoreNames.contains(ECOSYSTEM_CONSTANTS.MATCH_LOGS_STORE_NAME)) {
-          const logsStore = db.createObjectStore(ECOSYSTEM_CONSTANTS.MATCH_LOGS_STORE_NAME, { keyPath: 'matchId' });
-          logsStore.createIndex('startedAt', 'startedAt', { unique: false });
-          logsStore.createIndex('gameMode', 'gameMode', { unique: false });
-        }
-      };
-
-      request.onsuccess = () => {
-        dbInstance = request.result;
-        resolve(dbInstance);
-      };
-
-      request.onerror = (e) => {
-        console.warn('Lỗi kết nối IndexedDB, chuyển sang In-Memory Fallback:', e);
-        resolve(null);
-      };
-    } catch (err) {
-      console.warn('Không thể mở IndexedDB:', err);
-      resolve(null);
-    }
-  });
+  return dbInstance;
 }
 
-// Alias cho tương thích ngược
 export const getEcosystemDB = getGameDB;
 
 // ============================================================================
@@ -129,141 +79,51 @@ export const getEcosystemDB = getGameDB;
 // ============================================================================
 
 export async function dbGetAllBots(): Promise<BotEntity[]> {
-  const db = await getEcosystemDB();
-  if (!db) {
+  try {
+    const db = getGameDB();
+    const bots = await db.bots.toArray();
+    if (bots.length > 0) {
+      bots.forEach(b => memoryStore.bots.set(b.id, b));
+      return bots;
+    }
+    return Array.from(memoryStore.bots.values());
+  } catch {
     return Array.from(memoryStore.bots.values());
   }
-
-  return new Promise((resolve, reject) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.BOT_STORE_NAME, 'readonly');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.BOT_STORE_NAME);
-      const request = store.getAll();
-
-      request.onsuccess = () => resolve(request.result || []);
-      request.onerror = () => reject(request.error);
-    } catch {
-      resolve(Array.from(memoryStore.bots.values()));
-    }
-  });
-}
-
-export async function dbGetBotById(id: string): Promise<BotEntity | null> {
-  const db = await getEcosystemDB();
-  if (!db) {
-    return memoryStore.bots.get(id) || null;
-  }
-
-  return new Promise((resolve, reject) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.BOT_STORE_NAME, 'readonly');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.BOT_STORE_NAME);
-      const request = store.get(id);
-
-      request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => reject(request.error);
-    } catch {
-      resolve(memoryStore.bots.get(id) || null);
-    }
-  });
 }
 
 export async function dbSaveBot(bot: BotEntity): Promise<void> {
   memoryStore.bots.set(bot.id, bot);
-  const db = await getEcosystemDB();
-  if (!db) return;
-
-  return new Promise((resolve, reject) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.BOT_STORE_NAME, 'readwrite');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.BOT_STORE_NAME);
-      const request = store.put(bot);
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    } catch {
-      resolve();
-    }
-  });
+  try {
+    const db = getGameDB();
+    await db.bots.put(bot);
+  } catch {}
 }
 
 export async function dbSaveBotsBatch(bots: BotEntity[]): Promise<void> {
-  for (const bot of bots) {
-    memoryStore.bots.set(bot.id, bot);
-  }
-
-  const db = await getEcosystemDB();
-  if (!db) return;
-
-  return new Promise((resolve, reject) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.BOT_STORE_NAME, 'readwrite');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.BOT_STORE_NAME);
-
-      for (const bot of bots) {
-        store.put(bot);
-      }
-
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    } catch {
-      resolve();
-    }
-  });
-}
-
-export async function dbDeleteBot(id: string): Promise<void> {
-  memoryStore.bots.delete(id);
-  const db = await getEcosystemDB();
-  if (!db) return;
-
-  return new Promise((resolve, reject) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.BOT_STORE_NAME, 'readwrite');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.BOT_STORE_NAME);
-      const request = store.delete(id);
-
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    } catch {
-      resolve();
-    }
-  });
+  bots.forEach(b => memoryStore.bots.set(b.id, b));
+  try {
+    const db = getGameDB();
+    await db.bots.bulkPut(bots);
+  } catch {}
 }
 
 // ============================================================================
-// NEWSFEED OPERATIONS
+// NEWSFEED OPERATIONS (Tối đa 100 tin, tự động dọn tin cũ)
 // ============================================================================
 
 export async function dbGetNewsfeed(limit: number = 30): Promise<EcosystemNewsItem[]> {
-  const db = await getEcosystemDB();
-  if (!db) {
+  try {
+    const db = getGameDB();
+    const items = await db.newsfeed.orderBy('timestamp').reverse().limit(limit).toArray();
+    if (items.length > 0) {
+      memoryStore.newsfeed = items;
+      return items;
+    }
+    return memoryStore.newsfeed.slice(0, limit);
+  } catch {
     return memoryStore.newsfeed.slice(0, limit);
   }
-
-  return new Promise((resolve, reject) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.NEWS_STORE_NAME, 'readonly');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.NEWS_STORE_NAME);
-      const index = store.index('timestamp');
-      const cursorRequest = index.openCursor(null, 'prev'); // Mới nhất lên đầu
-      const results: EcosystemNewsItem[] = [];
-
-      cursorRequest.onsuccess = () => {
-        const cursor = cursorRequest.result;
-        if (cursor && results.length < limit) {
-          results.push(cursor.value);
-          cursor.continue();
-        } else {
-          resolve(results);
-        }
-      };
-
-      cursorRequest.onerror = () => reject(cursorRequest.error);
-    } catch {
-      resolve(memoryStore.newsfeed.slice(0, limit));
-    }
-  });
 }
 
 export async function dbAddNewsItem(item: EcosystemNewsItem): Promise<void> {
@@ -272,21 +132,15 @@ export async function dbAddNewsItem(item: EcosystemNewsItem): Promise<void> {
     memoryStore.newsfeed.pop();
   }
 
-  const db = await getEcosystemDB();
-  if (!db) return;
-
-  return new Promise((resolve, reject) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.NEWS_STORE_NAME, 'readwrite');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.NEWS_STORE_NAME);
-      store.put(item);
-
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    } catch {
-      resolve();
+  try {
+    const db = getGameDB();
+    await db.newsfeed.put(item);
+    const count = await db.newsfeed.count();
+    if (count > 100) {
+      const oldest = await db.newsfeed.orderBy('timestamp').limit(count - 100).keys();
+      await db.newsfeed.bulkDelete(oldest as string[]);
     }
-  });
+  } catch {}
 }
 
 export async function dbAddNewsBatch(items: EcosystemNewsItem[]): Promise<void> {
@@ -297,24 +151,27 @@ export async function dbAddNewsBatch(items: EcosystemNewsItem[]): Promise<void> 
     memoryStore.newsfeed = memoryStore.newsfeed.slice(0, 100);
   }
 
-  const db = await getEcosystemDB();
-  if (!db) return;
-
-  return new Promise((resolve, reject) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.NEWS_STORE_NAME, 'readwrite');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.NEWS_STORE_NAME);
-
-      for (const item of items) {
-        store.put(item);
-      }
-
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    } catch {
-      resolve();
+  try {
+    const db = getGameDB();
+    await db.newsfeed.bulkPut(items);
+    const count = await db.newsfeed.count();
+    if (count > 100) {
+      const oldest = await db.newsfeed.orderBy('timestamp').limit(count - 100).keys();
+      await db.newsfeed.bulkDelete(oldest as string[]);
     }
-  });
+  } catch {}
+}
+
+// ============================================================================
+// MATCH HISTORY OPERATIONS
+// ============================================================================
+
+export async function dbSaveMatchHistory(results: SimulatedTableResult[]): Promise<void> {
+  memoryStore.match_history.unshift(...results);
+  try {
+    const db = getGameDB();
+    await db.match_history.bulkPut(results);
+  } catch {}
 }
 
 // ============================================================================
@@ -326,27 +183,14 @@ export async function dbResetEcosystem(): Promise<void> {
   memoryStore.newsfeed = [];
   memoryStore.match_history = [];
 
-  const db = await getGameDB();
-  if (!db) return;
-
-  return new Promise((resolve) => {
-    try {
-      const tx = db.transaction([
-        ECOSYSTEM_CONSTANTS.BOT_STORE_NAME,
-        ECOSYSTEM_CONSTANTS.NEWS_STORE_NAME,
-        ECOSYSTEM_CONSTANTS.MATCH_HISTORY_STORE_NAME
-      ], 'readwrite');
-
-      tx.objectStore(ECOSYSTEM_CONSTANTS.BOT_STORE_NAME).clear();
-      tx.objectStore(ECOSYSTEM_CONSTANTS.NEWS_STORE_NAME).clear();
-      tx.objectStore(ECOSYSTEM_CONSTANTS.MATCH_HISTORY_STORE_NAME).clear();
-
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-    } catch {
-      resolve();
-    }
-  });
+  try {
+    const db = getGameDB();
+    await Promise.all([
+      db.bots.clear(),
+      db.newsfeed.clear(),
+      db.match_history.clear()
+    ]);
+  } catch {}
 }
 
 // ============================================================================
@@ -354,59 +198,33 @@ export async function dbResetEcosystem(): Promise<void> {
 // ============================================================================
 
 export async function dbGetPlayerProfile(): Promise<PlayerProfile | null> {
-  const db = await getGameDB();
-  if (!db) return memoryStore.player_profile;
-
-  return new Promise((resolve) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.PLAYER_PROFILE_STORE_NAME, 'readonly');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.PLAYER_PROFILE_STORE_NAME);
-      const request = store.get('current');
-
-      request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => resolve(memoryStore.player_profile);
-    } catch {
-      resolve(memoryStore.player_profile);
+  try {
+    const db = getGameDB();
+    const record = await db.player_profile.get('current');
+    if (record?.data) {
+      memoryStore.player_profile = record.data;
+      return record.data;
     }
-  });
+    return memoryStore.player_profile;
+  } catch {
+    return memoryStore.player_profile;
+  }
 }
 
 export async function dbSavePlayerProfile(profile: PlayerProfile): Promise<void> {
   memoryStore.player_profile = profile;
-  const db = await getGameDB();
-  if (!db) return;
-
-  return new Promise((resolve) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.PLAYER_PROFILE_STORE_NAME, 'readwrite');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.PLAYER_PROFILE_STORE_NAME);
-      store.put(profile, 'current');
-
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-    } catch {
-      resolve();
-    }
-  });
+  try {
+    const db = getGameDB();
+    await db.player_profile.put({ key: 'current', data: profile, updatedAt: Date.now() });
+  } catch {}
 }
 
 export async function dbDeletePlayerProfile(): Promise<void> {
   memoryStore.player_profile = null;
-  const db = await getGameDB();
-  if (!db) return;
-
-  return new Promise((resolve) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.PLAYER_PROFILE_STORE_NAME, 'readwrite');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.PLAYER_PROFILE_STORE_NAME);
-      store.delete('current');
-
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-    } catch {
-      resolve();
-    }
-  });
+  try {
+    const db = getGameDB();
+    await db.player_profile.delete('current');
+  } catch {}
 }
 
 // ============================================================================
@@ -414,40 +232,25 @@ export async function dbDeletePlayerProfile(): Promise<void> {
 // ============================================================================
 
 export async function dbGetGameSettings<T = unknown>(): Promise<T | null> {
-  const db = await getGameDB();
-  if (!db) return (memoryStore.game_settings as T) || null;
-
-  return new Promise((resolve) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.GAME_SETTINGS_STORE_NAME, 'readonly');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.GAME_SETTINGS_STORE_NAME);
-      const request = store.get('current');
-
-      request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => resolve((memoryStore.game_settings as T) || null);
-    } catch {
-      resolve((memoryStore.game_settings as T) || null);
+  try {
+    const db = getGameDB();
+    const record = await db.game_settings.get('current');
+    if (record?.data) {
+      memoryStore.game_settings = record.data;
+      return record.data as T;
     }
-  });
+    return memoryStore.game_settings as T;
+  } catch {
+    return memoryStore.game_settings as T;
+  }
 }
 
-export async function dbSaveGameSettings<T = unknown>(settings: T): Promise<void> {
+export async function dbSaveGameSettings(settings: unknown): Promise<void> {
   memoryStore.game_settings = settings;
-  const db = await getGameDB();
-  if (!db) return;
-
-  return new Promise((resolve) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.GAME_SETTINGS_STORE_NAME, 'readwrite');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.GAME_SETTINGS_STORE_NAME);
-      store.put(settings, 'current');
-
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-    } catch {
-      resolve();
-    }
-  });
+  try {
+    const db = getGameDB();
+    await db.game_settings.put({ key: 'current', data: settings, updatedAt: Date.now() });
+  } catch {}
 }
 
 // ============================================================================
@@ -455,172 +258,97 @@ export async function dbSaveGameSettings<T = unknown>(settings: T): Promise<void
 // ============================================================================
 
 export async function dbGetActiveSession(): Promise<ActiveMatchSession | null> {
-  const db = await getGameDB();
-  if (!db) return memoryStore.active_session;
-
-  return new Promise((resolve) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.ACTIVE_SESSION_STORE_NAME, 'readonly');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.ACTIVE_SESSION_STORE_NAME);
-      const request = store.get('current');
-
-      request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => resolve(memoryStore.active_session);
-    } catch {
-      resolve(memoryStore.active_session);
+  try {
+    const db = getGameDB();
+    const record = await db.active_session.get('current');
+    if (record?.data) {
+      memoryStore.active_session = record.data;
+      return record.data;
     }
-  });
+    return memoryStore.active_session;
+  } catch {
+    return memoryStore.active_session;
+  }
 }
 
 export async function dbSaveActiveSession(session: ActiveMatchSession): Promise<void> {
   memoryStore.active_session = session;
-  const db = await getGameDB();
-  if (!db) return;
-
-  return new Promise((resolve) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.ACTIVE_SESSION_STORE_NAME, 'readwrite');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.ACTIVE_SESSION_STORE_NAME);
-      store.put(session, 'current');
-
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-    } catch {
-      resolve();
-    }
-  });
+  try {
+    const db = getGameDB();
+    await db.active_session.put({ key: 'current', data: session, updatedAt: Date.now() });
+  } catch {}
 }
 
 export async function dbClearActiveSession(): Promise<void> {
   memoryStore.active_session = null;
-  const db = await getGameDB();
-  if (!db) return;
-
-  return new Promise((resolve) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.ACTIVE_SESSION_STORE_NAME, 'readwrite');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.ACTIVE_SESSION_STORE_NAME);
-      store.delete('current');
-
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-    } catch {
-      resolve();
-    }
-  });
+  try {
+    const db = getGameDB();
+    await db.active_session.delete('current');
+  } catch {}
 }
 
 // ============================================================================
 // 4. HUMAN BEHAVIOR PROFILE OPERATIONS
 // ============================================================================
 
-export async function dbGetHumanBehavior<T = unknown>(): Promise<T | null> {
-  const db = await getGameDB();
-  if (!db) return (memoryStore.human_behavior as T) || null;
-
-  return new Promise((resolve) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.HUMAN_BEHAVIOR_STORE_NAME, 'readonly');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.HUMAN_BEHAVIOR_STORE_NAME);
-      const request = store.get('current');
-
-      request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => resolve((memoryStore.human_behavior as T) || null);
-    } catch {
-      resolve((memoryStore.human_behavior as T) || null);
+export async function dbGetHumanBehavior(): Promise<unknown | null> {
+  try {
+    const db = getGameDB();
+    const record = await db.human_behavior.get('current');
+    if (record?.data) {
+      memoryStore.human_behavior = record.data;
+      return record.data;
     }
-  });
+    return memoryStore.human_behavior;
+  } catch {
+    return memoryStore.human_behavior;
+  }
 }
 
-export async function dbSaveHumanBehavior<T = unknown>(data: T): Promise<void> {
+export async function dbSaveHumanBehavior(data: unknown): Promise<void> {
   memoryStore.human_behavior = data;
-  const db = await getGameDB();
-  if (!db) return;
-
-  return new Promise((resolve) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.HUMAN_BEHAVIOR_STORE_NAME, 'readwrite');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.HUMAN_BEHAVIOR_STORE_NAME);
-      store.put(data, 'current');
-
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-    } catch {
-      resolve();
-    }
-  });
+  try {
+    const db = getGameDB();
+    await db.human_behavior.put({ key: 'current', data, updatedAt: Date.now() });
+  } catch {}
 }
 
 export async function dbClearHumanBehavior(): Promise<void> {
   memoryStore.human_behavior = null;
-  const db = await getGameDB();
-  if (!db) return;
-
-  return new Promise((resolve) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.HUMAN_BEHAVIOR_STORE_NAME, 'readwrite');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.HUMAN_BEHAVIOR_STORE_NAME);
-      store.delete('current');
-
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-    } catch {
-      resolve();
-    }
-  });
+  try {
+    const db = getGameDB();
+    await db.human_behavior.delete('current');
+  } catch {}
 }
 
 // ============================================================================
-// 5. MATCH LOGS (DETAILED MATCH REPORTS)
+// 5. MATCH LOGS / TELEMETRY OPERATIONS
 // ============================================================================
 
 export async function dbSaveMatchLog(report: MatchLogReport): Promise<void> {
-  if (!report || !report.matchId) return;
   memoryStore.match_logs.set(report.matchId, report);
-  const db = await getGameDB();
-  if (!db) return;
+  try {
+    const db = getGameDB();
+    await db.match_logs.put(report);
+  } catch {}
+}
 
-  return new Promise((resolve) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.MATCH_LOGS_STORE_NAME, 'readwrite');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.MATCH_LOGS_STORE_NAME);
-      store.put(report);
-
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-    } catch {
-      resolve();
-    }
-  });
+export async function dbGetMatchLog(matchId: string): Promise<MatchLogReport | null> {
+  try {
+    const db = getGameDB();
+    const report = await db.match_logs.get(matchId);
+    return report || memoryStore.match_logs.get(matchId) || null;
+  } catch {
+    return memoryStore.match_logs.get(matchId) || null;
+  }
 }
 
 export async function dbGetRecentMatchLogs(limit: number = 20): Promise<MatchLogReport[]> {
-  const db = await getGameDB();
-  if (!db) {
-    return Array.from(memoryStore.match_logs.values()).slice(-limit).reverse();
+  try {
+    const db = getGameDB();
+    const logs = await db.match_logs.orderBy('startedAt').reverse().limit(limit).toArray();
+    return logs.length > 0 ? logs : Array.from(memoryStore.match_logs.values()).slice(0, limit);
+  } catch {
+    return Array.from(memoryStore.match_logs.values()).slice(0, limit);
   }
-
-  return new Promise((resolve) => {
-    try {
-      const tx = db.transaction(ECOSYSTEM_CONSTANTS.MATCH_LOGS_STORE_NAME, 'readonly');
-      const store = tx.objectStore(ECOSYSTEM_CONSTANTS.MATCH_LOGS_STORE_NAME);
-      const index = store.index('startedAt');
-      const cursorRequest = index.openCursor(null, 'prev');
-      const results: MatchLogReport[] = [];
-
-      cursorRequest.onsuccess = () => {
-        const cursor = cursorRequest.result;
-        if (cursor && results.length < limit) {
-          results.push(cursor.value);
-          cursor.continue();
-        } else {
-          resolve(results);
-        }
-      };
-
-      cursorRequest.onerror = () => resolve(Array.from(memoryStore.match_logs.values()).slice(-limit).reverse());
-    } catch {
-      resolve(Array.from(memoryStore.match_logs.values()).slice(-limit).reverse());
-    }
-  });
 }

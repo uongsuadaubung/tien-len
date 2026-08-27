@@ -6,6 +6,25 @@ import { BotConfig } from '../../ai/types';
  * ============================================================================
  */
 
+export interface EloTierInfo {
+  tierNum: number;
+  tier: string;
+  rankBadge: string;
+  label: string;
+}
+
+/**
+ * Hàm thuần túy phái sinh Bậc Rank, Danh Hiệu và Huy Hiệu trực tiếp từ Điểm Elo
+ * (Single Source of Truth - không cần lưu dư thừa trong DB)
+ */
+export function getTierFromElo(elo: number): EloTierInfo {
+  if (elo >= 2000) return { tierNum: 5, tier: 'Tier 5: Thần Bài', rankBadge: '👑', label: 'Thần Bài' };
+  if (elo >= 1700) return { tierNum: 4, tier: 'Tier 4: Cao Thủ', rankBadge: '💎', label: 'Cao Thủ' };
+  if (elo >= 1400) return { tierNum: 3, tier: 'Tier 3: Kinh Nghiệm', rankBadge: '🥇', label: 'Kinh Nghiệm' };
+  if (elo >= 1100) return { tierNum: 2, tier: 'Tier 2: Phong Trào', rankBadge: '🥈', label: 'Phong Trào' };
+  return { tierNum: 1, tier: 'Tier 1: Tập Sự', rankBadge: '🥉', label: 'Tập Sự' };
+}
+
 export type BotLifecycleStatus = 'ACTIVE' | 'BANKRUPT';
 export type BotActivityStatus = 'IN_MATCH' | 'IDLE' | 'RESTING';
 
@@ -26,7 +45,6 @@ export interface BotStats {
 
 export interface BotEntity extends BotConfig {
   coins: number;
-  tierNum: number; // 1, 2, 3, 4, 5
   currentStreak: number; // Dương = thắng liên tiếp, Âm = thua liên tiếp
   highestStreak: number;
   stats: BotStats;
@@ -35,7 +53,6 @@ export interface BotEntity extends BotConfig {
   status: BotLifecycleStatus;
   activityStatus: BotActivityStatus;
   createdAt: number;
-  rankBadge: string;
   title: string;
 }
 

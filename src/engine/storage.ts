@@ -44,10 +44,6 @@ export interface PlayerProfile {
   };
 }
 
-const STORAGE_KEY = 'TIEN_LEN_PLAYER_PROFILE_V2';
-const ACTIVE_MATCH_SESSION_KEY = 'TIEN_LEN_ACTIVE_MATCH_SESSION_V1';
-const HUMAN_BEHAVIOR_PROFILE_KEY = 'TIEN_LEN_HUMAN_BEHAVIOR_PROFILE_V1';
-
 export const DEFAULT_PROFILE: PlayerProfile = {
   name: '',
   avatar: '🤠',
@@ -74,8 +70,8 @@ export const DEFAULT_PROFILE: PlayerProfile = {
 };
 
 // ============================================================================
-// IN-MEMORY SYNCHRONOUS CACHE LAYER
-// Đảm bảo React và Zustand phản hồi tức thì 0ms, đồng bộ xuống IndexedDB
+// DEXIE STORAGE PERSISTENCE LAYER (100% PURE INDEXEDDB + RAM CACHE)
+// Đảm bảo tốc độ 0ms trong bộ nhớ RAM và lưu trữ bền vững vĩnh viễn trong Dexie
 // ============================================================================
 
 let cachedProfile: PlayerProfile | null = null;
@@ -179,7 +175,7 @@ export function sanitizeAndValidateProfile(parsed: Partial<PlayerProfile>): Play
 }
 
 /**
- * Nạp toàn bộ dữ liệu từ IndexedDB vào bộ nhớ Cache khi khởi động ứng dụng
+ * Nạp toàn bộ dữ liệu từ Dexie IndexedDB vào bộ nhớ Cache khi khởi động ứng dụng
  */
 export async function hydrateStorageFromIndexedDB(): Promise<{
   profile: PlayerProfile;
@@ -190,8 +186,12 @@ export async function hydrateStorageFromIndexedDB(): Promise<{
     const dbProfile = await dbGetPlayerProfile();
     if (dbProfile) {
       cachedProfile = sanitizeAndValidateProfile(dbProfile);
-      dbSavePlayerProfile(cachedProfile); // Cập nhật lại nếu có reset ngày mới
-    } else if (!cachedProfile) {
+      // Chỉ lưu lại nếu có thay đổi ngày mới
+      if (dbProfile.lastDailyResetDate !== cachedProfile.lastDailyResetDate) {
+        dbSavePlayerProfile(cachedProfile).catch(() => {});
+      }
+    } else {
+      // Khi DB rỗng (lần đầu chơi), khởi tạo và lưu profile mặc định
       cachedProfile = loadPlayerProfile();
       await dbSavePlayerProfile(cachedProfile);
     }
@@ -206,7 +206,7 @@ export async function hydrateStorageFromIndexedDB(): Promise<{
       cachedHumanBehavior = dbBehavior;
     }
   } catch (e) {
-    console.warn('Lỗi khi hydrate storage từ IndexedDB:', e);
+    console.warn('Lỗi khi hydrate storage từ Dexie IndexedDB:', e);
   }
 
   return {
@@ -217,7 +217,7 @@ export async function hydrateStorageFromIndexedDB(): Promise<{
 }
 
 /**
- * Tải thông tin người chơi từ Cache (hoặc khởi tạo mặc định và lưu IndexedDB)
+ * Tải thông tin người chơi từ Cache (hoặc trả về cấu hình mặc định)
  */
 export function loadPlayerProfile(): PlayerProfile {
   if (cachedProfile) {
@@ -232,12 +232,11 @@ export function loadPlayerProfile(): PlayerProfile {
     dailyMilestonesClaimed: { 1: false, 3: false, 5: false }
   };
   cachedProfile = initialProfile;
-  dbSavePlayerProfile(initialProfile).catch(() => {});
   return initialProfile;
 }
 
 /**
- * Lưu thông tin người chơi vào Cache và đồng bộ bất đồng bộ xuống IndexedDB
+ * Lưu thông tin người chơi vào Cache và đồng bộ bất đồng bộ xuống Dexie IndexedDB
  */
 export function savePlayerProfile(profile: PlayerProfile): void {
   const sanitized = sanitizeAndValidateProfile(profile);

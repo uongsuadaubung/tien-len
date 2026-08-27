@@ -277,7 +277,7 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
                     <Badge variant="gold" size="sm">Cốt Lõi</Badge>
                   </div>
                   <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1.5 leading-relaxed">
-                    Tự động ghép 3 Bot theo bậc <strong className="text-[var(--color-gold)]">{currentRank.badge} {currentRank.name} ({profile.elo} Elo)</strong>. Ăn thua tiền cược Xu và tích lũy điểm Elo leo hạng!
+                    Tự động ghép 3 đối thủ theo bậc <strong className="text-[var(--color-gold)]">{currentRank.badge} {currentRank.name} ({profile.elo} Elo)</strong>. Ăn thua tiền cược Xu và tích lũy điểm Elo leo hạng!
                   </p>
                 </div>
               </div>
@@ -400,12 +400,12 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
                   Tùy Chỉnh Nâng Cao
                 </h3>
                 <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-2 leading-relaxed">
-                  Tự do chọn đối thủ từng Bot AI, tinh chỉnh độ khó, thuật toán suy luận, luật đếm lá, cóng, phạt chặt và mức cược.
+                  Tự do chọn đối thủ, tinh chỉnh phong cách đánh, luật đếm lá, cóng, phạt chặt và mức cược.
                 </p>
               </div>
 
               <div className="pt-4 border-t border-[var(--border-container)] flex items-center justify-between">
-                <span className="text-xs font-semibold text-[var(--text-secondary)]">Tùy Biến 100% Luật &amp; Bot</span>
+                <span className="text-xs font-semibold text-[var(--text-secondary)]">Tùy Biến 100% Luật &amp; Đối Thủ</span>
                 <Button
                   variant="surface"
                   size="sm"
