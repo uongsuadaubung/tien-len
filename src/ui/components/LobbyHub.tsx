@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PlayerProfile } from '../../engine/storage';
 import { getRankTierByElo, RANK_TIERS } from '../../engine/elo';
 import { ECONOMY_CONSTANTS } from '../../engine/constants/economy';
@@ -18,9 +18,12 @@ import {
   Edit2,
   BookOpen,
   ArrowRight,
-  Newspaper
+  Newspaper,
+  Maximize,
+  Minimize
 } from 'lucide-react';
 import { Button, Badge, Card, SectionHeader } from '../primitives';
+import { isFullScreen, toggleFullScreen } from '../utils/fullscreen';
 
 interface LobbyHubProps {
   profile: PlayerProfile;
@@ -51,10 +54,28 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
 }) => {
   const { openModal } = useModalStore();
   const { newsfeed, initEcosystem } = useEcosystemStore();
+  const [isFullscreenState, setIsFullscreenState] = useState(isFullScreen());
 
   useEffect(() => {
     initEcosystem();
   }, [initEcosystem]);
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreenState(isFullScreen());
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    document.addEventListener('webkitfullscreenchange', handleFsChange);
+    document.addEventListener('mozfullscreenchange', handleFsChange);
+    document.addEventListener('MSFullscreenChange', handleFsChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFsChange);
+      document.removeEventListener('webkitfullscreenchange', handleFsChange);
+      document.removeEventListener('mozfullscreenchange', handleFsChange);
+      document.removeEventListener('MSFullscreenChange', handleFsChange);
+    };
+  }, []);
 
   const currentRank = getRankTierByElo(profile.elo);
 
@@ -207,6 +228,26 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
               <span className="hidden md:inline">Luật &amp; Khắc Chế</span>
             </Button>
           )}
+
+          {/* Nút Toàn Màn Hình (Full Screen) */}
+          <Button
+            variant="surface"
+            size="md"
+            onClick={async () => {
+              const fs = await toggleFullScreen();
+              setIsFullscreenState(fs);
+            }}
+            leftIcon={
+              isFullscreenState ? (
+                <Minimize className="w-4 h-4 text-[var(--color-gold)]" />
+              ) : (
+                <Maximize className="w-4 h-4 text-[var(--text-secondary)]" />
+              )
+            }
+            title={isFullscreenState ? 'Thoát Toàn Màn Hình' : 'Bật Toàn Màn Hình (Full Screen)'}
+          >
+            <span className="hidden lg:inline">{isFullscreenState ? 'Thu Nhỏ' : 'Toàn Màn Hình'}</span>
+          </Button>
 
           {/* Nút Cài Đặt */}
           <Button
