@@ -42,6 +42,7 @@ interface VictoryModalProps {
   nextChapter: CampaignChapter | null;
   playerCoins: number;
   botReasoningLogEnabled: boolean;
+  allEloDeltas?: Record<string, number>;
 }
 
 export const VictoryModal: React.FC<VictoryModalProps> = ({
@@ -67,7 +68,8 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   isAllCampaignCompleted,
   nextChapter,
   playerCoins,
-  botReasoningLogEnabled: _botReasoningLogEnabled
+  botReasoningLogEnabled: _botReasoningLogEnabled,
+  allEloDeltas
 }) => {
   const isHumanWinner = winners.length > 0 && winners[0].id === 'p0';
   const isCampaign = activeGameType === 'CAMPAIGN';
@@ -357,13 +359,18 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
             const hasRottenTwo = remainingCards.some(c => c.rank === 15);
             const isCong = remainingCards.length === 13;
 
+            // Biến động Elo của từng người chơi / bot
+            const pEloDelta = (allEloDeltas && (allEloDeltas[p.id] !== undefined || (p.botPersonaId && allEloDeltas[p.botPersonaId] !== undefined)))
+              ? (allEloDeltas[p.id] ?? (p.botPersonaId ? allEloDeltas[p.botPersonaId] : undefined))
+              : (p.id === 'p0' ? eloDelta : undefined);
+
             return (
               <Card
                 key={p.id}
                 variant={isWinner ? 'active' : 'card'}
                 className="p-2.5 sm:p-3 flex flex-col gap-2"
               >
-                {/* Hàng 1: Thông tin người chơi & Tiền thưởng / kết quả */}
+                {/* Hàng 1: Thông tin người chơi & Tiền thưởng / Elo kết quả */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2.5">
                     <span className="text-xl">{p.avatar}</span>
@@ -373,10 +380,25 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="text-right">
-                    {!isCampaign && netPay !== undefined && (
-                      <div className={`font-bold text-xs sm:text-sm ${netPay > 0 ? 'text-[var(--color-gold)]' : netPay < 0 ? 'text-[#f87171]' : 'text-[var(--text-muted)]'}`}>
-                        {netPay > 0 ? `+${netPay.toLocaleString()}` : netPay < 0 ? `${netPay.toLocaleString()}` : '0'} 🪙
+                  <div className="text-right flex flex-col items-end justify-center">
+                    {!isCampaign && (
+                      <div className="flex items-center gap-2">
+                        {pEloDelta !== undefined && (
+                          <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
+                            pEloDelta > 0 
+                              ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' 
+                              : pEloDelta < 0 
+                                ? 'text-rose-400 bg-rose-500/10 border border-rose-500/20' 
+                                : 'text-zinc-400 bg-zinc-500/10'
+                          }`}>
+                            {pEloDelta > 0 ? `+${pEloDelta}` : pEloDelta} Elo
+                          </span>
+                        )}
+                        {netPay !== undefined && (
+                          <div className={`font-bold text-xs sm:text-sm ${netPay > 0 ? 'text-[var(--color-gold)]' : netPay < 0 ? 'text-[#f87171]' : 'text-[var(--text-muted)]'}`}>
+                            {netPay > 0 ? `+${netPay.toLocaleString()}` : netPay < 0 ? `${netPay.toLocaleString()}` : '0'} 🪙
+                          </div>
+                        )}
                       </div>
                     )}
                     {isCampaign && (

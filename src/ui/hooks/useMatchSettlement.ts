@@ -37,6 +37,7 @@ export function useMatchSettlement(
     setMatchPayouts,
     setLoanDeductionAmount,
     setLastEloDelta,
+    setAllEloDeltas,
     setMatchLogReport,
     setQuestToast
   } = useGameStore();
@@ -253,6 +254,19 @@ export function useMatchSettlement(
           };
         });
 
+      // Lưu biến động Elo của tất cả người chơi vào State để hiển thị trên VictoryModal
+      const allDeltas: Record<string, number> = {
+        p0: settlement.eloDelta || 0
+      };
+      botResults.forEach(b => {
+        const playerAtIdx = engine.players.find(p => p.botPersonaId === b.botId || p.id === b.botId || p.name === b.botId);
+        if (playerAtIdx) {
+          allDeltas[playerAtIdx.id] = b.deltaElo;
+        }
+        allDeltas[b.botId] = b.deltaElo;
+      });
+      setAllEloDeltas(allDeltas);
+
       // Cập nhật customBotConfigs để bảo lưu Elo mới của Bot ngay trong State bàn đấu
       const currentConfigs = useGameStore.getState().customBotConfigs;
       if (currentConfigs) {
@@ -277,6 +291,8 @@ export function useMatchSettlement(
         betAmount: engine.settings.betAmount,
         botResults
       });
+    } else {
+      setAllEloDeltas({});
     }
 
     openModal('VICTORY');

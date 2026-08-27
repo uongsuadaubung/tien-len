@@ -121,7 +121,8 @@ export const GameModals: React.FC<GameModalsProps> = ({
     isThreeSpadesWin,
     matchPayouts,
     loanDeductionAmount,
-    lastEloDelta
+    lastEloDelta,
+    allEloDeltas
   } = useGameStore();
 
   const p0 = players.find(p => p.id === 'p0');
@@ -249,6 +250,7 @@ export const GameModals: React.FC<GameModalsProps> = ({
         nextChapter={campaignResultMeta?.nextChapter || null}
         playerCoins={profile.coins}
         botReasoningLogEnabled={botReasoningLogEnabled}
+        allEloDeltas={allEloDeltas}
       />
 
       {/* 10. Confirm Forfeit Modal */}

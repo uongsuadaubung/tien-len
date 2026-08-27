@@ -71,6 +71,7 @@ interface GameState {
   matchPayouts: Record<string, number>;
   loanDeductionAmount: number;
   lastEloDelta: number;
+  allEloDeltas: Record<string, number>;
   matchLogReport: MatchLogReport | null;
 
   // Actions
@@ -115,6 +116,7 @@ interface GameState {
   setMatchPayouts: (payouts: Record<string, number>) => void;
   setLoanDeductionAmount: (amount: number) => void;
   setLastEloDelta: (delta: number) => void;
+  setAllEloDeltas: (deltas: Record<string, number>) => void;
   setMatchLogReport: (report: MatchLogReport | null) => void;
   resetMatchState: () => void;
 }
@@ -228,6 +230,7 @@ export const useGameStore = create<GameState>((set) => ({
   matchPayouts: {},
   loanDeductionAmount: 0,
   lastEloDelta: 0,
+  allEloDeltas: {},
   matchLogReport: null,
 
   setCurrentScreen: (screen) => set({ currentScreen: screen }),
@@ -303,6 +306,7 @@ export const useGameStore = create<GameState>((set) => ({
   setMatchPayouts: (payouts) => set({ matchPayouts: payouts }),
   setLoanDeductionAmount: (amount) => set({ loanDeductionAmount: amount }),
   setLastEloDelta: (delta) => set({ lastEloDelta: delta }),
+  setAllEloDeltas: (deltas) => set({ allEloDeltas: deltas }),
   setMatchLogReport: (report) => set({ matchLogReport: report }),
   resetMatchState: () => set({
     isDealing: false,
@@ -324,6 +328,7 @@ export const useGameStore = create<GameState>((set) => ({
     matchPayouts: {},
     loanDeductionAmount: 0,
     lastEloDelta: 0,
+    allEloDeltas: {},
     matchLogReport: null
   })
 }));
