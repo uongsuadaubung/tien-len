@@ -1,17 +1,13 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { Card } from '../../engine/types';
+import { useEffect, useRef, useCallback } from 'react';
 import { sortCards, isTwo } from '../../engine/card';
 import { calculateDynamicBotDelay } from '../../engine/game-speed';
 import { GameEngine } from '../../engine/game';
 import { getBotConfig, generateRandomBotConfig, generateRealisticBotBankroll } from '../../ai/bot-factory';
 import { CardTracker } from '../../ai/card-tracker';
-import { getOptimalMoveHint } from '../../ai/hint-engine';
 import { soundManager } from '../audio/sound-manager';
-import { CampaignChapter, CAMPAIGN_CHAPTERS } from '../../engine/campaign';
 import { resolveStrategyForMatch, MatchSetupContext } from '../../engine/strategies/game-mode-strategy';
-import { GameEventBus, MatchCompletedEvent, ChopExecutedEvent, CardPlayedEvent } from '../../engine/events/game-event-bus';
+import { GameEventBus, ChopExecutedEvent, CardPlayedEvent } from '../../engine/events/game-event-bus';
 import { evaluateDailyQuests, evaluateAchievements } from '../../engine/evaluators/progress-evaluators';
-import { Quest, Achievement } from '../../engine/quests';
 import { 
   PlayerProfile, 
   saveActiveMatchSession, 
@@ -20,11 +16,11 @@ import {
   savePlayerProfile 
 } from '../../engine/storage';
 import { UI_TIMINGS } from '../constants/ui-timings';
-import { calculateRequiredDeposit } from '../../engine/constants/economy';
-import { MatchLogger } from '../../engine/match-logger';
+import { ECONOMY_CONSTANTS, calculateRequiredDeposit } from '../../engine/constants/economy';
 import { getTierFromElo } from '../../engine/ecosystem/ecosystem-types';
 import { useSmartHandSorting } from './useSmartHandSorting';
-
+import { useMatchSettlement, CampaignResultMeta } from './useMatchSettlement';
+import { useMatchAIHints } from './useMatchAIHints';
 import { OpponentProfiler } from '../../ai/opponent-profiler';
 
 // Stores
@@ -32,15 +28,13 @@ import { useModalStore } from '../../stores/useModalStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useGameStore } from '../../stores/useGameStore';
-import { useEcosystemStore } from '../../stores/useEcosystemStore';
 
-export interface CampaignResultMeta {
-  isUnlockedNext: boolean;
-  isAllCompleted: boolean;
-  nextChapter: CampaignChapter | null;
-  currentWins: number;
-}
+export type { CampaignResultMeta };
 
+/**
+ * Main Turn Loop Orchestrator Hook
+ * Điều phối vòng đời trận đấu, lượt đi của Bot và thao tác của Người Chơi
+ */
 export function useGameMatchLoop() {
   const { openModal, closeAllModals, setForfeitData } = useModalStore();
   const { profile, setProfile } = useUserStore();
@@ -62,11 +56,7 @@ export function useGameMatchLoop() {
     isDealing,
     currentTurnPlayerId,
     isGameOver,
-    instantWinType,
     selectedCardIds,
-    currentHint,
-    handSortMode,
-    smartVariantIndex,
     setPlayerCount,
     setBotPersonaIds,
     updateBotPersonaAt,
@@ -75,13 +65,10 @@ export function useGameMatchLoop() {
     setGameNumber,
     setGameRules,
     setGameSettings,
-    setHandSortMode,
-    setSmartVariantIndex,
     setIsDealing,
     setDealtCounts,
     setDealBanner,
     setChopNotification,
-    setQuestToast,
     setPlayers,
     setCurrentTurnPlayerId,
     setLeadPlayerId,
@@ -89,49 +76,24 @@ export function useGameMatchLoop() {
     setWinners,
     setIsGameOver,
     setInstantWinType,
-    setIsThreeSpadesWin,
     setBotThinkingThought,
-    setSelectedCardIds,
     clearCardSelection,
     setCurrentHint,
-    setMatchPayouts,
-    setLoanDeductionAmount,
-    setLastEloDelta,
-    setMatchLogReport,
     setCurrentScreen,
     resetMatchState
   } = useGameStore();
 
-  const [campaignResultMeta, setCampaignResultMeta] = useState<CampaignResultMeta | null>(null);
-
-  // Helper thông báo hoàn thành nhiệm vụ ngay trong trận
-  const triggerQuestToastIfNewlyCompleted = useCallback((
-    oldQuests: Quest[],
-    newQuests: Quest[],
-    oldAchs: Achievement[],
-    newAchs: Achievement[]
-  ) => {
-    const newlyCompletedQuest = newQuests.find((q, idx) => q.isCompleted && !oldQuests[idx]?.isCompleted);
-    const newlyCompletedAch = newAchs.find((a, idx) => a.isCompleted && !oldAchs[idx]?.isCompleted);
-    const completedItem = newlyCompletedQuest || newlyCompletedAch;
-    if (completedItem) {
-      soundManager.playVictory();
-      setQuestToast({
-        title: completedItem.title,
-        rewardCoins: completedItem.rewardCoins,
-        icon: completedItem.icon
-      });
-      setTimeout(() => {
-        setQuestToast(null);
-      }, 3500);
-    }
-  }, [setQuestToast]);
-
-  // Engine & Trackers
+  // Engine & Trackers Refs
   const engineRef = useRef<GameEngine | null>(null);
   const trackersRef = useRef<Record<string, CardTracker>>({});
   const lastWinnerIdRef = useRef<string | null>(null);
-  const replacedBotBannersRef = useRef<string[]>([]);
+
+  // Ref wrappers để tránh stale closures trong Timer Loop
+  const syncGameStateRef = useRef<() => void>(() => {});
+  const handleGameCompletionRef = useRef<(engine: GameEngine) => void>(() => {});
+  const triggerChopAlertRef = useRef<
+    (chopper: string, victim: string, amount: number, cascade?: boolean, count?: number) => void
+  >(() => {});
 
   // Kích hoạt thông báo Chặt Heo/Hàng
   const triggerChopAlert = useCallback((
@@ -155,29 +117,29 @@ export function useGameMatchLoop() {
     }, UI_TIMINGS.CHOP_ALERT_DURATION_MS);
   }, [setChopNotification]);
 
-  // Cập nhật gợi ý AI cho người chơi
-  const updatePlayerAiHint = useCallback((engine: GameEngine) => {
-    const p0 = engine.getPlayer('p0');
-    if (!p0) return;
-    const tracker = trackersRef.current['p0'] || new CardTracker(p0.hand, 1.0);
-    const remainingCounts = engine.players.reduce((acc, p) => ({ ...acc, [p.id]: p.hand.length }), {});
-    const nextPlayerId = engine.getNextActivePlayerId('p0');
-    const nextPlayer = engine.getPlayer(nextPlayerId);
-    const isNextPlayerOneCard = nextPlayer ? nextPlayer.hand.length === 1 : false;
+  // Người Chơi Bỏ Lượt
+  const handlePassTurn = useCallback(() => {
+    if (!engineRef.current) return;
+    const engine = engineRef.current;
+    const passRes = engine.passTurn('p0');
+    if (passRes.success) {
+      soundManager.playPass();
+      clearCardSelection();
+      if (engine.getLeadingMove()) {
+        for (const t of Object.values(trackersRef.current)) {
+          t.recordPassWithDetails('p0', engine.getLeadingMove()!.combination);
+        }
+      }
+      syncGameStateRef.current();
+    }
+  }, [clearCardSelection]);
 
-    const hint = getOptimalMoveHint(
-      p0.hand,
-      engine.getLeadingMove(),
-      engine.isFirstMoveOfGame,
-      engine.isRoundLeadMove(),
-      tracker,
-      remainingCounts,
-      nextPlayerId,
-      isNextPlayerOneCard,
-      engine.rules.gameFlow.prohibitEndingWithTwo
-    );
-    setCurrentHint(hint);
-  }, [setCurrentHint]);
+  // Hook Quản lý Gợi Ý AI (AI Hints Engine)
+  const { updatePlayerAiHint, handleApplyAiHint } = useMatchAIHints(
+    engineRef,
+    trackersRef,
+    handlePassTurn
+  );
 
   // Đồng bộ trạng thái từ Engine sang UI Store
   const syncGameState = useCallback(() => {
@@ -207,196 +169,20 @@ export function useGameMatchLoop() {
     updatePlayerAiHint
   ]);
 
-  // Kết toán ván đấu khi có người thắng hoặc hết ván
-  const handleGameCompletion = useCallback((engine: GameEngine) => {
-    setIsGameOver(true);
-    syncGameState();
+  // Hook Quản lý Kết Toán Ván Đấu & Hệ Sinh Thái (Settlement & Ecosystem)
+  const {
+    campaignResultMeta,
+    triggerQuestToastIfNewlyCompleted,
+    handleGameCompletion
+  } = useMatchSettlement(lastWinnerIdRef, syncGameState);
 
-    const winner = engine.winners[0];
-    const isPlayerWin = winner?.id === 'p0';
-    lastWinnerIdRef.current = winner?.id || null;
+  // Cập nhật refs
+  syncGameStateRef.current = syncGameState;
+  handleGameCompletionRef.current = handleGameCompletion;
+  triggerChopAlertRef.current = triggerChopAlert;
 
-    if (isPlayerWin) {
-      soundManager.playVictory();
-    }
-
-    const currentCoins = profile.coins;
-    const isBankLoanActive = profile.loans > 0;
-    const currentElo = profile.elo;
-    const effectiveMode = engine.settings.mode;
-    const strategy = resolveStrategyForMatch(activeGameType, effectiveMode);
-
-    const settlement = strategy.settleMatch({
-      players: engine.players,
-      winners: engine.winners,
-      betAmount: engine.settings.betAmount,
-      playerElo: currentElo,
-      isBankLoanActive,
-      campaignReward: currentCampaignChapter?.rewardCoins || null,
-      penaltyMultiplier: engine.rules.chopping.multiplier || engine.rules.cong.multiplier || 1,
-      isThreeSpadesWin: engine.isThreeSpadesWin
-    });
-
-    setIsThreeSpadesWin(engine.isThreeSpadesWin);
-    setMatchPayouts(settlement.payouts);
-    setLoanDeductionAmount(settlement.loanDeduction);
-    setLastEloDelta(settlement.eloDelta);
-
-    const session = getActiveMatchSession();
-    const heldDeposit = session ? session.depositAmount : 0;
-    clearActiveMatchSession();
-
-    const humanNetEarned = settlement.payouts['p0'] || 0;
-    const nextCoins = Math.max(0, currentCoins + heldDeposit + humanNetEarned);
-    const nextLoans = Math.max(0, profile.loans - settlement.loanDeduction);
-    const nextElo = settlement.isVictoryModalRanked
-      ? Math.max(0, currentElo + settlement.eloDelta)
-      : currentElo;
-
-    const nextWins = isPlayerWin ? profile.stats.wins + 1 : profile.stats.wins;
-    const nextCurrentStreak = isPlayerWin ? profile.stats.currentStreak + 1 : 0;
-    const nextHighestStreak = Math.max(profile.stats.highestStreak, nextCurrentStreak);
-    const nextTotalEarned = humanNetEarned > 0 ? profile.stats.totalEarned + humanNetEarned : profile.stats.totalEarned;
-
-    let updatedUnlockedChapter = profile.campaignUnlockedChapter;
-    const updatedChapterWins = { ...profile.campaignChapterWins };
-    let unlockedNext = false;
-    let allCompleted = false;
-    let nextChapObj: CampaignChapter | null = null;
-    let currentWinsInChapter = 0;
-
-    if (activeGameType === 'CAMPAIGN' && currentCampaignChapter) {
-      const chapNumber = currentCampaignChapter.id;
-      const prevWins = profile.campaignChapterWins[chapNumber] || 0;
-      currentWinsInChapter = isPlayerWin ? prevWins + 1 : prevWins;
-      updatedChapterWins[chapNumber] = currentWinsInChapter;
-
-      if (currentWinsInChapter >= currentCampaignChapter.requiredWins) {
-        if (chapNumber >= profile.campaignUnlockedChapter && chapNumber < CAMPAIGN_CHAPTERS.length) {
-          updatedUnlockedChapter = chapNumber + 1;
-          nextChapObj = CAMPAIGN_CHAPTERS[chapNumber]; // Chương tiếp theo
-          unlockedNext = true;
-        } else if (chapNumber >= CAMPAIGN_CHAPTERS.length) {
-          allCompleted = true;
-        }
-      }
-
-      setCampaignResultMeta({
-        isUnlockedNext: unlockedNext,
-        isAllCompleted: allCompleted,
-        nextChapter: nextChapObj,
-        currentWins: currentWinsInChapter
-      });
-    } else {
-      setCampaignResultMeta(null);
-    }
-
-    const updatedProfile: PlayerProfile = {
-      ...profile,
-      coins: nextCoins,
-      loans: nextLoans,
-      elo: nextElo,
-      campaignUnlockedChapter: updatedUnlockedChapter,
-      campaignChapterWins: updatedChapterWins,
-      stats: {
-        ...profile.stats,
-        gamesPlayed: profile.stats.gamesPlayed + 1,
-        wins: nextWins,
-        currentStreak: nextCurrentStreak,
-        highestStreak: nextHighestStreak,
-        totalEarned: nextTotalEarned
-      }
-    };
-
-    const congsGivenCount = isPlayerWin ? engine.players.filter(p => p.id !== 'p0' && p.hand.length === 13).length : 0;
-    const matchCompletedEvent: MatchCompletedEvent = {
-      type: 'MATCH_COMPLETED',
-      activeGameType,
-      winnerPlayerId: winner?.id || 'p0',
-      isHumanWinner: isPlayerWin,
-      winners: engine.winners,
-      allPlayers: engine.players,
-      payouts: settlement.payouts,
-      humanNetCoins: humanNetEarned,
-      totalHumanCoins: nextCoins,
-      betAmount: engine.rules.table.betAmount,
-      isThreeSpadesWin: engine.isThreeSpadesWin,
-      playerCount: engine.players.length,
-      congsGivenCount,
-      cascadeChopCount: 0,
-      loanDeduction: settlement.loanDeduction,
-      instantWinType: instantWinType || null
-    };
-
-    const finalQuests = evaluateDailyQuests([matchCompletedEvent], updatedProfile.dailyQuests, updatedProfile);
-    const finalAchievements = evaluateAchievements([matchCompletedEvent], updatedProfile.achievements, updatedProfile);
-
-    triggerQuestToastIfNewlyCompleted(profile.dailyQuests, finalQuests, profile.achievements, finalAchievements);
-
-    updatedProfile.dailyQuests = finalQuests;
-    updatedProfile.achievements = finalAchievements;
-
-    setProfile(updatedProfile);
-    savePlayerProfile(updatedProfile);
-    GameEventBus.getInstance().publish(matchCompletedEvent);
-
-    const matchReport = MatchLogger.getInstance().finalizeMatch({
-      players: engine.players,
-      winners: engine.winners,
-      payouts: settlement.payouts,
-      isThreeSpadesWin: engine.isThreeSpadesWin,
-      instantWinType: instantWinType || null,
-      loanDeduction: settlement.loanDeduction || 0,
-      eloDelta: settlement.eloDelta || 0
-    });
-    setMatchLogReport(matchReport);
-
-    // Cập nhật hệ sinh thái 200 Bot nếu không phải Campaign
-    if (activeGameType !== 'CAMPAIGN') {
-      const humanRank = isPlayerWin ? 1 : (engine.winners.findIndex(w => w.id === 'p0') + 1 || 4);
-      const botResults = engine.players
-        .filter(p => p.id !== 'p0')
-        .map(p => {
-          const rank = engine.winners.findIndex(w => w.id === p.id) + 1 || 4;
-          const deltaCoins = settlement.payouts[p.id] || 0;
-          let deltaElo = 0;
-          if (rank === 1) deltaElo = Math.floor(Math.random() * 9) + 24;
-          else if (rank === 2) deltaElo = Math.floor(Math.random() * 5) + 8;
-          else if (rank === 3) deltaElo = -(Math.floor(Math.random() * 5) + 8);
-          else deltaElo = -(Math.floor(Math.random() * 9) + 24);
-
-          return {
-            botId: p.botPersonaId || p.id,
-            rank,
-            deltaCoins,
-            deltaElo,
-            chopsDone: 0,
-            congsGiven: 0
-          };
-        });
-
-      useEcosystemStore.getState().settleMatchEcosystem({
-        humanRank,
-        betAmount: engine.settings.betAmount,
-        botResults
-      });
-    }
-
-    openModal('VICTORY');
-  }, [
-    activeGameType,
-    currentCampaignChapter,
-    openModal,
-    profile,
-    setIsGameOver,
-    setLastEloDelta,
-    setLoanDeductionAmount,
-    setMatchPayouts,
-    setMatchLogReport,
-    setProfile,
-    syncGameState,
-    triggerQuestToastIfNewlyCompleted
-  ]);
+  // Hook Quản lý Xếp Bài Thông Minh (Smart Hand Sorting)
+  const { handleAutoSort } = useSmartHandSorting(engineRef);
 
   // Khởi tạo ván bài mới
   const startNewGame = useCallback((
@@ -415,7 +201,6 @@ export function useGameMatchLoop() {
       clearActiveMatchSession();
       lastWinnerIdRef.current = null;
       trackersRef.current = {};
-      replacedBotBannersRef.current = [];
       OpponentProfiler.getInstance().reset();
       resetMatchState();
     }
@@ -433,8 +218,12 @@ export function useGameMatchLoop() {
       profile,
       customRules: setupContext?.customRules ?? null,
       customSettings: { ...gameSettings, ...setupContext?.customSettings },
-      customBotPersonaIds: isCampaign ? (chapter ? [chapter.bots[0].id, chapter.bots[1].id, chapter.bots[2].id] : null) : (setupContext?.customBotPersonaIds ?? null),
-      customBotConfigs: isCampaign ? (chapter ? [chapter.bots[0], chapter.bots[1], chapter.bots[2]] : null) : (setupContext?.customBotConfigs ?? null),
+      customBotPersonaIds: isCampaign
+        ? (chapter ? [chapter.bots[0].id, chapter.bots[1].id, chapter.bots[2].id] : null)
+        : (setupContext?.customBotPersonaIds ?? (effectiveGameNumber > 1 ? botPersonaIds : null)),
+      customBotConfigs: isCampaign
+        ? (chapter ? [chapter.bots[0], chapter.bots[1], chapter.bots[2]] : null)
+        : (setupContext?.customBotConfigs ?? (effectiveGameNumber > 1 ? customBotConfigs : null)),
       campaignChapter: chapter || null,
       playerCount: isCampaign ? 4 : (playerCount ?? null),
       ...setupContext
@@ -451,14 +240,6 @@ export function useGameMatchLoop() {
     setCustomBotConfigs(setup.customBotConfigs);
     setPlayerCount(setup.playerCount);
 
-    // Kích hoạt chuẩn bị ván đấu trong Hệ Sinh Thái (chạy Web Worker mô phỏng ngầm song song)
-    if (!isCampaign && effectiveGameNumber === 1) {
-      const tableBet = setup.rules.table.betAmount || 1000;
-      useEcosystemStore.getState().prepareMatchEcosystem(profile.elo, tableBet).catch(err => {
-        console.warn('Lỗi khi kích hoạt Ecosystem background simulation:', err);
-      });
-    }
-
     // 3.1. Tính toán và Tạm giữ tiền cọc an toàn (Buy-in Deposit)
     const penaltyMultiplier = setup.rules.chopping.multiplier || setup.rules.cong.multiplier || 1;
     const tableBetAmount = setup.rules.table.betAmount || 0;
@@ -466,12 +247,10 @@ export function useGameMatchLoop() {
 
     if (requiredDeposit > 0) {
       if (profile.coins < requiredDeposit) {
-        // Không đủ tiền cọc -> Kích hoạt Modal Vay Tiền Ngân Hàng
         openModal('BANK');
         return;
       }
 
-      // Trừ tạm giữ tiền cọc vào tài khoản
       const postDepositCoins = profile.coins - requiredDeposit;
       const updatedProfile = {
         ...profile,
@@ -481,7 +260,7 @@ export function useGameMatchLoop() {
       savePlayerProfile(updatedProfile);
     }
 
-    // Lưu Active Session vào LocalStorage phòng trường hợp F5 / Thoát đột ngột
+    // Lưu Active Session vào IndexedDB phòng trường hợp F5 / Thoát đột ngột
     saveActiveMatchSession({
       gameId: `match_${Date.now()}`,
       gameType: activeGameType,
@@ -497,126 +276,69 @@ export function useGameMatchLoop() {
       timestamp: Date.now()
     });
 
-    // 4. Giữ lại số tiền của các người chơi nếu là ván tiếp theo trong cùng bàn VÀ thay thế Bot nếu Bot cháy túi
+    // 4. Giữ lại người chơi và số tiền nếu là ván tiếp theo trong cùng bàn
     let initialPlayers = setup.initialPlayers;
-    const replacedBanners: string[] = [];
-    const currentPersonaIds = botPersonaIds;
-    const currentConfigs = customBotConfigs;
 
     if (effectiveGameNumber > 1 && engineRef.current) {
       const prevEngine = engineRef.current;
       const betAmount = setup.settings.betAmount || 100;
-      const usedNames = [profile.name];
-      const usedAvatars = [profile.avatar];
 
       initialPlayers = initialPlayers.map((p, idx) => {
         const prevPlayer = prevEngine.getPlayer(p.id);
-        const prevScore = prevPlayer ? prevPlayer.score : p.score;
+        let prevScore = prevPlayer ? prevPlayer.score : p.score;
 
-        if (p.isBot && prevScore < betAmount) {
-          const botIdx = idx - 1; // p1 -> 0, p2 -> 1, p3 -> 2
-          if (isCampaign) {
-            // Trong Chiến Dịch: Giữ nguyên Bot Boss của Chương và nạp thêm tiền vốn
-            const chapterBot = chapter?.bots[botIdx] || setup.customBotConfigs[botIdx];
-            const reloadedBankroll = generateRealisticBotBankroll(chapterBot || {}, betAmount);
-            return {
-              ...p,
-              name: chapterBot?.name || p.name,
-              avatar: chapterBot?.avatar || p.avatar,
-              botPersonaId: chapterBot?.id || p.botPersonaId,
-              score: reloadedBankroll
-            };
-          }
-
-          // Bot bị cháy túi trong chế độ thường -> Đứng dậy rời bàn và thay thế bằng Bot mới
-          const currentPersonaId = currentPersonaIds[botIdx] || 'BOT_ELO_1150';
-          const personaConfig = getBotConfig(currentPersonaId);
-          const tierNum = personaConfig ? getTierFromElo(personaConfig.elo).tierNum : 2;
-
-          const newBotConfig = generateRandomBotConfig(tierNum, {
-            excludeNames: usedNames,
-            excludeAvatars: usedAvatars
-          });
-
-          usedNames.push(newBotConfig.name || '');
-          usedAvatars.push(newBotConfig.avatar || '🤖');
-
-          const newInitialScore = generateRealisticBotBankroll(newBotConfig, betAmount);
-          replacedBanners.push(`💸 ${p.name} cháy túi rời sòng! ${newBotConfig.name} (${newBotConfig.avatar}) vào thế chỗ!`);
-
-          if (botIdx >= 0 && botIdx < 3) {
-            currentPersonaIds[botIdx] = newBotConfig.id;
-            currentConfigs[botIdx] = newBotConfig;
-            updateBotPersonaAt(botIdx, newBotConfig.id);
-            updateCustomBotConfigAt(botIdx, newBotConfig);
-          }
-
-          return {
-            ...p,
-            name: newBotConfig.name || p.name,
-            avatar: newBotConfig.avatar || p.avatar,
-            botPersonaId: newBotConfig.id,
-            score: newInitialScore
-          };
+        if (isCampaign && p.isBot && prevScore < betAmount) {
+          const botIdx = idx - 1;
+          const chapterBot = chapter?.bots[botIdx] || setup.customBotConfigs[botIdx];
+          prevScore = generateRealisticBotBankroll(chapterBot || {}, betAmount);
         }
 
-        usedNames.push(p.name);
-        usedAvatars.push(p.avatar);
+        const resolvedPlayer = prevPlayer || p;
         return {
-          ...p,
+          ...resolvedPlayer,
+          hand: [],
+          playedCards: [],
+          isPassedCurrentRound: false,
+          hasPlayedFirstCard: false,
+          rankPosition: null,
+          instantWinType: null,
           score: prevScore
         };
       });
     }
 
-    replacedBotBannersRef.current = replacedBanners;
-
-    // 5. Khởi tạo Engine với cấu hình chuẩn xác từ Strategy
-    const engine = new GameEngine(
-      initialPlayers,
-      setup.rules
-    );
-
-    const resolvedWinnerId = (effectiveGameNumber === 1)
-      ? undefined
-      : (preserveWinnerId || lastWinnerIdRef.current || undefined);
-    engine.startNewGame(effectiveGameNumber, resolvedWinnerId);
+    // 5. Khởi tạo GameEngine mới
+    const engine = new GameEngine(initialPlayers, setup.rules);
     engineRef.current = engine;
 
-    const bConfigs = [
-      getBotConfig(currentPersonaIds[0], currentConfigs[0]),
-      getBotConfig(currentPersonaIds[1], currentConfigs[1]),
-      getBotConfig(currentPersonaIds[2], currentConfigs[2])
-    ];
-
-    const newTrackers: Record<string, CardTracker> = {
-      p0: new CardTracker(engine.getPlayer('p0')?.hand || [], 1.0)
-    };
-    if (setup.playerCount >= 2) {
-      newTrackers.p1 = new CardTracker(engine.getPlayer('p1')?.hand || [], bConfigs[0].memoryDepth);
-    }
-    if (setup.playerCount >= 3) {
-      newTrackers.p2 = new CardTracker(engine.getPlayer('p2')?.hand || [], bConfigs[1].memoryDepth);
-    }
-    if (setup.playerCount >= 4) {
-      newTrackers.p3 = new CardTracker(engine.getPlayer('p3')?.hand || [], bConfigs[2].memoryDepth);
+    // 6. Khởi tạo CardTracker cho từng Bot
+    const newTrackers: Record<string, CardTracker> = {};
+    for (const player of engine.players) {
+      if (player.isBot) {
+        const botConfig = getBotConfig(player.botPersonaId || 'BOT_ELO_1150');
+        newTrackers[player.id] = new CardTracker(player.hand, botConfig.memoryDepth);
+      }
     }
     trackersRef.current = newTrackers;
 
-    setPlayers([...engine.players]);
-    const leadId = engine.getCurrentPlayer()?.id || engine.currentRound.currentTurnPlayerId;
-    setCurrentTurnPlayerId(leadId);
-    setLeadPlayerId(leadId);
-    setCurrentMove(null);
+    // 7. Bắt đầu ván bài
+    const winnerToPreserve = preserveWinnerId || (effectiveGameNumber > 1 ? lastWinnerIdRef.current || undefined : undefined);
+    const startResult = engine.startNewGame(effectiveGameNumber, winnerToPreserve);
 
-    // Kích hoạt hiệu ứng chia bài
     setIsDealing(true);
-    const initialDealt: Record<string, number> = { p0: 0 };
-    if (setup.playerCount >= 2) initialDealt.p1 = 0;
-    if (setup.playerCount >= 3) initialDealt.p2 = 0;
-    if (setup.playerCount >= 4) initialDealt.p3 = 0;
-    setDealtCounts(initialDealt);
+    setDealtCounts({});
     setDealBanner(null);
+
+    syncGameState();
+
+    // 8. Xử lý Tới Trắng (Instant Win)
+    if (startResult.instantWin && startResult.instantWinType) {
+      setInstantWinType(startResult.instantWinType);
+      soundManager.playVictory();
+      setTimeout(() => {
+        handleGameCompletion(engine);
+      }, UI_TIMINGS.BANNER_DISPLAY_DURATION_MS);
+    }
   }, [
     activeGameType,
     botPersonaIds,
@@ -624,23 +346,27 @@ export function useGameMatchLoop() {
     currentCampaignChapter,
     customBotConfigs,
     gameSettings,
+    handleGameCompletion,
+    openModal,
     playerCount,
     profile,
+    resetMatchState,
+    setActiveGameType,
     setBotPersonaIds,
+    setCurrentCampaignChapter,
     setCustomBotConfigs,
-    setCurrentMove,
-    setCurrentTurnPlayerId,
     setDealBanner,
     setDealtCounts,
     setGameNumber,
+    setGameRules,
     setGameSettings,
     setInstantWinType,
     setIsDealing,
     setIsGameOver,
-    setLeadPlayerId,
     setPlayerCount,
-    setPlayers,
+    setProfile,
     setWinners,
+    syncGameState,
     updateBotPersonaAt,
     updateCustomBotConfigAt
   ]);
@@ -676,22 +402,10 @@ export function useGameMatchLoop() {
         : 'Bạn (Người Chơi) giành quyền mở màn (3 Bích)!';
     }
 
-    if (replacedBotBannersRef.current.length > 0) {
-      const bannerText = replacedBotBannersRef.current.join(' | ');
-      replacedBotBannersRef.current = [];
-      setDealBanner(bannerText);
-      setTimeout(() => {
-        setDealBanner(leadText);
-        setTimeout(() => {
-          setDealBanner(null);
-        }, UI_TIMINGS.BANNER_DISPLAY_DURATION_MS);
-      }, UI_TIMINGS.BANNER_DISPLAY_DURATION_MS);
-    } else {
-      setDealBanner(leadText);
-      setTimeout(() => {
-        setDealBanner(null);
-      }, UI_TIMINGS.BANNER_DISPLAY_DURATION_MS);
-    }
+    setDealBanner(leadText);
+    setTimeout(() => {
+      setDealBanner(null);
+    }, UI_TIMINGS.BANNER_DISPLAY_DURATION_MS);
 
     syncGameState();
   }, [autoSortEnabled, setDealBanner, setDealtCounts, setIsDealing, syncGameState]);
@@ -704,23 +418,7 @@ export function useGameMatchLoop() {
     }));
   }, [setDealtCounts]);
 
-  // Ref Wrappers để giữ bot decision effect không bị hủy timer bởi re-render
-  const syncGameStateRef = useRef(syncGameState);
-  useEffect(() => {
-    syncGameStateRef.current = syncGameState;
-  }, [syncGameState]);
-
-  const handleGameCompletionRef = useRef(handleGameCompletion);
-  useEffect(() => {
-    handleGameCompletionRef.current = handleGameCompletion;
-  }, [handleGameCompletion]);
-
-  const triggerChopAlertRef = useRef(triggerChopAlert);
-  useEffect(() => {
-    triggerChopAlertRef.current = triggerChopAlert;
-  }, [triggerChopAlert]);
-
-  // VÒNG LẶP AI CHO BOT (Tự động tính toán & đi bài với Giả lập suy nghĩ động)
+  // Vòng Lặp Lượt Đi Của Bot (Bot Turn Loop)
   useEffect(() => {
     if (!engineRef.current || isDealing || isGameOver) return;
     const engine = engineRef.current;
@@ -813,7 +511,7 @@ export function useGameMatchLoop() {
     return () => {
       clearTimeout(timer);
     };
-  }, [currentTurnPlayerId, isDealing, isGameOver, gameSpeed]);
+  }, [currentTurnPlayerId, isDealing, isGameOver, gameSpeed, setBotThinkingThought]);
 
   // Người Chơi Đánh Bài
   const handlePlaySelectedCards = useCallback(() => {
@@ -835,7 +533,7 @@ export function useGameMatchLoop() {
         const penalty = moveRes.penaltyAmount || 0;
         triggerChopAlert(
           profile.name, 
-          chopped?.name || 'Bot', 
+          chopped?.name || 'Đối thủ', 
           penalty,
           moveRes.isCascadeChop || false,
           moveRes.chopChainCount || 1
@@ -914,40 +612,9 @@ export function useGameMatchLoop() {
     selectedCardIds,
     setProfile,
     syncGameState,
-    triggerChopAlert
+    triggerChopAlert,
+    triggerQuestToastIfNewlyCompleted
   ]);
-
-  // Người Chơi Bỏ Lượt
-  const handlePassTurn = useCallback(() => {
-    if (!engineRef.current) return;
-    const engine = engineRef.current;
-    const passRes = engine.passTurn('p0');
-    if (passRes.success) {
-      soundManager.playPass();
-      clearCardSelection();
-      if (engine.getLeadingMove()) {
-        for (const t of Object.values(trackersRef.current)) {
-          t.recordPassWithDetails('p0', engine.getLeadingMove()!.combination);
-        }
-      }
-      syncGameState();
-    }
-  }, [clearCardSelection, syncGameState]);
-
-  // Quản lý Xếp Bài Thông Minh (Smart Hand Sorting)
-  const { handleAutoSort } = useSmartHandSorting(engineRef);
-
-  // Người Chơi Áp Dụng Gợi Ý AI
-  const handleApplyAiHint = useCallback(() => {
-    if (!currentHint || currentHint.action === 'PASS') {
-      handlePassTurn();
-      return;
-    }
-    if (currentHint.cards) {
-      const ids = new Set<string>(currentHint.cards.map((c: Card) => c.id));
-      setSelectedCardIds(ids);
-    }
-  }, [currentHint, handlePassTurn, setSelectedCardIds]);
 
   // Xử lý khi người chơi xác nhận bỏ cuộc (Forfeit)
   const handleForfeitMatch = useCallback(() => {
@@ -957,7 +624,7 @@ export function useGameMatchLoop() {
     if (session) {
       let updatedProfile = { ...profile };
       if (session.isRanked) {
-        const nextElo = Math.max(0, profile.elo - 30);
+        const nextElo = Math.max(0, profile.elo - ECONOMY_CONSTANTS.F5_DISCONNECT_ELO_PENALTY);
         updatedProfile = {
           ...profile,
           elo: nextElo,
@@ -968,7 +635,6 @@ export function useGameMatchLoop() {
           }
         };
       } else {
-        // Tiền cọc đã bị trừ khi vào ván, nay bị mất vĩnh viễn
         updatedProfile = {
           ...profile,
           stats: {
@@ -985,7 +651,6 @@ export function useGameMatchLoop() {
     engineRef.current = null;
     trackersRef.current = {};
     lastWinnerIdRef.current = null;
-    replacedBotBannersRef.current = [];
     OpponentProfiler.getInstance().reset();
     resetMatchState();
     closeAllModals();
@@ -998,7 +663,7 @@ export function useGameMatchLoop() {
       const session = getActiveMatchSession();
       setForfeitData({
         depositAmount: session?.depositAmount || 0,
-        eloPenalty: 30,
+        eloPenalty: ECONOMY_CONSTANTS.F5_DISCONNECT_ELO_PENALTY,
         isRanked: activeGameType === 'QUICK'
       });
       openModal('CONFIRM_FORFEIT');
@@ -1007,7 +672,6 @@ export function useGameMatchLoop() {
       engineRef.current = null;
       trackersRef.current = {};
       lastWinnerIdRef.current = null;
-      replacedBotBannersRef.current = [];
       OpponentProfiler.getInstance().reset();
       resetMatchState();
       closeAllModals();

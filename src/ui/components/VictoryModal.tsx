@@ -66,7 +66,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   isChapterUnlockedNext,
   isAllCampaignCompleted,
   nextChapter,
-  playerCoins: _playerCoins,
+  playerCoins,
   botReasoningLogEnabled: _botReasoningLogEnabled
 }) => {
   const isHumanWinner = winners.length > 0 && winners[0].id === 'p0';
@@ -115,8 +115,12 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     return (a.hand?.length || 0) - (b.hand?.length || 0);
   });
 
-  // TÍNH TOÁN TIÊU ĐỀ & NỘI DUNG STAT BOXES THEO CHẾ ĐỘ
-  let modalTitle = 'KẾT QUẢ VÁN ĐẤU';
+  // Kiểm tra có đối thủ nào cháy túi (vỡ nợ) không đủ tiền cược tiếp
+  const bankruptBots = !isCampaign ? allPlayers.filter(p => p.isBot && (p.score || 0) < betAmount) : [];
+  const isHumanBankrupt = !isCampaign && playerCoins < betAmount;
+  const isTableDismissed = !isCampaign && (bankruptBots.length > 0 || isHumanBankrupt);
+
+  let modalTitle = isHumanWinner ? 'CHIẾN THẮNG TRẬN ĐẤU!' : 'KẾT THÚC VÁN ĐẤU';
   let modalSubtitle = 'Ván đấu đã kết thúc!';
   let modalIcon = '🏆';
   let primaryBtnText = 'Ván Mới';
@@ -169,8 +173,23 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
       secondaryBtnIcon = <Map className="w-4 h-4" />;
       secondaryBtnAction = onOpenCampaignMap || onReturnToLobby;
     }
+  } else if (isTableDismissed) {
+    // SỚI BẠC GIẢI TÁN KHI CÓ NGƯỜI CHÁY TÚI
+    modalIcon = '🚨';
+    if (isHumanBankrupt) {
+      modalTitle = 'BẠN ĐÃ CHÁY TÚI!';
+      modalSubtitle = 'Số dư của bạn không đủ tiền cược tiếp. Hãy về sảnh để nhận cứu trợ hoặc vay vốn!';
+    } else {
+      modalTitle = 'SỚI BẠC GIẢI TÁN!';
+      modalSubtitle = `Đối thủ ${bankruptBots.map(b => b.name).join(', ')} đã cháy túi! Bàn đấu dừng lại.`;
+    }
+    const rankTier = getRankTierByElo(playerElo);
+    const eloDeltaText = eloDelta > 0 ? `+${eloDelta}` : `${eloDelta}`;
+    statBox2Title = 'BẬC RANK & ELO';
+    statBox2Value = `${rankTier.badge} ${rankTier.name} (${eloDeltaText})`;
+    statBox2Sub = `Tổng điểm: ${playerElo} Elo • Cược ${betAmount.toLocaleString()} Xu`;
   } else {
-    // Chế độ Chơi Nhanh & Đấu Hạng Tích Hợp
+    // Chế độ Chơi Nhanh & Đấu Hạng Tích Hợp (Còn đủ tiền tiếp tục)
     const rankTier = getRankTierByElo(playerElo);
     const eloDeltaText = eloDelta > 0 ? `+${eloDelta}` : `${eloDelta}`;
     modalIcon = isHumanWinner ? '🏆' : (eloDelta < 0 ? '📉' : '💥');
@@ -183,7 +202,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   }
 
   // TỚI TRẮNG (INSTANT WIN)
-  if (instantWinType) {
+  if (instantWinType && !isTableDismissed) {
     modalIcon = '⚡';
     if (isHumanWinner) {
       modalTitle = 'TỚI TRẮNG HOÀNG GIA!';
@@ -195,7 +214,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   }
 
   // VỀ 3 BÍCH HOÀNG GIA
-  if (isThreeSpadesWin) {
+  if (isThreeSpadesWin && !isTableDismissed) {
     modalIcon = '♠️';
     if (isHumanWinner) {
       modalTitle = 'VỀ 3 BÍCH HOÀNG GIA - THẮNG X2';
@@ -214,44 +233,69 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
       subtitle={modalSubtitle}
       icon={<span className="text-xl">{modalIcon}</span>}
       maxWidth="2xl"
-      height="auto"
       footer={
-        <div className="w-full flex items-center justify-between gap-2">
-          {/* Nút Về Sảnh */}
-          <Button
-            variant="surface"
-            size="md"
-            onClick={onReturnToLobby}
-            leftIcon={<Home className="w-4 h-4 text-[var(--color-gold)]" />}
-          >
-            Về Sảnh
-          </Button>
-
-          {/* Nút Phụ */}
-          {secondaryBtnText !== 'Về Sảnh' && (
+        isTableDismissed ? (
+          <div className="w-full flex items-center justify-center">
+            <Button
+              variant="gold"
+              size="md"
+              onClick={onReturnToLobby}
+              leftIcon={<Home className="w-4 h-4 text-black" />}
+              className="w-full sm:w-auto px-8"
+            >
+              Về Sảnh
+            </Button>
+          </div>
+        ) : (
+          <div className="w-full flex items-center justify-between gap-2">
+            {/* Nút Về Sảnh */}
             <Button
               variant="surface"
               size="md"
-              onClick={secondaryBtnAction}
-              leftIcon={secondaryBtnIcon}
+              onClick={onReturnToLobby}
+              leftIcon={<Home className="w-4 h-4 text-[var(--color-gold)]" />}
             >
-              {secondaryBtnText}
+              Về Sảnh
             </Button>
-          )}
 
-          {/* Nút Chính */}
-          <Button
-            variant="gold"
-            size="md"
-            onClick={onNextGame}
-            leftIcon={primaryBtnIcon}
-          >
-            {primaryBtnText}
-          </Button>
-        </div>
+            {/* Nút Phụ */}
+            {secondaryBtnText !== 'Về Sảnh' && (
+              <Button
+                variant="surface"
+                size="md"
+                onClick={secondaryBtnAction}
+                leftIcon={secondaryBtnIcon}
+              >
+                {secondaryBtnText}
+              </Button>
+            )}
+
+            {/* Nút Chính */}
+            <Button
+              variant="gold"
+              size="md"
+              onClick={onNextGame}
+              leftIcon={primaryBtnIcon}
+            >
+              {primaryBtnText}
+            </Button>
+          </div>
+        )
       }
     >
       <div className="space-y-3">
+        {/* BANNER GIẢI TÁN SỚI BẠC KHI CÓ NGƯỜI CHÁY TÚI */}
+        {isTableDismissed && (
+          <Card variant="active" className="p-3 bg-rose-950/40 border-rose-500/40 flex items-center justify-center gap-2 text-center">
+            <span className="text-rose-300 font-bold text-xs sm:text-sm">
+              {isHumanBankrupt
+                ? '💸 Bạn không đủ tiền cọc cho ván tiếp theo! Bàn chơi kết thúc, hãy quay về sảnh.'
+                : `🚨 Đối thủ ${bankruptBots.map(b => b.name).join(', ')} đã cháy túi! Bàn chơi giải tán, vui lòng về sảnh để tìm trận mới.`
+              }
+            </span>
+          </Card>
+        )}
+
         {/* BANNER 3 BÍCH HOÀNG GIA */}
         {isThreeSpadesWin && (
           <Card variant="active" className="p-2.5 flex items-center justify-center gap-2">
