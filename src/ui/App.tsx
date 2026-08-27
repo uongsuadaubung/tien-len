@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { LobbyHub } from './components/LobbyHub';
-import { GameModals } from './components/GameModals';
+import { WebApp } from './web/WebApp';
+import { MobileApp } from './mobile/MobileApp';
 import { SplashScreen } from './components/SplashScreen';
-import { CustomGameModalConfig } from './components/CustomGameModal';
-import { QuickSetupConfig } from './components/QuickSetupModal';
+import { CustomGameModalConfig } from './web/modals/CustomGameModal';
+import { QuickSetupConfig } from './web/modals/QuickSetupModal';
 import { CampaignChapter } from '../engine/campaign';
 import { useGameMatchLoop } from './hooks/useGameMatchLoop';
-import { GameTableScreen } from './screens/GameTableScreen';
+import { useIsMobile } from './hooks/useIsMobile';
 import { getRandomBotConfigsForTable } from '../ai/bot-factory';
 import { 
   clearActiveMatchSession, 
@@ -28,17 +28,14 @@ import { useEcosystemStore } from '../stores/useEcosystemStore';
 import { BotConfig } from '../ai/types';
 
 export const App: React.FC = () => {
-  const { openModal, closeModal, setF5PenaltyData } = useModalStore();
+  const { openModal, setF5PenaltyData } = useModalStore();
   const { profile, setProfile, hydrateProfile } = useUserStore();
   const [isHydrated, setIsHydrated] = useState(false);
+  const { isMobile } = useIsMobile();
   const {
     currentScreen,
-    activeGameType,
-    gameNumber,
-    playerCount,
-    gameSettings,
-    setCurrentScreen,
     setActiveGameType,
+    setCurrentScreen,
     setCurrentCampaignChapter
   } = useGameStore();
 
@@ -141,7 +138,7 @@ export const App: React.FC = () => {
     betAmount: number;
     modeName: string;
     botConfigs: Partial<BotConfig>[];
-    playerCount?: number;
+    playerCount: number | null;
     onStart: () => void;
   } | null>(null);
 
@@ -157,9 +154,9 @@ export const App: React.FC = () => {
       return;
     }
 
-    closeModal('QUICK_SETUP');
+    useModalStore.getState().closeModal('QUICK_SETUP');
 
-    // 2. Ghép Bot trực tiếp từ Hệ Sinh Thái 200 Bot & Kích hoạt Web Worker mô phỏng ngầm
+    // 2. Ghép Bot trực tiếp từ Hệ Sinh Thái 200 Bot
     const requiredCount = (config.playerCount || 4) - 1;
     let botConfigs: Partial<BotConfig>[] = [];
     let botIds: string[] = [];
@@ -190,7 +187,7 @@ export const App: React.FC = () => {
       betAmount: config.betAmount,
       modeName: config.settlementRule === 'CARD_COUNT' ? 'Đếm Lá (Đấu Hạng)' : 'Tiến Lên Miền Nam',
       botConfigs,
-      playerCount: config.playerCount,
+      playerCount: config.playerCount ?? 4,
       onStart: () => {
         const customRules = new GameRulesBuilder()
           .withSettlement(config.settlementRule)
@@ -233,7 +230,7 @@ export const App: React.FC = () => {
       return;
     }
 
-    closeModal('CUSTOM_GAME');
+    useModalStore.getState().closeModal('CUSTOM_GAME');
 
     // Kích hoạt mô phỏng ngầm song song
     try {
@@ -250,7 +247,7 @@ export const App: React.FC = () => {
       betAmount: config.settings.betAmount,
       modeName: modeTitle,
       botConfigs: config.customBotConfigs,
-      playerCount: config.playerCount,
+      playerCount: config.playerCount ?? 4,
       onStart: () => {
         startNewGame(1, {
           customSettings: config.settings,
@@ -265,7 +262,7 @@ export const App: React.FC = () => {
 
   const handleExecuteMatch = () => {
     if (!pendingMatch) return;
-    closeModal('MATCHMAKING');
+    useModalStore.getState().closeModal('MATCHMAKING');
     setActiveGameType('QUICK');
     setCurrentScreen('GAME_TABLE');
     pendingMatch.onStart();
@@ -273,7 +270,7 @@ export const App: React.FC = () => {
   };
 
   const handleCancelMatchmaking = () => {
-    closeModal('MATCHMAKING');
+    useModalStore.getState().closeModal('MATCHMAKING');
     setPendingMatch(null);
   };
 
@@ -281,7 +278,7 @@ export const App: React.FC = () => {
     const liveCoins = useUserStore.getState().profile.coins;
     const defaultBet = ECONOMY_CONSTANTS.DEFAULT_QUICK_BET;
 
-    // Nếu không đủ mức cược tiêu chuẩn (1.000 Xu), không cho chơi nhanh và mở Ngân Hàng / Cứu trợ
+    // Nếu không đủ mức cược tiêu chuẩn (1.000 Xu), mở Ngân Hàng / Cứu trợ
     if (liveCoins < defaultBet) {
       openModal('BANK');
       return;
@@ -303,7 +300,7 @@ export const App: React.FC = () => {
   const handleStartCampaignChapter = (chapter: CampaignChapter) => {
     setCurrentCampaignChapter(chapter);
     setActiveGameType('CAMPAIGN');
-    closeModal('CAMPAIGN');
+    useModalStore.getState().closeModal('CAMPAIGN');
     setCurrentScreen('GAME_TABLE');
     startNewGame(1, {
       campaignChapter: chapter,
@@ -320,77 +317,34 @@ export const App: React.FC = () => {
     return <SplashScreen />;
   }
 
-  return (
-    <>
-      {/* 1. MÀN HÌNH CHÍNH (SẢNH HOẶC BÀN ĐẤU) */}
-      {currentScreen === 'LOBBY' ? (
-        <LobbyHub
-          profile={profile}
-            onPlayNow={handlePlayNowDefault}
-            onOpenQuickSetup={() => openModal('QUICK_SETUP')}
-            onOpenCustomGameModal={() => openModal('CUSTOM_GAME')}
-            onOpenCampaign={() => openModal('CAMPAIGN')}
-            onOpenQuests={() => openModal('QUEST')}
-            onOpenLuckyWheel={() => openModal('WHEEL')}
-            onOpenBank={() => openModal('BANK')}
-            onOpenSettings={() => openModal('SETTINGS')}
-            onOpenRules={() => openModal('RULES')}
-            onOpenNameSetup={() => openModal('NAME_SETUP')}
-          />
-      ) : (
-        <GameTableScreen
-          engineRef={engineRef}
-          onPlaySelectedCards={handlePlaySelectedCards}
-          onPassTurn={handlePassTurn}
-          onAutoSort={handleAutoSort}
-          onApplyAiHint={handleApplyAiHint}
-          onDealCard={handleDealCard}
-          onDealComplete={handleDealComplete}
-          onResetMatch={() => startNewGame(1, { playerCount })}
-          onReturnToLobby={handleRequestReturnToLobby}
-        />
-      )}
+  const appProps = {
+    engineRef,
+    trackersRef,
+    profile,
+    campaignResultMeta,
+    pendingMatch,
+    startNewGame,
+    handlePlaySelectedCards,
+    handlePassTurn,
+    handleAutoSort,
+    handleApplyAiHint,
+    handleDealCard,
+    handleDealComplete,
+    handleForfeitMatch,
+    handleRequestReturnToLobby,
+    handleReturnToLobby,
+    handlePlayNowDefault,
+    handleStartQuickGame,
+    handleStartCustomGameWithConfig,
+    handleStartCampaignChapter,
+    handleCancelMatchmaking,
+    handleExecuteMatch
+  };
 
-      {/* 2. MODALS TẬP TRUNG TOÀN ỨNG DỤNG */}
-      <GameModals
-        player0Tracker={trackersRef.current['p0'] || null}
-        onStartQuickGame={handleStartQuickGame}
-        onStartCustomGame={handleStartCustomGameWithConfig}
-        onSelectCampaignChapter={handleStartCampaignChapter}
-        onConfirmForfeit={handleForfeitMatch}
-        campaignResultMeta={campaignResultMeta}
-        matchmakingData={pendingMatch}
-        onCancelMatchmaking={handleCancelMatchmaking}
-        onMatchReady={handleExecuteMatch}
-        onOpenCampaignMap={() => {
-          closeModal('VICTORY');
-          openModal('CAMPAIGN');
-        }}
-        onNextGame={() => {
-          closeModal('VICTORY');
-          const betAmount = gameSettings.betAmount || 0;
-          const liveCoins = useUserStore.getState().profile.coins;
-          if (activeGameType !== 'CAMPAIGN' && betAmount > 0 && liveCoins < betAmount) {
-            openModal('BANK');
-            return;
-          }
+  // ĐIỀU PHỐI GIAO DIỆN CHÍNH: MOBILE NATIVE-STYLE HOẶC WEB DESKTOP
+  if (isMobile) {
+    return <MobileApp {...appProps} />;
+  }
 
-          if (activeGameType === 'CAMPAIGN') {
-            if (campaignResultMeta?.isUnlockedNext && campaignResultMeta.nextChapter) {
-              startNewGame(1, { campaignChapter: campaignResultMeta.nextChapter });
-            } else {
-              startNewGame(gameNumber + 1);
-            }
-          } else {
-            // Ván tiếp theo trong bàn, người về Nhất ván trước được quyền đi trước
-            startNewGame(gameNumber + 1);
-          }
-        }}
-        onReturnToLobby={() => {
-          closeModal('VICTORY');
-          handleReturnToLobby();
-        }}
-      />
-    </>
-  );
+  return <WebApp {...appProps} />;
 };

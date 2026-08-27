@@ -6,14 +6,14 @@ export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: React.ReactNode;
-  subtitle?: string;
-  icon?: React.ReactNode;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | '5xl';
-  height?: string;
-  headerRight?: React.ReactNode;
-  footer?: React.ReactNode;
+  subtitle?: string | null;
+  icon?: React.ReactNode | null;
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | '5xl' | null;
+  height?: string | null;
+  headerRight?: React.ReactNode | null;
+  footer?: React.ReactNode | null;
   children: React.ReactNode;
-  className?: string;
+  className?: string | null;
 }
 
 const maxWidthClasses = {
@@ -51,36 +51,39 @@ export const Modal: React.FC<ModalProps> = ({
 
   if (!isOpen) return null;
 
+  const widthClass = maxWidth ? maxWidthClasses[maxWidth] : 'max-w-4xl';
+  const heightClass = height || 'h-[85vh] sm:h-[620px]';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-2 sm:p-4 select-none backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 select-none backdrop-blur-sm animate-fade-in">
       <div 
         className={`
-          relative w-full ${maxWidthClasses[maxWidth]} ${height} max-h-[90vh] 
+          relative w-full ${widthClass} ${heightClass} max-h-[90vh] 
           bg-[var(--bg-container)] border border-[var(--border-container)] rounded-2xl shadow-2xl flex flex-col text-[var(--text-primary)] overflow-hidden
-          ${className}
+          ${className || ''}
         `}
       >
-        {/* HEADER MODAL (Tier 1) */}
-        <div className="flex items-center justify-between px-5 sm:px-6 py-4 bg-[var(--bg-container)] border-b border-[var(--border-container)] flex-shrink-0">
-          <div className="flex items-center gap-3">
+        {/* HEADER MODAL DESKTOP (Tier 1) */}
+        <div className="flex items-center justify-between px-6 py-4 bg-[var(--bg-container)] border-b border-[var(--border-container)] flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
             {icon && (
-              <div className="p-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] text-[var(--color-gold)] shadow-sm">
+              <div className="p-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] text-[var(--color-gold)] shadow-sm shrink-0">
                 {icon}
               </div>
             )}
-            <div>
-              <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)] tracking-wide">
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)] tracking-wide truncate">
                 {title}
               </h2>
               {subtitle && (
-                <p className="text-xs text-[var(--text-muted)]">
+                <p className="text-xs text-[var(--text-muted)] truncate">
                   {subtitle}
                 </p>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {headerRight}
             <Button
               variant="surface"
@@ -94,13 +97,13 @@ export const Modal: React.FC<ModalProps> = ({
         </div>
 
         {/* NỘI DUNG BODY CUỘN ĐỘC LẬP (Tier 0 Canvas) */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 text-xs sm:text-sm custom-scrollbar bg-[var(--bg-canvas)]">
+        <div className="flex-1 overflow-y-auto p-6 space-y-4 text-xs sm:text-sm custom-scrollbar bg-[var(--bg-canvas)]">
           {children}
         </div>
 
         {/* FOOTER MODAL (Tier 1) */}
         {footer && (
-          <div className="flex items-center justify-end px-5 sm:px-6 py-3.5 bg-[var(--bg-container)] border-t border-[var(--border-container)] flex-shrink-0">
+          <div className="flex items-center justify-end px-6 py-3.5 bg-[var(--bg-container)] border-t border-[var(--border-container)] flex-shrink-0">
             {footer}
           </div>
         )}
