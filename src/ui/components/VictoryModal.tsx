@@ -8,11 +8,13 @@ import {
   Swords, 
   Play, 
   Sparkles,
-  Download
+  Download,
+  Cloud
 } from 'lucide-react';
 import { getRankTierByElo } from '../../engine/elo';
 import { CampaignChapter } from '../../engine/campaign';
 import { ActiveGameType } from '../../stores/useGameStore';
+import { useSettingsStore } from '../../stores/useSettingsStore';
 import { clearActiveMatchSession } from '../../engine/storage';
 import { MatchLogger } from '../../engine/match-logger';
 import { Modal, Card, Button } from '../primitives';
@@ -74,6 +76,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   playerCoins,
   allEloDeltas
 }) => {
+  const { githubToken, autoBackupOnMatchEnd } = useSettingsStore();
   const isHumanWinner = winners.length > 0 && winners[0].id === 'p0';
   const isCampaign = activeGameType === 'CAMPAIGN';
 
@@ -463,9 +466,18 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
           })}
         </div>
 
-        {/* NÚT XUẤT JSON LOG TRẬN ĐẤU */}
-        {matchReport && (
-          <div className="flex justify-end pt-1">
+        {/* NÚT XUẤT JSON LOG TRẬN ĐẤU & TRẠNG THÁI SAO LƯU ĐÁM MÂY */}
+        <div className="flex items-center justify-between pt-1">
+          {githubToken && autoBackupOnMatchEnd ? (
+            <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-lg">
+              <Cloud className="w-3.5 h-3.5 shrink-0" />
+              <span>Đã tự động sao lưu Gist</span>
+            </span>
+          ) : (
+            <div />
+          )}
+
+          {matchReport && (
             <Button
               variant="surface"
               size="sm"
@@ -475,8 +487,8 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
             >
               Lưu Phân Tích
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </Modal>
   );

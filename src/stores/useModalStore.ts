@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { TienLenSaveData } from '../engine/sync/types';
 
 export type ModalType = 
   | 'SETTINGS'
@@ -16,7 +17,8 @@ export type ModalType =
   | 'NAME_SETUP'
   | 'RULES'
   | 'ECOSYSTEM'
-  | 'BOT_PROFILE';
+  | 'BOT_PROFILE'
+  | 'SYNC_CONFLICT';
 
 interface ModalState {
   isSettingsOpen: boolean;
@@ -35,9 +37,11 @@ interface ModalState {
   isRulesOpen: boolean;
   isEcosystemOpen: boolean;
   isBotProfileOpen: boolean;
+  isSyncConflictOpen: boolean;
 
   forfeitData?: { depositAmount: number; eloPenalty: number; isRanked: boolean; };
   f5PenaltyData?: { depositLost: number; eloLost: number; isRanked: boolean; };
+  syncConflictData?: { localData: TienLenSaveData; cloudData: TienLenSaveData } | null;
 
   // Actions
   openModal: (type: ModalType) => void;
@@ -61,8 +65,10 @@ interface ModalState {
   setIsRulesOpen: (open: boolean) => void;
   setIsEcosystemOpen: (open: boolean) => void;
   setIsBotProfileOpen: (open: boolean) => void;
+  setIsSyncConflictOpen: (open: boolean) => void;
   setForfeitData: (data?: { depositAmount: number; eloPenalty: number; isRanked: boolean; }) => void;
   setF5PenaltyData: (data?: { depositLost: number; eloLost: number; isRanked: boolean; }) => void;
+  setSyncConflictData: (data?: { localData: TienLenSaveData; cloudData: TienLenSaveData } | null) => void;
 }
 
 export const useModalStore = create<ModalState>((set) => ({
@@ -82,8 +88,10 @@ export const useModalStore = create<ModalState>((set) => ({
   isRulesOpen: false,
   isEcosystemOpen: false,
   isBotProfileOpen: false,
+  isSyncConflictOpen: false,
   forfeitData: undefined,
   f5PenaltyData: undefined,
+  syncConflictData: null,
 
   openModal: (type: ModalType) => {
     switch (type) {
@@ -103,6 +111,7 @@ export const useModalStore = create<ModalState>((set) => ({
       case 'RULES': set({ isRulesOpen: true }); break;
       case 'ECOSYSTEM': set({ isEcosystemOpen: true }); break;
       case 'BOT_PROFILE': set({ isBotProfileOpen: true }); break;
+      case 'SYNC_CONFLICT': set({ isSyncConflictOpen: true }); break;
     }
   },
 
@@ -124,6 +133,7 @@ export const useModalStore = create<ModalState>((set) => ({
       case 'RULES': set({ isRulesOpen: false }); break;
       case 'ECOSYSTEM': set({ isEcosystemOpen: false }); break;
       case 'BOT_PROFILE': set({ isBotProfileOpen: false }); break;
+      case 'SYNC_CONFLICT': set({ isSyncConflictOpen: false }); break;
     }
   },
 
@@ -143,7 +153,8 @@ export const useModalStore = create<ModalState>((set) => ({
     isNameSetupOpen: false,
     isRulesOpen: false,
     isEcosystemOpen: false,
-    isBotProfileOpen: false
+    isBotProfileOpen: false,
+    isSyncConflictOpen: false
   }),
 
   setIsSettingsOpen: (open) => set({ isSettingsOpen: open }),
@@ -162,6 +173,8 @@ export const useModalStore = create<ModalState>((set) => ({
   setIsRulesOpen: (open) => set({ isRulesOpen: open }),
   setIsEcosystemOpen: (open) => set({ isEcosystemOpen: open }),
   setIsBotProfileOpen: (open) => set({ isBotProfileOpen: open }),
+  setIsSyncConflictOpen: (open) => set({ isSyncConflictOpen: open }),
   setForfeitData: (data) => set({ forfeitData: data }),
-  setF5PenaltyData: (data) => set({ f5PenaltyData: data })
+  setF5PenaltyData: (data) => set({ f5PenaltyData: data }),
+  setSyncConflictData: (data) => set({ syncConflictData: data })
 }));

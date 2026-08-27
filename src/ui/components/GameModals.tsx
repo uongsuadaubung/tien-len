@@ -19,6 +19,7 @@ import { RulesModal } from './RulesModal';
 import { EcosystemModal } from './EcosystemModal';
 import { BotProfileModal } from './BotProfileModal';
 import { MatchmakingModal } from './MatchmakingModal';
+import { SyncConflictModal } from './SyncConflictModal';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { CardTracker } from '../../ai/card-tracker';
 import { CampaignChapter } from '../../engine/campaign';
@@ -79,6 +80,8 @@ export const GameModals: React.FC<GameModalsProps> = ({
     isNameSetupOpen,
     isRulesOpen,
     isBotProfileOpen,
+    isSyncConflictOpen,
+    syncConflictData,
     openModal,
     closeModal
   } = useModalStore();
@@ -279,6 +282,13 @@ export const GameModals: React.FC<GameModalsProps> = ({
         isOpen={isBotProfileOpen}
         bot={selectedBot}
         onClose={() => closeModal('BOT_PROFILE')}
+      />
+
+      {/* 16. Sync Conflict Resolution Modal */}
+      <SyncConflictModal
+        isOpen={isSyncConflictOpen}
+        conflictData={syncConflictData || null}
+        onClose={() => closeModal('SYNC_CONFLICT')}
       />
     </>
   );

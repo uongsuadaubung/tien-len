@@ -88,25 +88,82 @@ describe('GitHub Gist Synchronization Unit Tests', () => {
   });
 
   describe('2. Canonical Hash & Change Detection', () => {
-    it('computeHash sinh mã SHA-256 canonical giống nhau dù thứ tự key thay đổi', async () => {
-      const objA = { b: 2, a: 1, nested: { y: 20, x: 10 } };
-      const objB = { a: 1, b: 2, nested: { x: 10, y: 20 } };
+    it('computeHash sinh mã SHA-256 dựa trên Xu, Số trận đấu, Thắng và Elo của người chơi', async () => {
+      const dataA: TienLenSaveData = { ...sampleSaveData };
+      const dataB: TienLenSaveData = { ...sampleSaveData, settings: { ...sampleSaveData.settings, soundEnabled: false } };
 
-      const hashA = await computeHash(objA);
-      const hashB = await computeHash(objB);
+      const hashA = await computeHash(dataA);
+      const hashB = await computeHash(dataB);
 
-      expect(hashA).toBe(hashB);
+      expect(hashA).toBe(hashB); // Vì tiến trình người chơi (Xu, Số trận) không đổi
       expect(hashA.length).toBe(64); // Độ dài SHA-256 hex
     });
 
-    it('computeHash bỏ qua trường updatedAt và lastDailyResetTimestamp để tránh xung đột giả', async () => {
-      const data1: TienLenSaveData = { ...sampleSaveData, updatedAt: 1000 };
-      const data2: TienLenSaveData = { ...sampleSaveData, updatedAt: 99999999 };
+    it('computeHash bỏ qua toàn bộ metadata đồng bộ, timestamps và telemetry logs để tránh xung đột giả', async () => {
+      const baseData: TienLenSaveData = { ...sampleSaveData };
 
-      const hash1 = await computeHash(data1);
-      const hash2 = await computeHash(data2);
+      const modifiedMetadataOnly: TienLenSaveData = {
+        ...sampleSaveData,
+        updatedAt: 999999999,
+        profile: {
+          ...sampleSaveData.profile,
+          lastDailyResetTimestamp: 123456789,
+          lastDailyResetDate: '2026-08-28'
+        },
+        settings: {
+          ...sampleSaveData.settings,
+          lastSync: 88888888,
+          lastSyncedHash: 'some_old_hash',
+          githubToken: 'ghp_secret123',
+          gistId: 'gist_id_abc',
+          cachedGithubUser: { login: 'user1', name: 'User', bio: null, avatar_url: '' }
+        },
+        bots: [
+          {
+            ...generateInitial200Bots()[0],
+            activityStatus: 'IN_MATCH',
+            createdAt: 1000
+          }
+        ],
+        newsfeed: [
+          {
+            id: 'news_1',
+            timestamp: Date.now(),
+            type: 'BANKRUPTCY',
+            message: 'Bot A vừa hết tiền',
+            botId: 'bot_1',
+            botName: 'Bot A',
+            avatar: '🤖',
+            amount: 0
+          }
+        ]
+      };
 
-      expect(hash1).toBe(hash2);
+      const modifiedBotsSameCore: TienLenSaveData = {
+        ...modifiedMetadataOnly,
+        bots: [
+          {
+            ...modifiedMetadataOnly.bots![0],
+            activityStatus: 'RESTING', // Thay đổi trạng thái bận rộn tạm thời
+            createdAt: 9999 // Thay đổi timestamp sinh bot
+          }
+        ]
+      };
+
+      const hashBase = await computeHash(baseData);
+      const hashMod = await computeHash(modifiedMetadataOnly);
+      const hashBotResting = await computeHash(modifiedBotsSameCore);
+
+      // Cả 2 bản với bot cùng stats/elo nhưng activityStatus/createdAt/newsfeed khác nhau phải sinh hash giống hệt nhau
+      expect(hashMod).toBe(hashBotResting);
+
+      // Khi thay đổi dữ liệu game cốt lõi (Coins, Elo, Wins, Settings) -> Hash phải thay đổi
+      const dataWithMoreCoins: TienLenSaveData = {
+        ...modifiedMetadataOnly,
+        profile: { ...modifiedMetadataOnly.profile, coins: 999999 }
+      };
+      const hashMoreCoins = await computeHash(dataWithMoreCoins);
+      expect(hashMoreCoins).not.toBe(hashMod);
     });
   });
 

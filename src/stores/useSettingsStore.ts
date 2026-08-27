@@ -17,6 +17,8 @@ export interface SavedSettings extends Record<string, unknown> {
   lastSync: number;
   lastSyncedHash: string;
   cachedGithubUser: GithubUser | null;
+  autoBackupOnMatchEnd: boolean;
+  autoSyncOnStartup: boolean;
 }
 
 const DEFAULT_SETTINGS: SavedSettings = {
@@ -31,7 +33,9 @@ const DEFAULT_SETTINGS: SavedSettings = {
   gistId: '',
   lastSync: 0,
   lastSyncedHash: '',
-  cachedGithubUser: null
+  cachedGithubUser: null,
+  autoBackupOnMatchEnd: true,
+  autoSyncOnStartup: true
 };
 
 function persistSettings(state: SettingsState): void {
@@ -47,7 +51,9 @@ function persistSettings(state: SettingsState): void {
     gistId: state.gistId,
     lastSync: state.lastSync,
     lastSyncedHash: state.lastSyncedHash,
-    cachedGithubUser: state.cachedGithubUser
+    cachedGithubUser: state.cachedGithubUser,
+    autoBackupOnMatchEnd: state.autoBackupOnMatchEnd,
+    autoSyncOnStartup: state.autoSyncOnStartup
   };
 
   dbSaveGameSettings(data).catch(() => {});
@@ -66,6 +72,8 @@ interface SettingsState {
   lastSync: number;
   lastSyncedHash: string;
   cachedGithubUser: GithubUser | null;
+  autoBackupOnMatchEnd: boolean;
+  autoSyncOnStartup: boolean;
 
   // Actions
   toggleSound: () => void;
@@ -74,12 +82,16 @@ interface SettingsState {
   toggleQuickResponseAssist: () => void;
   toggleXRay: () => void;
   toggleBotReasoningLog: () => void;
+  toggleAutoBackupOnMatchEnd: () => void;
+  toggleAutoSyncOnStartup: () => void;
   setSoundEnabled: (enabled: boolean) => void;
   setAutoSortEnabled: (enabled: boolean) => void;
   setAiHintEnabled: (enabled: boolean) => void;
   setQuickResponseAssistEnabled: (enabled: boolean) => void;
   setXRayEnabled: (enabled: boolean) => void;
   setBotReasoningLogEnabled: (enabled: boolean) => void;
+  setAutoBackupOnMatchEnd: (enabled: boolean) => void;
+  setAutoSyncOnStartup: (enabled: boolean) => void;
   setGameSpeed: (speed: GameSpeedMode) => void;
   setGithubToken: (token: string) => void;
   setCachedGithubUser: (user: GithubUser | null) => void;
@@ -104,6 +116,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   lastSync: initial.lastSync,
   lastSyncedHash: initial.lastSyncedHash,
   cachedGithubUser: initial.cachedGithubUser,
+  autoBackupOnMatchEnd: initial.autoBackupOnMatchEnd,
+  autoSyncOnStartup: initial.autoSyncOnStartup,
 
   hydrateSettings: (settings) => set((state) => ({ ...state, ...settings })),
 
@@ -134,6 +148,26 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   }),
   toggleBotReasoningLog: () => set((state) => {
     const next = { ...state, botReasoningLogEnabled: !state.botReasoningLogEnabled };
+    persistSettings(next);
+    return next;
+  }),
+  toggleAutoBackupOnMatchEnd: () => set((state) => {
+    const next = { ...state, autoBackupOnMatchEnd: !state.autoBackupOnMatchEnd };
+    persistSettings(next);
+    return next;
+  }),
+  toggleAutoSyncOnStartup: () => set((state) => {
+    const next = { ...state, autoSyncOnStartup: !state.autoSyncOnStartup };
+    persistSettings(next);
+    return next;
+  }),
+  setAutoBackupOnMatchEnd: (autoBackupOnMatchEnd) => set((state) => {
+    const next = { ...state, autoBackupOnMatchEnd };
+    persistSettings(next);
+    return next;
+  }),
+  setAutoSyncOnStartup: (autoSyncOnStartup) => set((state) => {
+    const next = { ...state, autoSyncOnStartup };
     persistSettings(next);
     return next;
   }),

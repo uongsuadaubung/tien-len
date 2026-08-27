@@ -100,6 +100,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     githubToken,
     cachedGithubUser,
     lastSync,
+    autoBackupOnMatchEnd,
+    toggleAutoBackupOnMatchEnd,
+    autoSyncOnStartup,
+    toggleAutoSyncOnStartup,
     setGithubToken,
     setCachedGithubUser,
     clearGithubAuth
@@ -430,6 +434,48 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <History className="w-4 h-4 mb-1.5 shrink-0 text-amber-400" />
                     <span className="text-[var(--text-secondary)] leading-tight">Lịch Sử Gist</span>
                   </button>
+                </div>
+
+                {/* Tùy chọn Tự Động Đồng Bộ Khi Vào Game */}
+                <div
+                  onClick={toggleAutoSyncOnStartup}
+                  className="pt-2.5 border-t border-[var(--border-card)] flex items-center justify-between cursor-pointer select-none group"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] text-emerald-400 shrink-0 flex items-center justify-center">
+                      <RefreshCw className="w-3.5 h-3.5 shrink-0" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-[var(--text-primary)] leading-tight group-hover:text-[var(--color-gold)] transition-colors">
+                        Tự Động Đồng Bộ Khi Vào Game
+                      </div>
+                      <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                        Tự động kiểm tra và tải dữ liệu mới nhất từ Gist khi khởi động
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch checked={autoSyncOnStartup} />
+                </div>
+
+                {/* Tùy chọn Tự Động Sao Lưu Sau Mỗi Ván */}
+                <div
+                  onClick={toggleAutoBackupOnMatchEnd}
+                  className="pt-2.5 border-t border-[var(--border-card)] flex items-center justify-between cursor-pointer select-none group"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] text-sky-400 shrink-0 flex items-center justify-center">
+                      <CloudUpload className="w-3.5 h-3.5 shrink-0" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-[var(--text-primary)] leading-tight group-hover:text-[var(--color-gold)] transition-colors">
+                        Tự Động Sao Lưu Sau Mỗi Ván
+                      </div>
+                      <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                        Tự động tải bản lưu mới nhất lên Gist ngay khi kết thúc ván đấu
+                      </div>
+                    </div>
+                  </div>
+                  <ToggleSwitch checked={autoBackupOnMatchEnd} />
                 </div>
               </div>
             )}

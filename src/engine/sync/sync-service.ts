@@ -21,42 +21,42 @@ import {
   dbSaveGameSettings
 } from '../db/indexed-db';
 
-const IGNORED_HASH_KEYS = ['updatedAt', 'lastDailyResetTimestamp'];
-
-function isRecord(val: unknown): val is Record<string, unknown> {
-  return typeof val === 'object' && val !== null && !Array.isArray(val);
+function isSaveData(val: unknown): val is TienLenSaveData {
+  return typeof val === 'object' && val !== null && 'profile' in val;
 }
 
 /**
- * Loại bỏ các trường thay đổi theo thời gian thực không làm thay đổi bản chất dữ liệu
- * và sắp xếp canonical keys để hash luôn nhất quán.
+ * Trích xuất các chỉ số tiến trình cốt lõi của người chơi để so sánh đồng bộ
+ * (Tập trung chính vào Số Xu, Số Trận Đấu, Số Trận Thắng và Điểm Elo)
  */
-function canonicalizeObject(obj: unknown): unknown {
-  if (obj === null || obj === undefined) return obj;
-  if (Array.isArray(obj)) {
-    return obj.map(canonicalizeObject);
-  }
-  if (isRecord(obj)) {
-    const clean: Record<string, unknown> = {};
-    const keys = Object.keys(obj).sort();
-    for (const key of keys) {
-      if (IGNORED_HASH_KEYS.includes(key)) continue;
-      const val = obj[key];
-      clean[key] = canonicalizeObject(val);
-    }
-    return clean;
-  }
-  return obj;
+export function getCorePlayerProgress(save: unknown): {
+  name: string;
+  coins: number;
+  gamesPlayed: number;
+  wins: number;
+  elo: number;
+} | null {
+  if (!isSaveData(save) || !save.profile) return null;
+  const p = save.profile;
+  return {
+    name: p.name?.trim() || '',
+    coins: typeof p.coins === 'number' ? p.coins : ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS,
+    gamesPlayed: typeof p.stats?.gamesPlayed === 'number' ? p.stats.gamesPlayed : 0,
+    wins: typeof p.stats?.wins === 'number' ? p.stats.wins : 0,
+    elo: typeof p.elo === 'number' ? p.elo : ECONOMY_CONSTANTS.DEFAULT_STARTING_ELO
+  };
 }
 
 /**
- * Tính toán mã băm SHA-256 chuẩn Canonical
+ * Tính toán mã băm SHA-256 dựa trên tiến trình người chơi (Xu & Số trận đấu)
  */
 export async function computeHash(data: unknown): Promise<string> {
   if (!data) return '';
-  const canonical = canonicalizeObject(data);
-  const jsonString = JSON.stringify(canonical);
-  const msgUint8 = new TextEncoder().encode(jsonString);
+  const progress = getCorePlayerProgress(data);
+  if (!progress) return '';
+
+  const str = `name:${progress.name}|coins:${progress.coins}|games:${progress.gamesPlayed}|wins:${progress.wins}|elo:${progress.elo}`;
+  const msgUint8 = new TextEncoder().encode(str);
   const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -111,7 +111,9 @@ export async function getLocalSaveData(): Promise<TienLenSaveData> {
     gistId: settingsState.gistId,
     lastSync: settingsState.lastSync,
     lastSyncedHash: settingsState.lastSyncedHash,
-    cachedGithubUser: settingsState.cachedGithubUser
+    cachedGithubUser: settingsState.cachedGithubUser,
+    autoBackupOnMatchEnd: settingsState.autoBackupOnMatchEnd,
+    autoSyncOnStartup: settingsState.autoSyncOnStartup
   };
 
   const [bots, newsfeed, matchHistory, humanBehavior, matchLogs] = await Promise.all([

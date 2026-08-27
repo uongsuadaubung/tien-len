@@ -12,6 +12,8 @@ import { useGameStore } from '../../stores/useGameStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { useModalStore } from '../../stores/useModalStore';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
+import { useSettingsStore } from '../../stores/useSettingsStore';
+import { forceUploadToCloud } from '../../engine/sync/sync-service';
 import { BotConfig } from '../../ai/types';
 import { CustomBotConfigTuple } from '../../engine/types';
 
@@ -300,6 +302,14 @@ export function useMatchSettlement(
       });
     } else {
       setAllEloDeltas({});
+    }
+
+    // Tự động sao lưu lên GitHub Gist nếu đã kết nối token và bật tự động sao lưu
+    const settings = useSettingsStore.getState();
+    if (settings.githubToken && settings.autoBackupOnMatchEnd) {
+      forceUploadToCloud().catch((err: unknown) => {
+        console.warn('[AutoBackup] Tự động sao lưu gặp lỗi:', err);
+      });
     }
 
     openModal('VICTORY');

@@ -17,6 +17,7 @@ import { dbGetGameSettings } from '../engine/db/indexed-db';
 import { GameRulesBuilder } from '../engine/types';
 import { ECONOMY_CONSTANTS } from '../engine/constants/economy';
 import { matchBotsForPlayerTable } from '../engine/ecosystem/matchmaker';
+import { smartSync } from '../engine/sync/sync-service';
 
 // Stores
 import { useModalStore } from '../stores/useModalStore';
@@ -64,14 +65,29 @@ export const App: React.FC = () => {
       hydrateStorageFromIndexedDB(),
       dbGetGameSettings(),
       minDelay
-    ]).then(([hydrated, savedSettings]) => {
-      let currentProfile = profile;
+    ]).then(async ([hydrated, savedSettings]) => {
       if (hydrated.profile) {
-        currentProfile = hydrated.profile;
         hydrateProfile(hydrated.profile);
       }
       if (savedSettings) {
         useSettingsStore.getState().hydrateSettings(savedSettings);
+      }
+
+      // Tự động đồng bộ với GitHub Gist khi vào game nếu có Token và bật autoSyncOnStartup
+      const settings = useSettingsStore.getState();
+      if (settings.githubToken && settings.autoSyncOnStartup) {
+        try {
+          const syncResult = await smartSync();
+          if (syncResult.type === 'conflict') {
+            useModalStore.getState().setSyncConflictData({
+              localData: syncResult.localData,
+              cloudData: syncResult.cloudData
+            });
+            useModalStore.getState().openModal('SYNC_CONFLICT');
+          }
+        } catch (err: unknown) {
+          console.warn('[AutoSyncOnStartup] Tự động đồng bộ khi mở game gặp sự cố:', err);
+        }
       }
 
       // Xử lý gián đoạn do F5 / Đóng ứng dụng khi đang chơi dở
@@ -80,14 +96,15 @@ export const App: React.FC = () => {
         const isQuickOrRanked = hydrated.activeSession.gameType === 'QUICK' || hydrated.activeSession.isRanked;
         const eloLost = isQuickOrRanked ? ECONOMY_CONSTANTS.F5_DISCONNECT_ELO_PENALTY : 0;
         const depositLost = hydrated.activeSession.depositAmount || 0;
-        const nextElo = isQuickOrRanked ? Math.max(0, currentProfile.elo - ECONOMY_CONSTANTS.F5_DISCONNECT_ELO_PENALTY) : currentProfile.elo;
+        const latestProfile = useUserStore.getState().profile;
+        const nextElo = isQuickOrRanked ? Math.max(0, latestProfile.elo - ECONOMY_CONSTANTS.F5_DISCONNECT_ELO_PENALTY) : latestProfile.elo;
 
         const updatedProfile = {
-          ...currentProfile,
+          ...latestProfile,
           elo: nextElo,
           stats: {
-            ...currentProfile.stats,
-            gamesPlayed: (currentProfile.stats?.gamesPlayed || 0) + 1,
+            ...latestProfile.stats,
+            gamesPlayed: (latestProfile.stats?.gamesPlayed || 0) + 1,
             currentStreak: 0
           }
         };
