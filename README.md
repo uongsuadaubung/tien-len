@@ -1,6 +1,6 @@
-# 🎴 TIẾN LÊN MIỀN NAM — WEB GAME & AI BOT ENGINE
+# 🎴 TIẾN LÊN MIỀN NAM — WEB GAME & LIVING AI BOT ECOSYSTEM
 
-> **Game Tiến Lên Miền Nam chuẩn Việt Nam, vận hành trên nền tảng Web hiện đại, sở hữu kiến trúc Engine phân lớp sạch, 6 chế độ chơi đa dạng, hệ thống Trí Tuệ Nhân Tạo (AI Bot) 18 tính cách độc lập và đạt chuẩn an toàn kiểu dữ liệu 100% (Strict Type-Safe).**
+> **Game Tiến Lên Miền Nam chuẩn Việt Nam, vận hành trên nền tảng Web hiện đại, sở hữu kiến trúc Engine phân lớp sạch, 4 chế độ chơi đa dạng, hệ thống Trí Tuệ Nhân Tạo (AI Bot) 200 đối thủ tự vận hành ngầm, tầng lưu trữ 100% Dexie IndexedDB và đạt chuẩn an toàn kiểu dữ liệu 100% (Strict Type-Safe).**
 
 ---
 
@@ -8,20 +8,26 @@
 
 * 🃏 **Đầy Đủ Luật Chơi Tiến Lên Miền Nam**: Đánh lẻ, Đôi, Sám, Sảnh (3–12 lá không chứa 2), 3 Đôi Thông, Tứ Quý, 4 Đôi Thông (chặt tự do không cần vòng), Chặt Chồng, Cóng (Cháy bài), Thối Heo/Hàng, Tới Trắng (Sảnh rồng, Tứ quý 2, 5-6 đôi), Cấm Đánh 2 Cuối Cùng (`prohibitEndingWithTwo`), Ăn 3 Bích Về Cuối (`threeSpadesEndingBonus`), Chống Đền Bài khi người kế tiếp báo 1 lá.
 * 🎮 **Chế Độ Chơi Đa Dạng (Strategy Pattern)**:
-  1. ⚡ **Chơi Nhanh & Đấu Hạng (Quick Play & Ranked Elo)**: Tự động ghép trận với các Bot cùng trình độ Elo, tùy chọn luật (Đếm Lá, Nhất Ăn Tất, Truyền Thống, Solo 1v1), tính biến động điểm Elo chuẩn FIDE và tích lũy Xu thưởng.
+  1. ⚡ **Chơi Nhanh & Đấu Hạng (Quick Play & Ranked Elo)**: Tự động ghép trận với các đối thủ cùng trình độ Elo, tùy chọn luật (Đếm Lá, Nhất Ăn Tất, Truyền Thống, Solo 1v1), tính biến động điểm Elo chuẩn FIDE và tích lũy Xu thưởng.
   2. 🗺️ **Hành Trình Sự Nghiệp (Campaign Story)**: Chinh phục 5 chương cốt truyện độc đáo, mở khóa danh hiệu và phần thưởng đặc biệt.
-  3. 🛠️ **Tùy Biến Bàn Chơi (Custom Sandbox)**: Tự do tinh chỉnh số người (2-4), mức cược, phạt chặt, cóng, về 3 bích cuối và độ khó Bot.
-* 🤖 **Hệ Thống Trí Tuệ Nhân Tạo (AI Bot Engine)**:
-  - **18 Personas Cá Tính Hóa** thuộc 5 Bậc Elo (Rookie 850 $\to$ God Mode 2500).
+  3. 🛠️ **Tùy Biến Bàn Chơi (Custom Sandbox)**: Tự do tinh chỉnh số người (2-4), mức cược, phạt chặt, cóng, về 3 bích cuối và chiến thuật đối thủ.
+* 🤖 **Hệ Sinh Thái 200 Đối Thủ Sống Động & AI Engine**:
+  - **200 Đối Thủ Tự Tranh Tài Ngầm**: Vận hành ngầm song song qua Web Worker không gây lag giao diện (0% CPU main thread blockage).
+  - **Cơ Chế Đào Thải Vỡ Nợ & Tuyển Mộ Tân Binh**: Bot vỡ nợ bị đào thải, tự động tuyển mộ Tân Binh với 50.000 Xu & 1.000 Elo (kế thừa DNA kỹ năng).
+  - **Bảng Tin Giang Hồ & Bảng Vàng**: Cập nhật tin tức vỡ nợ, chuỗi thắng/thua bốc hỏa, bảng xếp hạng 200 người chơi.
   - **Composite Rule-First Strategy**: AI tự động thích ứng với bất kỳ tổ hợp luật nào đang được cấu hình.
   - **Chain of Responsibility**: 5 tầng xử lý quyết định tuần tự: `Emergency` $\to$ `Endgame` $\to$ `Lead` $\to$ `Responding` $\to$ `Fallback`.
   - **CardTracker & Bayesian Inference**: Đếm bài, theo dõi rác/heo và suy luận khả năng có Hàng của đối thủ.
   - **Opponent Dynamic Profiling (`OpponentProfiler`)**: Ghi nhớ và đọc vị thói quen tâm lý (ham giữ Heo, nhát tay, gài bẫy) của người chơi qua nhiều ván đấu.
   - **Game Theory & Nash Equilibrium (`CfrEngine`)**: Áp dụng Counterfactual Regret Minimization cho chiến thuật hỗn hợp và tung hỏa mù (Bluff Pass).
-  - **Scaled ISMCTS Solver (Monte Carlo Tree Search)**: Mô phỏng song song 100 - 500+ kịch bản cây ván đấu sâu cho các Bot bậc Thần Bài.
+  - **Scaled ISMCTS Solver (Monte Carlo Tree Search)**: Mô phỏng song song 100 - 500+ kịch bản cây ván đấu sâu cho các đối thủ bậc Thần Bài.
+* 💾 **Tầng Lưu Trữ Vĩnh Viễn (100% Pure Dexie IndexedDB + RAM Cache 0ms)**:
+  - Loại bỏ hoàn toàn `localStorage`, sử dụng Dexie IndexedDB (`TIEN_LEN_DEXIE_DB_V1`) với 8 bảng dữ liệu an toàn.
+  - Màn hình chờ **Loading Gate 3s** (`SplashScreen.tsx`) với thanh tiến trình đo thời gian thực (`Date.now()`).
+  - **Single Source of Truth**: Điểm Elo là gốc duy nhất, toàn bộ Bậc Rank/Huy hiệu/Danh hiệu được phái sinh tự động 100%.
 * 🛠️ **Game Rules Builder Pattern**: Tạo và tùy biến luật chơi linh hoạt, an toàn bằng Fluent API (`GameRulesBuilder`).
 * 📡 **Event-Driven Architecture (GameEventBus)**: Tách biệt hoàn toàn Game Engine với UI, Quests, Achievements và Audio.
-* 🛡️ **100% Strict Type-Safe**: Tuyệt đối không sử dụng `any`, cấm ép kiểu `as Type`, không tham số `optional (?)` lỏng lẻo, kiểm soát ghế bot bằng Tuple `readonly [string, string, string]`.
+* 🛡️ **100% Strict Type-Safe**: Tuyệt đối không sử dụng `any`, cấm ép kiểu `as Type`, không tham số `optional (?)` lỏng lẻo, kiểm soát ghế đối thủ bằng Tuple `readonly [string, string, string]`.
 * ⚡ **Hiệu Năng Render 60 FPS**: Tối ưu hóa phần cứng GPU (Hardware Acceleration Layering), âm thanh Web Audio API sống động.
 
 ---
@@ -33,6 +39,7 @@
 │                               1. PRESENTATION LAYER (UI / UX)                            │
 │  - React 19 + Tailwind CSS + Hardware-Accelerated CSS (3D Transform, GPU Layering)       │
 │  - Components: LobbyHub, GameTableScreen, TableCenter, PlayerHandView, BotSeat, Modals   │
+│  - SplashScreen (3s Realtime Loading Gate), AIAssistantMascot (Quân Sư AI Chọn Nhanh)    │
 │  - Web Audio API Sound Manager (Nhạc Tết, hiệu ứng đập bài, chặt heo, thối 2)             │
 └───────────────────────────────────────────┬──────────────────────────────────────────────┘
                                             │ Actions / Subscriptions
@@ -41,27 +48,36 @@
 │                           2. STATE MANAGEMENT LAYER (Zustand Stores)                     │
 │  - useGameStore: Đồng bộ snapshot ván bài, lượt đánh, người thắng, tiền cược             │
 │  - useUserStore: Quản lý Profile, Xu, Elo Rating, Nhiệm vụ ngày & Thành tựu trọn đời     │
+│  - useEcosystemStore: Quản lý 200 Đối Thủ, Bảng Tin Giang Hồ, Xếp Hạng Toàn Máy Chủ      │
 │  - useSettingsStore: Tùy chỉnh âm lượng, AI Hint Engine (Trợ lý gợi ý), tốc độ ván đấu   │
 │  - useModalStore: Quản lý vòng đời hiển thị các Popup tương tác                          │
 └───────────────────────────────────────────┬──────────────────────────────────────────────┘
                                             │ Commands / State Updates
                                             ▼
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│                           3. GAME ENGINE CORE LAYER (Pure TypeScript)                    │
+│                           3. PERSISTENCE LAYER (100% Dexie IndexedDB)                    │
+│  - TIEN_LEN_DEXIE_DB_V1: 8 Tables (bots, newsfeed, match_history, player_profile...)     │
+│  - In-Memory RAM Cache: Đọc tức thì 0ms, đồng bộ bất đồng bộ non-blocking xuống DB        │
+│  - Single Source of Truth: getTierFromElo(elo) phái sinh Bậc/Huy hiệu tức thời           │
+└───────────────────────────────────────────┬──────────────────────────────────────────────┘
+                                            │
+                                            ▼
+┌──────────────────────────────────────────────────────────────────────────────────────────┐
+│                           4. GAME ENGINE CORE LAYER (Pure TypeScript)                    │
 │  - GameEngine (State Machine): Khởi tạo ván, chia bài, xử lý vòng, chặt heo, thối 2      │
 │  - Validator & Combinations: Nhận diện và thẩm định tính hợp lệ của mọi tổ hợp bài       │
-│  - GameModeStrategy Pattern: 6 chế độ chơi độc lập (Truyền Thống, Đếm Lá, Ngầm...)       │
+│  - GameModeStrategy Pattern: 4 chế độ chơi độc lập (Truyền Thống, Đếm Lá, Chiến Dịch...) │
 │  - GameEventBus: Hệ thống Pub/Sub phát sự kiện decoupling giữa Engine và UI/Quests       │
 └───────────────────────────────────────────┬──────────────────────────────────────────────┘
                                             │ Context Queries / GameRules
                                             ▼
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│                             4. AI INTELLIGENCE LAYER (AI Engine)                         │
+│                             5. AI & LIVING ECOSYSTEM LAYER                               │
+│  - Web Worker Background Simulator: Mô phỏng song song các bàn đấu ngầm (Error Boundary) │
 │  - Composite Rule Strategy: 5 Rule Strategies (Settlement, Cong, Chop, Flow, TableScale) │
 │  - Chain of Responsibility: Emergency (Cóng/Đền/2) -> Endgame -> Lead -> Responding      │
 │  - CardTracker & Bayesian Inference: Đếm bài, theo dõi rác/heo, phán đoán tay đối thủ   │
-│  - ISMCTS Solver: Mô phỏng Rollout đa kịch bản cho Bot Cao Thủ & Thần Bài               │
-│  - 18 Bot Personas: Định lượng hành vi cá nhân hóa (Baiting, Aggression, Tempo Control)  │
+│  - ISMCTS Solver: Mô phỏng Rollout đa kịch bản cho Đối Thủ Cao Thủ & Thần Bài            │
 └──────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -91,13 +107,13 @@ bun run lint
 
 ### 4. Kiểm Thử Đơn Vị & Báo Cáo Bao Phủ (Unit Testing & Coverage)
 ```bash
-# Chạy toàn bộ 216 bài kiểm thử (34 test suites)
+# Chạy toàn bộ 285 bài kiểm thử (44 test files)
 bun test
 
 # Chạy kiểm thử kèm bảng thống kê Code Coverage chi tiết
 bun run test:coverage
 ```
-> Bao phủ toàn diện Engine, AI Decision Maker, Opponent Profiler, CFR Solver, Multi-threaded MCTS, Strategy Rules, Validator, EventBus, Quests, Zustand Stores, Audio Manager và Fuzzing Invariants 1000+ ván.
+> Bao phủ toàn diện Engine, AI Decision Maker, Living Ecosystem, Dexie IndexedDB, Opponent Profiler, CFR Solver, Multi-threaded MCTS, Strategy Rules, Validator, EventBus, Quests, Zustand Stores, Audio Manager và Fuzzing Invariants 1000+ ván.
 
 ### 5. Đóng Gói Ứng Dụng (Production Build)
 ```bash

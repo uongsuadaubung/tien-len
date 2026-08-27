@@ -107,8 +107,9 @@ Triển khai tại [`src/engine/evaluators/progress-evaluators.ts`](../src/engin
 Sử dụng **Zustand** cho kiến trúc State mỏng, hiệu năng cao:
 1. **`useGameStore`**: Quản lý instance `GameEngine`, snapshot ván đấu, bài đang chọn, lượt đi.
 2. **`useUserStore`**: Quản lý Profile, Xu, Elo, Nhiệm vụ ngày và Thành tựu trọn đời.
-3. **`useSettingsStore`**: Cấu hình âm lượng, gợi ý (AI Hint Engine), tốc độ ván đấu, X-Ray soi bài.
-4. **`useModalStore`**: Quản lý vòng đời hiển thị các Popup / Modal tương tác.
+3. **`useEcosystemStore`**: Quản lý 200 Đối Thủ, Bảng Tin Giang Hồ, Xếp Hạng Toàn Máy Chủ và kết toán mô phỏng ngầm.
+4. **`useSettingsStore`**: Cấu hình âm lượng, gợi ý (AI Hint Engine), tốc độ ván đấu, X-Ray soi bài.
+5. **`useModalStore`**: Quản lý vòng đời hiển thị các Popup / Modal tương tác.
 
 ---
 
@@ -126,3 +127,32 @@ Sử dụng **Zustand** cho kiến trúc State mỏng, hiệu năng cao:
 - **Cấm Ép Kiểu `as Type`**: Sử dụng runtime validation, discriminated unions và type narrowing.
 - **Không Tham Số Optional Trong Luật**: Toàn bộ các model cấu hình bàn chơi, tham số kinh tế và sự kiện đều bắt buộc truyền tường minh.
 - **Quản Lý Bàn 3 Bot Bằng Tuple**: Sử dụng kiểu Tuple `readonly [string, string, string]` để đảm bảo tính toàn vẹn 100% của danh sách đối thủ.
+
+---
+
+## 6. TẦNG LƯU TRỮ VĨNH VIỄN & HỆ SINH THÁI 200 ĐỐI THỦ (DEXIE INDEXEDDB & CONCURRENCY)
+
+### 6.1. Kiến Trúc Lưu Trữ 100% Dexie IndexedDB (`TIEN_LEN_DEXIE_DB_V1`)
+- Loại bỏ hoàn toàn `localStorage` để giải phóng giới hạn 5MB và tránh nghẽn I/O đồng bộ trên Main Thread.
+- Quản lý 8 bảng dữ liệu quan hệ có index tối ưu:
+  * `bots: 'id, elo, coins, status'`
+  * `newsfeed: 'id, timestamp, type'`
+  * `match_history: 'id, timestamp, gameType, mode'`
+  * `player_profile: 'id'`
+  * `game_settings: 'id'`
+  * `active_session: 'id, gameId, startedAt'`
+  * `human_behavior: 'id, updatedAt'`
+  * `match_logs: 'id, matchId, timestamp'`
+- **Write-Through RAM Cache (0ms Reads)**: Dữ liệu được nạp vào bộ nhớ RAM khi ứng dụng khởi động. Mọi thao tác đọc đều tức thì $0\text{ms}$; thao tác ghi được cập nhật đồng thời vào RAM và ghi bất đồng bộ non-blocking xuống IndexedDB.
+
+### 6.2. Single Source of Truth & Pure Derived State (Rank & Badges)
+- **Điểm Elo là nguồn chân lý duy nhất (Single Source of Truth)**.
+- Toàn bộ Bậc Rank (5 Tier Bot / 7 Tier Esports), Huy hiệu, Tên Bậc, Khung Màu đều được phái sinh thuần túy qua hàm thuần túy `getTierFromElo(elo)`. Không lưu trữ trùng lặp các trường tính toán được vào Database.
+
+### 6.3. Web Worker Concurrency & Error Boundary Fallback
+- Khi người chơi vào bàn, 197 đối thủ còn lại được gom vào các bàn đấu ngầm và chạy mô phỏng qua Web Worker (`simulation-worker.ts`), giải phóng 100% CPU Main Thread.
+- **Error Boundary & 3s Safety Timeout**: Client bridge (`simulation-worker-client.ts`) tích hợp sẵn `worker.onerror` và bộ đếm Timeout 3 giây. Nếu Web Worker gặp sự cố, hệ thống tự động fallback sang chạy inline `simulateAllTablesBatch` mượt mà, ngăn ngừa tuyệt đối lỗi treo Promise (Hanging Promise).
+
+### 6.4. Cinematic 3-Second Loading Gate (`SplashScreen.tsx`)
+- Khi người chơi mở ứng dụng hoặc F5, cổng tải `SplashScreen` kích hoạt song song quá trình hydrate IndexedDB và bộ đếm thời gian thực `Date.now() - startTime`.
+- Đảm bảo hiển thị tối thiểu 3.000ms với thanh tiến trình mượt mà từ 5% đến 100%, tạo cảm giác nhập vai sang trọng của sới bạc chuyên nghiệp.

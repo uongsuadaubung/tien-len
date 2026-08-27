@@ -247,3 +247,116 @@ export type GameEvent =
 - `loans: number`: Số tiền vay ngân hàng cứu trợ.
 - `quests: Quest[]`: Danh sách nhiệm vụ ngày.
 - `achievements: Achievement[]`: Danh sách thành tựu trọn đời.
+
+### 6.3. `useEcosystemStore` ([`src/stores/useEcosystemStore.ts`](../src/stores/useEcosystemStore.ts))
+- `bots: BotEntity[]`: Danh sách toàn bộ 200 Đối Thủ trong sới bạc.
+- `newsItems: EcosystemNewsItem[]`: Bảng tin thời sự giang hồ (FIFO 100 tin mới nhất).
+- `settleMatchEcosystem`: Điều phối cập nhật Elo/Xu của người chơi và các đối thủ sau mỗi trận đấu.
+
+---
+
+## 7. MÔ HÌNH THỰC THỂ ĐỐI THỦ & BẬC RANK PHÁI SINH (BOT ENTITY & DERIVED STATE)
+
+Tọa lạc tại [`src/engine/ecosystem/ecosystem-types.ts`](../src/engine/ecosystem/ecosystem-types.ts):
+
+```typescript
+export interface BotEntity {
+  readonly id: string;
+  readonly name: string;
+  readonly avatar: string;
+  readonly bio: string;
+  readonly title: string;
+  readonly style: string;
+  elo: number;                     // Nguồn chân lý duy nhất (Single Source of Truth)
+  coins: number;                   // Số dư Xu hiện tại
+  status: 'ACTIVE' | 'BANKRUPT';   // Trạng thái hoạt động
+  activityStatus: 'IN_MATCH' | 'RESTING';
+  stats: {
+    matchesPlayed: number;
+    wins: number;
+    winStreak: number;
+    lossStreak: number;
+    chopsCount: number;
+    congsCount: number;
+    bankruptciesCount: number;
+    peakElo: number;
+    peakCoins: number;
+  };
+  dna: {
+    mctsSimulations: number;
+    memoryDepth: number;
+    tempoControl: number;
+    damageControl: number;
+    antiLeaderAggression: number;
+    baitingTendency: number;
+  };
+}
+
+/**
+ * Hàm thuần túy phái sinh Bậc Rank tức thời từ điểm Elo (Single Source of Truth)
+ */
+export function getTierFromElo(elo: number): {
+  tierNum: number;
+  name: string;
+  rankBadge: string;
+  colorClass: string;
+  minBet: number;
+};
+```
+
+---
+
+## 8. CƠ SỞ DỮ LIỆU DEXIE INDEXEDDB SCHEMA (`TIEN_LEN_DEXIE_DB_V1`)
+
+Tọa lạc tại [`src/engine/db/indexed-db.ts`](../src/engine/db/indexed-db.ts):
+
+```typescript
+export class TienLenDexieDB extends Dexie {
+  bots!: Table<BotEntity, string>;
+  newsfeed!: Table<EcosystemNewsItem, string>;
+  match_history!: Table<MatchHistoryRecord, string>;
+  player_profile!: Table<PlayerProfile, string>;
+  game_settings!: Table<GameSettings, string>;
+  active_session!: Table<ActiveMatchSession, string>;
+  human_behavior!: Table<HumanBehaviorModel, string>;
+  match_logs!: Table<MatchLogReport, string>;
+}
+
+// Cấu hình Index Schema:
+db.version(1).stores({
+  bots: 'id, elo, coins, status',
+  newsfeed: 'id, timestamp, type',
+  match_history: 'id, timestamp, gameType, mode',
+  player_profile: 'id',
+  game_settings: 'id',
+  active_session: 'id, gameId, startedAt',
+  human_behavior: 'id, updatedAt',
+  match_logs: 'id, matchId, timestamp'
+});
+```
+
+---
+
+## 9. HẰNG SỐ KINH TẾ & TÍNH TIỀN CỌC AN TOÀN (ECONOMY CONSTANTS)
+
+Tọa lạc tại [`src/engine/constants/economy.ts`](../src/engine/constants/economy.ts):
+
+```typescript
+export const ECONOMY_CONSTANTS = {
+  DEFAULT_STARTING_COINS: 50_000,
+  DEFAULT_STARTING_ELO: 1_000,
+  F5_DISCONNECT_ELO_PENALTY: 30,
+  DEPOSIT_CARD_MULTIPLIER: 26,
+  BANKRUPTCY_RELIEF_THRESHOLD: 10_000,
+  DAILY_RELIEF_AMOUNT: 20_000,
+  MAX_DAILY_RELIEF_COUNT: 3,
+  LUCKY_WHEEL_SPIN_COST: 10_000,
+  LUCKY_WHEEL_JACKPOT: 100_000
+} as const;
+
+/**
+ * Tính tiền cọc an toàn bắt buộc trước khi vào bàn đấu:
+ * 26 * betAmount * choppingMultiplier
+ */
+export function calculateRequiredDeposit(betAmount: number, choppingMultiplier: number = 1): number;
+```
