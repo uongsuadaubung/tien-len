@@ -97,41 +97,41 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
   return (
     <div className="relative min-h-screen w-full flex flex-col justify-between overflow-y-auto bg-[var(--bg-canvas)] text-[var(--text-primary)] p-4 sm:p-6 select-none font-sans">
       
-      {/* HEADER (Tier 1 Container) */}
-      <Card variant="container" className="relative z-10 w-full max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-3 p-3.5 sm:p-4">
+      {/* HEADER (Tier 1 Container Gọn Gàng, Không Rớt Dòng) */}
+      <Card variant="container" className="relative z-10 w-full max-w-6xl mx-auto flex items-center justify-between gap-3 p-2.5 sm:p-3 shadow-md">
         {/* Profile Người Chơi */}
         <div 
           onClick={onOpenNameSetup}
-          className="flex items-center gap-3 cursor-pointer group"
+          className="flex items-center gap-2.5 cursor-pointer group shrink-0"
           title="Bấm để đổi tên và avatar"
         >
           {/* Avatar (Tier 2 Card) */}
-          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-2xl sm:text-3xl shadow-sm group-hover:border-[var(--border-gold)] transition-colors">
+          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-xl sm:text-2xl shadow-sm group-hover:border-[var(--border-gold)] transition-colors shrink-0">
             {profile.avatar || '😎'}
           </div>
 
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="font-bold text-sm sm:text-base text-[var(--text-primary)] tracking-wide group-hover:text-[var(--color-gold)] inline-flex items-center gap-1.5 transition-colors">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <h2 className="font-bold text-sm sm:text-base text-[var(--text-primary)] tracking-wide group-hover:text-[var(--color-gold)] inline-flex items-center gap-1.5 transition-colors truncate max-w-[150px]">
                 <span>{profile.name || 'Chưa Đặt Tên'}</span>
-                <Edit2 className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-[var(--color-gold)] shrink-0" />
+                <Edit2 className="w-3 h-3 text-[var(--text-muted)] group-hover:text-[var(--color-gold)] shrink-0" />
               </h2>
             </div>
 
             {/* Elo & Bậc Rank */}
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-sm">{currentRank.badge}</span>
-              <span className="text-xs font-bold text-[var(--color-gold)]">
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="text-xs">{currentRank.badge}</span>
+              <span className="text-xs font-bold text-[var(--color-gold)] truncate">
                 {currentRank.name}
               </span>
-              <span className="text-[11px] text-[var(--text-muted)] font-mono">
+              <span className="text-[10px] text-[var(--text-muted)] font-mono shrink-0">
                 ({profile.elo} Elo)
               </span>
             </div>
 
             {/* Thanh tiến trình Elo */}
             {nextTier && (
-              <div className="w-36 sm:w-48 h-1.5 bg-[var(--bg-card)] rounded-full mt-1.5 overflow-hidden border border-[var(--border-container)]">
+              <div className="w-28 sm:w-36 h-1 bg-[var(--bg-card)] rounded-full mt-1 overflow-hidden border border-[var(--border-container)]">
                 <div 
                   className="h-full bg-[var(--color-gold)] rounded-full transition-all duration-500"
                   style={{ width: `${eloProgress}%` }}
@@ -142,14 +142,18 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
         </div>
 
         {/* TÚI TIỀN & CÁC NÚT TÍNH NĂNG NHANH */}
-        <div className="flex items-center flex-wrap gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Số Dư Tiền Vàng */}
-          <div className="flex items-center gap-2.5 bg-[var(--bg-card)] border border-[var(--border-card)] px-3.5 sm:px-4 py-2 rounded-xl shadow-sm">
-            <span className="text-lg">🪙</span>
-            <div className="flex flex-col">
-              <span className="text-[10px] text-[var(--text-muted)] font-semibold uppercase">Tài Sản</span>
-              <span className="font-bold text-sm sm:text-base text-[var(--color-gold)] font-mono">
-                {profile.coins.toLocaleString()} <span className="text-xs font-normal text-[var(--text-muted)]">Xu</span>
+          <div 
+            onClick={onOpenBank}
+            className="flex items-center gap-2 bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--border-gold)] px-3 py-1.5 rounded-xl cursor-pointer shadow-sm transition-colors"
+            title="Bấm để vào Ngân Hàng"
+          >
+            <span className="text-base">🪙</span>
+            <div className="flex flex-col leading-tight">
+              <span className="text-[9px] text-[var(--text-muted)] font-semibold uppercase">Tài Sản</span>
+              <span className="font-bold text-xs sm:text-sm text-[var(--color-gold)] font-mono">
+                {profile.coins.toLocaleString()} <span className="text-[10px] font-normal text-[var(--text-muted)]">Xu</span>
               </span>
             </div>
           </div>
@@ -158,9 +162,9 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
           {profile.loans > 0 && (
             <Button
               variant="danger"
-              size="md"
+              size="sm"
               onClick={onOpenBank}
-              leftIcon={<AlertCircle className="w-4 h-4 text-red-400" />}
+              leftIcon={<AlertCircle className="w-3.5 h-3.5 text-red-400" />}
             >
               Nợ: {profile.loans.toLocaleString()}
             </Button>
@@ -169,9 +173,9 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
           {/* Nút Vay Nợ / Ngân Hàng */}
           <Button
             variant="surface"
-            size="md"
+            size="sm"
             onClick={onOpenBank}
-            leftIcon={<Landmark className="w-4 h-4 text-[var(--color-gold)]" />}
+            leftIcon={<Landmark className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
             title="Quỹ Cứu Trợ & Vay Vốn Sòng Bạc"
           >
             <span>Ngân Hàng</span>
@@ -181,14 +185,14 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
           <div className="relative">
             <Button
               variant="surface"
-              size="md"
+              size="sm"
               onClick={onOpenQuests}
-              leftIcon={<Target className="w-4 h-4 text-[var(--color-gold)]" />}
+              leftIcon={<Target className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
             >
               <span>Nhiệm Vụ</span>
             </Button>
             {claimableQuestsCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center pointer-events-none shadow">
+              <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center pointer-events-none shadow">
                 {claimableQuestsCount}
               </span>
             )}
@@ -197,9 +201,9 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
           {/* Nút Vòng Quay May Mắn (Gold Primary CTA) */}
           <Button
             variant="gold"
-            size="md"
+            size="sm"
             onClick={onOpenLuckyWheel}
-            leftIcon={<Disc className="w-4 h-4 text-[#0a0c0e]" />}
+            leftIcon={<Disc className="w-3.5 h-3.5 text-[#0a0c0e]" />}
           >
             <span>Vòng Quay</span>
           </Button>
@@ -207,59 +211,53 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
           {/* Nút Bảng Vàng Danh Vọng */}
           <Button
             variant="surface"
-            size="md"
+            size="sm"
             onClick={() => openModal('ECOSYSTEM')}
-            leftIcon={<Trophy className="w-4 h-4 text-[var(--color-gold)]" />}
+            leftIcon={<Trophy className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
             title="Bảng Vàng Danh Vọng & Xếp Hạng Toàn Server"
             className="border-[var(--color-gold-border)]/50 text-[var(--color-gold)] hover:text-white"
           >
             <span>Bảng Vàng</span>
           </Button>
 
-          {/* Nút Luật & Khắc Chế */}
-          {onOpenRules && (
-            <Button
-              variant="surface"
-              size="md"
-              onClick={onOpenRules}
-              leftIcon={<BookOpen className="w-4 h-4 text-[var(--color-gold)]" />}
-              title="Hướng dẫn luật chơi & bảng khắc chế các bài"
-              className="border-[var(--color-gold-border)] text-[var(--color-gold)] hover:text-[var(--text-primary)]"
-            >
-              <span>Luật &amp; Khắc Chế</span>
-            </Button>
-          )}
+          {/* Nhóm Nút Tiện Ích Gọn Gàng */}
+          <div className="flex items-center gap-1 pl-1 border-l border-[var(--border-container)]">
+            {/* Nút Luật & Khắc Chế */}
+            {onOpenRules && (
+              <button
+                onClick={onOpenRules}
+                className="w-8 h-8 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--border-gold)] flex items-center justify-center text-[var(--color-gold)] active:scale-95 transition-all cursor-pointer shadow-sm"
+                title="Hướng dẫn luật chơi & bảng khắc chế bài"
+              >
+                <BookOpen className="w-4 h-4" />
+              </button>
+            )}
 
-          {/* Nút Toàn Màn Hình (Full Screen) */}
-          <Button
-            variant="surface"
-            size="md"
-            onClick={async () => {
-              const fs = await toggleFullScreen();
-              setIsFullscreenState(fs);
-            }}
-            leftIcon={
-              isFullscreenState ? (
+            {/* Nút Toàn Màn Hình */}
+            <button
+              onClick={async () => {
+                const fs = await toggleFullScreen();
+                setIsFullscreenState(fs);
+              }}
+              className="w-8 h-8 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--border-gold)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer shadow-sm"
+              title={isFullscreenState ? 'Thoát Toàn Màn Hình' : 'Bật Toàn Màn Hình (Full Screen)'}
+            >
+              {isFullscreenState ? (
                 <Minimize className="w-4 h-4 text-[var(--color-gold)]" />
               ) : (
-                <Maximize className="w-4 h-4 text-[var(--text-secondary)]" />
-              )
-            }
-            title={isFullscreenState ? 'Thoát Toàn Màn Hình' : 'Bật Toàn Màn Hình (Full Screen)'}
-          >
-            <span>{isFullscreenState ? 'Thu Nhỏ' : 'Toàn Màn Hình'}</span>
-          </Button>
+                <Maximize className="w-4 h-4" />
+              )}
+            </button>
 
-          {/* Nút Cài Đặt */}
-          <Button
-            variant="surface"
-            size="md"
-            onClick={onOpenSettings}
-            leftIcon={<Settings className="w-4 h-4 text-[var(--text-secondary)]" />}
-            title="Cài đặt âm thanh và hiệu ứng"
-          >
-            <span>Cài Đặt</span>
-          </Button>
+            {/* Nút Cài Đặt */}
+            <button
+              onClick={onOpenSettings}
+              className="w-8 h-8 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--border-gold)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer shadow-sm"
+              title="Cài đặt âm thanh và hiệu ứng"
+            >
+              <Settings className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </Card>
 
@@ -294,6 +292,8 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
             icon={<Flame />}
             title="Sòng Bạc Chơi Nhanh & Đấu Hạng"
             subtitle="Ghép đối thủ tự động theo Bậc Rank • Thắng cược Xu & Tăng hạng Elo"
+            action={null}
+            className={null}
           />
 
           {/* HERO CARD: TIER 1 CONTAINER */}
@@ -382,6 +382,8 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
             icon={<Trophy />}
             title="Chế Độ Mở Rộng"
             subtitle="Hành trình cốt truyện • Tùy chỉnh bàn chơi nâng cao"
+            action={null}
+            className={null}
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -398,7 +400,7 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
                 <div className="w-12 h-12 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--color-gold)] shadow-sm group-hover:border-[var(--border-gold)] transition-colors">
                   <MapPin className="w-6 h-6" />
                 </div>
-                <Badge variant="neutral" size="sm">5 Chương Cốt Truyện</Badge>
+                <Badge variant="neutral" size="sm">9 Chương Cốt Truyện</Badge>
               </div>
 
               <div className="my-4">

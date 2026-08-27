@@ -2,10 +2,10 @@ import React from 'react';
 
 export interface SectionHeaderProps {
   title: React.ReactNode;
-  subtitle?: string;
-  icon?: React.ReactNode;
-  action?: React.ReactNode;
-  className?: string;
+  subtitle: string | null;
+  icon: React.ReactNode | null;
+  action: React.ReactNode | null;
+  className: string | null;
 }
 
 export const SectionHeader: React.FC<SectionHeaderProps> = ({
@@ -13,13 +13,13 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
   subtitle,
   icon,
   action,
-  className = ''
+  className
 }) => {
   return (
-    <div className={`flex items-center justify-between gap-3 pb-2.5 border-b border-[var(--border-container)] ${className}`}>
-      <div className="flex items-center gap-2.5">
+    <div className={`flex items-center justify-between gap-3 pb-2 border-b border-[var(--border-container)] ${className || ''}`}>
+      <div className="flex items-center gap-2">
         {icon && (
-          <div className="p-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] text-[var(--color-gold)]">
+          <div className="p-1 sm:p-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] text-[var(--color-gold)] shrink-0">
             {icon}
           </div>
         )}
@@ -28,7 +28,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
             {title}
           </h3>
           {subtitle && (
-            <p className="text-[11px] text-[var(--text-muted)]">
+            <p className="text-[10px] sm:text-[11px] text-[var(--text-muted)] mt-0.5">
               {subtitle}
             </p>
           )}
@@ -36,7 +36,7 @@ export const SectionHeader: React.FC<SectionHeaderProps> = ({
       </div>
 
       {action && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {action}
         </div>
       )}
