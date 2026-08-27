@@ -18,11 +18,11 @@ interface LeftMatchHUDProps {
   betAmount: number;
   isDealing: boolean;
   dealtCounts: { [playerId: string]: number };
-  aiHint?: MoveHint | null;
-  isHumanTurn?: boolean;
-  aiHintEnabled?: boolean;
-  onApplyHint?: () => void;
-  customBotConfigs?: [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>];
+  aiHint: MoveHint | null;
+  isHumanTurn: boolean;
+  aiHintEnabled: boolean;
+  onApplyHint: (() => void) | null;
+  customBotConfigs: [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>] | null;
 }
 
 export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({

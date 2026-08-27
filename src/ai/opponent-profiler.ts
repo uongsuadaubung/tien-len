@@ -22,11 +22,11 @@ export interface OpponentBehaviorProfile {
 export interface PlayerActionRecord {
   playerId: string;
   actionType: 'PLAY' | 'PASS' | 'CHOP';
-  cards?: Card[];
-  combination?: Combination;
+  cards: Card[] | null;
+  combination: Combination | null;
   handSizeBeforeAction: number;
   isLeadMove: boolean;
-  isNextPlayerOneCard?: boolean;
+  isNextPlayerOneCard: boolean;
 }
 
 export function createDefaultOpponentProfile(playerId: string): OpponentBehaviorProfile {
@@ -155,7 +155,8 @@ export class OpponentProfiler {
     history.push({
       playerId,
       actionType: 'PASS',
-      combination: targetMoveCombination,
+      cards: null,
+      combination: targetMoveCombination || null,
       handSizeBeforeAction: handSize,
       isLeadMove: false,
       isNextPlayerOneCard
@@ -168,8 +169,11 @@ export class OpponentProfiler {
     history.push({
       playerId: chopperId,
       actionType: 'CHOP',
+      cards: null,
+      combination: null,
       handSizeBeforeAction: 10,
-      isLeadMove: false
+      isLeadMove: false,
+      isNextPlayerOneCard: false
     });
     this.sessionActions.set(chopperId, history);
   }

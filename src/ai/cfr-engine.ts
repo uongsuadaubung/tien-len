@@ -132,10 +132,10 @@ export class CfrEngine {
 
     // 1. Kiểm tra nếu đối thủ là người thích giữ Heo và nhát tay (heoGreedRate cao)
     const isGreedyTarget = (opponentProfile?.heoGreedRate ?? 0.5) > 0.6;
-    const hasBigTwosOrChopHàng = hand.some(c => isTwo(c) && (c.suit === 'HEARTS' || c.suit === 'DIAMONDS'));
+    const hasBigTwosOrChopHang = hand.some(c => isTwo(c) && (c.suit === 'HEARTS' || c.suit === 'DIAMONDS'));
 
     // 2. Nếu đối thủ ra lá bài trung bình (9, 10, J) mà bot cầm Át/Heo, có 20-35% xác suất nhịn để bẫy Heo
-    if (hasBigTwosOrChopHàng && leadingMove.combination.highestCard.rank <= 11) {
+    if (hasBigTwosOrChopHang && leadingMove.combination.highestCard.rank <= 11) {
       const bluffThreshold = (botConfig.trapTendency * 0.4) + (isGreedyTarget ? 0.2 : 0.0);
       const roll = Math.random();
 

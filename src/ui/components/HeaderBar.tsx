@@ -15,13 +15,13 @@ interface HeaderBarProps {
   playerElo: number;
   soundEnabled: boolean;
   onToggleSound: () => void;
-  onOpenCustomGameModal?: () => void;
+  onOpenCustomGameModal: (() => void) | null;
   onOpenRules: () => void;
   onOpenSettings: () => void;
   onOpenXRay: () => void;
   onResetMatch: () => void;
   onReturnToLobby: () => void;
-  xrayEnabled?: boolean;
+  xrayEnabled: boolean;
 }
 
 export const HeaderBar: React.FC<HeaderBarProps> = ({

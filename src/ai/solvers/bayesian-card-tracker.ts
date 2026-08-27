@@ -5,10 +5,10 @@ import { CardTracker } from '../card-tracker';
 export interface OpponentActionObservation {
   playerId: string;
   type: 'PLAY' | 'PASS';
-  combinationType?: CombinationType;
-  highestRank?: number;
-  straightLength?: number;
-  cardsCount?: number;
+  combinationType: CombinationType | null;
+  highestRank: number | null;
+  straightLength: number | null;
+  cardsCount: number | null;
 }
 
 /**

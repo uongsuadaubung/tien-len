@@ -5,14 +5,14 @@ import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { useModalStore } from '../../stores/useModalStore';
 
 interface BotSeatProps {
-  player?: Player | null;
-  botConfig?: BotConfig;
+  player: Player | null;
+  botConfig: BotConfig | null;
   isCurrentTurn: boolean;
   position: 'left' | 'top' | 'right';
-  isLeader?: boolean;
-  displayCardCount?: number;
-  isDealing?: boolean;
-  thoughtText?: string | null;
+  isLeader: boolean;
+  displayCardCount: number | null;
+  isDealing: boolean;
+  thoughtText: string | null;
 }
 
 export const BotSeat: React.FC<BotSeatProps> = ({
@@ -36,7 +36,7 @@ export const BotSeat: React.FC<BotSeatProps> = ({
     }
   };
 
-  const cardCount = isDealing && displayCardCount !== undefined ? displayCardCount : (player.hand?.length || 0);
+  const cardCount = isDealing && displayCardCount !== null && displayCardCount !== undefined ? displayCardCount : (player.hand?.length || 0);
   const visibleCards = Math.min(13, cardCount);
 
   return (

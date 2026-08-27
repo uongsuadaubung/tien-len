@@ -31,7 +31,11 @@ describe('CFR & Regret Matching Engine (Lý Thuyết Trò Chơi & Cân Bằng Na
     inMatchAdaptationRate: 1.0,
     mctsSimulations: 80,
     handPartitioningOptimality: 0.9,
-    simulationLookahead: 4
+    simulationLookahead: 4,
+    useMinimaxEndgame: true,
+    useBayesianInference: true,
+    useNashEquilibrium: true,
+    useDynamicRepartitioning: true
   };
 
   const rookieBot: BotConfig = {
@@ -56,7 +60,11 @@ describe('CFR & Regret Matching Engine (Lý Thuyết Trò Chơi & Cân Bằng Na
     inMatchAdaptationRate: 0.0,
     mctsSimulations: 0,
     handPartitioningOptimality: 0.2,
-    simulationLookahead: 0
+    simulationLookahead: 0,
+    useMinimaxEndgame: false,
+    useBayesianInference: false,
+    useNashEquilibrium: false,
+    useDynamicRepartitioning: false
   };
 
   beforeEach(() => {

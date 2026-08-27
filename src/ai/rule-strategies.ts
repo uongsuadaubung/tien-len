@@ -55,8 +55,8 @@ export interface RuleLeadPolicy {
 
 export interface RuleEmergencyAction {
   type: 'PLAY' | 'PASS';
-  cards?: Card[];
-  combination?: Combination;
+  cards: Card[] | null;
+  combination: Combination | null;
   reason: string;
 }
 

@@ -18,7 +18,7 @@ describe('Log Replay & Deterministic Test Reproduction', () => {
     ];
     const game = new GameEngine(players, rules);
 
-    game.startNewGame();
+    game.startNewGame(1, 12345);
 
     const trackers: Record<string, CardTracker> = {
       p0: new CardTracker(game.players[0].hand, 1.0),

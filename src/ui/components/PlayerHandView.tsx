@@ -10,25 +10,25 @@ interface HandCardStyle extends React.CSSProperties {
 }
 
 interface PlayerHandViewProps {
-  player?: Player;
+  player: Player | null;
   selectedCardIds: Set<string>;
   onToggleCardSelect: (cardId: string) => void;
-  onClearCardSelection?: () => void;
+  onClearCardSelection: (() => void) | null;
   onPlaySelectedCards: () => void;
   onPassTurn: () => void;
   onAutoSort: () => void;
-  onQuickSelect?: () => void;
-  canQuickSelect?: boolean;
-  quickSelectCandidatesCount?: number;
+  onQuickSelect: (() => void) | null;
+  canQuickSelect: boolean;
+  quickSelectCandidatesCount: number;
   isCurrentTurn: boolean;
   canPlay: boolean;
   canPass: boolean;
   isLeader: boolean;
-  isDealing?: boolean;
-  dealtCardsCount?: number;
-  isFirstMoveOfGame?: boolean;
-  sortMode?: HandSortMode;
-  variantIndex?: number;
+  isDealing: boolean;
+  dealtCardsCount: number | null;
+  isFirstMoveOfGame: boolean;
+  sortMode: HandSortMode;
+  variantIndex: number;
 }
 
 export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
@@ -54,7 +54,7 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
 }) => {
   if (!player) return null;
 
-  const visibleCardCount = isDealing && dealtCardsCount !== undefined ? dealtCardsCount : (player.hand?.length || 0);
+  const visibleCardCount = isDealing && dealtCardsCount !== null && dealtCardsCount !== undefined ? dealtCardsCount : (player.hand?.length || 0);
   const hand = (player.hand || []).slice(0, visibleCardCount);
   const has3S = hand.some(c => c.rank === 3 && c.suit === 'SPADES');
   const isSelectedWith3S = Array.from(selectedCardIds).some(id => {

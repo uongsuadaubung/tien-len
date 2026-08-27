@@ -9,8 +9,8 @@ export interface GameModeDefinition {
   tagline: string;
   description: string;
   icon: string;
-  badge?: string;
-  badgeColor?: string;
+  badge: string | null;
+  badgeColor: string | null;
   colorScheme: {
     primary: string;
     border: string;

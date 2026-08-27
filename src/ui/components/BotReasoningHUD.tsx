@@ -15,7 +15,7 @@ interface BotReasoningHUDProps {
   isOpen: boolean;
   onToggle: () => void;
   gameNumber: number;
-  betAmount?: number;
+  betAmount: number;
   isDealing: boolean;
 }
 

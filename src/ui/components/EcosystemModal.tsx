@@ -140,6 +140,10 @@ export const EcosystemModal: React.FC = () => {
     mctsSimulations: 50,
     handPartitioningOptimality: 0.9,
     simulationLookahead: 3,
+    useMinimaxEndgame: false,
+    useBayesianInference: false,
+    useNashEquilibrium: false,
+    useDynamicRepartitioning: false,
     currentStreak: profile.stats.currentStreak || 0,
     highestStreak: profile.stats.highestStreak || 0,
     stats: {

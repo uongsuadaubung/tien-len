@@ -186,6 +186,7 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
         playerElo={profile.elo}
         soundEnabled={soundEnabled}
         onToggleSound={toggleSound}
+        onOpenCustomGameModal={null}
         xrayEnabled={xrayEnabled}
         onOpenRules={() => openModal('RULES')}
         onOpenSettings={() => openModal('SETTINGS')}
@@ -343,7 +344,7 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
               onPlaySelectedCards={onPlaySelectedCards}
               onPassTurn={onPassTurn}
               onAutoSort={onAutoSort}
-              onQuickSelect={quickResponseAssistEnabled ? handleQuickSelect : undefined}
+              onQuickSelect={quickResponseAssistEnabled ? handleQuickSelect : null}
               canQuickSelect={quickResponseAssistEnabled ? canQuickSelect : false}
               quickSelectCandidatesCount={quickSelectCandidates.length}
               isCurrentTurn={isP0Turn}

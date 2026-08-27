@@ -25,7 +25,7 @@ import { Button, Badge, Card, SectionHeader } from '../primitives';
 
 interface LobbyHubProps {
   profile: PlayerProfile;
-  onPlayNow?: () => void;
+  onPlayNow: () => void;
   onOpenQuickSetup: () => void;
   onOpenCustomGameModal: () => void;
   onOpenCampaign: () => void;
@@ -33,8 +33,8 @@ interface LobbyHubProps {
   onOpenLuckyWheel: () => void;
   onOpenBank: () => void;
   onOpenSettings: () => void;
-  onOpenRules?: () => void;
-  onOpenNameSetup?: () => void;
+  onOpenRules: () => void;
+  onOpenNameSetup: () => void;
 }
 
 export const LobbyHub: React.FC<LobbyHubProps> = ({
@@ -81,7 +81,7 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
         {/* Profile Người Chơi */}
         <div 
           onClick={onOpenNameSetup}
-          className={`flex items-center gap-3 ${onOpenNameSetup ? 'cursor-pointer group' : ''}`}
+          className="flex items-center gap-3 cursor-pointer group"
           title="Bấm để đổi tên và avatar"
         >
           {/* Avatar (Tier 2 Card) */}
@@ -93,7 +93,7 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
             <div className="flex items-center gap-2">
               <h2 className="font-bold text-sm sm:text-base text-[var(--text-primary)] tracking-wide group-hover:text-[var(--color-gold)] flex items-center gap-1.5 transition-colors">
                 <span>{profile.name || 'Chưa Đặt Tên'}</span>
-                {onOpenNameSetup && <Edit2 className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-[var(--color-gold)]" />}
+                <Edit2 className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-[var(--color-gold)]" />
               </h2>
             </div>
 

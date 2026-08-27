@@ -16,7 +16,7 @@ interface AIAssistantMascotProps {
   hint: MoveHint | null;
   isHumanTurn: boolean;
   enabled: boolean;
-  onApplyHint?: () => void;
+  onApplyHint: (() => void) | null;
 }
 
 export const AIAssistantMascot: React.FC<AIAssistantMascotProps> = ({

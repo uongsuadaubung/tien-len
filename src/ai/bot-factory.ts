@@ -1,6 +1,13 @@
 import { BotConfig } from "./types";
 
-type BotPersonaRaw = Omit<BotConfig, 'name' | 'avatar'> & { name?: string | null; avatar?: string | null };
+type BotPersonaRaw = Omit<BotConfig, 'name' | 'avatar' | 'useMinimaxEndgame' | 'useBayesianInference' | 'useNashEquilibrium' | 'useDynamicRepartitioning'> & {
+  name?: string | null;
+  avatar?: string | null;
+  useMinimaxEndgame?: boolean;
+  useBayesianInference?: boolean;
+  useNashEquilibrium?: boolean;
+  useDynamicRepartitioning?: boolean;
+};
 
 const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   // ==========================================
@@ -561,7 +568,15 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
 export const BOT_PERSONAS: Record<string, BotConfig> = Object.fromEntries(
   Object.entries(RAW_BOT_PERSONAS).map(([k, v]) => [
     k,
-    { name: null, avatar: null, ...v }
+    {
+      name: null,
+      avatar: null,
+      useMinimaxEndgame: false,
+      useBayesianInference: false,
+      useNashEquilibrium: false,
+      useDynamicRepartitioning: false,
+      ...v
+    }
   ])
 );
 

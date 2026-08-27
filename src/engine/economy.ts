@@ -3,8 +3,8 @@ import { isRedCard, isTwo } from './card';
 
 export interface EconomySettings {
   betAmount: number;
-  penaltyMultiplier?: number;
-  hardcoreMultiplier?: number;
+  penaltyMultiplier: number | null;
+  hardcoreMultiplier: number | null;
 }
 
 export interface ChopPenaltyResult {

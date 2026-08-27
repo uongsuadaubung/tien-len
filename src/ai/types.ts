@@ -24,10 +24,10 @@ export interface BotConfig {
   mctsSimulations: number;             // 0 -> 200 (số ván cờ tàn giả lập Monte Carlo)
   handPartitioningOptimality: number;  // 0.0 (chia bài đơn giản) -> 1.0 (tối ưu hóa sảnh & hàng)
   simulationLookahead: number;         // Độ sâu dự đoán nước đi tiếp theo (0 -> 4)
-  useMinimaxEndgame?: boolean;         // Kích hoạt Minimax Alpha-Beta Solver cờ tàn (Tier 8 & 9)
-  useBayesianInference?: boolean;      // Kích hoạt suy luận xác suất Bayes đoán bài đối thủ (Tier 7+)
-  useNashEquilibrium?: boolean;        // Kích hoạt chiến lược hỗn hợp Nash chống bị bắt bài (Tier 8+)
-  useDynamicRepartitioning?: boolean;  // Kích hoạt tái cấu trúc bài động Branch & Bound (Tier 6+)
+  useMinimaxEndgame: boolean;          // Kích hoạt Minimax Alpha-Beta Solver cờ tàn (Tier 8 & 9)
+  useBayesianInference: boolean;       // Kích hoạt suy luận xác suất Bayes đoán bài đối thủ (Tier 7+)
+  useNashEquilibrium: boolean;         // Kích hoạt chiến lược hỗn hợp Nash chống bị bắt bài (Tier 8+)
+  useDynamicRepartitioning: boolean;   // Kích hoạt tái cấu trúc bài động Branch & Bound (Tier 6+)
 }
 
 export interface MctsEvaluation {

@@ -14,7 +14,7 @@ import { ECOSYSTEM_CONSTANTS } from '../constants/ecosystem';
 export interface KeyValueRecord<T> {
   key: string;
   data: T;
-  updatedAt?: number;
+  updatedAt: number | null;
 }
 
 export class TienLenDatabase extends Dexie {

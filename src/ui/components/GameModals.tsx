@@ -26,28 +26,28 @@ import { normalizePlayerCount } from '../../engine/types';
 import { BotConfig } from '../../ai/types';
 
 interface GameModalsProps {
-  player0Tracker?: CardTracker;
+  player0Tracker: CardTracker | null;
   onStartQuickGame: (config: QuickSetupConfig) => void;
   onStartCustomGame: (config: CustomGameModalConfig) => void;
   onSelectCampaignChapter: (chapter: CampaignChapter) => void;
   onNextGame: () => void;
   onReturnToLobby: () => void;
   onConfirmForfeit: () => void;
-  campaignResultMeta?: {
+  campaignResultMeta: {
     isUnlockedNext: boolean;
     isAllCompleted: boolean;
     nextChapter: CampaignChapter | null;
     currentWins: number;
   } | null;
-  onOpenCampaignMap?: () => void;
-  matchmakingData?: {
+  onOpenCampaignMap: (() => void) | null;
+  matchmakingData: {
     betAmount: number;
     modeName: string;
     botConfigs: Partial<BotConfig>[];
     playerCount?: number;
   } | null;
-  onCancelMatchmaking?: () => void;
-  onMatchReady?: () => void;
+  onCancelMatchmaking: () => void;
+  onMatchReady: () => void;
 }
 
 export const GameModals: React.FC<GameModalsProps> = ({

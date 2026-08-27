@@ -336,7 +336,7 @@ export const App: React.FC = () => {
 
       {/* 2. MODALS TẬP TRUNG TOÀN ỨNG DỤNG */}
       <GameModals
-        player0Tracker={trackersRef.current['p0']}
+        player0Tracker={trackersRef.current['p0'] || null}
         onStartQuickGame={handleStartQuickGame}
         onStartCustomGame={handleStartCustomGameWithConfig}
         onSelectCampaignChapter={handleStartCampaignChapter}

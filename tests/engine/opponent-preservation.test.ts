@@ -16,7 +16,7 @@ describe('Bảo Toàn Danh Tính Đối Thủ & Cơ Chế Giải Tán Khi Cháy 
     const human: Player = { id: 'p0', name: 'Người Chơi', avatar: '🤠', isBot: false, botPersonaId: null, score: 50000, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null };
 
     const engineRound1 = new GameEngine([human, bot1, bot2, bot3], rules);
-    engineRound1.startNewGame(1);
+    engineRound1.startNewGame(1, 99999);
 
     // Giả lập kết quả ván 1: bot1 thắng thêm 2000 xu, bot2 thua 1500 xu, bot3 thắng 500 xu
     const p1 = engineRound1.getPlayer('p1')!;
@@ -47,7 +47,7 @@ describe('Bảo Toàn Danh Tính Đối Thủ & Cơ Chế Giải Tán Khi Cháy 
     });
 
     const engineRound2 = new GameEngine(round2Players, rules);
-    engineRound2.startNewGame(nextGameNumber);
+    engineRound2.startNewGame(nextGameNumber, 88888);
 
     // Xác nhận ván 2 vẫn giữ nguyên 100% 3 bot đó với số tiền mới
     expect(engineRound2.players.length).toBe(4);
