@@ -231,8 +231,6 @@ export const GameModals: React.FC<GameModalsProps> = ({
         onNextGame={onNextGame}
         onReturnToLobby={onReturnToLobby}
         onOpenCampaignMap={onOpenCampaignMap || (() => { closeModal('VICTORY'); openModal('CAMPAIGN'); })}
-        onOpenCustomGameModal={() => { closeModal('VICTORY'); openModal('CUSTOM_GAME'); }}
-        onOpenBankLoanModal={() => { closeModal('VICTORY'); openModal('BANK'); }}
         winners={winners}
         allPlayers={players}
         betAmount={gameSettings.betAmount}
@@ -249,7 +247,6 @@ export const GameModals: React.FC<GameModalsProps> = ({
         isAllCampaignCompleted={campaignResultMeta?.isAllCompleted || false}
         nextChapter={campaignResultMeta?.nextChapter || null}
         playerCoins={profile.coins}
-        botReasoningLogEnabled={botReasoningLogEnabled}
         allEloDeltas={allEloDeltas}
       />
 

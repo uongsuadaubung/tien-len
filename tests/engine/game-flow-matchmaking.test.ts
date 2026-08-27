@@ -3,77 +3,47 @@ import { GameEngine } from '../../src/engine/game';
 import { Player, Card, createDefaultGameRules } from '../../src/engine/types';
 import { CountCardsModeStrategy } from '../../src/engine/strategies/game-mode-strategy';
 import { PlayerProfile } from '../../src/engine/storage';
+import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 
 describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu Hạng', () => {
-  const p0: Player = {
+  const p0: Player = createPlayer({
     id: 'p0',
     name: 'Bạn',
     avatar: '🤠',
-    isBot: false,
-    botPersonaId: null,
+    score: 1000,
     hand: [
       { id: '3_SPADES', rank: 3, suit: 'SPADES', weight: 12, code: '3S' },
       { id: '4_HEARTS', rank: 4, suit: 'HEARTS', weight: 19, code: '4H' }
-    ],
-    playedCards: [],
-    score: 1000,
-    isPassedCurrentRound: false,
-    hasPlayedFirstCard: false,
-    rankPosition: null,
-    instantWinType: null
-  };
+    ]
+  });
 
-  const p1: Player = {
-    id: 'p1',
+  const p1: Player = createBotPlayer('p1', null, {
     name: 'Alex',
     avatar: '🧒',
-    isBot: true,
-    botPersonaId: null,
+    score: 1000,
     hand: [
       { id: '5_DIAMONDS', rank: 5, suit: 'DIAMONDS', weight: 22, code: '5D' },
       { id: '15_HEARTS', rank: 15, suit: 'HEARTS', weight: 63, code: '2H' }
-    ],
-    playedCards: [],
-    score: 1000,
-    isPassedCurrentRound: false,
-    hasPlayedFirstCard: false,
-    rankPosition: null,
-    instantWinType: null
-  };
+    ]
+  });
 
-  const p2: Player = {
-    id: 'p2',
+  const p2: Player = createBotPlayer('p2', null, {
     name: 'Kai',
     avatar: '🤠',
-    isBot: true,
-    botPersonaId: null,
+    score: 1000,
     hand: [
       { id: '6_CLUBS', rank: 6, suit: 'CLUBS', weight: 25, code: '6C' }
-    ],
-    playedCards: [],
-    score: 1000,
-    isPassedCurrentRound: false,
-    hasPlayedFirstCard: false,
-    rankPosition: null,
-    instantWinType: null
-  };
+    ]
+  });
 
-  const p3: Player = {
-    id: 'p3',
+  const p3: Player = createBotPlayer('p3', null, {
     name: 'Marcus',
     avatar: '👴',
-    isBot: true,
-    botPersonaId: null,
+    score: 1000,
     hand: [
       { id: '7_SPADES', rank: 7, suit: 'SPADES', weight: 28, code: '7S' }
-    ],
-    playedCards: [],
-    score: 1000,
-    isPassedCurrentRound: false,
-    hasPlayedFirstCard: false,
-    rankPosition: null,
-    instantWinType: null
-  };
+    ]
+  });
 
   test('1. Trận đầu tiên (gameNumber = 1): Người cầm 3 Bích (p0) bắt buộc đi trước', () => {
     const engine = new GameEngine([p0, p1, p2, p3]);

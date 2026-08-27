@@ -4,6 +4,7 @@ import { GameEngine } from '../../src/engine/game';
 import { createDefaultGameRules, Player } from '../../src/engine/types';
 import { getBotConfig } from '../../src/ai/bot-factory';
 import { CardTracker } from '../../src/ai/card-tracker';
+import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 
 describe('MatchLogger & Bot Reasoning Telemetry', () => {
   beforeEach(() => {
@@ -13,40 +14,25 @@ describe('MatchLogger & Bot Reasoning Telemetry', () => {
   it('should initialize a new match log and capture initial hands for all players', () => {
     const logger = MatchLogger.getInstance();
     const mockPlayers: Player[] = [
-      {
+      createPlayer({
         id: 'p0',
         name: 'Người Chơi',
         avatar: '🤠',
-        isBot: false,
-        botPersonaId: null,
         hand: [
           { id: '3S', rank: 3, suit: 'SPADES', code: '3♠', weight: 30 },
           { id: '4H', rank: 4, suit: 'HEARTS', code: '4♥', weight: 43 }
         ],
-        playedCards: [],
-        score: 50000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: false,
-        rankPosition: null,
-        instantWinType: null
-      },
-      {
-        id: 'bot1',
+        score: 50000
+      }),
+      createBotPlayer('bot1', 'PRO_01', {
         name: 'Bot Cao Thủ',
         avatar: '🤖',
-        isBot: true,
-        botPersonaId: 'PRO_01',
         hand: [
           { id: '5D', rank: 5, suit: 'DIAMONDS', code: '5♦', weight: 52 },
           { id: '2H', rank: 15, suit: 'HEARTS', code: '2♥', weight: 153 }
         ],
-        playedCards: [],
-        score: 50000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: false,
-        rankPosition: null,
-        instantWinType: null
-      }
+        score: 50000
+      })
     ];
 
     logger.startNewMatch({
@@ -126,10 +112,10 @@ describe('MatchLogger & Bot Reasoning Telemetry', () => {
 
   it('should seamlessly log whole simulated match in GameEngine with bot telemetry', () => {
     const players: Player[] = [
-      { id: 'p0', name: 'User', avatar: '🤠', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 50000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
-      { id: 'bot1', name: 'Bot 1', avatar: '🤖', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 50000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
-      { id: 'bot2', name: 'Bot 2', avatar: '🤖', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 50000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
-      { id: 'bot3', name: 'Bot 3', avatar: '🤖', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 50000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null }
+      createBotPlayer('p0', null, { name: 'User', avatar: '🤠', score: 50000 }),
+      createBotPlayer('bot1', null, { name: 'Bot 1', avatar: '🤖', score: 50000 }),
+      createBotPlayer('bot2', null, { name: 'Bot 2', avatar: '🤖', score: 50000 }),
+      createBotPlayer('bot3', null, { name: 'Bot 3', avatar: '🤖', score: 50000 })
     ];
     const engine = new GameEngine(players, createDefaultGameRules());
 

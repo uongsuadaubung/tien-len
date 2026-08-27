@@ -6,6 +6,7 @@ import { makeBotDecision, DecisionContext } from '../../src/ai/decision-maker';
 import { CardTracker } from '../../src/ai/card-tracker';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { Player, createDefaultGameRules, Card, PlayedMove } from '../../src/engine/types';
+import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 
 describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 & Rotten 2 Rules)', () => {
   describe('1. Validator Thẩm Định Nước Đi Hợp Lệ', () => {
@@ -15,78 +16,78 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
     const card4D = createCard(4, 'DIAMONDS');
 
     test('Không cho phép đánh 1 lá Heo khi là lá bài cuối cùng (isFinishingMove = true & prohibitEndingWithTwo = true)', () => {
-      const result = isValidMove(
-        [card2H],
-        null,
-        false,
-        true,
-        false,
-        true,
-        true, // isFinishingMove
-        true  // prohibitEndingWithTwo
-      );
+      const result = isValidMove({
+        cards: [card2H],
+        target: null,
+        isFirstMoveOfGame: false,
+        isLeadMove: true,
+        hasPassedRound: false,
+        allowFourPairsCutAnytime: true,
+        isFinishingMove: true,
+        prohibitEndingWithTwo: true
+      });
 
       expect(result.valid).toBe(false);
       expect(result.reason).toContain('Luật cấm về bằng lá Heo (2) cuối cùng');
     });
 
     test('Không cho phép đánh Đôi Heo khi là 2 lá bài cuối cùng', () => {
-      const result = isValidMove(
-        [card2S, card2H],
-        null,
-        false,
-        true,
-        false,
-        true,
-        true, // isFinishingMove
-        true  // prohibitEndingWithTwo
-      );
+      const result = isValidMove({
+        cards: [card2S, card2H],
+        target: null,
+        isFirstMoveOfGame: false,
+        isLeadMove: true,
+        hasPassedRound: false,
+        allowFourPairsCutAnytime: true,
+        isFinishingMove: true,
+        prohibitEndingWithTwo: true
+      });
 
       expect(result.valid).toBe(false);
       expect(result.reason).toContain('Luật cấm về bằng lá Heo (2) cuối cùng');
     });
 
     test('Cho phép đánh lá Heo khi chưa phải là lá cuối cùng (isFinishingMove = false)', () => {
-      const result = isValidMove(
-        [card2H],
-        null,
-        false,
-        true,
-        false,
-        true,
-        false, // isFinishingMove = false
-        true   // prohibitEndingWithTwo
-      );
+      const result = isValidMove({
+        cards: [card2H],
+        target: null,
+        isFirstMoveOfGame: false,
+        isLeadMove: true,
+        hasPassedRound: false,
+        allowFourPairsCutAnytime: true,
+        isFinishingMove: false,
+        prohibitEndingWithTwo: true
+      });
 
       expect(result.valid).toBe(true);
     });
 
     test('Cho phép đánh bài thường (3..A) để kết thúc ván khi cấm 2 cuối', () => {
-      const result = isValidMove(
-        [card3S],
-        null,
-        false,
-        true,
-        false,
-        true,
-        true, // isFinishingMove
-        true  // prohibitEndingWithTwo
-      );
+      const result = isValidMove({
+        cards: [card3S],
+        target: null,
+        isFirstMoveOfGame: false,
+        isLeadMove: true,
+        hasPassedRound: false,
+        allowFourPairsCutAnytime: true,
+        isFinishingMove: true,
+        prohibitEndingWithTwo: true
+      });
 
       expect(result.valid).toBe(true);
     });
 
     test('Cho phép về bằng Heo nếu luật cấm 2 cuối bị tắt (prohibitEndingWithTwo = false)', () => {
-      const result = isValidMove(
-        [card2H],
-        null,
-        false,
-        true,
-        false,
-        true,
-        true,  // isFinishingMove
-        false  // prohibitEndingWithTwo = false
-      );
+      const result = isValidMove({
+        cards: [card2H],
+        target: null,
+        isFirstMoveOfGame: false,
+        isLeadMove: true,
+        hasPassedRound: false,
+        allowFourPairsCutAnytime: true,
+        isFinishingMove: true,
+        prohibitEndingWithTwo: false
+      });
 
       expect(result.valid).toBe(true);
     });
@@ -95,10 +96,10 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
   describe('2. GameEngine Thực Thi Luật & Phạt Thối Heo', () => {
     function createTestPlayers(): Player[] {
       return [
-        { id: 'p0', name: 'Player', avatar: '', isBot: false, botPersonaId: null, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
-        { id: 'bot1', name: 'Bot 1', avatar: '', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
-        { id: 'bot2', name: 'Bot 2', avatar: '', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
-        { id: 'bot3', name: 'Bot 3', avatar: '', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null }
+        createPlayer({ id: 'p0', name: 'Player', avatar: '', score: 1000 }),
+        createBotPlayer('bot1', null, { name: 'Bot 1', avatar: '', score: 1000 }),
+        createBotPlayer('bot2', null, { name: 'Bot 2', avatar: '', score: 1000 }),
+        createBotPlayer('bot3', null, { name: 'Bot 3', avatar: '', score: 1000 })
       ];
     }
 
@@ -519,10 +520,10 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
   describe('4. GameEngine Gameplay: Xử lý 1 Rác + Tứ Quý 2', () => {
     function createTestPlayers(): Player[] {
       return [
-        { id: 'p0', name: 'Player', avatar: '', isBot: false, botPersonaId: null, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
-        { id: 'bot1', name: 'Bot 1', avatar: '', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
-        { id: 'bot2', name: 'Bot 2', avatar: '', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
-        { id: 'bot3', name: 'Bot 3', avatar: '', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 1000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null }
+        createPlayer({ id: 'p0', name: 'Player', avatar: '', score: 1000 }),
+        createBotPlayer('bot1', null, { name: 'Bot 1', avatar: '', score: 1000 }),
+        createBotPlayer('bot2', null, { name: 'Bot 2', avatar: '', score: 1000 }),
+        createBotPlayer('bot3', null, { name: 'Bot 3', avatar: '', score: 1000 })
       ];
     }
 

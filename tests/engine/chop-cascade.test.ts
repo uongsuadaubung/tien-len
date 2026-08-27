@@ -3,6 +3,7 @@ import { createCard } from '../../src/engine/card';
 import { GameEngine } from '../../src/engine/game';
 import { Player, PlayedMove, createDefaultGameRules, GameRulesBuilder } from '../../src/engine/types';
 import { ChoppingRuleStrategyBuilder } from '../../src/ai/rule-strategies';
+import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 
 describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạc Chuẩn)', () => {
   const card2S = createCard(15, 'SPADES'); // Heo Đen (1x)
@@ -34,62 +35,10 @@ describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạ
 
   function createTestPlayers(): Player[] {
     return [
-      {
-        id: 'p0',
-        name: 'Người Chơi A',
-        avatar: '🤠',
-        isBot: false,
-        botPersonaId: null,
-        hand: [],
-        playedCards: [],
-        score: 10000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: true,
-        rankPosition: null,
-        instantWinType: null
-      },
-      {
-        id: 'p1',
-        name: 'Bot B',
-        avatar: '🤖',
-        isBot: true,
-        botPersonaId: null,
-        hand: [],
-        playedCards: [],
-        score: 10000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: true,
-        rankPosition: null,
-        instantWinType: null
-      },
-      {
-        id: 'p2',
-        name: 'Bot C',
-        avatar: '🤖',
-        isBot: true,
-        botPersonaId: null,
-        hand: [],
-        playedCards: [],
-        score: 10000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: true,
-        rankPosition: null,
-        instantWinType: null
-      },
-      {
-        id: 'p3',
-        name: 'Bot D',
-        avatar: '🤖',
-        isBot: true,
-        botPersonaId: null,
-        hand: [],
-        playedCards: [],
-        score: 10000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: true,
-        rankPosition: null,
-        instantWinType: null
-      }
+      createPlayer({ id: 'p0', name: 'Người Chơi A', score: 10000, hasPlayedFirstCard: true }),
+      createBotPlayer('p1', null, { name: 'Bot B', score: 10000, hasPlayedFirstCard: true }),
+      createBotPlayer('p2', null, { name: 'Bot C', score: 10000, hasPlayedFirstCard: true }),
+      createBotPlayer('p3', null, { name: 'Bot D', score: 10000, hasPlayedFirstCard: true })
     ];
   }
 

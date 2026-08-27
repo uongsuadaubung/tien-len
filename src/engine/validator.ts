@@ -105,19 +105,33 @@ export function canBeat(candidate: Combination, target: Combination): Validation
   };
 }
 
+export interface IsValidMoveContext {
+  cards: Card[];
+  target: Combination | null;
+  isFirstMoveOfGame: boolean;
+  isLeadMove: boolean;
+  hasPassedRound: boolean;
+  allowFourPairsCutAnytime: boolean;
+  isFinishingMove: boolean;
+  prohibitEndingWithTwo: boolean;
+}
+
 /**
- * Thẩm định toàn diện một nước đi
+ * Thẩm định toàn diện một nước đi theo luật Tiến Lên Miền Nam
+ * Nhận duy nhất 1 đối tượng context với đầy đủ tất cả các trường bắt buộc
  */
-export function isValidMove(
-  cards: Card[],
-  target: Combination | null,
-  isFirstMoveOfGame: boolean,
-  isLeadMove: boolean,
-  hasPassedRound = false,
-  allowFourPairsCutAnytime = true,
-  isFinishingMove = false,
-  prohibitEndingWithTwo = false
-): ValidationResult {
+export function isValidMove(context: IsValidMoveContext): ValidationResult {
+  const {
+    cards,
+    target,
+    isFirstMoveOfGame,
+    isLeadMove,
+    hasPassedRound,
+    allowFourPairsCutAnytime,
+    isFinishingMove,
+    prohibitEndingWithTwo
+  } = context;
+
   if (!cards || cards.length === 0) {
     return { valid: false, combination: null, isChop: null, reason: 'Chưa chọn lá bài nào' };
   }

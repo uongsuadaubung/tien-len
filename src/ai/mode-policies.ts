@@ -49,7 +49,7 @@ export class CountCardsAIModePolicy implements AIModePolicyStrategy {
     };
   }
 
-  public getRespondingScoreModifier(move: ValidMoveInfo, handSize: number, _targetMove: PlayedMove | null): number {
+  public getRespondingScoreModifier(move: ValidMoveInfo, handSize: number): number {
     let bonus = 0;
 
     // Khuyến khích đè bài khi xả được nhiều lá (Sảnh dài >= 4 lá hoặc Sám cô / Đôi)
@@ -118,7 +118,7 @@ export class WinnerTakesAllAIModePolicy implements AIModePolicyStrategy {
     };
   }
 
-  public getRespondingScoreModifier(move: ValidMoveInfo, _handSize: number, _targetMove: PlayedMove | null): number {
+  public getRespondingScoreModifier(move: ValidMoveInfo): number {
     let bonus = 0;
 
     // Thưởng điểm cướp cái bằng Heo / Bộ to để mở đường cho chuỗi combo dứt điểm
@@ -151,7 +151,7 @@ export class CampaignAIModePolicy implements AIModePolicyStrategy {
     };
   }
 
-  public getRespondingScoreModifier(_move: ValidMoveInfo, _handSize: number, _targetMove: PlayedMove | null): number {
+  public getRespondingScoreModifier(): number {
     return 0;
   }
 }

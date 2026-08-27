@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { CAMPAIGN_CHAPTERS } from '../../src/engine/campaign';
+import { getTierFromElo } from '../../src/engine/ecosystem/ecosystem-types';
 
 describe('Campaign Mode 9 Esports Chapters & Grand Finale', () => {
   test('1. Có đủ 9 Chương Ải tương ứng 9 Bậc Rank Esports theo thứ tự độ khó tăng dần', () => {
@@ -31,7 +32,7 @@ describe('Campaign Mode 9 Esports Chapters & Grand Finale', () => {
         expect(bot.name!.length).toBeGreaterThan(0);
         expect(bot.avatar).toBeDefined();
         expect(bot.elo).toBeGreaterThanOrEqual(700);
-        expect(bot.tier).toBeDefined();
+        expect(getTierFromElo(bot.elo).label).toBeDefined();
       }
     }
   });

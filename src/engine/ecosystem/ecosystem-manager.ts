@@ -14,7 +14,6 @@ import {
 } from './ecosystem-types';
 import { 
   generateInitial200Bots, 
-  draftRookieBot,
   findUnderfilledTier,
   draftBotForTier
 } from './bot-generator';
@@ -315,7 +314,6 @@ class EcosystemManager {
     }
 
     // 3. Kiểm tra Vỡ Nợ / Phá Sản và Bù đắp Bot theo thứ tự Tier từ CAO xuống THẤP (Top-down Tier Replenishment)
-    let bankruptCount = 0;
     const existingNames = new Set<string>(
       Array.from(this.activeBotsMap.values())
         .map(b => b.name)
@@ -325,7 +323,6 @@ class EcosystemManager {
     const deletedBotIds: string[] = [];
     for (const [botId, bot] of this.activeBotsMap.entries()) {
       if (bot.coins <= ECOSYSTEM_CONSTANTS.BANKRUPTCY_THRESHOLD) {
-        bankruptCount++;
         deletedBotIds.push(botId);
         // Đào thải bot cũ
         bot.status = 'BANKRUPT';

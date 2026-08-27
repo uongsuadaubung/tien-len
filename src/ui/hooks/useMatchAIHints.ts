@@ -9,7 +9,7 @@ import { useGameStore } from '../../stores/useGameStore';
  * Hook quản lý gợi ý nước đi tối ưu của Quân Sư AI và áp dụng tự động
  */
 export function useMatchAIHints(
-  engineRef: React.MutableRefObject<GameEngine | null>,
+  _engineRef: React.MutableRefObject<GameEngine | null>,
   trackersRef: React.MutableRefObject<Record<string, CardTracker>>,
   onPassTurn: () => void
 ) {

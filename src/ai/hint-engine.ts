@@ -617,16 +617,16 @@ export function evaluateSelectionFeedback(context: SelectionFeedbackContext): Mo
 
   const targetCombo = leadingMove?.combination || null;
   const isFinishing = selectedCards.length === hand.length;
-  const validation = isValidMove(
-    selectedCards,
-    targetCombo,
+  const validation = isValidMove({
+    cards: selectedCards,
+    target: targetCombo,
     isFirstMoveOfGame,
     isLeadMove,
-    false,
-    true,
-    isFinishing,
+    hasPassedRound: false,
+    allowFourPairsCutAnytime: true,
+    isFinishingMove: isFinishing,
     prohibitEndingWithTwo
-  );
+  });
 
   const cardCodes = formatCards(selectedCards);
 

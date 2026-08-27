@@ -31,9 +31,9 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
     rewardCoins: 5000,
     rewardTitle: 'Tân Thủ Xuất Sắc',
     bots: [
-      { ...BOT_PERSONAS.BOT_ELO_700, id: 'BOT_ELO_700', name: 'Tí Chuột', avatar: '🐭', elo: 700, tier: 'Tier 1: Tân Thủ' },
-      { ...BOT_PERSONAS.BOT_ELO_750, id: 'BOT_ELO_750', name: 'Tèo Bờ Rào', avatar: '👦', elo: 750, tier: 'Tier 1: Tân Thủ' },
-      { ...BOT_PERSONAS.BOT_ELO_850, id: 'BOT_ELO_850', name: 'Bác Ba', avatar: '👴', elo: 850, tier: 'Tier 1: Tân Thủ' }
+      { ...BOT_PERSONAS.BOT_ELO_700, id: 'BOT_ELO_700', name: 'Tí Chuột', avatar: '🐭', elo: 700 },
+      { ...BOT_PERSONAS.BOT_ELO_750, id: 'BOT_ELO_750', name: 'Tèo Bờ Rào', avatar: '👦', elo: 750 },
+      { ...BOT_PERSONAS.BOT_ELO_850, id: 'BOT_ELO_850', name: 'Bác Ba', avatar: '👴', elo: 850 }
     ],
     specialRuleDescription: 'Thắng tích lũy 2 ván để mở khóa chương tiếp theo.'
   },
@@ -50,9 +50,9 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
     rewardCoins: 15000,
     rewardTitle: 'Anh Hùng Bến Xe',
     bots: [
-      { ...BOT_PERSONAS.BOT_ELO_950, id: 'BOT_ELO_950', name: 'Bảy Xe Lôi', avatar: '🛺', elo: 950, tier: 'Tier 2: Tập Sự' },
-      { ...BOT_PERSONAS.BOT_ELO_1000, id: 'BOT_ELO_1000', name: 'Năm Xích Lô', avatar: '🚴', elo: 1000, tier: 'Tier 2: Tập Sự' },
-      { ...BOT_PERSONAS.BOT_ELO_1150, id: 'BOT_ELO_1150', name: 'Ba Gác', avatar: '🛵', elo: 1150, tier: 'Tier 2: Tập Sự' }
+      { ...BOT_PERSONAS.BOT_ELO_950, id: 'BOT_ELO_950', name: 'Bảy Xe Lôi', avatar: '🛺', elo: 950 },
+      { ...BOT_PERSONAS.BOT_ELO_1000, id: 'BOT_ELO_1000', name: 'Năm Xích Lô', avatar: '🚴', elo: 1000 },
+      { ...BOT_PERSONAS.BOT_ELO_1150, id: 'BOT_ELO_1150', name: 'Ba Gác', avatar: '🛵', elo: 1150 }
     ],
     specialRuleDescription: 'Thắng 3 ván trước các tay chơi liều lĩnh bậc nhất bến xe.'
   },
@@ -69,9 +69,9 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
     rewardCoins: 35000,
     rewardTitle: 'Kỳ Thủ Quán Trà',
     bots: [
-      { ...BOT_PERSONAS.BOT_ELO_1250, id: 'BOT_ELO_1250', name: 'Chú Tư Cờ', avatar: '🍵', elo: 1250, tier: 'Tier 3: Phong Trào' },
-      { ...BOT_PERSONAS.BOT_ELO_1300, id: 'BOT_ELO_1300', name: 'Rex Bụi Đời', avatar: '🤠', elo: 1300, tier: 'Tier 3: Phong Trào' },
-      { ...BOT_PERSONAS.BOT_ELO_1350, id: 'BOT_ELO_1350', name: 'Zane Sát Thủ', avatar: '🎯', elo: 1350, tier: 'Tier 3: Phong Trào' }
+      { ...BOT_PERSONAS.BOT_ELO_1250, id: 'BOT_ELO_1250', name: 'Chú Tư Cờ', avatar: '🍵', elo: 1250 },
+      { ...BOT_PERSONAS.BOT_ELO_1300, id: 'BOT_ELO_1300', name: 'Rex Bụi Đời', avatar: '🤠', elo: 1300 },
+      { ...BOT_PERSONAS.BOT_ELO_1350, id: 'BOT_ELO_1350', name: 'Zane Sát Thủ', avatar: '🎯', elo: 1350 }
     ],
     specialRuleDescription: 'Thắng 3 ván trước các cao thủ phong trào khôn ngoan.'
   },
@@ -88,9 +88,9 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
     rewardCoins: 80000,
     rewardTitle: 'Bậc Thầy Nhớ Bài',
     bots: [
-      { ...BOT_PERSONAS.BOT_ELO_1500, id: 'BOT_ELO_1500', name: 'Cụ Tám', avatar: '🧘', elo: 1500, tier: 'Tier 4: Lão Luyện' },
-      { ...BOT_PERSONAS.BOT_ELO_1550, id: 'BOT_ELO_1550', name: 'Elena', avatar: '👩‍💼', elo: 1550, tier: 'Tier 4: Lão Luyện' },
-      { ...BOT_PERSONAS.BOT_ELO_1600, id: 'BOT_ELO_1600', name: 'Bác Sáu Toán Học', avatar: '🧮', elo: 1600, tier: 'Tier 4: Lão Luyện' }
+      { ...BOT_PERSONAS.BOT_ELO_1500, id: 'BOT_ELO_1500', name: 'Cụ Tám', avatar: '🧘', elo: 1500 },
+      { ...BOT_PERSONAS.BOT_ELO_1550, id: 'BOT_ELO_1550', name: 'Elena', avatar: '👩‍💼', elo: 1550 },
+      { ...BOT_PERSONAS.BOT_ELO_1600, id: 'BOT_ELO_1600', name: 'Bác Sáu Toán Học', avatar: '🧮', elo: 1600 }
     ],
     specialRuleDescription: 'Thắng 3 ván trước các cao thủ chuyên đếm lá và bẫy Heo.'
   },
@@ -107,9 +107,9 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
     rewardCoins: 180000,
     rewardTitle: 'Tinh Anh Sài Thành',
     bots: [
-      { ...BOT_PERSONAS.BOT_ELO_1750, id: 'BOT_ELO_1750', name: 'Thiếu Gia Ken', avatar: '💎', elo: 1750, tier: 'Tier 5: Tinh Anh' },
-      { ...BOT_PERSONAS.BOT_ELO_1800, id: 'BOT_ELO_1800', name: 'Sophia', avatar: '👸', elo: 1800, tier: 'Tier 5: Tinh Anh' },
-      { ...BOT_PERSONAS.BOT_ELO_1850, id: 'BOT_ELO_1850', name: 'Đại Gia Long', avatar: '🎩', elo: 1850, tier: 'Tier 5: Tinh Anh' }
+      { ...BOT_PERSONAS.BOT_ELO_1750, id: 'BOT_ELO_1750', name: 'Thiếu Gia Ken', avatar: '💎', elo: 1750 },
+      { ...BOT_PERSONAS.BOT_ELO_1800, id: 'BOT_ELO_1800', name: 'Sophia', avatar: '👸', elo: 1800 },
+      { ...BOT_PERSONAS.BOT_ELO_1850, id: 'BOT_ELO_1850', name: 'Đại Gia Long', avatar: '🎩', elo: 1850 }
     ],
     specialRuleDescription: 'Thắng 3 ván trước các cao thủ kiểm soát nhịp độ bàn chơi.'
   },
@@ -126,9 +126,9 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
     rewardCoins: 400000,
     rewardTitle: 'Cao Thủ Du Thuyền',
     bots: [
-      { ...BOT_PERSONAS.BOT_ELO_1950, id: 'BOT_ELO_1950', name: 'Madam Ruby', avatar: '💃', elo: 1950, tier: 'Tier 6: Cao Thủ' },
-      { ...BOT_PERSONAS.BOT_ELO_2000, id: 'BOT_ELO_2000', name: 'Raven Ảo Ảnh', avatar: '🦅', elo: 2000, tier: 'Tier 6: Cao Thủ' },
-      { ...BOT_PERSONAS.BOT_ELO_2050, id: 'BOT_ELO_2050', name: 'Ghost Bóng Đêm', avatar: '👻', elo: 2050, tier: 'Tier 6: Cao Thủ' }
+      { ...BOT_PERSONAS.BOT_ELO_1950, id: 'BOT_ELO_1950', name: 'Madam Ruby', avatar: '💃', elo: 1950 },
+      { ...BOT_PERSONAS.BOT_ELO_2000, id: 'BOT_ELO_2000', name: 'Raven Ảo Ảnh', avatar: '🦅', elo: 2000 },
+      { ...BOT_PERSONAS.BOT_ELO_2050, id: 'BOT_ELO_2050', name: 'Ghost Bóng Đêm', avatar: '👻', elo: 2050 }
     ],
     specialRuleDescription: 'Thắng 3 ván trước các bậc thầy bắt bài và bọc lót Heo.'
   },
@@ -145,9 +145,9 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
     rewardCoins: 800000,
     rewardTitle: 'Đại Cao Thủ Hoàng Gia',
     bots: [
-      { ...BOT_PERSONAS.BOT_ELO_2300, id: 'BOT_ELO_2300', name: 'Phantom Apex', avatar: '🎭', elo: 2300, tier: 'Tier 7: Đại Cao Thủ' },
-      { ...BOT_PERSONAS.BOT_ELO_2400, id: 'BOT_ELO_2400', name: 'Nova Legend', avatar: '⚡', elo: 2400, tier: 'Tier 7: Đại Cao Thủ' },
-      { ...BOT_PERSONAS.BOT_ELO_2500, id: 'BOT_ELO_2500', name: 'Alpha-TL Master', avatar: '👑', elo: 2500, tier: 'Tier 7: Đại Cao Thủ' }
+      { ...BOT_PERSONAS.BOT_ELO_2300, id: 'BOT_ELO_2300', name: 'Phantom Apex', avatar: '🎭', elo: 2300 },
+      { ...BOT_PERSONAS.BOT_ELO_2400, id: 'BOT_ELO_2400', name: 'Nova Legend', avatar: '⚡', elo: 2400 },
+      { ...BOT_PERSONAS.BOT_ELO_2500, id: 'BOT_ELO_2500', name: 'Alpha-TL Master', avatar: '👑', elo: 2500 }
     ],
     specialRuleDescription: 'Đánh bại 3 Đại Cao Thủ để tiến vào Hội Kín Thần Bài.'
   },
@@ -164,9 +164,9 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
     rewardCoins: 1500000,
     rewardTitle: 'Thần Bài Vô Cực',
     bots: [
-      { ...BOT_PERSONAS.BOT_ELO_2750, id: 'BOT_ELO_2750', name: 'Oracle Tiên Tri', avatar: '🔮', elo: 2750, tier: 'Tier 8: Thần Bài' },
-      { ...BOT_PERSONAS.BOT_ELO_2750, id: 'BOT_ELO_2750', name: 'Chronos Bất Tử', avatar: '⏳', elo: 2750, tier: 'Tier 8: Thần Bài' },
-      { ...BOT_PERSONAS.BOT_ELO_2750, id: 'BOT_ELO_2750', name: 'Aegis Hộ Pháp', avatar: '🛡️', elo: 2750, tier: 'Tier 8: Thần Bài' }
+      { ...BOT_PERSONAS.BOT_ELO_2750, id: 'BOT_ELO_2750', name: 'Oracle Tiên Tri', avatar: '🔮', elo: 2750 },
+      { ...BOT_PERSONAS.BOT_ELO_2750, id: 'BOT_ELO_2750', name: 'Chronos Bất Tử', avatar: '⏳', elo: 2750 },
+      { ...BOT_PERSONAS.BOT_ELO_2750, id: 'BOT_ELO_2750', name: 'Aegis Hộ Pháp', avatar: '🛡️', elo: 2750 }
     ],
     specialRuleDescription: 'Vượt qua 4 ván đấu với các Thần Bài tính toán cờ tàn hoàn hảo.'
   },
@@ -183,9 +183,9 @@ export const CAMPAIGN_CHAPTERS: CampaignChapter[] = [
     rewardCoins: 3000000,
     rewardTitle: 'Bá Chủ Thần Bài Tối Thượng',
     bots: [
-      { ...BOT_PERSONAS.BOT_ELO_3200, id: 'BOT_ELO_3200', name: 'Alpha Mind', avatar: '🧠', elo: 3200, tier: 'Tier 9: Siêu Trí Tuệ' },
-      { ...BOT_PERSONAS.BOT_ELO_3200, id: 'BOT_ELO_3200', name: 'Zero Defeat', avatar: '⚔️', elo: 3200, tier: 'Tier 9: Siêu Trí Tuệ' },
-      { ...BOT_PERSONAS.BOT_ELO_3200, id: 'BOT_ELO_3200', name: 'Mythic Overlord', avatar: '👑', elo: 3200, tier: 'Tier 9: Siêu Trí Tuệ' }
+      { ...BOT_PERSONAS.BOT_ELO_3200, id: 'BOT_ELO_3200', name: 'Alpha Mind', avatar: '🧠', elo: 3200 },
+      { ...BOT_PERSONAS.BOT_ELO_3200, id: 'BOT_ELO_3200', name: 'Zero Defeat', avatar: '⚔️', elo: 3200 },
+      { ...BOT_PERSONAS.BOT_ELO_3200, id: 'BOT_ELO_3200', name: 'Mythic Overlord', avatar: '👑', elo: 3200 }
     ],
     specialRuleDescription: 'Đánh bại Tam Đại Boss Superhuman AI để bước lên Ngai Vàng Bá Chủ Tiến Lên!'
   }

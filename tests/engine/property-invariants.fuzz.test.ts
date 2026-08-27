@@ -3,6 +3,7 @@ import { GameEngine } from '../../src/engine/game';
 import { GameRulesBuilder, GameSettlementRule, Player, PlayerCount, Card } from '../../src/engine/types';
 import { getBotConfig } from '../../src/ai/bot-factory';
 import { CardTracker } from '../../src/ai/card-tracker';
+import { createBotPlayer, createBotPlayers } from '../../src/engine/player-factory';
 
 describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Biến 1000+ Ván Ngẫu Nhiên)', () => {
   const SETTLEMENT_RULES: readonly GameSettlementRule[] = [
@@ -24,20 +25,12 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
         .withGameFlow(g => g.prohibitEndingWithTwo(i % 2 === 0).threeSpadesEndingBonus(i % 3 === 0))
         .build();
 
-      const players: Player[] = Array.from({ length: playerCount }, (_, idx) => ({
-        id: `p${idx}`,
-        name: `Player ${idx}`,
-        avatar: '🤖',
-        isBot: true,
-        botPersonaId: `BOT_ELO_${1150 + idx * 200}`,
-        hand: [],
-        playedCards: [],
-        score: 10000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: false,
-        rankPosition: null,
-        instantWinType: null
-      }));
+      const players: Player[] = Array.from({ length: playerCount }, (_, idx) =>
+        createBotPlayer(`p${idx}`, `BOT_ELO_${1150 + idx * 200}`, {
+          name: `Player ${idx}`,
+          score: 10000
+        })
+      );
 
       const engine = new GameEngine(players, rules);
       engine.startNewGame(1);
@@ -63,20 +56,12 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
         .withGameFlow(g => g.prohibitEndingWithTwo(false).threeSpadesEndingBonus(false))
         .build();
 
-      const players: Player[] = Array.from({ length: 4 }, (_, idx) => ({
-        id: `p${idx}`,
-        name: `Bot ${idx}`,
-        avatar: '🤖',
-        isBot: true,
-        botPersonaId: null,
-        hand: [],
-        playedCards: [],
-        score: 0,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: false,
-        rankPosition: null,
-        instantWinType: null
-      }));
+      const players: Player[] = Array.from({ length: 4 }, (_, idx) =>
+        createBotPlayer(`p${idx}`, null, {
+          name: `Bot ${idx}`,
+          score: 0
+        })
+      );
 
       const engine = new GameEngine(players, rules);
       engine.startNewGame(1);
@@ -107,20 +92,12 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
         .withGameFlow(g => g.prohibitEndingWithTwo(true).threeSpadesEndingBonus(true))
         .build();
 
-      const players: Player[] = Array.from({ length: playerCount }, (_, idx) => ({
-        id: `p${idx}`,
-        name: `Bot ${idx}`,
-        avatar: '🤖',
-        isBot: true,
-        botPersonaId: 'BOT_ELO_1750',
-        hand: [],
-        playedCards: [],
-        score: 1000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: false,
-        rankPosition: null,
-        instantWinType: null
-      }));
+      const players: Player[] = Array.from({ length: playerCount }, (_, idx) =>
+        createBotPlayer(`p${idx}`, 'BOT_ELO_1750', {
+          name: `Bot ${idx}`,
+          score: 1000
+        })
+      );
 
       const engine = new GameEngine(players, rules);
       engine.startNewGame(1, undefined, 50000 + sim * 73);

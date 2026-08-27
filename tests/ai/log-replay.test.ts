@@ -5,20 +5,21 @@ import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { CardTracker } from '../../src/ai/card-tracker';
 import { replayTurnDecisionFromLog } from '../../src/ai/log-replayer';
 import { Card, createDefaultGameRules } from '../../src/engine/types';
+import { createBotPlayer } from '../../src/engine/player-factory';
 
 describe('Log Replay & Deterministic Test Reproduction', () => {
   test('1. Chạy 1 ván đấu thực tế, xuất MatchLogReport JSON, và Import lại vào bài test để tái hiện từng quyết định', () => {
     // 1. Khởi tạo một ván đấu giữa 4 Bot AI
     const rules = createDefaultGameRules();
     const players = [
-      { id: 'p0', name: 'Bot 1', avatar: '🤖', isBot: true, botPersonaId: 'BOT_ELO_1750', score: 0, elo: 1750, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
-      { id: 'p1', name: 'Bot 2', avatar: '🤖', isBot: true, botPersonaId: 'BOT_ELO_1900', score: 0, elo: 1900, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
-      { id: 'p2', name: 'Bot 3', avatar: '🤖', isBot: true, botPersonaId: 'BOT_ELO_2100', score: 0, elo: 2100, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
-      { id: 'p3', name: 'Bot 4', avatar: '🤖', isBot: true, botPersonaId: 'BOT_ELO_2300', score: 0, elo: 2300, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null }
+      createBotPlayer('p0', 'BOT_ELO_1750', { name: 'Bot 1', score: 0 }),
+      createBotPlayer('p1', 'BOT_ELO_1900', { name: 'Bot 2', score: 0 }),
+      createBotPlayer('p2', 'BOT_ELO_2100', { name: 'Bot 3', score: 0 }),
+      createBotPlayer('p3', 'BOT_ELO_2300', { name: 'Bot 4', score: 0 })
     ];
     const game = new GameEngine(players, rules);
 
-    game.startNewGame(1, 12345);
+    game.startNewGame(1, undefined, 12345);
 
     const trackers: Record<string, CardTracker> = {
       p0: new CardTracker(game.players[0].hand, 1.0),

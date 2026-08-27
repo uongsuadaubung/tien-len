@@ -222,7 +222,7 @@ export const BOT_LINEUP_PRESETS: BotLineupPreset[] = [
     id: 'NOVICE',
     name: 'Tân Thủ Nhập Môn',
     icon: '👶',
-    description: 'Tí Chuột, Tèo Bờ Rào, Bác Ba (Tier 1: Tân Thủ)',
+    description: 'Tí Chuột, Tèo Bờ Rào, Bác Ba (Tier 1: Sắt)',
     botIds: ['BOT_ELO_700', 'BOT_ELO_750', 'BOT_ELO_850']
   },
   {

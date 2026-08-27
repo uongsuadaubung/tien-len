@@ -5,6 +5,7 @@ import { calculateCountCardsSettlement, calculateWinnerTakesAllSettlement, calcu
 import { Player, createDefaultGameRules, GameRulesBuilder } from '../../src/engine/types';
 import { GameFlowRuleStrategyBuilder, RuleDecisionContext } from '../../src/ai/rule-strategies';
 import { CardTracker } from '../../src/ai/card-tracker';
+import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 
 describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)', () => {
   const card3S = createCard(3, 'SPADES');
@@ -15,62 +16,10 @@ describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)',
 
   function createTestPlayers(): Player[] {
     return [
-      {
-        id: 'p0',
-        name: 'Người Chơi',
-        avatar: '🤠',
-        isBot: false,
-        botPersonaId: null,
-        hand: [],
-        playedCards: [],
-        score: 10000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: true,
-        rankPosition: null,
-        instantWinType: null
-      },
-      {
-        id: 'p1',
-        name: 'Bot 1',
-        avatar: '🤖',
-        isBot: true,
-        botPersonaId: null,
-        hand: [],
-        playedCards: [],
-        score: 10000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: true,
-        rankPosition: null,
-        instantWinType: null
-      },
-      {
-        id: 'p2',
-        name: 'Bot 2',
-        avatar: '🤖',
-        isBot: true,
-        botPersonaId: null,
-        hand: [],
-        playedCards: [],
-        score: 10000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: true,
-        rankPosition: null,
-        instantWinType: null
-      },
-      {
-        id: 'p3',
-        name: 'Bot 3',
-        avatar: '🤖',
-        isBot: true,
-        botPersonaId: null,
-        hand: [],
-        playedCards: [],
-        score: 10000,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: true,
-        rankPosition: null,
-        instantWinType: null
-      }
+      createPlayer({ id: 'p0', name: 'Người Chơi', score: 10000, hasPlayedFirstCard: true }),
+      createBotPlayer('p1', null, { name: 'Bot 1', score: 10000, hasPlayedFirstCard: true }),
+      createBotPlayer('p2', null, { name: 'Bot 2', score: 10000, hasPlayedFirstCard: true }),
+      createBotPlayer('p3', null, { name: 'Bot 3', score: 10000, hasPlayedFirstCard: true })
     ];
   }
 

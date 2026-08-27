@@ -170,7 +170,7 @@ export function generateCandidateMoves(hand: Card[]): Card[][] {
   }
 
   // 2. Thuật toán tổng quát sinh các tổ hợp cùng Bậc (Rác k=1, Đôi k=2, Sám k=3, Tứ Quý k=4)
-  for (const [_, cards] of rankMap) {
+  for (const cards of rankMap.values()) {
     for (let k = 1; k <= cards.length; k++) {
       for (const subset of getCombinations(cards, k)) {
         candidates.push(subset);

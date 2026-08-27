@@ -107,10 +107,49 @@ describe('Validator & Beating Rules (Tiến Lên Miền Nam)', () => {
       const validStraight = parseCards('3S 4D 5C');
       const invalidStraight = parseCards('4S 5D 6C');
 
-      expect(isValidMove(validSingle, null, true, false).valid).toBe(true);
-      expect(isValidMove(invalidSingle, null, true, false).valid).toBe(false);
-      expect(isValidMove(validStraight, null, true, false).valid).toBe(true);
-      expect(isValidMove(invalidStraight, null, true, false).valid).toBe(false);
+      expect(isValidMove({
+        cards: validSingle,
+        target: null,
+        isFirstMoveOfGame: true,
+        isLeadMove: false,
+        hasPassedRound: false,
+        allowFourPairsCutAnytime: true,
+        isFinishingMove: false,
+        prohibitEndingWithTwo: false
+      }).valid).toBe(true);
+
+      expect(isValidMove({
+        cards: invalidSingle,
+        target: null,
+        isFirstMoveOfGame: true,
+        isLeadMove: false,
+        hasPassedRound: false,
+        allowFourPairsCutAnytime: true,
+        isFinishingMove: false,
+        prohibitEndingWithTwo: false
+      }).valid).toBe(false);
+
+      expect(isValidMove({
+        cards: validStraight,
+        target: null,
+        isFirstMoveOfGame: true,
+        isLeadMove: false,
+        hasPassedRound: false,
+        allowFourPairsCutAnytime: true,
+        isFinishingMove: false,
+        prohibitEndingWithTwo: false
+      }).valid).toBe(true);
+
+      expect(isValidMove({
+        cards: invalidStraight,
+        target: null,
+        isFirstMoveOfGame: true,
+        isLeadMove: false,
+        hasPassedRound: false,
+        allowFourPairsCutAnytime: true,
+        isFinishingMove: false,
+        prohibitEndingWithTwo: false
+      }).valid).toBe(false);
     });
   });
 });

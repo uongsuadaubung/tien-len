@@ -2,7 +2,9 @@ import { create } from 'zustand';
 import { GameSpeedMode } from '../engine/game-speed';
 import { dbGetGameSettings, dbSaveGameSettings } from '../engine/db/indexed-db';
 
-export interface SavedSettings {
+import type { GithubUser } from '../engine/sync/types';
+
+export interface SavedSettings extends Record<string, unknown> {
   soundEnabled: boolean;
   autoSortEnabled: boolean;
   aiHintEnabled: boolean;
@@ -10,6 +12,11 @@ export interface SavedSettings {
   xrayEnabled: boolean;
   botReasoningLogEnabled: boolean;
   gameSpeed: GameSpeedMode;
+  githubToken: string;
+  gistId: string;
+  lastSync: number;
+  lastSyncedHash: string;
+  cachedGithubUser: GithubUser | null;
 }
 
 const DEFAULT_SETTINGS: SavedSettings = {
@@ -19,7 +26,12 @@ const DEFAULT_SETTINGS: SavedSettings = {
   quickResponseAssistEnabled: false,
   xrayEnabled: false,
   botReasoningLogEnabled: false,
-  gameSpeed: 'REALISTIC'
+  gameSpeed: 'REALISTIC',
+  githubToken: '',
+  gistId: '',
+  lastSync: 0,
+  lastSyncedHash: '',
+  cachedGithubUser: null
 };
 
 function persistSettings(state: SettingsState): void {
@@ -30,7 +42,12 @@ function persistSettings(state: SettingsState): void {
     quickResponseAssistEnabled: state.quickResponseAssistEnabled,
     xrayEnabled: state.xrayEnabled,
     botReasoningLogEnabled: state.botReasoningLogEnabled,
-    gameSpeed: state.gameSpeed
+    gameSpeed: state.gameSpeed,
+    githubToken: state.githubToken,
+    gistId: state.gistId,
+    lastSync: state.lastSync,
+    lastSyncedHash: state.lastSyncedHash,
+    cachedGithubUser: state.cachedGithubUser
   };
 
   dbSaveGameSettings(data).catch(() => {});
@@ -44,6 +61,11 @@ interface SettingsState {
   xrayEnabled: boolean;
   botReasoningLogEnabled: boolean;
   gameSpeed: GameSpeedMode;
+  githubToken: string;
+  gistId: string;
+  lastSync: number;
+  lastSyncedHash: string;
+  cachedGithubUser: GithubUser | null;
 
   // Actions
   toggleSound: () => void;
@@ -59,6 +81,11 @@ interface SettingsState {
   setXRayEnabled: (enabled: boolean) => void;
   setBotReasoningLogEnabled: (enabled: boolean) => void;
   setGameSpeed: (speed: GameSpeedMode) => void;
+  setGithubToken: (token: string) => void;
+  setCachedGithubUser: (user: GithubUser | null) => void;
+  setGistId: (id: string) => void;
+  setLastSyncRecord: (timestamp: number, hash: string) => void;
+  clearGithubAuth: () => void;
   hydrateSettings: (settings: Partial<SavedSettings>) => void;
 }
 
@@ -72,6 +99,11 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   xrayEnabled: initial.xrayEnabled,
   botReasoningLogEnabled: initial.botReasoningLogEnabled,
   gameSpeed: initial.gameSpeed,
+  githubToken: initial.githubToken,
+  gistId: initial.gistId,
+  lastSync: initial.lastSync,
+  lastSyncedHash: initial.lastSyncedHash,
+  cachedGithubUser: initial.cachedGithubUser,
 
   hydrateSettings: (settings) => set((state) => ({ ...state, ...settings })),
 
@@ -140,12 +172,44 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     const next = { ...state, gameSpeed: speed };
     persistSettings(next);
     return next;
+  }),
+  setGithubToken: (token) => set((state) => {
+    const next = { ...state, githubToken: token };
+    persistSettings(next);
+    return next;
+  }),
+  setCachedGithubUser: (user) => set((state) => {
+    const next = { ...state, cachedGithubUser: user };
+    persistSettings(next);
+    return next;
+  }),
+  setGistId: (id) => set((state) => {
+    const next = { ...state, gistId: id };
+    persistSettings(next);
+    return next;
+  }),
+  setLastSyncRecord: (timestamp, hash) => set((state) => {
+    const next = { ...state, lastSync: timestamp, lastSyncedHash: hash };
+    persistSettings(next);
+    return next;
+  }),
+  clearGithubAuth: () => set((state) => {
+    const next = {
+      ...state,
+      githubToken: '',
+      gistId: '',
+      lastSync: 0,
+      lastSyncedHash: '',
+      cachedGithubUser: null
+    };
+    persistSettings(next);
+    return next;
   })
 }));
 
 // Khởi động đồng bộ settings từ IndexedDB
 if (typeof window !== 'undefined') {
-  dbGetGameSettings<SavedSettings>().then((settings) => {
+  dbGetGameSettings().then((settings) => {
     if (settings) {
       useSettingsStore.getState().hydrateSettings(settings);
     }

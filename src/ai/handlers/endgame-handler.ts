@@ -28,8 +28,9 @@ export class EndgameSolverHandler extends BotDecisionHandler {
     }
 
     // 2. MINIMAX ALPHA-BETA ENDGAME SOLVER (Kích hoạt cho Bot Cao Thủ Tier 7, 8, 9 hoặc khi cờ tàn hẹp)
-    const activeOpponents = Object.entries(remainingPlayerCards).filter(([pid, count]) => pid !== config.id && count > 0);
-    const totalOpponentCards = activeOpponents.reduce((sum, [_, cnt]) => sum + cnt, 0);
+    const totalOpponentCards = Object.entries(remainingPlayerCards)
+      .filter(([pid, count]) => pid !== config.id && count > 0)
+      .reduce((sum, entry) => sum + entry[1], 0);
 
     if ((config.useMinimaxEndgame || config.elo >= 2400) && hand.length <= 5 && totalOpponentCards <= 8) {
       const unseenCards = tracker.getUnseenCards();

@@ -1,3 +1,4 @@
+import { getTierFromElo } from "../engine/ecosystem/ecosystem-types";
 import { BotConfig } from "./types";
 
 type BotPersonaRaw = Omit<BotConfig, 'name' | 'avatar' | 'useMinimaxEndgame' | 'useBayesianInference' | 'useNashEquilibrium' | 'useDynamicRepartitioning'> & {
@@ -15,7 +16,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   // ==========================================
   BOT_ELO_700: {
     id: 'BOT_ELO_700',
-    tier: 'Tier 1: Tân Thủ',
     elo: 700,
     description: 'Chơi ngây thơ hồn nhiên, có bài gì nhỏ nhất đánh nấy, không nhớ bài.',
     memoryDepth: 0.05,
@@ -37,7 +37,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_750: {
     id: 'BOT_ELO_750',
-    tier: 'Tier 1: Tân Thủ',
     elo: 750,
     description: 'Tân binh mới vào sới, đánh bài theo bản năng.',
     memoryDepth: 0.1,
@@ -59,7 +58,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_850: {
     id: 'BOT_ELO_850',
-    tier: 'Tier 1: Rookie',
     elo: 850,
     description: 'Chơi ngây thơ hồn nhiên, có bài gì nhỏ nhất đánh nấy, không nhớ bài.',
     memoryDepth: 0.1,
@@ -81,7 +79,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_900: {
     id: 'BOT_ELO_900',
-    tier: 'Tier 1: Rookie',
     elo: 900,
     description: 'Thích đánh bài lẻ loi, ít khi gom được sảnh dài.',
     memoryDepth: 0.15,
@@ -103,7 +100,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_950: {
     id: 'BOT_ELO_950',
-    tier: 'Tier 1: Rookie',
     elo: 950,
     description: 'Đánh cẩn thận nhưng hay quên bài đã đánh.',
     memoryDepth: 0.2,
@@ -125,7 +121,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_1000: {
     id: 'BOT_ELO_1000',
-    tier: 'Tier 1: Rookie',
     elo: 1000,
     description: 'Bắt đầu biết gom đôi và sảnh nhỏ.',
     memoryDepth: 0.25,
@@ -147,11 +142,10 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
 
   // ==========================================
-  // TIER 2: PHONG TRÀO / CHALLENGER (ELO 1150 - 1350)
+  // TIER 2: ĐỒNG (ELO 1150)
   // ==========================================
   BOT_ELO_1150: {
     id: 'BOT_ELO_1150',
-    tier: 'Tier 2: Challenger',
     elo: 1150,
     description: 'Thích xả Heo lớn để giành quyền đi đầu sớm, hay bị chặt đè ngược.',
     memoryDepth: 0.4,
@@ -173,7 +167,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_1200: {
     id: 'BOT_ELO_1200',
-    tier: 'Tier 2: Challenger',
     elo: 1200,
     description: 'Chơi ngẫu hứng, có bài là đè không cần tính toán lượt sau.',
     memoryDepth: 0.4,
@@ -195,7 +188,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_1250: {
     id: 'BOT_ELO_1250',
-    tier: 'Tier 2: Challenger',
     elo: 1250,
     description: 'Phong cách phóng khoáng, thích đè Heo bằng bộ to.',
     memoryDepth: 0.45,
@@ -217,7 +209,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_1350: {
     id: 'BOT_ELO_1350',
-    tier: 'Tier 2: Challenger',
     elo: 1350,
     description: 'Biết canh me lúc đối thủ sơ hở để xả rác.',
     memoryDepth: 0.5,
@@ -239,11 +230,10 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
 
   // ==========================================
-  // TIER 3: KINH NGHIỆM / VETERAN (ELO 1450 - 1650)
+  // TIER 4: VÀNG (ELO 1450 - 1650)
   // ==========================================
   BOT_ELO_1450: {
     id: 'BOT_ELO_1450',
-    tier: 'Tier 3: Veteran',
     elo: 1450,
     description: 'Giữ Heo rất chặt, ưu tiên xả hết rác, kiên nhẫn rình bẫy Hàng.',
     memoryDepth: 0.75,
@@ -265,7 +255,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_1550: {
     id: 'BOT_ELO_1550',
-    tier: 'Tier 3: Veteran',
     elo: 1550,
     description: 'Chuyên gia ém Hàng quý, thích đánh mồi Át/K để câu Heo đối thủ.',
     memoryDepth: 0.8,
@@ -287,7 +276,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_1600: {
     id: 'BOT_ELO_1600',
-    tier: 'Tier 3: Veteran',
     elo: 1600,
     description: 'Rất giỏi nhớ Heo, chỉ rình Heo Đỏ của đối thủ để xả bài đè chết.',
     memoryDepth: 0.85,
@@ -309,7 +297,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_1650: {
     id: 'BOT_ELO_1650',
-    tier: 'Tier 3: Veteran',
     elo: 1650,
     description: 'Lối đánh điềm đạm, biết nhử đối thủ ra bài lớn trước.',
     memoryDepth: 0.85,
@@ -331,11 +318,10 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
 
   // ==========================================
-  // TIER 4: CAO THỦ / MASTER (ELO 1750 - 1950)
+  // TIER 5: BẠCH KIM (ELO 1750 - 1950)
   // ==========================================
   BOT_ELO_1750: {
     id: 'BOT_ELO_1750',
-    tier: 'Tier 4: Master',
     elo: 1750,
     description: 'Đếm bài chuẩn xác 100%, tính toán xác suất, chuyên gia săn Heo.',
     memoryDepth: 0.95,
@@ -357,7 +343,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_1850: {
     id: 'BOT_ELO_1850',
-    tier: 'Tier 4: Master',
     elo: 1850,
     description: 'Tính toán số nhịp về bài tối ưu, chuyên gia nhốt đối thủ gần về nhất.',
     memoryDepth: 0.95,
@@ -379,7 +364,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_1900: {
     id: 'BOT_ELO_1900',
-    tier: 'Tier 4: Master',
     elo: 1900,
     description: 'Mô hình hóa thế bài bằng xác suất, không bao giờ đánh thừa lá.',
     memoryDepth: 0.95,
@@ -401,7 +385,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_1950: {
     id: 'BOT_ELO_1950',
-    tier: 'Tier 4: Master',
     elo: 1950,
     description: 'Kiểm soát nhịp độ bàn chơi, ép đối thủ xả bài to đúng kế hoạch.',
     memoryDepth: 0.95,
@@ -423,11 +406,10 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
 
   // ==========================================
-  // TIER 5: ĐẠI CAO THỦ / MYTHIC (ELO 2050 - 2500)
+  // TIER 6: KIM CƯƠNG (ELO 2050 - 2300)
   // ==========================================
   BOT_ELO_2050: {
     id: 'BOT_ELO_2050',
-    tier: 'Tier 5: Mythic',
     elo: 2050,
     description: 'Có bài to là đè liền tay, thích áp đảo thế trận liên tục cướp cái.',
     memoryDepth: 1.0,
@@ -449,7 +431,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_2150: {
     id: 'BOT_ELO_2150',
-    tier: 'Tier 5: Mythic',
     elo: 2150,
     description: 'Đoán chính xác 95% bài đối thủ, khai thác triệt để mọi điểm mù.',
     memoryDepth: 1.0,
@@ -471,7 +452,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_2300: {
     id: 'BOT_ELO_2300',
-    tier: 'Tier 5: Mythic',
     elo: 2300,
     description: 'Chế độ Max Cấu Hình: Kiểm soát nhịp độ, bẫy Heo hoàn hảo, không để lại sơ hở.',
     memoryDepth: 1.0,
@@ -493,7 +473,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_2500: {
     id: 'BOT_ELO_2500',
-    tier: 'Tier 7: Đại Cao Thủ',
     elo: 2500,
     description: 'Trí tuệ nhân tạo tối cao: Đọc vị đối thủ, giữ bài bọc lót hoàn hảo, dứt điểm cờ tàn chuẩn xác.',
     memoryDepth: 1.0,
@@ -515,7 +494,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_2750: {
     id: 'BOT_ELO_2750',
-    tier: 'Tier 8: Thần Bài',
     elo: 2750,
     description: 'Thần bài cờ tàn: Vét cạn Minimax Alpha-Beta tìm chuỗi Forced-Win tất thắng.',
     memoryDepth: 1.0,
@@ -539,7 +517,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_3200: {
     id: 'BOT_ELO_3200',
-    tier: 'Tier 9: Siêu Trí Tuệ',
     elo: 3200,
     description: 'BOSS Alpha Mind: Hợp nhất toàn bộ siêu thuật toán, tính toán xác suất Bayes và cờ tàn hoàn hảo.',
     memoryDepth: 1.0,
@@ -687,7 +664,7 @@ export const GLOBAL_AVATARS = [
   '🎲', '⚡', '🌪️', '🔥', '🛡️', '⚔️', '💎', '👓'
 ];
 
-export const TIER_BASE_PERSONAS: Record<number, string[]> = {
+export const TIER_BASE_PERSONAS: Record<number, (keyof typeof BOT_PERSONAS)[]> = {
   1: ['BOT_ELO_700', 'BOT_ELO_750'],
   2: ['BOT_ELO_950', 'BOT_ELO_1000', 'BOT_ELO_1150'],
   3: ['BOT_ELO_1200', 'BOT_ELO_1250', 'BOT_ELO_1350'],
@@ -747,15 +724,16 @@ export function generateRandomBotConfig(
     id: `dyn_${chosenBaseId}_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
     name: generatedName,
     avatar: chosenAvatar,
-    description: `Đấu thủ Bậc ${baseConfig.tier}. Lối đánh chiến thuật, độc lập.`
+    description: `Đấu thủ Bậc ${getTierFromElo(baseConfig.elo).label}. Lối đánh chiến thuật, độc lập.`
   };
 }
 
 /**
- * Trả về nhãn định danh chuẩn hóa cho Persona (ví dụ: "Tier 1: Rookie (Elo 850)")
+ * Trả về nhãn định danh chuẩn hóa cho Persona (ví dụ: "Tier 1: Sắt (Elo 750)")
  */
 export function getBotArchetypeLabel(config: BotConfig): string {
-  return `${config.tier || 'Đấu Thủ'} (Elo ${config.elo || 1000})`;
+  const tierInfo = getTierFromElo(config.elo || 1000);
+  return `${tierInfo.tier} (Elo ${config.elo || 1000})`;
 }
 
 /**

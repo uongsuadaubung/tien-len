@@ -18,7 +18,6 @@ import {
   Edit2,
   BookOpen,
   ArrowRight,
-  Users,
   Newspaper
 } from 'lucide-react';
 import { Button, Badge, Card, SectionHeader } from '../primitives';
@@ -91,9 +90,9 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
 
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="font-bold text-sm sm:text-base text-[var(--text-primary)] tracking-wide group-hover:text-[var(--color-gold)] flex items-center gap-1.5 transition-colors">
+              <h2 className="font-bold text-sm sm:text-base text-[var(--text-primary)] tracking-wide group-hover:text-[var(--color-gold)] inline-flex items-center gap-1.5 transition-colors">
                 <span>{profile.name || 'Chưa Đặt Tên'}</span>
-                <Edit2 className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-[var(--color-gold)]" />
+                <Edit2 className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-[var(--color-gold)] shrink-0" />
               </h2>
             </div>
 

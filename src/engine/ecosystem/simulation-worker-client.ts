@@ -15,7 +15,7 @@ let workerInstance: Worker | null = null;
 function getOrCreateWorker(): Worker | null {
   if (typeof Worker === 'undefined') return null;
   // Trong môi trường test runner (Node / Bun test), chạy inline để đạt độ trễ 0ms tức thì
-  if (typeof process !== 'undefined' && (process.env?.NODE_ENV === 'test' || (globalThis as any).Bun)) {
+  if (typeof process !== 'undefined' && (process.env?.NODE_ENV === 'test' || 'Bun' in globalThis)) {
     return null;
   }
 

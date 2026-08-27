@@ -14,26 +14,26 @@ export interface RankTierInfo {
 
 export const RANK_TIERS: RankTierInfo[] = [
   {
-    id: 'WOOD',
-    name: 'Tân Thủ',
-    badge: '🪵',
+    id: 'IRON',
+    name: 'Sắt',
+    badge: '⚙️',
     minElo: 0,
     maxElo: 899,
-    color: '#8B5A2B',
-    description: 'Bậc khởi đầu dành cho người mới làm quen với sới bạc.'
+    color: '#71717A',
+    description: 'Bậc khởi đầu cho người mới, làm quen thao tác và luật bài cơ bản.'
   },
   {
     id: 'BRONZE',
-    name: 'Tập Sự',
+    name: 'Đồng',
     badge: '🥉',
     minElo: 900,
     maxElo: 1199,
     color: '#CD7F32',
-    description: 'Nắm vững luật cơ bản, bắt đầu biết xả rác và giữ Heo an toàn.'
+    description: 'Nắm vững luật cơ bản, bắt đầu biết tẩu rác và giữ Heo an toàn.'
   },
   {
     id: 'SILVER',
-    name: 'Phong Trào',
+    name: 'Bạc',
     badge: '🥈',
     minElo: 1200,
     maxElo: 1499,
@@ -42,7 +42,7 @@ export const RANK_TIERS: RankTierInfo[] = [
   },
   {
     id: 'GOLD',
-    name: 'Lão Luyện',
+    name: 'Vàng',
     badge: '🥇',
     minElo: 1500,
     maxElo: 1799,
@@ -51,16 +51,16 @@ export const RANK_TIERS: RankTierInfo[] = [
   },
   {
     id: 'PLATINUM',
-    name: 'Tinh Anh',
+    name: 'Bạch Kim',
     badge: '💎',
     minElo: 1800,
     maxElo: 2099,
-    color: '#E5E4E2',
+    color: '#00FA9A',
     description: 'Bán chuyên đẳng cấp, nhớ trọn 52 lá và tung hỏa mù CFR Bluffing.'
   },
   {
     id: 'DIAMOND',
-    name: 'Cao Thủ',
+    name: 'Kim Cương',
     badge: '🔮',
     minElo: 2100,
     maxElo: 2399,
@@ -69,30 +69,30 @@ export const RANK_TIERS: RankTierInfo[] = [
   },
   {
     id: 'MASTER',
-    name: 'Đại Cao Thủ',
+    name: 'Cao Thủ',
     badge: '👑',
     minElo: 2400,
     maxElo: 2699,
-    color: '#FF4500',
+    color: '#DA70D6',
     description: 'Đỉnh cao suy luận, dùng xác suất Bayes đoán chính xác 85% bài ẩn của đối thủ.'
   },
   {
     id: 'GRANDMASTER',
-    name: 'Thần Bài Huyền Thoại',
+    name: 'Đại Cao Thủ',
     badge: '🌌',
     minElo: 2700,
     maxElo: 2999,
-    color: '#9932CC',
+    color: '#FF4500',
     description: 'Khắc tinh cờ tàn, vét cạn Minimax Alpha-Beta tìm chuỗi Forced-Win tất thắng.'
   },
   {
     id: 'CHALLENGER',
-    name: 'Siêu Trí Tuệ Vô Địch',
+    name: 'Thách Đấu',
     badge: '⚡',
     minElo: 3000,
     maxElo: 9999,
-    color: '#FFD700',
-    description: 'Trùm cuối siêu AI (Alpha Mind, Zero Defeat), hoàn hảo không tì vết.'
+    color: '#F59E0B',
+    description: 'Trùm cuối siêu AI (Alpha Mind, Zero Defeat), đỉnh cao thế giới.'
   }
 ];
 

@@ -6,7 +6,6 @@ export interface BotConfig {
   name: string | null;
   avatar: string | null;
   description: string;
-  tier: string;                        // 'Tier 1: Tập Sự' | 'Tier 2: Phong Trào' | 'Tier 3: Kinh Nghiệm' | 'Tier 4: Cao Thủ' | 'Tier 5: Thần Bài'
   elo: number;                         // Điểm Elo ước tính (850 -> 2500)
   memoryDepth: number;                 // 0.0 (không nhớ) -> 1.0 (nhớ 100% mọi lá đã ra)
   riskAppetite: number;                // 0.0 (thận trọng giữ bài) -> 1.0 (hổ báo xả bài to)

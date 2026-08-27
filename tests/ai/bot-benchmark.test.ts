@@ -1,18 +1,20 @@
 import { describe, expect, test } from 'bun:test';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
+import { getTierFromElo } from '../../src/engine/ecosystem/ecosystem-types';
 import { CardTracker } from '../../src/ai/card-tracker';
 import { makeBotDecision } from '../../src/ai/decision-maker';
 import { GameEngine } from '../../src/engine/game';
 import { Player, createDefaultGameRules } from '../../src/engine/types';
+import { createBotPlayer } from '../../src/engine/player-factory';
 import { parseCards } from '../../src/engine/card';
 
 describe('AI Bot Benchmark Simulation & Latency Across 9 Tiers', () => {
   test('Mô phỏng 100 ván đấu công bằng với Luân Chuyển Vị Trí Ghế Ngồi (Rotated Seating Fairness)', () => {
     const rawBots = [
-      { id: 'b1', name: 'Alex (Tier 1 Tân Thủ - 700)', config: BOT_PERSONAS.BOT_ELO_700 },
-      { id: 'b2', name: 'Rex (Tier 3 Phong Trào - 1250)', config: BOT_PERSONAS.BOT_ELO_1250 },
-      { id: 'b3', name: 'Nova (Tier 7 Đại Cao Thủ - 2300)', config: BOT_PERSONAS.BOT_ELO_2300 },
-      { id: 'b4', name: 'Alpha Mind (Tier 9 Boss - 3200)', config: BOT_PERSONAS.BOT_ELO_3200 }
+      { id: 'b1', name: 'Alex (Tier 1 Sắt - 700)', config: BOT_PERSONAS.BOT_ELO_700 },
+      { id: 'b2', name: 'Rex (Tier 3 Bạc - 1250)', config: BOT_PERSONAS.BOT_ELO_1250 },
+      { id: 'b3', name: 'Nova (Tier 6 Kim Cương - 2300)', config: BOT_PERSONAS.BOT_ELO_2300 },
+      { id: 'b4', name: 'Alpha Mind (Tier 9 Thách Đấu - 3200)', config: BOT_PERSONAS.BOT_ELO_3200 }
     ];
 
     const winCounts: Record<string, number> = { b1: 0, b2: 0, b3: 0, b4: 0 };
@@ -28,20 +30,13 @@ describe('AI Bot Benchmark Simulation & Latency Across 9 Tiers', () => {
         rawBots[(seatOffset + 3) % 4]
       ];
 
-      const players: Player[] = rotatedBots.map(b => ({
-        id: b.id,
-        name: b.name,
-        avatar: b.config.avatar || '🤖',
-        isBot: true,
-        botPersonaId: b.config.id || null,
-        hand: [],
-        playedCards: [],
-        score: 0,
-        isPassedCurrentRound: false,
-        hasPlayedFirstCard: false,
-        rankPosition: null,
-        instantWinType: null
-      }));
+      const players: Player[] = rotatedBots.map(b =>
+        createBotPlayer(b.id, b.config.id || null, {
+          name: b.name,
+          avatar: b.config.avatar || '🤖',
+          score: 0
+        })
+      );
 
       const game = new GameEngine(players, { mode: 'COUNT_CARDS', betAmount: 100 });
       const initRes = game.startNewGame(g, undefined, 99999 + g * 3001);
@@ -181,7 +176,7 @@ describe('AI Bot Benchmark Simulation & Latency Across 9 Tiers', () => {
       const totalTime = performance.now() - start;
       const avgLatencyMs = totalTime / ITERATIONS;
 
-      console.log(`[Tier ${bot.tier || 'N/A'}] ${bot.name} (Elo ${bot.elo}): ${avgLatencyMs.toFixed(2)} ms/nước đi`);
+      console.log(`[Tier ${getTierFromElo(bot.elo).label}] ${bot.name} (Elo ${bot.elo}): ${avgLatencyMs.toFixed(2)} ms/nước đi`);
 
       // Độ trễ ra quyết định phải < 60ms cho mọi bậc rank để không gây lag giao diện
       expect(avgLatencyMs).toBeLessThan(60);

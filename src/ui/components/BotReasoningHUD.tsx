@@ -23,7 +23,7 @@ export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
   isOpen,
   onToggle,
   gameNumber,
-  betAmount: _betAmount,
+  betAmount,
   isDealing
 }) => {
   const [turns, setTurns] = useState<MatchTurnLogEntry[]>([]);
@@ -104,6 +104,9 @@ export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
             </span>
             <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono font-bold">
               Ván #{gameNumber}
+            </span>
+            <span className="px-1.5 py-0.2 rounded bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 text-[9px] font-mono font-bold">
+              💰 {betAmount.toLocaleString()} Xu
             </span>
           </div>
 

@@ -15,6 +15,7 @@ import { CampaignChapter } from '../engine/campaign';
 import { MoveHint } from '../ai/hint-engine';
 import { ECONOMY_CONSTANTS } from '../engine/constants/economy';
 import { MatchLogReport } from '../engine/match-logger';
+import { createPlayer, createBotPlayer } from '../engine/player-factory';
 
 export type ActiveGameType = 'QUICK' | 'CAMPAIGN';
 export type ScreenType = 'LOBBY' | 'GAME_TABLE';
@@ -122,62 +123,27 @@ interface GameState {
 }
 
 const DEFAULT_PLAYERS: Player[] = [
-  {
+  createPlayer({
     id: 'p0',
     name: 'Bạn (Người Chơi)',
     avatar: '🤠',
-    isBot: false,
-    botPersonaId: null,
-    hand: [],
-    playedCards: [],
-    score: ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS,
-    isPassedCurrentRound: false,
-    hasPlayedFirstCard: false,
-    rankPosition: null,
-    instantWinType: null
-  },
-  {
-    id: 'p1',
+    score: ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS
+  }),
+  createBotPlayer('p1', 'BOT_ELO_850', {
     name: 'Alex',
     avatar: '🧒',
-    isBot: true,
-    botPersonaId: 'BOT_ELO_850',
-    hand: [],
-    playedCards: [],
-    score: 4850,
-    isPassedCurrentRound: false,
-    hasPlayedFirstCard: false,
-    rankPosition: null,
-    instantWinType: null
-  },
-  {
-    id: 'p2',
+    score: 4850
+  }),
+  createBotPlayer('p2', 'BOT_ELO_1150', {
     name: 'Kai',
     avatar: '🤠',
-    isBot: true,
-    botPersonaId: 'BOT_ELO_1150',
-    hand: [],
-    playedCards: [],
-    score: 8200,
-    isPassedCurrentRound: false,
-    hasPlayedFirstCard: false,
-    rankPosition: null,
-    instantWinType: null
-  },
-  {
-    id: 'p3',
+    score: 8200
+  }),
+  createBotPlayer('p3', 'BOT_ELO_1450', {
     name: 'Marcus',
     avatar: '👴',
-    isBot: true,
-    botPersonaId: 'BOT_ELO_1450',
-    hand: [],
-    playedCards: [],
-    score: 16500,
-    isPassedCurrentRound: false,
-    hasPlayedFirstCard: false,
-    rankPosition: null,
-    instantWinType: null
-  }
+    score: 16500
+  })
 ];
 
 const DEFAULT_GAME_RULES: GameRules = createDefaultGameRules();

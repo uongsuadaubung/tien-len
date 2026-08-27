@@ -40,16 +40,16 @@ export function getSortedQuickSelectCandidates(context: QuickSelectContext): Qui
   // Lọc các tổ hợp hợp lệ theo luật chơi
   for (const cards of rawCandidateCards) {
     const isFinishing = cards.length === hand.length;
-    const valResult = isValidMove(
+    const valResult = isValidMove({
       cards,
-      targetCombo,
+      target: targetCombo,
       isFirstMoveOfGame,
       isLeadMove,
-      false,
+      hasPassedRound: false,
       allowFourPairsCutAnytime,
-      isFinishing,
+      isFinishingMove: isFinishing,
       prohibitEndingWithTwo
-    );
+    });
 
     if (valResult.valid && valResult.combination) {
       validCandidates.push({

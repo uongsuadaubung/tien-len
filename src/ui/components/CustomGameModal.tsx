@@ -114,12 +114,6 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
     ]);
   };
 
-  const handleApplyBalancedAll = () => {
-    const shuffled = ['BOT_ELO_950', 'BOT_ELO_1150', 'BOT_ELO_1450', 'BOT_ELO_1750'].sort(() => Math.random() - 0.5);
-    setBotPersonaIds([shuffled[0] || 'BOT_ELO_850', shuffled[1] || 'BOT_ELO_1150', shuffled[2] || 'BOT_ELO_1450']);
-    setCustomBotConfigs([{}, {}, {}]);
-  };
-
   const handleRandomizeBots = () => {
     const personaKeys = Object.keys(BOT_PERSONAS);
     const shuffled = [...personaKeys].sort(() => 0.5 - Math.random());
@@ -130,7 +124,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
     setBotPersonaIds(updateTupleAt(botPersonaIds, seatIndex, personaId));
   };
 
-  const handleSliderChange = (field: keyof BotConfig, value: number) => {
+  const handleConfigChange = <K extends keyof BotConfig>(field: K, value: BotConfig[K]) => {
     setCustomBotConfigs(prev => {
       const current = prev[activeBotSeatIndex] || {};
       const updated = { ...current, [field]: value };
@@ -433,7 +427,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
                 max={100}
                 step={5}
                 value={currentConfig.mctsSimulations || 0}
-                onChange={(e) => handleSliderChange('mctsSimulations', parseInt(e.target.value, 10))}
+                onChange={(e) => handleConfigChange('mctsSimulations', parseInt(e.target.value, 10))}
                 className="w-full accent-[var(--color-gold)] cursor-pointer"
               />
               <div className="text-[10px] text-[var(--text-muted)]">Mô phỏng trước các nhánh rẽ tương lai để tìm nước tối ưu</div>
@@ -451,7 +445,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
                 max={1}
                 step={0.05}
                 value={currentConfig.memoryDepth || 0}
-                onChange={(e) => handleSliderChange('memoryDepth', parseFloat(e.target.value))}
+                onChange={(e) => handleConfigChange('memoryDepth', parseFloat(e.target.value))}
                 className="w-full accent-[var(--color-gold)] cursor-pointer"
               />
               <div className="text-[10px] text-[var(--text-muted)]">Tỷ lệ nhớ các lá bài đã đánh, Heo và Hàng trên bàn</div>
@@ -469,7 +463,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
                 max={1}
                 step={0.05}
                 value={currentConfig.tempoControl || 0}
-                onChange={(e) => handleSliderChange('tempoControl', parseFloat(e.target.value))}
+                onChange={(e) => handleConfigChange('tempoControl', parseFloat(e.target.value))}
                 className="w-full accent-[var(--color-gold)] cursor-pointer"
               />
               <div className="text-[10px] text-[var(--text-muted)]">Quyết định xả rác nhanh hay ém bài chém Heo</div>
@@ -487,7 +481,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
                 max={1}
                 step={0.05}
                 value={currentConfig.baitingTendency || 0}
-                onChange={(e) => handleSliderChange('baitingTendency', parseFloat(e.target.value))}
+                onChange={(e) => handleConfigChange('baitingTendency', parseFloat(e.target.value))}
                 className="w-full accent-[var(--color-gold)] cursor-pointer"
               />
               <div className="text-[10px] text-[var(--text-muted)]">Đánh bài lẻ cao để lừa đối phương chém Heo vào bẫy Hàng</div>
@@ -505,7 +499,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
                 max={1}
                 step={0.05}
                 value={currentConfig.damageControl || 0}
-                onChange={(e) => handleSliderChange('damageControl', parseFloat(e.target.value))}
+                onChange={(e) => handleConfigChange('damageControl', parseFloat(e.target.value))}
                 className="w-full accent-[var(--color-gold)] cursor-pointer"
               />
               <div className="text-[10px] text-[var(--text-muted)]">Tẩu thoát bài sớm để giảm số lá phạt khi khó tranh Nhất</div>
@@ -523,7 +517,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
                 max={1}
                 step={0.05}
                 value={currentConfig.antiLeaderAggression || 0}
-                onChange={(e) => handleSliderChange('antiLeaderAggression', parseFloat(e.target.value))}
+                onChange={(e) => handleConfigChange('antiLeaderAggression', parseFloat(e.target.value))}
                 className="w-full accent-[var(--color-gold)] cursor-pointer"
               />
               <div className="text-[10px] text-[var(--text-muted)]">Quyết liệt chặn đối thủ còn ít bài để giữ thế trận</div>
@@ -544,7 +538,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
                   <input
                     type="checkbox"
                     checked={Boolean(currentConfig.useMinimaxEndgame)}
-                    onChange={(e) => handleSliderChange('useMinimaxEndgame' as any, e.target.checked as any)}
+                    onChange={(e) => handleConfigChange('useMinimaxEndgame', e.target.checked)}
                     className="w-4 h-4 accent-[var(--color-gold)] cursor-pointer"
                   />
                 </label>
@@ -558,7 +552,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
                   <input
                     type="checkbox"
                     checked={Boolean(currentConfig.useBayesianInference)}
-                    onChange={(e) => handleSliderChange('useBayesianInference' as any, e.target.checked as any)}
+                    onChange={(e) => handleConfigChange('useBayesianInference', e.target.checked)}
                     className="w-4 h-4 accent-[var(--color-gold)] cursor-pointer"
                   />
                 </label>
@@ -572,7 +566,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
                   <input
                     type="checkbox"
                     checked={Boolean(currentConfig.useNashEquilibrium)}
-                    onChange={(e) => handleSliderChange('useNashEquilibrium' as any, e.target.checked as any)}
+                    onChange={(e) => handleConfigChange('useNashEquilibrium', e.target.checked)}
                     className="w-4 h-4 accent-[var(--color-gold)] cursor-pointer"
                   />
                 </label>
@@ -586,7 +580,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
                   <input
                     type="checkbox"
                     checked={Boolean(currentConfig.useDynamicRepartitioning)}
-                    onChange={(e) => handleSliderChange('useDynamicRepartitioning' as any, e.target.checked as any)}
+                    onChange={(e) => handleConfigChange('useDynamicRepartitioning', e.target.checked)}
                     className="w-4 h-4 accent-[var(--color-gold)] cursor-pointer"
                   />
                 </label>

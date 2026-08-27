@@ -9,67 +9,41 @@ import {
 } from '../../src/engine/strategies/game-mode-strategy';
 import { Player } from '../../src/engine/types';
 import { parseCards } from '../../src/engine/card';
+import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 
 describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lược)', () => {
   const BET = 500;
 
   const createSamplePlayers = (): Player[] => [
-    {
+    createPlayer({
       id: 'p0',
       name: 'Người Chơi',
       avatar: '🤠',
-      isBot: false,
-      botPersonaId: null,
       hand: [], // Về Nhất
-      playedCards: [],
       score: 10000,
-      isPassedCurrentRound: false,
-      hasPlayedFirstCard: true,
-      rankPosition: null,
-      instantWinType: null
-    },
-    {
-      id: 'p1',
+      hasPlayedFirstCard: true
+    }),
+    createBotPlayer('p1', null, {
       name: 'Bot 1',
       avatar: '🧒',
-      isBot: true,
-      botPersonaId: null,
       hand: parseCards('4D 5D'), // 2 lá
-      playedCards: [],
       score: 10000,
-      isPassedCurrentRound: false,
-      hasPlayedFirstCard: true,
-      rankPosition: null,
-      instantWinType: null
-    },
-    {
-      id: 'p2',
+      hasPlayedFirstCard: true
+    }),
+    createBotPlayer('p2', null, {
       name: 'Bot 2',
       avatar: '🤠',
-      isBot: true,
-      botPersonaId: null,
       hand: parseCards('7D 8D 2S'), // 3 lá (thối heo đen)
-      playedCards: [],
       score: 10000,
-      isPassedCurrentRound: false,
-      hasPlayedFirstCard: true,
-      rankPosition: null,
-      instantWinType: null
-    },
-    {
-      id: 'p3',
+      hasPlayedFirstCard: true
+    }),
+    createBotPlayer('p3', null, {
       name: 'Bot 3',
       avatar: '👑',
-      isBot: true,
-      botPersonaId: null,
       hand: parseCards('9D 10D JD QD KD AD 2D 3C 4C 5C 6C 7C 8C'), // Cóng 13 lá + thối heo đỏ
-      playedCards: [],
       score: 10000,
-      isPassedCurrentRound: false,
-      hasPlayedFirstCard: false,
-      rankPosition: null,
-      instantWinType: null
-    }
+      hasPlayedFirstCard: false
+    })
   ];
 
   test('1. TraditionalModeStrategy: Đánh đến áp chót, chia tiền 4 người Nhất Nhì Ba Bét', () => {
@@ -212,19 +186,14 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       dailyMilestonesClaimed: { 1: false, 3: false, 5: false }
     };
 
-    const makeTestPlayer = (p: Partial<Player> & { id: string; name: string }): Player => ({
-      avatar: '🤖',
-      isBot: p.id !== 'p0',
-      botPersonaId: null,
-      hand: [],
-      playedCards: [],
-      score: 10000,
-      isPassedCurrentRound: false,
-      hasPlayedFirstCard: true,
-      rankPosition: null,
-      instantWinType: null,
-      ...p
-    });
+    const makeTestPlayer = (p: Partial<Player> & { id: string; name: string }): Player =>
+      createPlayer({
+        avatar: '🤖',
+        isBot: p.id !== 'p0',
+        score: 10000,
+        hasPlayedFirstCard: true,
+        ...p
+      });
 
     // 1. Traditional Quick Setup
     const tradStrat = new TraditionalModeStrategy();
@@ -264,19 +233,14 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
   test('7. GameEngine Lifecycle: Bot về Nhất trong Đếm Lá kết thúc ván ngay lập tức', () => {
     const { GameEngine } = require('../../src/engine/game');
     
-    const makeTestPlayer = (p: Partial<Player> & { id: string; name: string }): Player => ({
-      avatar: '🤖',
-      isBot: p.id !== 'p0',
-      botPersonaId: null,
-      hand: [],
-      playedCards: [],
-      score: 10000,
-      isPassedCurrentRound: false,
-      hasPlayedFirstCard: true,
-      rankPosition: null,
-      instantWinType: null,
-      ...p
-    });
+    const makeTestPlayer = (p: Partial<Player> & { id: string; name: string }): Player =>
+      createPlayer({
+        avatar: '🤖',
+        isBot: p.id !== 'p0',
+        score: 10000,
+        hasPlayedFirstCard: true,
+        ...p
+      });
 
     // --- KỊCH BẢN 1: ĐẾM LÁ (COUNT_CARDS) ---
     const ugPlayers: Player[] = [
@@ -382,8 +346,8 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
     });
 
     const soloPlayers: Player[] = [
-      { id: 'p0', name: 'Player', avatar: '🤠', isBot: false, botPersonaId: null, hand: parseCards('4D 5D'), playedCards: [], score: 10000, isPassedCurrentRound: false, hasPlayedFirstCard: true, rankPosition: null, instantWinType: null },
-      { id: 'p1', name: 'Bot 1', avatar: '🤖', isBot: true, botPersonaId: null, hand: parseCards('9S'), playedCards: [], score: 10000, isPassedCurrentRound: false, hasPlayedFirstCard: true, rankPosition: null, instantWinType: null }
+      createPlayer({ id: 'p0', name: 'Player', avatar: '🤠', hand: parseCards('4D 5D'), score: 10000, hasPlayedFirstCard: true }),
+      createBotPlayer('p1', null, { name: 'Bot 1', avatar: '🤖', hand: parseCards('9S'), score: 10000, hasPlayedFirstCard: true })
     ];
 
     const soloEngine = new GameEngine(soloPlayers, soloCustomRules);

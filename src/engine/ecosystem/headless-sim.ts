@@ -1,5 +1,6 @@
 import { GameEngine } from '../game';
 import { Player } from '../types';
+import { createBotPlayer } from '../player-factory';
 import { CardTracker } from '../../ai/card-tracker';
 import { BotEntity, TableGroup, SimulatedTableResult, BotMatchResult, EcosystemNewsItem } from './ecosystem-types';
 
@@ -32,21 +33,13 @@ export function simulateSingleTableMatch(
   }
 
   // 1. Khởi tạo danh sách 4 người chơi ảo
-  const players: Player[] = tableBots.map((bot, index) => ({
-    id: bot.id,
-    name: bot.name || `Bot ${index + 1}`,
-    avatar: bot.avatar || '🤖',
-    score: 0,
-    hand: [],
-    playedCards: [],
-    hasPlayedFirstCard: false,
-    isBot: true,
-    botConfig: bot,
-    botPersonaId: bot.id,
-    isPassedCurrentRound: false,
-    rankPosition: null,
-    instantWinType: null
-  }));
+  const players: Player[] = tableBots.map((bot, index) =>
+    createBotPlayer(bot.id, bot.id, {
+      name: bot.name || `Bot ${index + 1}`,
+      avatar: bot.avatar || '🤖',
+      score: 0
+    })
+  );
 
   // 2. Khởi tạo GameEngine với mức cược của bàn
   const engine = new GameEngine(players, {

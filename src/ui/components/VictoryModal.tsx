@@ -23,8 +23,6 @@ interface VictoryModalProps {
   onNextGame: () => void;
   onReturnToLobby: () => void;
   onOpenCampaignMap: (() => void) | null;
-  onOpenCustomGameModal: (() => void) | null;
-  onOpenBankLoanModal: (() => void) | null;
   winners: Player[];
   allPlayers: Player[];
   betAmount: number;
@@ -41,7 +39,6 @@ interface VictoryModalProps {
   isAllCampaignCompleted: boolean;
   nextChapter: CampaignChapter | null;
   playerCoins: number;
-  botReasoningLogEnabled: boolean;
   allEloDeltas?: Record<string, number>;
 }
 
@@ -59,8 +56,6 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   onNextGame,
   onReturnToLobby,
   onOpenCampaignMap,
-  onOpenCustomGameModal: _onOpenCustomGameModal,
-  onOpenBankLoanModal: _onOpenBankLoanModal,
   winners,
   allPlayers,
   betAmount,
@@ -77,7 +72,6 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   isAllCampaignCompleted,
   nextChapter,
   playerCoins,
-  botReasoningLogEnabled: _botReasoningLogEnabled,
   allEloDeltas
 }) => {
   const isHumanWinner = winners.length > 0 && winners[0].id === 'p0';

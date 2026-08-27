@@ -22,7 +22,7 @@ export class TienLenDatabase extends Dexie {
   newsfeed!: Table<EcosystemNewsItem, string>;
   match_history!: Table<SimulatedTableResult, string>;
   player_profile!: Table<KeyValueRecord<PlayerProfile>, string>;
-  game_settings!: Table<KeyValueRecord<unknown>, string>;
+  game_settings!: Table<KeyValueRecord<Record<string, unknown>>, string>;
   active_session!: Table<KeyValueRecord<ActiveMatchSession>, string>;
   human_behavior!: Table<KeyValueRecord<unknown>, string>;
   match_logs!: Table<MatchLogReport, string>;
@@ -48,7 +48,7 @@ export const memoryStore: {
   newsfeed: EcosystemNewsItem[];
   match_history: SimulatedTableResult[];
   player_profile: PlayerProfile | null;
-  game_settings: unknown | null;
+  game_settings: Record<string, unknown> | null;
   active_session: ActiveMatchSession | null;
   human_behavior: unknown | null;
   match_logs: Map<string, MatchLogReport>;
@@ -145,8 +145,8 @@ export async function dbAddNewsItem(item: EcosystemNewsItem): Promise<void> {
     await db.newsfeed.put(item);
     const count = await db.newsfeed.count();
     if (count > 100) {
-      const oldest = await db.newsfeed.orderBy('timestamp').limit(count - 100).keys();
-      await db.newsfeed.bulkDelete(oldest as string[]);
+      const oldest = await db.newsfeed.orderBy('timestamp').limit(count - 100).primaryKeys();
+      await db.newsfeed.bulkDelete(oldest);
     }
   } catch {}
 }
@@ -164,8 +164,8 @@ export async function dbAddNewsBatch(items: EcosystemNewsItem[]): Promise<void> 
     await db.newsfeed.bulkPut(items);
     const count = await db.newsfeed.count();
     if (count > 100) {
-      const oldest = await db.newsfeed.orderBy('timestamp').limit(count - 100).keys();
-      await db.newsfeed.bulkDelete(oldest as string[]);
+      const oldest = await db.newsfeed.orderBy('timestamp').limit(count - 100).primaryKeys();
+      await db.newsfeed.bulkDelete(oldest);
     }
   } catch {}
 }
@@ -180,6 +180,20 @@ export async function dbSaveMatchHistory(results: SimulatedTableResult[]): Promi
     const db = getGameDB();
     await db.match_history.bulkPut(results);
   } catch {}
+}
+
+export async function dbGetMatchHistory(limit: number = 50): Promise<SimulatedTableResult[]> {
+  try {
+    const db = getGameDB();
+    const items = await db.match_history.orderBy('timestamp').reverse().limit(limit).toArray();
+    if (items.length > 0) {
+      memoryStore.match_history = items;
+      return items;
+    }
+    return memoryStore.match_history.slice(0, limit);
+  } catch {
+    return memoryStore.match_history.slice(0, limit);
+  }
 }
 
 // ============================================================================
@@ -239,21 +253,21 @@ export async function dbDeletePlayerProfile(): Promise<void> {
 // 2. GAME SETTINGS OPERATIONS
 // ============================================================================
 
-export async function dbGetGameSettings<T = unknown>(): Promise<T | null> {
+export async function dbGetGameSettings(): Promise<Record<string, unknown> | null> {
   try {
     const db = getGameDB();
     const record = await db.game_settings.get('current');
     if (record?.data) {
       memoryStore.game_settings = record.data;
-      return record.data as T;
+      return record.data;
     }
-    return memoryStore.game_settings as T;
+    return memoryStore.game_settings;
   } catch {
-    return memoryStore.game_settings as T;
+    return memoryStore.game_settings;
   }
 }
 
-export async function dbSaveGameSettings(settings: unknown): Promise<void> {
+export async function dbSaveGameSettings(settings: Record<string, unknown>): Promise<void> {
   memoryStore.game_settings = settings;
   try {
     const db = getGameDB();

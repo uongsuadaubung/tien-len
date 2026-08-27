@@ -91,16 +91,16 @@ export function makeBotDecision(context: DecisionContext): BotDecision {
   const validMoves: ValidMoveInfo[] = [];
   for (const cards of candidateMoveCards) {
     const isFinishing = cards.length === hand.length;
-    const valResult = isValidMove(
+    const valResult = isValidMove({
       cards,
-      targetCombo,
+      target: targetCombo,
       isFirstMoveOfGame,
       isLeadMove,
-      false,
+      hasPassedRound: false,
       allowFourPairsCutAnytime,
-      isFinishing,
-      isProhibitEndingWithTwo
-    );
+      isFinishingMove: isFinishing,
+      prohibitEndingWithTwo: isProhibitEndingWithTwo
+    });
     if (valResult.valid && valResult.combination) {
       validMoves.push({
         cards,

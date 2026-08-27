@@ -92,12 +92,16 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
   const isValidPlaySelection =
     isP0Turn &&
     selectedCards.length > 0 &&
-    isValidMove(
-      selectedCards,
-      currentMove?.combination || null,
-      engineRef.current?.isFirstMoveOfGame ?? false,
-      engineRef.current?.isRoundLeadMove() ?? true
-    ).valid;
+    isValidMove({
+      cards: selectedCards,
+      target: currentMove?.combination || null,
+      isFirstMoveOfGame: engineRef.current?.isFirstMoveOfGame ?? false,
+      isLeadMove: engineRef.current?.isRoundLeadMove() ?? true,
+      hasPassedRound: p0?.isPassedCurrentRound ?? false,
+      allowFourPairsCutAnytime: engineRef.current?.rules.chopping.allowFourPairsCutAnytime ?? true,
+      isFinishingMove: selectedCards.length === (p0?.hand.length ?? 0),
+      prohibitEndingWithTwo: engineRef.current?.rules.gameFlow.prohibitEndingWithTwo ?? true
+    }).valid;
 
   const canP0Pass =
     isP0Turn &&

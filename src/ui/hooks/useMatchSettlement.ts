@@ -13,6 +13,7 @@ import { useUserStore } from '../../stores/useUserStore';
 import { useModalStore } from '../../stores/useModalStore';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { BotConfig } from '../../ai/types';
+import { CustomBotConfigTuple } from '../../engine/types';
 
 export interface CampaignResultMeta {
   isUnlockedNext: boolean;
@@ -270,7 +271,7 @@ export function useMatchSettlement(
       // Cập nhật customBotConfigs để bảo lưu Elo mới của Bot ngay trong State bàn đấu
       const currentConfigs = useGameStore.getState().customBotConfigs;
       if (currentConfigs) {
-        const updated = currentConfigs.map((cfg, idx) => {
+        const updateForIdx = (cfg: Partial<BotConfig>, idx: number): Partial<BotConfig> => {
           const playerAtIdx = engine.players[idx + 1];
           if (!playerAtIdx) return cfg;
           const res = botResults.find(b => b.botId === playerAtIdx.botPersonaId || b.botId === playerAtIdx.id || b.botId === playerAtIdx.name);
@@ -282,7 +283,13 @@ export function useMatchSettlement(
             };
           }
           return cfg;
-        }) as [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>];
+        };
+
+        const updated: CustomBotConfigTuple = [
+          updateForIdx(currentConfigs[0], 0),
+          updateForIdx(currentConfigs[1], 1),
+          updateForIdx(currentConfigs[2], 2)
+        ];
         useGameStore.getState().setCustomBotConfigs(updated);
       }
 

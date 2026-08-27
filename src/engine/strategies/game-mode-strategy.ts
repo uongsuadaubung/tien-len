@@ -18,6 +18,7 @@ import { BotConfig } from '../../ai/types';
 import { CampaignChapter } from '../campaign';
 import { PlayerProfile } from '../storage';
 import { getTierFromElo } from '../ecosystem/ecosystem-types';
+import { createPlayer, createBotPlayer } from '../player-factory';
 
 /**
  * Ngữ cảnh đầu vào để khởi tạo bàn đấu (Match Setup Context)
@@ -81,20 +82,12 @@ function buildInitialPlayers(
   betAmount: number = 100
 ): Player[] {
   const players: Player[] = [
-    {
+    createPlayer({
       id: 'p0',
       name: profile.name || 'Bạn (Người Chơi)',
       avatar: profile.avatar || '🤠',
-      isBot: false,
-      botPersonaId: null,
-      hand: [],
-      playedCards: [],
-      score: profile.coins,
-      isPassedCurrentRound: false,
-      hasPlayedFirstCard: false,
-      rankPosition: null,
-      instantWinType: null
-    }
+      score: profile.coins
+    })
   ];
 
   const usedNames: string[] = [players[0].name];
@@ -123,20 +116,13 @@ function buildInitialPlayers(
 
     const botInitialBankroll = generateRealisticBotBankroll(config, betAmount);
 
-    players.push({
-      id: `p${i + 1}`,
-      name: botName || `Bot ${i + 1}`,
-      avatar: botAvatar || '🤖',
-      isBot: true,
-      botPersonaId: personaId || null,
-      hand: [],
-      playedCards: [],
-      score: botInitialBankroll,
-      isPassedCurrentRound: false,
-      hasPlayedFirstCard: false,
-      rankPosition: null,
-      instantWinType: null
-    });
+    players.push(
+      createBotPlayer(`p${i + 1}`, personaId || null, {
+        name: botName || `Bot ${i + 1}`,
+        avatar: botAvatar || '🤖',
+        score: botInitialBankroll
+      })
+    );
   }
 
   return players;

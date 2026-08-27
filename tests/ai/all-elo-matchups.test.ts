@@ -4,6 +4,7 @@ import { CardTracker } from '../../src/ai/card-tracker';
 import { GameEngine } from '../../src/engine/game';
 import { BotConfig } from '../../src/ai/types';
 import { Player } from '../../src/engine/types';
+import { createBotPlayer } from '../../src/engine/player-factory';
 
 /**
  * Hàm mô phỏng N ván đấu 4 người (chuẩn bàn Tiến Lên Miền Nam 52 lá)
@@ -36,20 +37,13 @@ function runTierTableMatchup(
     totalCardsLeft[b.id] = 0;
   }
 
-  const players: Player[] = tableBots.map(b => ({
-    id: b.id,
-    name: b.name,
-    avatar: b.config.avatar || '🤖',
-    isBot: true,
-    botPersonaId: b.config.id || null,
-    hand: [],
-    playedCards: [],
-    score: 0,
-    isPassedCurrentRound: false,
-    hasPlayedFirstCard: false,
-    rankPosition: null,
-    instantWinType: null
-  }));
+  const players: Player[] = tableBots.map(b =>
+    createBotPlayer(b.id, b.config.id || null, {
+      name: b.name,
+      avatar: b.config.avatar || '🤖',
+      score: 0
+    })
+  );
 
   const game = new GameEngine(players, { mode: 'COUNT_CARDS', betAmount: 100 });
 

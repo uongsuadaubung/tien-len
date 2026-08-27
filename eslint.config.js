@@ -32,16 +32,14 @@ export default [
         }
       ],
 
-      // 3. Không cho phép biến không sử dụng (Disallow unused variables)
+      // 3. Cấm tuyệt đối biến thừa không sử dụng (Không chấp nhận tiền tố _var để lách)
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
-          args: 'all',
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-          caughtErrors: 'all',
-          caughtErrorsIgnorePattern: '^_'
+          vars: 'all',
+          args: 'after-used',
+          caughtErrors: 'none'
         }
       ],
 

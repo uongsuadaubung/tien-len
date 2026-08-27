@@ -15,14 +15,14 @@ import {
 } from '../engine/storage';
 import { dbGetGameSettings } from '../engine/db/indexed-db';
 import { GameRulesBuilder } from '../engine/types';
-import { ECONOMY_CONSTANTS, calculateRequiredDeposit } from '../engine/constants/economy';
+import { ECONOMY_CONSTANTS } from '../engine/constants/economy';
 import { matchBotsForPlayerTable } from '../engine/ecosystem/matchmaker';
 
 // Stores
 import { useModalStore } from '../stores/useModalStore';
 import { useUserStore } from '../stores/useUserStore';
 import { useGameStore } from '../stores/useGameStore';
-import { useSettingsStore, SavedSettings } from '../stores/useSettingsStore';
+import { useSettingsStore } from '../stores/useSettingsStore';
 import { useEcosystemStore } from '../stores/useEcosystemStore';
 import { BotConfig } from '../ai/types';
 
@@ -62,7 +62,7 @@ export const App: React.FC = () => {
 
     Promise.all([
       hydrateStorageFromIndexedDB(),
-      dbGetGameSettings<SavedSettings>(),
+      dbGetGameSettings(),
       minDelay
     ]).then(([hydrated, savedSettings]) => {
       let currentProfile = profile;

@@ -53,6 +53,8 @@ interface EcosystemTableItem {
   rawBot: BotEntity | null;
 }
 
+const TIER_FILTERS: (number | 'ALL')[] = ['ALL', 9, 8, 7, 6, 5, 4, 3, 2, 1];
+
 export const EcosystemModal: React.FC = () => {
   const { isEcosystemOpen, closeModal, openModal } = useModalStore();
   const { profile } = useUserStore();
@@ -329,10 +331,10 @@ export const EcosystemModal: React.FC = () => {
             <div className="flex flex-wrap items-center justify-between gap-2.5 text-xs">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-[11px] font-semibold text-[var(--text-muted)] mr-0.5">Bậc Rank:</span>
-                {(['ALL', 9, 8, 7, 6, 5, 4, 3, 2, 1] as const).map((tier) => (
+                {TIER_FILTERS.map((tier) => (
                   <button
                     key={tier}
-                    onClick={() => { setSelectedTierFilter(tier as any); setCurrentPage(1); }}
+                    onClick={() => { setSelectedTierFilter(tier); setCurrentPage(1); }}
                     className={`px-2 py-0.5 rounded-lg text-[11px] font-semibold transition-all select-none border ${
                       selectedTierFilter === tier
                         ? 'bg-[var(--bg-card-active)] text-[var(--color-gold)] border-[var(--color-gold)] shadow-sm'
@@ -340,15 +342,15 @@ export const EcosystemModal: React.FC = () => {
                     }`}
                   >
                     {tier === 'ALL' ? 'Tất Cả' 
-                      : tier === 9 ? '⚡ T9' 
-                      : tier === 8 ? '🌌 T8' 
-                      : tier === 7 ? '👑 T7' 
-                      : tier === 6 ? '🔮 T6' 
-                      : tier === 5 ? '💎 T5' 
-                      : tier === 4 ? '🥇 T4' 
-                      : tier === 3 ? '🥈 T3' 
-                      : tier === 2 ? '🥉 T2' 
-                      : '🪵 T1'}
+                      : tier === 9 ? '⚡ Thách Đấu' 
+                      : tier === 8 ? '🌌 Đại Cao Thủ' 
+                      : tier === 7 ? '👑 Cao Thủ' 
+                      : tier === 6 ? '🔮 Kim Cương' 
+                      : tier === 5 ? '💎 Bạch Kim' 
+                      : tier === 4 ? '🥇 Vàng' 
+                      : tier === 3 ? '🥈 Bạc' 
+                      : tier === 2 ? '🥉 Đồng' 
+                      : '⚙️ Sắt'}
                   </button>
                 ))}
               </div>

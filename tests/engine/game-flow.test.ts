@@ -4,67 +4,14 @@ import { GameEngine } from '../../src/engine/game';
 import { Player } from '../../src/engine/types';
 import { CardTracker } from '../../src/ai/card-tracker';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
+import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 
-function createMockPlayers(): Player[] {
-  return [
-    {
-      id: 'p1',
-      name: 'Người Chơi',
-      avatar: 'user',
-      isBot: false,
-      botPersonaId: null,
-      hand: [],
-      playedCards: [],
-      score: 1000,
-      isPassedCurrentRound: false,
-      hasPlayedFirstCard: false,
-      rankPosition: null,
-      instantWinType: null
-    },
-    {
-      id: 'p2',
-      name: 'Bé Năm',
-      avatar: 'bot1',
-      isBot: true,
-      botPersonaId: null,
-      hand: [],
-      playedCards: [],
-      score: 1000,
-      isPassedCurrentRound: false,
-      hasPlayedFirstCard: false,
-      rankPosition: null,
-      instantWinType: null
-    },
-    {
-      id: 'p3',
-      name: 'Chú Bảy',
-      avatar: 'bot2',
-      isBot: true,
-      botPersonaId: null,
-      hand: [],
-      playedCards: [],
-      score: 1000,
-      isPassedCurrentRound: false,
-      hasPlayedFirstCard: false,
-      rankPosition: null,
-      instantWinType: null
-    },
-    {
-      id: 'p4',
-      name: 'Bác Tư',
-      avatar: 'bot3',
-      isBot: true,
-      botPersonaId: null,
-      hand: [],
-      playedCards: [],
-      score: 1000,
-      isPassedCurrentRound: false,
-      hasPlayedFirstCard: false,
-      rankPosition: null,
-      instantWinType: null
-    }
-  ];
-}
+const createMockPlayers = (): Player[] => [
+  createPlayer({ id: 'p1', name: 'Người Chơi', avatar: 'user', score: 1000 }),
+  createBotPlayer('p2', null, { name: 'Bé Năm', avatar: 'bot1', score: 1000 }),
+  createBotPlayer('p3', null, { name: 'Chú Bảy', avatar: 'bot2', score: 1000 }),
+  createBotPlayer('p4', null, { name: 'Bác Tư', avatar: 'bot3', score: 1000 })
+];
 
 describe('Game Flow & Lifecycle Engine', () => {
   test('Khởi tạo ván 1 tự động xác định người cầm 3♠ đi trước', () => {

@@ -62,9 +62,13 @@ export const Button: React.FC<ButtonProps> = ({
       `}
       {...props}
     >
-      {leftIcon && <span className="flex-shrink-0 flex items-center">{leftIcon}</span>}
-      {children && <span>{children}</span>}
-      {rightIcon && <span className="flex-shrink-0 flex items-center">{rightIcon}</span>}
+      {leftIcon && <span className="flex-shrink-0 inline-flex items-center justify-center">{leftIcon}</span>}
+      {typeof children === 'string' || typeof children === 'number' ? (
+        <span className="inline-flex items-center">{children}</span>
+      ) : (
+        children
+      )}
+      {rightIcon && <span className="flex-shrink-0 inline-flex items-center justify-center">{rightIcon}</span>}
     </button>
   );
 };

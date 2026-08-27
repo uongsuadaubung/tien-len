@@ -18,15 +18,15 @@ export interface EloTierInfo {
  * (Single Source of Truth - không cần lưu dư thừa trong DB)
  */
 export function getTierFromElo(elo: number): EloTierInfo {
-  if (elo >= 3000) return { tierNum: 9, tier: 'Tier 9: Siêu Trí Tuệ', rankBadge: '⚡', label: 'Siêu Trí Tuệ' };
-  if (elo >= 2700) return { tierNum: 8, tier: 'Tier 8: Thần Bài', rankBadge: '🌌', label: 'Thần Bài' };
-  if (elo >= 2400) return { tierNum: 7, tier: 'Tier 7: Đại Cao Thủ', rankBadge: '👑', label: 'Đại Cao Thủ' };
-  if (elo >= 2100) return { tierNum: 6, tier: 'Tier 6: Cao Thủ', rankBadge: '🔮', label: 'Cao Thủ' };
-  if (elo >= 1800) return { tierNum: 5, tier: 'Tier 5: Tinh Anh', rankBadge: '💎', label: 'Tinh Anh' };
-  if (elo >= 1500) return { tierNum: 4, tier: 'Tier 4: Lão Luyện', rankBadge: '🥇', label: 'Lão Luyện' };
-  if (elo >= 1200) return { tierNum: 3, tier: 'Tier 3: Phong Trào', rankBadge: '🥈', label: 'Phong Trào' };
-  if (elo >= 900) return { tierNum: 2, tier: 'Tier 2: Tập Sự', rankBadge: '🥉', label: 'Tập Sự' };
-  return { tierNum: 1, tier: 'Tier 1: Tân Thủ', rankBadge: '🪵', label: 'Tân Thủ' };
+  if (elo >= 3000) return { tierNum: 9, tier: 'Tier 9: Thách Đấu', rankBadge: '⚡', label: 'Thách Đấu' };
+  if (elo >= 2700) return { tierNum: 8, tier: 'Tier 8: Đại Cao Thủ', rankBadge: '🌌', label: 'Đại Cao Thủ' };
+  if (elo >= 2400) return { tierNum: 7, tier: 'Tier 7: Cao Thủ', rankBadge: '👑', label: 'Cao Thủ' };
+  if (elo >= 2100) return { tierNum: 6, tier: 'Tier 6: Kim Cương', rankBadge: '🔮', label: 'Kim Cương' };
+  if (elo >= 1800) return { tierNum: 5, tier: 'Tier 5: Bạch Kim', rankBadge: '💎', label: 'Bạch Kim' };
+  if (elo >= 1500) return { tierNum: 4, tier: 'Tier 4: Vàng', rankBadge: '🥇', label: 'Vàng' };
+  if (elo >= 1200) return { tierNum: 3, tier: 'Tier 3: Bạc', rankBadge: '🥈', label: 'Bạc' };
+  if (elo >= 900) return { tierNum: 2, tier: 'Tier 2: Đồng', rankBadge: '🥉', label: 'Đồng' };
+  return { tierNum: 1, tier: 'Tier 1: Sắt', rankBadge: '⚙️', label: 'Sắt' };
 }
 
 export type BotLifecycleStatus = 'ACTIVE' | 'BANKRUPT';

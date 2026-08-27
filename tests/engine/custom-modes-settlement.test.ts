@@ -14,23 +14,19 @@ import {
 import { GameEngine } from '../../src/engine/game';
 import { Player } from '../../src/engine/types';
 import { parseCards } from '../../src/engine/card';
+import { createPlayer } from '../../src/engine/player-factory';
 
 describe('Extensible Game Modes & Settlement Engine Tests', () => {
   const BET = 500;
 
-  const makeTestPlayer = (p: Partial<Player> & { id: string; name: string }): Player => ({
-    avatar: '🤖',
-    isBot: p.id !== 'p0',
-    botPersonaId: null,
-    hand: [],
-    playedCards: [],
-    score: 10000,
-    isPassedCurrentRound: false,
-    hasPlayedFirstCard: true,
-    rankPosition: null,
-    instantWinType: null,
-    ...p
-  });
+  const makeTestPlayer = (p: Partial<Player> & { id: string; name: string }): Player =>
+    createPlayer({
+      avatar: '🤖',
+      isBot: p.id !== 'p0',
+      score: 10000,
+      hasPlayedFirstCard: true,
+      ...p
+    });
 
   test('1. Extensible Game Mode Registry: Kiểm tra cấu hình các chế độ mở rộng', () => {
     const allModes = getAllGameModeDefinitions();

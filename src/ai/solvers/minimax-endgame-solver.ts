@@ -1,5 +1,4 @@
 import { Card, Combination } from '../../engine/types';
-import { isTwo, ALL_RANKS, ALL_SUITS } from '../../engine/card';
 import { isValidMove } from '../../engine/validator';
 import { ValidMoveInfo, generateCandidateMoves } from '../decision-types';
 
@@ -118,16 +117,16 @@ export class MinimaxEndgameSolver {
 
     for (const cards of candidates) {
       const isFinishing = cards.length === myHand.length;
-      const res = isValidMove(
+      const res = isValidMove({
         cards,
-        currentLeadingCombo,
-        false,
+        target: currentLeadingCombo,
+        isFirstMoveOfGame: false,
         isLeadMove,
-        false,
-        true,
-        isFinishing,
+        hasPassedRound: false,
+        allowFourPairsCutAnytime: true,
+        isFinishingMove: isFinishing,
         prohibitEndingWithTwo
-      );
+      });
       if (res.valid && res.combination) {
         if (isFinishing) {
           return {
@@ -264,16 +263,16 @@ export class MinimaxEndgameSolver {
 
       for (const cards of candidates) {
         const isFinishing = cards.length === myHand.length;
-        const res = isValidMove(
+        const res = isValidMove({
           cards,
-          currentCombo,
-          false,
-          currentCombo === null,
-          false,
-          true,
-          isFinishing,
+          target: currentCombo,
+          isFirstMoveOfGame: false,
+          isLeadMove: currentCombo === null,
+          hasPassedRound: false,
+          allowFourPairsCutAnytime: true,
+          isFinishingMove: isFinishing,
           prohibitEndingWithTwo
-        );
+        });
         if (res.valid && res.combination) {
           moves.push({
             cards,
@@ -285,7 +284,6 @@ export class MinimaxEndgameSolver {
       }
 
       const sortedMoves = this.orderMoves(moves, myHand.length, depth, null);
-      let bestMoveAtThisNode: BitmaskMoveInfo | null = null;
 
       for (const m of sortedMoves) {
         const nextMyHand = myHand.filter(c => !m.cards.some(mc => mc.id === c.id));
@@ -307,7 +305,6 @@ export class MinimaxEndgameSolver {
 
         if (val > maxVal) {
           maxVal = val;
-          bestMoveAtThisNode = m;
         }
         alpha = Math.max(alpha, maxVal);
         if (beta <= alpha) {
@@ -344,16 +341,16 @@ export class MinimaxEndgameSolver {
 
       for (const cards of candidates) {
         const isFinishing = cards.length === oppHand.length;
-        const res = isValidMove(
+        const res = isValidMove({
           cards,
-          currentCombo,
-          false,
-          currentCombo === null,
-          false,
-          true,
-          isFinishing,
+          target: currentCombo,
+          isFirstMoveOfGame: false,
+          isLeadMove: currentCombo === null,
+          hasPassedRound: false,
+          allowFourPairsCutAnytime: true,
+          isFinishingMove: isFinishing,
           prohibitEndingWithTwo
-        );
+        });
         if (res.valid && res.combination) {
           moves.push({
             cards,

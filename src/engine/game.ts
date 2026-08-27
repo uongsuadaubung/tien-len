@@ -61,7 +61,7 @@ export class GameEngine {
   public instantWinner: Player | null = null;
   public roundNumber: number = 1;
 
-  constructor(players: Player[], rulesOrSettings?: GameRules | Partial<GameSettings>, _legacyStrategyId?: string) {
+  constructor(players: Player[], rulesOrSettings?: GameRules | Partial<GameSettings>) {
     this.players = players;
     
     // Khởi tạo GameRules hợp thành
@@ -158,7 +158,7 @@ export class GameEngine {
           this.winners = [player];
           this.lastWinnerId = player.id;
           this.isGameOver = true;
-          this.calculateInstantWinSettlement(player, instantType);
+          this.calculateInstantWinSettlement(player);
           return { instantWin: true, instantWinner: player, instantWinType: instantType };
         }
       }
@@ -309,16 +309,16 @@ export class GameEngine {
     const prohibitEndingWithTwo = this.rules.gameFlow.prohibitEndingWithTwo;
 
     // Thẩm định nước đi với validator
-    const validation = isValidMove(
+    const validation = isValidMove({
       cards,
-      targetCombination,
-      this.isFirstMoveOfGame,
+      target: targetCombination,
+      isFirstMoveOfGame: this.isFirstMoveOfGame,
       isLeadMove,
-      player.isPassedCurrentRound,
-      this.rules.chopping.allowFourPairsCutAnytime,
+      hasPassedRound: player.isPassedCurrentRound,
+      allowFourPairsCutAnytime: this.rules.chopping.allowFourPairsCutAnytime,
       isFinishingMove,
       prohibitEndingWithTwo
-    );
+    });
 
     if (!validation.valid || !validation.combination) {
       return { success: false, isChop: null, choppedPlayerId: null, penaltyAmount: null, isCascadeChop: null, chopChainCount: null, chopChainTotalAmount: null, playedMove: null, error: validation.reason || 'Nước đi không hợp lệ', isGameOver: null };
@@ -1076,7 +1076,7 @@ export class GameEngine {
   /**
    * Tính toán kết quả Tới Trắng
    */
-  private calculateInstantWinSettlement(winner: Player, _instantWinType: InstantWinType): void {
+  private calculateInstantWinSettlement(winner: Player): void {
     const bet = this.rules.table.betAmount;
     const mult = this.rules.instantWin.payoutMultiplier || 26;
     // Thắng tới trắng: Mỗi nhà đền mult mức cược

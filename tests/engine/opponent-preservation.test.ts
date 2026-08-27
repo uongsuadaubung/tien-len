@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { GameEngine } from '../../src/engine/game';
 import { GameRulesBuilder } from '../../src/engine/types';
 import { Player } from '../../src/engine/types';
+import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 
 describe('Bảo Toàn Danh Tính Đối Thủ & Cơ Chế Giải Tán Khi Cháy Túi (Table Preservation & Bankruptcy Dismissal)', () => {
   const rules = GameRulesBuilder.traditional()
@@ -10,13 +11,13 @@ describe('Bảo Toàn Danh Tính Đối Thủ & Cơ Chế Giải Tán Khi Cháy 
 
   it('1. Ván 2 tiếp theo: Giữ nguyên 100% tên, avatar, persona và bảo lưu số tiền ván trước của cả 3 bot khi chưa cháy túi', () => {
     // Ván 1: 3 đối thủ ban đầu
-    const bot1 = { id: 'p1', name: 'Hải Đồ Tể', avatar: '🔪', isBot: true, botPersonaId: 'BOT_ELO_1750', score: 10000, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null };
-    const bot2 = { id: 'p2', name: 'Bé Bông', avatar: '🌸', isBot: true, botPersonaId: 'BOT_ELO_850', score: 8000, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null };
-    const bot3 = { id: 'p3', name: 'Chú Bảy', avatar: '☕', isBot: true, botPersonaId: 'BOT_ELO_1450', score: 15000, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null };
-    const human: Player = { id: 'p0', name: 'Người Chơi', avatar: '🤠', isBot: false, botPersonaId: null, score: 50000, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null };
+    const bot1 = createBotPlayer('p1', 'BOT_ELO_1750', { name: 'Hải Đồ Tể', avatar: '🔪', score: 10000 });
+    const bot2 = createBotPlayer('p2', 'BOT_ELO_850', { name: 'Bé Bông', avatar: '🌸', score: 8000 });
+    const bot3 = createBotPlayer('p3', 'BOT_ELO_1450', { name: 'Chú Bảy', avatar: '☕', score: 15000 });
+    const human: Player = createPlayer({ id: 'p0', name: 'Người Chơi', avatar: '🤠', score: 50000 });
 
     const engineRound1 = new GameEngine([human, bot1, bot2, bot3], rules);
-    engineRound1.startNewGame(1, 99999);
+    engineRound1.startNewGame(1, undefined, 99999);
 
     // Giả lập kết quả ván 1: bot1 thắng thêm 2000 xu, bot2 thua 1500 xu, bot3 thắng 500 xu
     const p1 = engineRound1.getPlayer('p1')!;
@@ -47,7 +48,7 @@ describe('Bảo Toàn Danh Tính Đối Thủ & Cơ Chế Giải Tán Khi Cháy 
     });
 
     const engineRound2 = new GameEngine(round2Players, rules);
-    engineRound2.startNewGame(nextGameNumber, 88888);
+    engineRound2.startNewGame(nextGameNumber, undefined, 88888);
 
     // Xác nhận ván 2 vẫn giữ nguyên 100% 3 bot đó với số tiền mới
     expect(engineRound2.players.length).toBe(4);
@@ -67,10 +68,10 @@ describe('Bảo Toàn Danh Tính Đối Thủ & Cơ Chế Giải Tán Khi Cháy 
   it('2. Khi có đối thủ cháy túi (< tiền cược), hệ thống kích hoạt điều kiện giải tán bàn (isTableDismissed = true)', () => {
     const betAmount = 500;
     const allPlayers: Player[] = [
-      { id: 'p0', name: 'Người Chơi', avatar: '🤠', isBot: false, botPersonaId: null, score: 50000, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
-      { id: 'p1', name: 'Hải Đồ Tể', avatar: '🔪', isBot: true, botPersonaId: 'BOT_ELO_1750', score: 12000, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
-      { id: 'p2', name: 'Bé Bông', avatar: '🌸', isBot: true, botPersonaId: 'BOT_ELO_850', score: 150, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null }, // Cháy túi!
-      { id: 'p3', name: 'Chú Bảy', avatar: '☕', isBot: true, botPersonaId: 'BOT_ELO_1450', score: 15500, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null }
+      createPlayer({ id: 'p0', name: 'Người Chơi', avatar: '🤠', score: 50000 }),
+      createBotPlayer('p1', 'BOT_ELO_1750', { name: 'Hải Đồ Tể', avatar: '🔪', score: 12000 }),
+      createBotPlayer('p2', 'BOT_ELO_850', { name: 'Bé Bông', avatar: '🌸', score: 150 }), // Cháy túi!
+      createBotPlayer('p3', 'BOT_ELO_1450', { name: 'Chú Bảy', avatar: '☕', score: 15500 })
     ];
 
     const isCampaign = false;
@@ -89,10 +90,10 @@ describe('Bảo Toàn Danh Tính Đối Thủ & Cơ Chế Giải Tán Khi Cháy 
   it('3. Khi người chơi cháy túi (< tiền cược), kích hoạt giải tán và cảnh báo người chơi', () => {
     const betAmount = 500;
     const allPlayers: Player[] = [
-      { id: 'p0', name: 'Người Chơi', avatar: '🤠', isBot: false, botPersonaId: null, score: 100, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
-      { id: 'p1', name: 'Hải Đồ Tể', avatar: '🔪', isBot: true, botPersonaId: 'BOT_ELO_1750', score: 12000, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
-      { id: 'p2', name: 'Bé Bông', avatar: '🌸', isBot: true, botPersonaId: 'BOT_ELO_850', score: 8000, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null },
-      { id: 'p3', name: 'Chú Bảy', avatar: '☕', isBot: true, botPersonaId: 'BOT_ELO_1450', score: 15500, hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null }
+      createPlayer({ id: 'p0', name: 'Người Chơi', avatar: '🤠', score: 100 }),
+      createBotPlayer('p1', 'BOT_ELO_1750', { name: 'Hải Đồ Tể', avatar: '🔪', score: 12000 }),
+      createBotPlayer('p2', 'BOT_ELO_850', { name: 'Bé Bông', avatar: '🌸', score: 8000 }),
+      createBotPlayer('p3', 'BOT_ELO_1450', { name: 'Chú Bảy', avatar: '☕', score: 15500 })
     ];
 
     const isCampaign = false;

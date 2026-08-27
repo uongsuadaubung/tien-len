@@ -10,18 +10,6 @@ import { ECOSYSTEM_CONSTANTS } from '../constants/ecosystem';
 import { ECONOMY_CONSTANTS } from '../constants/economy';
 import { BotEntity, getTierFromElo } from './ecosystem-types';
 
-const TIER_NAMES: Record<number, string> = {
-  1: 'Tân Thủ',
-  2: 'Tập Sự',
-  3: 'Phong Trào',
-  4: 'Lão Luyện',
-  5: 'Tinh Anh',
-  6: 'Cao Thủ',
-  7: 'Đại Cao Thủ',
-  8: 'Thần Bài',
-  9: 'Siêu Trí Tuệ'
-};
-
 /**
  * Hàm phụ trợ tính Gaussian Jitter (Độ lệch chuẩn ngẫu nhiên kẹp trong min/max)
  */
@@ -99,7 +87,7 @@ export function createBotEntityFromDNA(
 ): BotEntity {
   const dnaKeys = TIER_BASE_PERSONAS[tierNum] || TIER_BASE_PERSONAS[2];
   const selectedKey = dnaKeys[index % dnaKeys.length];
-  const basePersona = BOT_PERSONAS[selectedKey as keyof typeof BOT_PERSONAS] || BOT_PERSONAS.BOT_ELO_1150;
+  const basePersona = (selectedKey && BOT_PERSONAS[selectedKey]) || BOT_PERSONAS.BOT_ELO_1150;
 
   // 1. Tên và Avatar
   const availableNames = GLOBAL_BOT_NAMES.filter(n => !usedNames.has(n));
@@ -161,7 +149,6 @@ export function createBotEntityFromDNA(
   });
 
   const coins = generateEcosystemBankroll(tierNum, riskAppetite);
-  const tierName = `Tier ${tierNum}: ${TIER_NAMES[tierNum] || 'Tập Sự'}`;
   const title = tierNum >= 9 ? 'Siêu Trí Tuệ Boss' : tierNum >= 8 ? 'Thần Bài' : tierNum >= 7 ? 'Đại Cao Thủ' : nickname;
 
   return {
@@ -170,7 +157,6 @@ export function createBotEntityFromDNA(
     avatar,
     description: basePersona.description || 'Cao thủ sới bạc',
     elo,
-    tier: tierName,
     memoryDepth,
     riskAppetite,
     trapTendency,
@@ -299,11 +285,7 @@ export function draftBotForTier(
   // 3. Cấp vốn xuất phát điểm 50.000 Xu (như người chơi mới nhận gói tân thủ)
   bot.coins = ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS;
 
-  // 4. Bậc hiển thị theo Elo ban đầu
-  const initialTierInfo = getTierFromElo(bot.elo);
-  bot.tier = initialTierInfo.tier;
-
-  // 5. Danh hiệu & mô tả phản ánh phong thái của cao thủ ẩn danh
+  // 4. Danh hiệu & mô tả phản ánh phong thái của cao thủ ẩn danh
   if (tier >= 8) {
     bot.title = 'Thần Đồng Ẩn Danh';
     bot.description = 'Thiên tài bài bạc mang tư duy tính toán siêu việt, khởi đầu từ 1.000 Elo với 50.000 Xu để tự leo lên ngôi vương.';

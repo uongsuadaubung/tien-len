@@ -5,6 +5,7 @@ export * from './engine/validator';
 export * from './engine/deck';
 export * from './engine/game';
 export * from './engine/hand-sorter';
+export * from './engine/player-factory';
 
 export * from './ai/types';
 export * from './ai/hand-partitioner';

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PlayerProfile } from '../../engine/storage';
 import { CAMPAIGN_CHAPTERS, CampaignChapter } from '../../engine/campaign';
+import { getTierFromElo } from '../../engine/ecosystem/ecosystem-types';
 import { Lock, CheckCircle2, Award, Swords, MapPin } from 'lucide-react';
 import { Modal, Card, Badge, Button } from '../primitives';
 
@@ -150,7 +151,7 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
                   <span className="text-2xl">{bot.avatar || '🤖'}</span>
                   <div className="min-w-0">
                     <h5 className="font-bold text-xs text-[var(--text-primary)] truncate">
-                      {bot.name || bot.tier || 'Bot'}
+                      {bot.name || getTierFromElo(bot.elo).label || 'Bot'}
                     </h5>
                     <span className="text-[10px] text-[var(--color-gold)] font-bold block">
                       Elo {bot.elo}

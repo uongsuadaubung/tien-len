@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { sortCards, isTwo } from '../../engine/card';
 import { calculateDynamicBotDelay } from '../../engine/game-speed';
 import { GameEngine } from '../../engine/game';
-import { getBotConfig, generateRandomBotConfig, generateRealisticBotBankroll } from '../../ai/bot-factory';
+import { getBotConfig, generateRealisticBotBankroll } from '../../ai/bot-factory';
 import { CardTracker } from '../../ai/card-tracker';
 import { soundManager } from '../audio/sound-manager';
 import { resolveStrategyForMatch, MatchSetupContext } from '../../engine/strategies/game-mode-strategy';
@@ -17,7 +17,6 @@ import {
 } from '../../engine/storage';
 import { UI_TIMINGS } from '../constants/ui-timings';
 import { ECONOMY_CONSTANTS, calculateRequiredDeposit } from '../../engine/constants/economy';
-import { getTierFromElo } from '../../engine/ecosystem/ecosystem-types';
 import { useSmartHandSorting } from './useSmartHandSorting';
 import { useMatchSettlement, CampaignResultMeta } from './useMatchSettlement';
 import { useMatchAIHints } from './useMatchAIHints';
@@ -72,7 +71,6 @@ export function useGameMatchLoop() {
     setChopNotification,
     setPlayers,
     setCurrentTurnPlayerId,
-    setLeadPlayerId,
     setCurrentMove,
     setWinners,
     setIsGameOver,

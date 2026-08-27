@@ -2,6 +2,7 @@ import { describe, test, expect } from 'bun:test';
 import { GameEngine } from '../../src/engine/game';
 import { Player, createDefaultGameRules } from '../../src/engine/types';
 import { getRandomBotConfigsForTable, generateRealisticBotBankroll } from '../../src/ai/bot-factory';
+import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 import { PlayerProfile } from '../../src/engine/storage';
 import { 
   CountCardsModeStrategy, 
@@ -146,10 +147,10 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
       table: { playerCount: 4, betAmount: 500, soundEnabled: true }
     });
 
-    const p0: Player = { id: 'p0', name: 'Bạn', avatar: '🤠', isBot: false, botPersonaId: null, hand: [], playedCards: [], score: 50000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null };
-    const p1: Player = { id: 'p1', name: 'Bot 1', avatar: '🤖', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 35000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null };
-    const p2: Player = { id: 'p2', name: 'Bot 2', avatar: '🤖', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 40000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null };
-    const p3: Player = { id: 'p3', name: 'Bot 3', avatar: '🤖', isBot: true, botPersonaId: null, hand: [], playedCards: [], score: 65000, isPassedCurrentRound: false, hasPlayedFirstCard: false, rankPosition: null, instantWinType: null };
+    const p0: Player = createPlayer({ id: 'p0', name: 'Bạn', avatar: '🤠', score: 50000 });
+    const p1: Player = createBotPlayer('p1', null, { name: 'Bot 1', avatar: '🤖', score: 35000 });
+    const p2: Player = createBotPlayer('p2', null, { name: 'Bot 2', avatar: '🤖', score: 40000 });
+    const p3: Player = createBotPlayer('p3', null, { name: 'Bot 3', avatar: '🤖', score: 65000 });
 
     const engine = new GameEngine([p0, p1, p2, p3], rules);
     engine.startNewGame(1);
@@ -183,37 +184,23 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
     expect(chopX3.amount).toBe(600);
 
     // 3. Kết toán đếm lá ở x4
-    const loser: Player = {
-      id: 'p1',
+    const loser: Player = createBotPlayer('p1', null, {
       name: 'Bot',
       avatar: '🤖',
-      isBot: true,
-      botPersonaId: null,
       hand: [
         { id: '4S', rank: 4, suit: 'SPADES', weight: 16, code: '4S' },
         { id: '5S', rank: 5, suit: 'SPADES', weight: 20, code: '5S' }
       ],
-      playedCards: [],
       score: 5000,
-      isPassedCurrentRound: false,
-      hasPlayedFirstCard: true,
-      rankPosition: null,
-      instantWinType: null
-    };
-    const winner: Player = {
+      hasPlayedFirstCard: true
+    });
+    const winner: Player = createPlayer({
       id: 'p0',
       name: 'Bạn',
       avatar: '🤠',
-      isBot: false,
-      botPersonaId: null,
-      hand: [],
-      playedCards: [],
       score: 5000,
-      isPassedCurrentRound: false,
-      hasPlayedFirstCard: true,
-      rankPosition: null,
-      instantWinType: null
-    };
+      hasPlayedFirstCard: true
+    });
 
     const settlementX4 = calculateCountCardsSettlement([winner, loser], 'p0', bet, 4);
     // 2 lá * 100 * 4 = 800 xu
