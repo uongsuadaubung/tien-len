@@ -1,4 +1,4 @@
-import { Card, Combination, CombinationType, Rank } from './types';
+import { Card, Combination, Rank } from './types';
 import { compareCards, sortCards } from './card';
 
 /**

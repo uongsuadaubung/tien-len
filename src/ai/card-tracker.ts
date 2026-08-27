@@ -1,6 +1,6 @@
 import { Card, Combination, CombinationType, PlayedMove, Rank } from '../engine/types';
 import { ALL_RANKS, ALL_SUITS, createCard, isRedTwo, isTwo } from '../engine/card';
-import { OpponentBlindspot, TwoSafetyReport } from './types';
+import { TwoSafetyReport } from './types';
 
 export class CardTracker {
   private memoryDepth: number; // 0.0 -> 1.0

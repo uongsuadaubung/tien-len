@@ -9,7 +9,6 @@ export const F5PenaltyNoticeModal: React.FC = () => {
   if (!isF5PenaltyNoticeOpen) return null;
 
   const depositLost = f5PenaltyData?.depositLost ?? 0;
-  const isRanked = f5PenaltyData?.isRanked ?? false;
   const eloLost = f5PenaltyData?.eloLost ?? 30;
 
   return (

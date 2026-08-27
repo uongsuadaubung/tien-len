@@ -3,11 +3,21 @@ import {
   Achievement, 
   INITIAL_ACHIEVEMENTS, 
   getTodayDateString, 
-  generateDailyQuestsForDate, 
-  DAILY_QUEST_COUNT 
+  generateDailyQuestsForDate 
 } from './quests';
 import { CAMPAIGN_CHAPTERS } from './campaign';
 import { ECONOMY_CONSTANTS } from './constants/economy';
+import {
+  dbGetPlayerProfile,
+  dbSavePlayerProfile,
+  dbDeletePlayerProfile,
+  dbGetActiveSession,
+  dbSaveActiveSession,
+  dbClearActiveSession,
+  dbGetHumanBehavior,
+  dbSaveHumanBehavior,
+  dbClearHumanBehavior
+} from './db/indexed-db';
 
 export interface PlayerProfile {
   name: string;
@@ -35,8 +45,10 @@ export interface PlayerProfile {
 }
 
 const STORAGE_KEY = 'TIEN_LEN_PLAYER_PROFILE_V2';
+const ACTIVE_MATCH_SESSION_KEY = 'TIEN_LEN_ACTIVE_MATCH_SESSION_V1';
+const HUMAN_BEHAVIOR_PROFILE_KEY = 'TIEN_LEN_HUMAN_BEHAVIOR_PROFILE_V1';
 
-const DEFAULT_PROFILE: PlayerProfile = {
+export const DEFAULT_PROFILE: PlayerProfile = {
   name: '',
   avatar: '🤠',
   coins: ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS,
@@ -62,186 +74,193 @@ const DEFAULT_PROFILE: PlayerProfile = {
 };
 
 // ============================================================================
-// SAFE STORAGE HELPER (Hỗ trợ cả môi trường Browser và Node/Bun Testing)
+// IN-MEMORY SYNCHRONOUS CACHE LAYER
+// Đảm bảo React và Zustand phản hồi tức thì 0ms, đồng bộ xuống IndexedDB
 // ============================================================================
 
-const memoryFallbackStore: Record<string, string> = {};
-
-function getStorageItem(key: string): string | null {
-  try {
-    if (typeof localStorage !== 'undefined') {
-      return localStorage.getItem(key);
-    }
-  } catch (e) {}
-  return memoryFallbackStore[key] || null;
-}
-
-function setStorageItem(key: string, value: string): void {
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(key, value);
-      return;
-    }
-  } catch (e) {}
-  memoryFallbackStore[key] = value;
-}
-
-function removeStorageItem(key: string): void {
-  try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem(key);
-      return;
-    }
-  } catch (e) {}
-  delete memoryFallbackStore[key];
-}
+let cachedProfile: PlayerProfile | null = null;
+let cachedActiveSession: ActiveMatchSession | null = null;
+let cachedHumanBehavior: unknown | null = null;
 
 /**
- * Tải thông tin người chơi từ LocalStorage (hoặc khởi tạo mặc định)
+ * Chuẩn hóa và làm sạch dữ liệu Profile (kiểm tra ngày mới, nhiệm vụ, thành tựu)
  */
-export function loadPlayerProfile(): PlayerProfile {
-  try {
-    const raw = getStorageItem(STORAGE_KEY);
-    const todayStr = getTodayDateString();
+export function sanitizeAndValidateProfile(parsed: Partial<PlayerProfile>): PlayerProfile {
+  const todayStr = getTodayDateString();
+  const now = Date.now();
+  const isNewDay = !parsed.lastDailyResetDate || parsed.lastDailyResetDate !== todayStr;
 
-    if (!raw) {
-      const initialProfile: PlayerProfile = {
-        ...DEFAULT_PROFILE,
-        lastDailyResetDate: todayStr,
-        dailyQuests: generateDailyQuestsForDate(todayStr),
-        dailyMilestonesClaimed: { 1: false, 3: false, 5: false }
-      };
-      savePlayerProfile(initialProfile);
-      return initialProfile;
-    }
+  let dailyQuests: Quest[];
 
-    const parsed = JSON.parse(raw);
-    const now = Date.now();
-    const isNewDay = !parsed.lastDailyResetDate || parsed.lastDailyResetDate !== todayStr;
-
-    let dailyQuests: Quest[];
-
-    if (isNewDay) {
-      // Sang ngày mới -> Reset lượt cứu trợ, mốc thưởng ngày và băm 5 nhiệm vụ mới
-      parsed.dailyReliefClaimedCount = 0;
-      parsed.lastDailyResetTimestamp = now;
-      parsed.lastDailyResetDate = todayStr;
-      parsed.dailyMilestonesClaimed = { 1: false, 3: false, 5: false };
-      dailyQuests = generateDailyQuestsForDate(todayStr);
-    } else {
-      // Cùng ngày -> Bảo toàn tiến trình nhiệm vụ của ngày hôm nay
-      const expectedQuests = generateDailyQuestsForDate(todayStr);
-      const existingQuestsMap = new Map<string, Quest>(
-        (parsed.dailyQuests || []).map((q: Quest) => [q.id, q])
-      );
-
-      // Đồng bộ đúng 5 nhiệm vụ của ngày hôm nay với tiến độ đã lưu
-      dailyQuests = expectedQuests.map(exp => {
-        const saved = existingQuestsMap.get(exp.id);
-        if (saved) {
-          return {
-            ...exp,
-            currentCount: saved.currentCount || 0,
-            isCompleted: saved.isCompleted || false,
-            isClaimed: saved.isClaimed || false
-          };
-        }
-        return exp;
-      });
-    }
-
-    // Đồng bộ danh sách thành tựu (Thêm thành tựu mới nếu chưa có trong profile)
-    const existingAchievementsMap = new Map<string, Achievement>(
-      (parsed.achievements || []).map((a: Achievement) => [a.id, a])
+  if (isNewDay) {
+    parsed.dailyReliefClaimedCount = 0;
+    parsed.lastDailyResetTimestamp = now;
+    parsed.lastDailyResetDate = todayStr;
+    parsed.dailyMilestonesClaimed = { 1: false, 3: false, 5: false };
+    dailyQuests = generateDailyQuestsForDate(todayStr);
+  } else {
+    const expectedQuests = generateDailyQuestsForDate(todayStr);
+    const existingQuestsMap = new Map<string, Quest>(
+      (parsed.dailyQuests || []).map((q: Quest) => [q.id, q])
     );
-    const achievements: Achievement[] = INITIAL_ACHIEVEMENTS.map(initialAch => {
-      const saved = existingAchievementsMap.get(initialAch.id);
+
+    dailyQuests = expectedQuests.map(exp => {
+      const saved = existingQuestsMap.get(exp.id);
       if (saved) {
-        // Tự động sửa lỗi ach_debt_free nếu từng bị đánh dấu hoàn thành sai trước đó
-        if (initialAch.id === 'ach_debt_free' && !saved.isClaimed) {
-          return {
-            ...initialAch,
-            currentCount: 0,
-            isCompleted: false,
-            isClaimed: false
-          };
-        }
-
-        // Tự động chuẩn hóa ach_campaign_all_clear nếu người chơi chưa thực sự vượt đủ 5 chương
-        if (initialAch.id === 'ach_campaign_all_clear') {
-          const winsMap = parsed.campaignChapterWins || {};
-          let actualCompletedChapters = 0;
-          for (const ch of CAMPAIGN_CHAPTERS) {
-            if ((winsMap[ch.id] || 0) >= ch.requiredWins || (parsed.campaignUnlockedChapter || 1) > ch.id) {
-              actualCompletedChapters++;
-            }
-          }
-          const isReallyCompleted = actualCompletedChapters >= 5;
-          return {
-            ...initialAch,
-            currentCount: Math.min(5, actualCompletedChapters),
-            isCompleted: isReallyCompleted,
-            isClaimed: isReallyCompleted ? (saved.isClaimed || false) : false
-          };
-        }
-
         return {
-          ...initialAch,
+          ...exp,
           currentCount: saved.currentCount || 0,
           isCompleted: saved.isCompleted || false,
           isClaimed: saved.isClaimed || false
         };
       }
-      return initialAch;
+      return exp;
     });
-
-    const finalProfile: PlayerProfile = {
-      ...DEFAULT_PROFILE,
-      ...parsed,
-      lastDailyResetDate: todayStr,
-      dailyQuests,
-      achievements,
-      dailyMilestonesClaimed: parsed.dailyMilestonesClaimed || { 1: false, 3: false, 5: false },
-      stats: {
-        ...DEFAULT_PROFILE.stats,
-        ...(parsed.stats || {})
-      },
-      campaignChapterWins: {
-        ...DEFAULT_PROFILE.campaignChapterWins,
-        ...(parsed.campaignChapterWins || {})
-      }
-    };
-
-    savePlayerProfile(finalProfile);
-    return finalProfile;
-  } catch (e) {
-    console.error('Lỗi khi tải PlayerProfile:', e);
-    return { ...DEFAULT_PROFILE };
   }
+
+  const existingAchievementsMap = new Map<string, Achievement>(
+    (parsed.achievements || []).map((a: Achievement) => [a.id, a])
+  );
+  const achievements: Achievement[] = INITIAL_ACHIEVEMENTS.map(initialAch => {
+    const saved = existingAchievementsMap.get(initialAch.id);
+    if (saved) {
+      if (initialAch.id === 'ach_debt_free' && !saved.isClaimed) {
+        return {
+          ...initialAch,
+          currentCount: 0,
+          isCompleted: false,
+          isClaimed: false
+        };
+      }
+
+      if (initialAch.id === 'ach_campaign_all_clear') {
+        const winsMap = parsed.campaignChapterWins || {};
+        let actualCompletedChapters = 0;
+        for (const ch of CAMPAIGN_CHAPTERS) {
+          if ((winsMap[ch.id] || 0) >= ch.requiredWins || (parsed.campaignUnlockedChapter || 1) > ch.id) {
+            actualCompletedChapters++;
+          }
+        }
+        const isReallyCompleted = actualCompletedChapters >= 5;
+        return {
+          ...initialAch,
+          currentCount: Math.min(5, actualCompletedChapters),
+          isCompleted: isReallyCompleted,
+          isClaimed: isReallyCompleted ? (saved.isClaimed || false) : false
+        };
+      }
+
+      return {
+        ...initialAch,
+        currentCount: saved.currentCount || 0,
+        isCompleted: saved.isCompleted || false,
+        isClaimed: saved.isClaimed || false
+      };
+    }
+    return initialAch;
+  });
+
+  return {
+    ...DEFAULT_PROFILE,
+    ...parsed,
+    lastDailyResetDate: todayStr,
+    dailyQuests,
+    achievements,
+    dailyMilestonesClaimed: parsed.dailyMilestonesClaimed || { 1: false, 3: false, 5: false },
+    stats: {
+      ...DEFAULT_PROFILE.stats,
+      ...(parsed.stats || {})
+    },
+    campaignChapterWins: {
+      ...DEFAULT_PROFILE.campaignChapterWins,
+      ...(parsed.campaignChapterWins || {})
+    }
+  };
 }
 
 /**
- * Lưu thông tin người chơi vào LocalStorage
+ * Nạp toàn bộ dữ liệu từ IndexedDB vào bộ nhớ Cache khi khởi động ứng dụng
+ */
+export async function hydrateStorageFromIndexedDB(): Promise<{
+  profile: PlayerProfile;
+  activeSession: ActiveMatchSession | null;
+  humanBehavior: unknown | null;
+}> {
+  try {
+    const dbProfile = await dbGetPlayerProfile();
+    if (dbProfile) {
+      cachedProfile = sanitizeAndValidateProfile(dbProfile);
+      dbSavePlayerProfile(cachedProfile); // Cập nhật lại nếu có reset ngày mới
+    } else if (!cachedProfile) {
+      cachedProfile = loadPlayerProfile();
+      await dbSavePlayerProfile(cachedProfile);
+    }
+
+    const dbSession = await dbGetActiveSession();
+    if (dbSession) {
+      cachedActiveSession = dbSession;
+    }
+
+    const dbBehavior = await dbGetHumanBehavior();
+    if (dbBehavior) {
+      cachedHumanBehavior = dbBehavior;
+    }
+  } catch (e) {
+    console.warn('Lỗi khi hydrate storage từ IndexedDB:', e);
+  }
+
+  return {
+    profile: cachedProfile || loadPlayerProfile(),
+    activeSession: cachedActiveSession,
+    humanBehavior: cachedHumanBehavior
+  };
+}
+
+/**
+ * Tải thông tin người chơi từ Cache (hoặc khởi tạo mặc định và lưu IndexedDB)
+ */
+export function loadPlayerProfile(): PlayerProfile {
+  if (cachedProfile) {
+    return cachedProfile;
+  }
+
+  const todayStr = getTodayDateString();
+  const initialProfile: PlayerProfile = {
+    ...DEFAULT_PROFILE,
+    lastDailyResetDate: todayStr,
+    dailyQuests: generateDailyQuestsForDate(todayStr),
+    dailyMilestonesClaimed: { 1: false, 3: false, 5: false }
+  };
+  cachedProfile = initialProfile;
+  dbSavePlayerProfile(initialProfile).catch(() => {});
+  return initialProfile;
+}
+
+/**
+ * Lưu thông tin người chơi vào Cache và đồng bộ bất đồng bộ xuống IndexedDB
  */
 export function savePlayerProfile(profile: PlayerProfile): void {
-  try {
-    setStorageItem(STORAGE_KEY, JSON.stringify(profile));
-  } catch (e) {
-    console.error('Lỗi khi lưu PlayerProfile:', e);
-  }
+  const sanitized = sanitizeAndValidateProfile(profile);
+  cachedProfile = sanitized;
+  dbSavePlayerProfile(sanitized).catch(() => {});
 }
 
 /**
  * Khôi phục về dữ liệu mặc định (Reset Profile)
  */
 export function resetPlayerProfile(): PlayerProfile {
-  try {
-    removeStorageItem(STORAGE_KEY);
-    removeStorageItem(HUMAN_BEHAVIOR_PROFILE_KEY);
-  } catch (e) {
-    console.error('Lỗi khi xóa profile:', e);
-  }
-  return { ...DEFAULT_PROFILE };
+  const initial: PlayerProfile = {
+    ...DEFAULT_PROFILE,
+    lastDailyResetDate: getTodayDateString(),
+    dailyQuests: generateDailyQuestsForDate(getTodayDateString()),
+    dailyMilestonesClaimed: { 1: false, 3: false, 5: false }
+  };
+
+  cachedProfile = initial;
+  dbDeletePlayerProfile().catch(() => {});
+  dbClearHumanBehavior().catch(() => {});
+
+  return initial;
 }
 
 // ============================================================================
@@ -263,70 +282,39 @@ export interface ActiveMatchSession {
   timestamp: number | null;
 }
 
-const ACTIVE_MATCH_SESSION_KEY = 'TIEN_LEN_ACTIVE_MATCH_SESSION_V1';
-
 export function saveActiveMatchSession(session: ActiveMatchSession): void {
-  try {
-    setStorageItem(ACTIVE_MATCH_SESSION_KEY, JSON.stringify(session));
-  } catch (e) {
-    console.error('Lỗi khi lưu ActiveMatchSession:', e);
-  }
+  cachedActiveSession = session;
+  dbSaveActiveSession(session).catch(() => {});
 }
 
 export function getActiveMatchSession(): ActiveMatchSession | null {
-  try {
-    const raw = getStorageItem(ACTIVE_MATCH_SESSION_KEY);
-    if (!raw) return null;
-    const parsed: ActiveMatchSession = JSON.parse(raw);
-    return parsed;
-  } catch (e) {
-    console.error('Lỗi khi đọc ActiveMatchSession:', e);
-    return null;
-  }
+  return cachedActiveSession;
 }
 
 export function clearActiveMatchSession(): void {
-  try {
-    removeStorageItem(ACTIVE_MATCH_SESSION_KEY);
-  } catch (e) {
-    console.error('Lỗi khi xóa ActiveMatchSession:', e);
-  }
+  cachedActiveSession = null;
+  dbClearActiveSession().catch(() => {});
 }
 
 // ============================================================================
 // BỘ HỒ SƠ HÀNH VI ĐỐI THỦ THẬT (HUMAN BEHAVIOR PROFILE STORE)
 // ============================================================================
 
-const HUMAN_BEHAVIOR_PROFILE_KEY = 'TIEN_LEN_HUMAN_BEHAVIOR_PROFILE_V1';
-
 export function saveHumanBehaviorProfile(data: unknown): void {
-  try {
-    setStorageItem(HUMAN_BEHAVIOR_PROFILE_KEY, JSON.stringify(data));
-  } catch (e) {
-    console.error('Lỗi khi lưu HumanBehaviorProfile:', e);
-  }
+  cachedHumanBehavior = data;
+  dbSaveHumanBehavior(data).catch(() => {});
 }
 
 export function loadHumanBehaviorProfile(): unknown | null {
-  try {
-    const raw = getStorageItem(HUMAN_BEHAVIOR_PROFILE_KEY);
-    if (!raw) return null;
-    const parsed: unknown = JSON.parse(raw);
-    return parsed;
-  } catch (e) {
-    console.error('Lỗi khi đọc HumanBehaviorProfile:', e);
-    return null;
-  }
+  return cachedHumanBehavior;
 }
 
 export function clearHumanBehaviorProfile(): void {
-  try {
-    removeStorageItem(HUMAN_BEHAVIOR_PROFILE_KEY);
-  } catch (e) {
-    console.error('Lỗi khi xóa HumanBehaviorProfile:', e);
-  }
+  cachedHumanBehavior = null;
+  dbClearHumanBehavior().catch(() => {});
 }
 
 export function getHumanBehaviorProfile(): unknown | null {
   return loadHumanBehaviorProfile();
 }
+

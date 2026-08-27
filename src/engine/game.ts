@@ -8,11 +8,10 @@ import {
   Combination,
   GameRules,
   GameMode,
-  createDefaultGameRules,
   convertSettingsToGameRules,
   isGameRules
 } from './types';
-import { isRedCard, isTwo, sortCards } from './card';
+import { isTwo, sortCards } from './card';
 import { checkInstantWin, createDeck, dealCards, shuffleDeck, createMulberry32 } from './deck';
 import { identifyCombination } from './combinations';
 import { isValidMove } from './validator';
@@ -62,7 +61,7 @@ export class GameEngine {
   public instantWinner: Player | null = null;
   public roundNumber: number = 1;
 
-  constructor(players: Player[], rulesOrSettings?: GameRules | Partial<GameSettings>, legacyStrategyId?: string) {
+  constructor(players: Player[], rulesOrSettings?: GameRules | Partial<GameSettings>, _legacyStrategyId?: string) {
     this.players = players;
     
     // Khởi tạo GameRules hợp thành
@@ -1050,8 +1049,8 @@ export class GameEngine {
       const p1 = this.winners[0];
       const p2 = this.winners[1];
       if (p1 && p2) {
-        let p2Penalty = (this.isPlayerCong(p2.id) ? bet * 2 : bet * 1) * threeSpadesMultiplier;
-        let p2Rotten = this.calculateRottenCardsPenalty(p2.hand) * threeSpadesMultiplier;
+        const p2Penalty = (this.isPlayerCong(p2.id) ? bet * 2 : bet * 1) * threeSpadesMultiplier;
+        const p2Rotten = this.calculateRottenCardsPenalty(p2.hand) * threeSpadesMultiplier;
         p1.score += p2Penalty + p2Rotten;
         p2.score -= (p2Penalty + p2Rotten);
       }
@@ -1077,7 +1076,7 @@ export class GameEngine {
   /**
    * Tính toán kết quả Tới Trắng
    */
-  private calculateInstantWinSettlement(winner: Player, instantWinType: InstantWinType): void {
+  private calculateInstantWinSettlement(winner: Player, _instantWinType: InstantWinType): void {
     const bet = this.rules.table.betAmount;
     const mult = this.rules.instantWin.payoutMultiplier || 26;
     // Thắng tới trắng: Mỗi nhà đền mult mức cược

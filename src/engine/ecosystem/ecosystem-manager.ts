@@ -3,15 +3,12 @@ import {
   dbGetAllBots, 
   dbSaveBotsBatch, 
   dbAddNewsBatch, 
-  dbGetNewsfeed,
   dbResetEcosystem 
 } from '../db/indexed-db';
 import { 
   BotEntity, 
-  TableGroup, 
   EcosystemNewsItem, 
-  SimulatedTableResult,
-  BotMatchResult 
+  SimulatedTableResult 
 } from './ecosystem-types';
 import { 
   generateInitial200Bots, 

@@ -2,11 +2,7 @@ import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { Player } from '../../engine/types';
 import { 
-  Trophy, 
-  RefreshCw, 
   Home, 
-  TrendingUp, 
-  AlertCircle, 
   RotateCcw, 
   Map, 
   Swords, 
@@ -19,7 +15,7 @@ import { CampaignChapter } from '../../engine/campaign';
 import { ActiveGameType } from '../../stores/useGameStore';
 import { clearActiveMatchSession } from '../../engine/storage';
 import { MatchLogger } from '../../engine/match-logger';
-import { Modal, Card, Badge, Button } from '../primitives';
+import { Modal, Card, Button } from '../primitives';
 import { MiniCardView } from './CardView';
 
 interface VictoryModalProps {
@@ -53,8 +49,8 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   onNextGame,
   onReturnToLobby,
   onOpenCampaignMap,
-  onOpenCustomGameModal,
-  onOpenBankLoanModal,
+  onOpenCustomGameModal: _onOpenCustomGameModal,
+  onOpenBankLoanModal: _onOpenBankLoanModal,
   winners,
   allPlayers,
   betAmount,
@@ -70,14 +66,11 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   isChapterUnlockedNext,
   isAllCampaignCompleted,
   nextChapter,
-  playerCoins,
+  playerCoins: _playerCoins,
   botReasoningLogEnabled: _botReasoningLogEnabled
 }) => {
-  const matchReport = MatchLogger.getInstance().getLatestFinalizedReport();
   const isHumanWinner = winners.length > 0 && winners[0].id === 'p0';
   const isCampaign = activeGameType === 'CAMPAIGN';
-  const isCountCards = matchReport?.gameMode === 'COUNT_CARDS';
-  const isWinnerTakesAll = matchReport?.gameMode === 'WINNER_TAKES_ALL';
 
   useEffect(() => {
     if (isOpen) {
@@ -108,8 +101,8 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
   if (!isOpen) return null;
 
+  const matchReport = MatchLogger.getInstance().getLatestReport();
   const winner = winners.length > 0 ? winners[0] : allPlayers[0];
-  const humanPlayer = allPlayers.find(p => p.id === 'p0') || allPlayers[0];
   const humanPayout = payouts ? (payouts['p0'] || 0) : 0;
 
   // Sắp xếp người chơi theo kết quả
@@ -132,9 +125,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   let secondaryBtnIcon = <Home className="w-4 h-4" />;
   let secondaryBtnAction = onReturnToLobby;
 
-  let statBox1Title = 'KẾT QUẢ CÁ NHÂN';
-  let statBox1Value = humanPayout > 0 ? `+${humanPayout.toLocaleString()} 🪙` : `${humanPayout.toLocaleString()} 🪙`;
-  let statBox1Sub = isHumanWinner ? '🥇 Bạn đã về Nhất!' : '💥 Chưa thể giành chiến thắng';
+  const statBox1Title = 'KẾT QUẢ CÁ NHÂN';
+  const statBox1Value = humanPayout > 0 ? `+${humanPayout.toLocaleString()} 🪙` : `${humanPayout.toLocaleString()} 🪙`;
+  const statBox1Sub = isHumanWinner ? '🥇 Bạn đã về Nhất!' : '💥 Chưa thể giành chiến thắng';
 
   let statBox2Title = 'CHẾ ĐỘ CHƠI';
   let statBox2Value = 'Truyền Thống';

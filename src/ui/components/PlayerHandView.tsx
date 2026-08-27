@@ -1,7 +1,7 @@
 import React from 'react';
-import { Card, Player } from '../../engine/types';
+import { Player } from '../../engine/types';
 import { HandSortMode } from '../../stores/useGameStore';
-import { getAvailableSmartVariants, getSmartHandGroups } from '../../engine/hand-sorter';
+import { getAvailableSmartVariants } from '../../engine/hand-sorter';
 import { CardView } from './CardView';
 import { Play, SkipForward, ArrowUpDown, ArrowDownToLine, Layers, Crosshair } from 'lucide-react';
 
@@ -41,7 +41,7 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
   onPlaySelectedCards,
   onPassTurn,
   onAutoSort,
-  onGetAiHint,
+  onGetAiHint: _onGetAiHint,
   onQuickSelect,
   canQuickSelect = true,
   quickSelectCandidatesCount = 0,
@@ -51,7 +51,7 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
   isLeader,
   isDealing = false,
   dealtCardsCount,
-  aiHintEnabled = false,
+  aiHintEnabled: _aiHintEnabled = false,
   isFirstMoveOfGame = false,
   sortMode = 'NATURAL',
   variantIndex = 0

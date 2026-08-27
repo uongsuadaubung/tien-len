@@ -1,4 +1,4 @@
-import { TableGroup, BotEntity, SimulatedTableResult, EcosystemNewsItem } from './ecosystem-types';
+import { TableGroup, BotEntity } from './ecosystem-types';
 import { simulateAllTablesBatch } from './headless-sim';
 import { WorkerInputMessage, WorkerOutputMessage } from './simulation-worker';
 

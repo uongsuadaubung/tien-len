@@ -1,4 +1,4 @@
-import { Card, Combination, PlayedMove, Player } from './types';
+import { Card, Combination, Player } from './types';
 import { isRedCard, isTwo } from './card';
 
 export interface EconomySettings {
@@ -49,7 +49,7 @@ export function calculateAdaptiveQuickBet(playerCoins: number): number {
  */
 export function calculateChopPenalty(
   target: Combination,
-  candidate: Combination,
+  _candidate: Combination,
   betAmount: number,
   penaltyMultiplier: boolean | number = 1
 ): { amount: number; description: string } {

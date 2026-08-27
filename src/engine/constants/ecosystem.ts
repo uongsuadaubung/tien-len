@@ -21,6 +21,11 @@ export interface EcosystemConfig {
   BOT_STORE_NAME: string;
   NEWS_STORE_NAME: string;
   MATCH_HISTORY_STORE_NAME: string;
+  PLAYER_PROFILE_STORE_NAME: string;
+  GAME_SETTINGS_STORE_NAME: string;
+  ACTIVE_SESSION_STORE_NAME: string;
+  HUMAN_BEHAVIOR_STORE_NAME: string;
+  MATCH_LOGS_STORE_NAME: string;
 }
 
 export const ECOSYSTEM_CONSTANTS: EcosystemConfig = {
@@ -63,10 +68,15 @@ export const ECOSYSTEM_CONSTANTS: EcosystemConfig = {
   // Hệ số gia tăng tâm lý cay cú gỡ gạc (Tilt) khi dính chuỗi thua
   TILT_RISK_BOOST: 0.35,
 
-  // Tên cơ sở dữ liệu IndexedDB & Phiên bản
-  DB_NAME: 'TIEN_LEN_ECOSYSTEM_DB_V1',
-  DB_VERSION: 1,
+  // Tên cơ sở dữ liệu IndexedDB & Phiên bản Hợp Nhất Toàn Bộ Game
+  DB_NAME: 'TIEN_LEN_GAME_DB_V2',
+  DB_VERSION: 2,
   BOT_STORE_NAME: 'bots',
   NEWS_STORE_NAME: 'newsfeed',
-  MATCH_HISTORY_STORE_NAME: 'match_history'
+  MATCH_HISTORY_STORE_NAME: 'match_history',
+  PLAYER_PROFILE_STORE_NAME: 'player_profile',
+  GAME_SETTINGS_STORE_NAME: 'game_settings',
+  ACTIVE_SESSION_STORE_NAME: 'active_session',
+  HUMAN_BEHAVIOR_STORE_NAME: 'human_behavior',
+  MATCH_LOGS_STORE_NAME: 'match_logs'
 };

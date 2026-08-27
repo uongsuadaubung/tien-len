@@ -30,7 +30,23 @@ export default [
         {
           assertionStyle: 'never'
         }
-      ]
+      ],
+
+      // 3. Không cho phép biến không sử dụng (Disallow unused variables)
+      'no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          args: 'all',
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrors: 'all',
+          caughtErrorsIgnorePattern: '^_'
+        }
+      ],
+
+      // 4. Ưu tiên const hơn let khi biến không bị gán lại
+      'prefer-const': 'error'
     }
   }
 ];

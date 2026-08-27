@@ -398,7 +398,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
 
             {/* Chọn ghế */}
             <div className="flex items-center gap-1.5">
-              {seatLabels.slice(0, activeBotCount).map((l, i) => (
+              {seatLabels.slice(0, activeBotCount).map((_l, i) => (
                 <Button
                   key={i}
                   variant={activeBotSeatIndex === i ? 'gold' : 'surface'}

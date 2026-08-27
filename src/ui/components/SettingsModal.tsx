@@ -10,7 +10,7 @@ import {
   Crosshair,
   Wand2
 } from 'lucide-react';
-import { Modal, Card, Button } from '../primitives';
+import { Modal, Button } from '../primitives';
 import { GameSpeedMode } from '../../engine/game-speed';
 
 interface SettingsModalProps {
@@ -91,7 +91,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* NHÓM 1: ÂM THANH TRÒ CHƠI */}
         {/* ========================================================================= */}
         <div className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-card)] shadow-md overflow-hidden">
-          <div className="px-4 py-2.5 bg-[var(--bg-container)]/70 border-b border-[var(--border-container)]/50 flex items-center gap-2">
+          <div className="px-4 py-2.5 bg-[var(--bg-container)]/70 flex items-center gap-2">
             <Volume2 className="w-3.5 h-3.5 text-[var(--color-gold)]" />
             <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-gold)]">
               Âm Thanh Trò Chơi
@@ -123,7 +123,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* NHÓM 2: NHỊP ĐỘ VÁN ĐẤU */}
         {/* ========================================================================= */}
         <div className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-card)] shadow-md overflow-hidden">
-          <div className="px-4 py-2.5 bg-[var(--bg-container)]/70 border-b border-[var(--border-container)]/50 flex items-center gap-2">
+          <div className="px-4 py-2.5 bg-[var(--bg-container)]/70 flex items-center gap-2">
             <Timer className="w-3.5 h-3.5 text-[var(--color-gold)]" />
             <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-gold)]">
               Nhịp Độ Ván Đấu
@@ -185,14 +185,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* NHÓM 3: HỖ TRỢ THAO TÁC & ĐÁNH BÀI */}
         {/* ========================================================================= */}
         <div className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-card)] shadow-md overflow-hidden">
-          <div className="px-4 py-2.5 bg-[var(--bg-container)]/70 border-b border-[var(--border-container)]/50 flex items-center gap-2">
+          <div className="px-4 py-2.5 bg-[var(--bg-container)]/70 flex items-center gap-2">
             <CheckCircle className="w-3.5 h-3.5 text-[var(--color-gold)]" />
             <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-gold)]">
               Hỗ Trợ Thao Tác &amp; Đánh Bài
             </span>
           </div>
 
-          <div className="divide-y divide-white/[0.05]">
+          <div className="space-y-0.5">
             {/* 1. Tự động gom bộ & xếp bài */}
             <div
               onClick={onToggleAutoSort}
@@ -253,14 +253,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* NHÓM 4: PHÂN TÍCH & NÂNG CAO */}
         {/* ========================================================================= */}
         <div className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-card)] shadow-md overflow-hidden">
-          <div className="px-4 py-2.5 bg-[var(--bg-container)]/70 border-b border-[var(--border-container)]/50 flex items-center gap-2">
+          <div className="px-4 py-2.5 bg-[var(--bg-container)]/70 flex items-center gap-2">
             <Eye className="w-3.5 h-3.5 text-[var(--color-gold)]" />
             <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-gold)]">
               Phân Tích &amp; Nâng Cao
             </span>
           </div>
 
-          <div className="divide-y divide-white/[0.05]">
+          <div className="space-y-0.5">
             {/* 1. Chế Độ Soi Bài (X-Ray) */}
             <div
               onClick={onToggleXRay}

@@ -17,7 +17,7 @@ function findAllCandidateCombinations(cards: Card[], optimality: number = 1.0): 
     rankMap.get(card.rank)!.push(card);
   }
 
-  for (const [rank, group] of rankMap.entries()) {
+  for (const [, group] of rankMap.entries()) {
     if (group.length === 4 && optimality >= 0.6) {
       const combo = identifyCombination(group);
       if (combo) candidates.push(combo);
@@ -143,8 +143,6 @@ export function partitionHand(hand: Card[], optimality: number = 1.0): HandParti
   if (sorted.length === 0) {
     return { combinations: [], trashCards: [], totalScore: 0 };
   }
-
-  const allCandidates = findAllCandidateCombinations(sorted, optimality);
 
   let bestPartition: HandPartition = {
     combinations: [],

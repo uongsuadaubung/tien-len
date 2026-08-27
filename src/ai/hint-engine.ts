@@ -445,7 +445,7 @@ export interface SelectionFeedbackContext {
 function analyzeTacticalOutcome(
   combo: Combination,
   selectedCards: Card[],
-  hand: Card[],
+  _hand: Card[],
   tracker: CardTracker
 ): { title: string; message: string; type: HintType } {
   const cardCodes = formatCards(selectedCards);
@@ -611,7 +611,6 @@ export function evaluateSelectionFeedback(context: SelectionFeedbackContext): Mo
   const isFirstMoveOfGame = context.isFirstMoveOfGame;
   const isLeadMove = context.isLeadMove;
   const tracker = context.tracker;
-  const optimalHint = context.optimalHint;
   const prohibitEndingWithTwo = context.prohibitEndingWithTwo ?? true;
 
   if (!selectedCards || selectedCards.length === 0) return null;

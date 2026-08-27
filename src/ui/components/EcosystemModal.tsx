@@ -1,31 +1,25 @@
 import React, { useState, useMemo } from 'react';
-import { Modal } from '../primitives/Modal';
-import { Card as UICard } from '../primitives/Card';
-import { Badge } from '../primitives/Badge';
-import { Button } from '../primitives/Button';
+import { Modal, Card, Badge, Button, Tabs, TabOption } from '../primitives';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { useModalStore } from '../../stores/useModalStore';
 import { useUserStore } from '../../stores/useUserStore';
-import { BotActivityStatus, BotEntity, EcosystemNewsItem } from '../../engine/ecosystem/ecosystem-types';
+import { BotActivityStatus, BotEntity } from '../../engine/ecosystem/ecosystem-types';
 import { 
   Trophy, 
-  Coins, 
   Flame, 
   Snowflake, 
   Search, 
-  SlidersHorizontal, 
   Newspaper, 
-  Users, 
-  RefreshCw, 
   ChevronLeft, 
   ChevronRight, 
   Eye,
-  Activity,
   ArrowUpDown,
-  Sparkles
+  Target
 } from 'lucide-react';
 
 const PAGE_SIZE = 15;
+
+type EcosystemTab = 'LEADERBOARD' | 'NEWSFEED';
 
 interface EcosystemTableItem {
   id: string;
@@ -69,20 +63,17 @@ export const EcosystemModal: React.FC = () => {
     selectedTierFilter,
     selectedSortField,
     sortOrder,
-    isLoading,
     setSearchQuery,
     setSelectedTierFilter,
     setSelectedSortField,
     toggleSortOrder,
-    setSelectedBot,
-    resetEcosystem
+    setSelectedBot
   } = useEcosystemStore();
 
-  const [activeTab, setActiveTab] = useState<'LEADERBOARD' | 'NEWSFEED'>('LEADERBOARD');
+  const [activeTab, setActiveTab] = useState<EcosystemTab>('LEADERBOARD');
   const [currentPage, setCurrentPage] = useState(1);
-  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
 
-  // Tạo đối tượng đại diện cho Người Chơi để xếp hạng cùng 200 Bot
+  // Tạo đối tượng đại diện cho Người Chơi để xếp hạng
   const humanPlayerRankEntity: EcosystemTableItem = useMemo(() => {
     const totalGames = profile.stats.gamesPlayed || 0;
     const wins = profile.stats.wins || 0;
@@ -97,7 +88,7 @@ export const EcosystemModal: React.FC = () => {
 
     return {
       id: 'human_player',
-      name: profile.name || 'Bạn (Người Chơi)',
+      name: profile.name || 'Bạn',
       avatar: profile.avatar || '🤠',
       elo: profile.elo,
       coins: profile.coins,
@@ -107,7 +98,7 @@ export const EcosystemModal: React.FC = () => {
       currentStreak: profile.stats.currentStreak || 0,
       highestStreak: profile.stats.highestStreak || 0,
       title: 'Đại Hiệp',
-      personalityTags: ['Người Thật'],
+      personalityTags: ['Kỳ Thủ', 'Chiến Thuật'],
       activityStatus: 'IN_MATCH',
       headToHeadVsHuman: { games: 0, botWins: 0, humanWins: 0, netCoinsEarnedFromHuman: 0 },
       stats: {
@@ -122,6 +113,55 @@ export const EcosystemModal: React.FC = () => {
       rawBot: null
     };
   }, [profile]);
+
+  // Tạo BotEntity đại diện cho người chơi khi xem hồ sơ chính mình
+  const humanAsBotEntity: BotEntity = useMemo(() => ({
+    id: 'human_player',
+    name: profile.name || 'Bạn',
+    avatar: profile.avatar || '🤠',
+    tier: `Tier ${humanPlayerRankEntity.tierNum}`,
+    tierNum: humanPlayerRankEntity.tierNum,
+    rankBadge: humanPlayerRankEntity.rankBadge,
+    elo: profile.elo,
+    coins: profile.coins,
+    description: 'Đại hiệp giang hồ, bản lĩnh tung hoành khắp các sới bài Tiến Lên Miền Nam.',
+    personalityTags: ['Người Chơi Thật', 'Chiến Thuật', 'Quyết Đoán'],
+    title: 'Đại Hiệp',
+    status: 'ACTIVE',
+    activityStatus: 'IN_MATCH',
+    createdAt: Date.now(),
+    memoryDepth: 1.0,
+    riskAppetite: 0.7,
+    trapTendency: 0.6,
+    baitingTendency: 0.6,
+    antiLeaderAggression: 0.8,
+    tempoControl: 0.7,
+    damageControl: 0.7,
+    turnsToWinLookahead: 0.8,
+    dynamicHandSacrifice: 0.8,
+    bombInferenceRate: 0.8,
+    semiCooperativeCooperation: 0.5,
+    positionalAwareness: 0.8,
+    inMatchAdaptationRate: 0.8,
+    mctsSimulations: 50,
+    handPartitioningOptimality: 0.9,
+    simulationLookahead: 3,
+    currentStreak: profile.stats.currentStreak || 0,
+    highestStreak: profile.stats.highestStreak || 0,
+    stats: {
+      gamesPlayed: profile.stats.gamesPlayed || 0,
+      wins: profile.stats.wins || 0,
+      chopsDone: profile.stats.chopsDone || 0,
+      congsGiven: profile.stats.congsGiven || 0,
+      totalEarned: profile.stats.totalEarned || 0
+    },
+    headToHeadVsHuman: {
+      games: 0,
+      botWins: 0,
+      humanWins: 0,
+      netCoinsEarnedFromHuman: 0
+    }
+  }), [profile, humanPlayerRankEntity]);
 
   // Lọc và Sắp xếp danh sách
   const sortedAndFilteredList: EcosystemTableItem[] = useMemo(() => {
@@ -169,6 +209,12 @@ export const EcosystemModal: React.FC = () => {
     return list;
   }, [bots, humanPlayerRankEntity, searchQuery, selectedTierFilter, selectedSortField, sortOrder]);
 
+  // Thứ hạng tổng của Người Chơi
+  const humanGlobalRank = useMemo(() => {
+    const idx = sortedAndFilteredList.findIndex(item => item.isHuman);
+    return idx !== -1 ? idx + 1 : 1;
+  }, [sortedAndFilteredList]);
+
   // Phân trang
   const totalPages = Math.ceil(sortedAndFilteredList.length / PAGE_SIZE) || 1;
   const paginatedList = useMemo(() => {
@@ -181,10 +227,28 @@ export const EcosystemModal: React.FC = () => {
     openModal('BOT_PROFILE');
   };
 
-  const handleResetConfirm = async () => {
-    await resetEcosystem();
-    setIsResetConfirmOpen(false);
+  const handleJumpToMyRank = () => {
+    const targetPage = Math.ceil(humanGlobalRank / PAGE_SIZE) || 1;
+    setCurrentPage(targetPage);
   };
+
+  const tabOptions: TabOption<EcosystemTab>[] = [
+    {
+      id: 'LEADERBOARD',
+      label: 'Bảng Xếp Hạng',
+      icon: <Trophy className="w-4 h-4" />
+    },
+    {
+      id: 'NEWSFEED',
+      label: 'Bảng Tin',
+      icon: <Newspaper className="w-4 h-4" />,
+      badge: newsfeed.length > 0 ? (
+        <Badge variant="danger" size="sm">
+          {newsfeed.length}
+        </Badge>
+      ) : undefined
+    }
+  ];
 
   if (!isEcosystemOpen) return null;
 
@@ -192,50 +256,33 @@ export const EcosystemModal: React.FC = () => {
     <Modal
       isOpen={isEcosystemOpen}
       onClose={() => closeModal('ECOSYSTEM')}
+      title="Bảng Vàng Danh Vọng"
+      subtitle="Vinh danh cao thủ, tỷ lệ thắng & biến động tài chính toàn máy chủ"
+      icon={<Trophy className="w-5 h-5 text-[var(--color-gold)]" />}
       maxWidth="5xl"
       height="h-[90vh] sm:h-[700px]"
-      title={
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-400">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-black text-lg text-[var(--text-primary)]">Thế Giới Sới Bạc</span>
-              <Badge variant="gold">200 Cao Thủ Sống Động</Badge>
-            </div>
-            <p className="text-xs text-[var(--text-muted)]">Hệ sinh thái đối thủ thực tế, tự do thăng hạng & biến động tài chính</p>
-          </div>
-        </div>
+      headerRight={
+        <Badge variant="gold" size="md" icon={<span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}>
+          Mùa Giải 2026 • Trực Tuyến
+        </Badge>
       }
       footer={
-        <div className="flex items-center justify-between w-full text-xs">
+        <div className="flex flex-wrap items-center justify-between w-full gap-2 text-xs">
           <div className="flex items-center gap-2">
-            {!isResetConfirmOpen ? (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-rose-400 hover:text-rose-300 text-xs"
-                onClick={() => setIsResetConfirmOpen(true)}
-              >
-                <RefreshCw className="w-3.5 h-3.5 mr-1" /> Đặt Lại Thế Giới Bot
-              </Button>
-            ) : (
-              <div className="flex items-center gap-1.5 bg-rose-950/60 p-1 rounded-lg border border-rose-800/60">
-                <span className="text-[11px] text-rose-300 font-medium">Xác nhận reset 200 Bot?</span>
-                <Button variant="danger" size="sm" className="h-6 px-2 text-[11px]" onClick={handleResetConfirm}>
-                  Có, Reset
-                </Button>
-                <Button variant="surface" size="sm" className="h-6 px-2 text-[11px]" onClick={() => setIsResetConfirmOpen(false)}>
-                  Hủy
-                </Button>
-              </div>
-            )}
+            <Button 
+              variant="surface" 
+              size="sm" 
+              className="text-xs hover:border-[var(--color-gold-border)] hover:text-[var(--color-gold)]"
+              onClick={handleJumpToMyRank}
+              leftIcon={<Target className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
+            >
+              Hạng Của Bạn: <strong className="ml-1 text-[var(--color-gold)]">#{humanGlobalRank}</strong>
+            </Button>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-[var(--text-muted)]">
-              Hiển thị {sortedAndFilteredList.length} cao thủ | Trang {currentPage}/{totalPages}
+            <span className="text-[var(--text-muted)] text-[11px]">
+              Hiển thị {sortedAndFilteredList.length} người chơi | Trang {currentPage}/{totalPages}
             </span>
             <Button variant="surface" size="sm" onClick={() => closeModal('ECOSYSTEM')}>
               Đóng
@@ -246,47 +293,27 @@ export const EcosystemModal: React.FC = () => {
     >
       <div className="flex flex-col h-full space-y-3">
         {/* THANH ĐIỀU HƯỚNG TAB & TÌM KIẾM */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] pb-2.5">
-          <div className="flex items-center gap-1.5 bg-[var(--bg-surface)] p-1 rounded-xl border border-[var(--border-card)]">
-            <button
-              onClick={() => { setActiveTab('LEADERBOARD'); setCurrentPage(1); }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeTab === 'LEADERBOARD'
-                  ? 'bg-amber-500 text-slate-950 shadow-md font-black'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              <Trophy className="w-3.5 h-3.5" /> Bảng Xếp Hạng
-            </button>
-            <button
-              onClick={() => setActiveTab('NEWSFEED')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeTab === 'NEWSFEED'
-                  ? 'bg-amber-500 text-slate-950 shadow-md font-black'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              <Newspaper className="w-3.5 h-3.5" /> Bản Tin Sới Bạc
-              {newsfeed.length > 0 && (
-                <span className="px-1.5 py-0.2 bg-rose-600 text-white rounded-full text-[10px] font-black">
-                  {newsfeed.length}
-                </span>
-              )}
-            </button>
-          </div>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-2 border-b border-[var(--border-container)]">
+          <Tabs
+            options={tabOptions}
+            activeId={activeTab}
+            onChange={(id) => {
+              setActiveTab(id);
+              setCurrentPage(1);
+            }}
+            className="flex-1 sm:max-w-md"
+          />
 
           {activeTab === 'LEADERBOARD' && (
-            <div className="flex items-center gap-2 flex-1 max-w-xs ml-auto">
-              <div className="relative w-full">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
-                <input
-                  type="text"
-                  placeholder="Tìm tên bot, phong cách..."
-                  value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                  className="w-full pl-8 pr-3 py-1.5 text-xs bg-[var(--bg-surface)] border border-[var(--border-card)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:border-amber-500"
-                />
-              </div>
+            <div className="relative w-full sm:w-64">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+              <input
+                type="text"
+                placeholder="Tìm kiếm người chơi, danh hiệu..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                className="w-full pl-8 pr-3 py-1.5 text-xs bg-[var(--bg-input)] border border-[var(--border-container)] rounded-xl text-[var(--text-primary)] focus:outline-none focus:border-[var(--color-gold)] transition-colors placeholder:text-[var(--text-dim)]"
+              />
             </div>
           )}
         </div>
@@ -295,68 +322,72 @@ export const EcosystemModal: React.FC = () => {
         {activeTab === 'LEADERBOARD' && (
           <div className="flex flex-col flex-1 min-h-0 space-y-2.5">
             {/* BỘ LỌC THEO BẬC TIER & NÚT SẮP XẾP */}
-            <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-              <div className="flex flex-wrap items-center gap-1">
-                <span className="text-[11px] text-[var(--text-muted)] mr-1">Bậc:</span>
+            <div className="flex flex-wrap items-center justify-between gap-2.5 text-xs">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-semibold text-[var(--text-muted)] mr-0.5">Bậc Rank:</span>
                 {(['ALL', 5, 4, 3, 2, 1] as const).map((tier) => (
                   <button
                     key={tier}
                     onClick={() => { setSelectedTierFilter(tier); setCurrentPage(1); }}
-                    className={`px-2.5 py-1 rounded-md text-[11px] font-bold transition-all border ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all select-none border ${
                       selectedTierFilter === tier
-                        ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
-                        : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-subtle)] hover:border-[var(--border-card)]'
+                        ? 'bg-[var(--bg-card-active)] text-[var(--color-gold)] border-[var(--color-gold)] shadow-sm'
+                        : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-card)] hover:border-[var(--border-card-hover)] hover:bg-[var(--bg-card-hover)]'
                     }`}
                   >
-                    {tier === 'ALL' ? 'Tất cả (200)' : tier === 5 ? '👑 Thần Bài' : tier === 4 ? '💎 Cao Thủ' : tier === 3 ? '🥇 Kinh Nghiệm' : tier === 2 ? '🥈 Phong Trào' : '🥉 Tập Sự'}
+                    {tier === 'ALL' ? 'Tất Cả' : tier === 5 ? '👑 Thần Bài' : tier === 4 ? '💎 Cao Thủ' : tier === 3 ? '🥇 Kinh Nghiệm' : tier === 2 ? '🥈 Phong Trào' : '🥉 Tập Sự'}
                   </button>
                 ))}
               </div>
 
-              <div className="flex items-center gap-1.5 ml-auto">
-                <span className="text-[11px] text-[var(--text-muted)]">Xếp theo:</span>
-                <select
-                  value={selectedSortField}
-                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                    const val = e.target.value;
-                    if (val === 'elo' || val === 'coins' || val === 'winRate' || val === 'gamesPlayed') {
-                      setSelectedSortField(val);
-                    }
-                  }}
-                  className="bg-[var(--bg-surface)] border border-[var(--border-card)] text-xs text-[var(--text-primary)] rounded-md px-2 py-1 focus:outline-none"
-                >
-                  <option value="elo">Điểm Elo</option>
-                  <option value="coins">Tiền Vốn (Xu)</option>
-                  <option value="winRate">Tỉ Lệ Thắng (%)</option>
-                  <option value="gamesPlayed">Số Trận Đấu</option>
-                </select>
-                <button
+              <div className="flex items-center gap-2 ml-auto">
+                <span className="text-[11px] font-semibold text-[var(--text-muted)]">Xếp theo:</span>
+                <div className="relative">
+                  <select
+                    value={selectedSortField}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                      const val = e.target.value;
+                      if (val === 'elo' || val === 'coins' || val === 'winRate' || val === 'gamesPlayed') {
+                        setSelectedSortField(val);
+                      }
+                    }}
+                    className="bg-[var(--bg-input)] border border-[var(--border-card)] text-xs text-[var(--text-primary)] rounded-lg px-2.5 py-1 focus:outline-none focus:border-[var(--color-gold)] cursor-pointer"
+                  >
+                    <option value="elo">Điểm Elo</option>
+                    <option value="coins">Tiền Vốn (Xu)</option>
+                    <option value="winRate">Tỉ Lệ Thắng (%)</option>
+                    <option value="gamesPlayed">Số Trận Đấu</option>
+                  </select>
+                </div>
+                <Button
+                  variant="surface"
+                  size="sm"
                   onClick={toggleSortOrder}
-                  className="p-1 bg-[var(--bg-surface)] border border-[var(--border-card)] rounded-md hover:text-amber-400 text-xs flex items-center gap-0.5"
                   title="Đổi thứ tự tăng/giảm"
+                  className="h-7 px-2 text-xs"
+                  leftIcon={<ArrowUpDown className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
                 >
-                  <ArrowUpDown className="w-3.5 h-3.5" />
                   <span className="text-[10px] font-bold">{sortOrder.toUpperCase()}</span>
-                </button>
+                </Button>
               </div>
             </div>
 
             {/* BẢNG DANH SÁCH BOT */}
-            <div className="flex-1 overflow-y-auto min-h-0 rounded-xl border border-[var(--border-card)] bg-[var(--bg-surface)]">
+            <div className="flex-1 overflow-y-auto min-h-0 rounded-2xl border border-[var(--border-card)] bg-[var(--bg-card)] shadow-[var(--shadow-card)]">
               <table className="w-full text-left text-xs border-collapse">
-                <thead className="sticky top-0 bg-[var(--bg-container)] border-b border-[var(--border-subtle)] text-[11px] font-bold text-[var(--text-secondary)] uppercase z-10">
+                <thead className="sticky top-0 bg-[var(--bg-container)] border-b border-[var(--border-container)] text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-wider z-10">
                   <tr>
-                    <th className="py-2.5 px-3 w-12 text-center">Hạng</th>
-                    <th className="py-2.5 px-3">Cao Thủ</th>
-                    <th className="py-2.5 px-3">Bậc Rank</th>
-                    <th className="py-2.5 px-3 text-right">Điểm Elo</th>
-                    <th className="py-2.5 px-3 text-right">Tiền Vốn (Xu)</th>
-                    <th className="py-2.5 px-3 text-center">Tỉ Lệ Thắng</th>
-                    <th className="py-2.5 px-3 text-center">Phong Độ</th>
-                    <th className="py-2.5 px-3 text-center w-24">Thao Tác</th>
+                    <th className="py-2.5 px-3 w-14 text-center whitespace-nowrap">Hạng</th>
+                    <th className="py-2.5 px-3 whitespace-nowrap min-w-[180px]">Cao Thủ</th>
+                    <th className="py-2.5 px-3 text-center whitespace-nowrap min-w-[110px]">Bậc Rank</th>
+                    <th className="py-2.5 px-3 text-right whitespace-nowrap min-w-[90px]">Điểm Elo</th>
+                    <th className="py-2.5 px-3 text-right whitespace-nowrap min-w-[110px]">Tiền Vốn</th>
+                    <th className="py-2.5 px-3 text-center whitespace-nowrap min-w-[110px]">Tỉ Lệ Thắng</th>
+                    <th className="py-2.5 px-3 text-center whitespace-nowrap min-w-[100px]">Phong Độ</th>
+                    <th className="py-2.5 px-3 text-center whitespace-nowrap min-w-[110px]">Hồ Sơ</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[var(--border-subtle)]">
+                <tbody className="divide-y divide-[var(--border-container)]">
                   {paginatedList.map((item, index) => {
                     const globalRank = (currentPage - 1) * PAGE_SIZE + index + 1;
                     const isHuman = item.isHuman;
@@ -364,70 +395,70 @@ export const EcosystemModal: React.FC = () => {
                     return (
                       <tr
                         key={item.id}
-                        className={`transition-colors hover:bg-amber-500/5 ${
+                        className={`transition-colors hover:bg-[var(--bg-card-hover)] ${
                           isHuman 
-                            ? 'bg-amber-500/15 font-bold border-l-4 border-l-amber-400' 
-                            : index % 2 === 0 ? 'bg-transparent' : 'bg-black/10'
+                            ? 'bg-[var(--color-gold-dim)] font-bold border-l-4 border-l-[var(--color-gold)]' 
+                            : index % 2 === 0 ? 'bg-transparent' : 'bg-black/15'
                         }`}
                       >
                         {/* Hạng */}
-                        <td className="py-2.5 px-3 text-center font-black">
+                        <td className="py-2.5 px-3 text-center font-black whitespace-nowrap">
                           {globalRank === 1 ? (
-                            <span className="text-yellow-400 text-sm">🥇 #1</span>
+                            <span className="text-[var(--color-gold)] text-sm">🥇 #1</span>
                           ) : globalRank === 2 ? (
                             <span className="text-slate-300 text-sm">🥈 #2</span>
                           ) : globalRank === 3 ? (
-                            <span className="text-amber-600 text-sm">🥉 #3</span>
+                            <span className="text-amber-500 text-sm">🥉 #3</span>
                           ) : (
                             <span className="text-[var(--text-muted)]">#{globalRank}</span>
                           )}
                         </td>
 
                         {/* Cao thủ */}
-                        <td className="py-2.5 px-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl">{item.avatar || '🤖'}</span>
+                        <td className="py-2.5 px-3 whitespace-nowrap">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-[var(--bg-input)] border border-[var(--border-container)] flex items-center justify-center text-lg flex-shrink-0">
+                              {item.avatar || '🤖'}
+                            </div>
                             <div>
                               <div className="font-bold text-[var(--text-primary)] flex items-center gap-1.5">
                                 {item.name}
                                 {isHuman && (
-                                  <span className="px-1.5 py-0.2 text-[9px] font-black bg-amber-500 text-slate-950 rounded">
+                                  <Badge variant="gold" size="sm">
                                     BẠN
-                                  </span>
+                                  </Badge>
                                 )}
                               </div>
-                              {!isHuman && (
-                                <div className="text-[10px] text-[var(--text-muted)] flex items-center gap-1 mt-0.5">
-                                  <span className={`w-1.5 h-1.5 rounded-full ${
-                                    item.activityStatus === 'IN_MATCH' ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'
-                                  }`} />
-                                  {item.activityStatus === 'IN_MATCH' ? 'Đang Đấu' : 'Nghỉ Ngơi'}
-                                </div>
-                              )}
+                              <div className="text-[10px] text-[var(--text-muted)] flex items-center gap-1 mt-0.5">
+                                <span className={`w-1.5 h-1.5 rounded-full ${
+                                  item.activityStatus === 'IN_MATCH' ? 'bg-[var(--color-emerald-text)] animate-pulse' : 'bg-slate-400'
+                                }`} />
+                                <span>{item.activityStatus === 'IN_MATCH' ? 'Đang Trong Bàn' : 'Trực Tuyến'}</span>
+                              </div>
                             </div>
                           </div>
                         </td>
 
                         {/* Bậc Rank */}
-                        <td className="py-2.5 px-3">
+                        <td className="py-2.5 px-3 text-center whitespace-nowrap">
                           <Badge variant={item.tierNum >= 4 ? 'gold' : item.tierNum === 3 ? 'neutral' : 'dark'}>
                             {item.rankBadge} Tier {item.tierNum}
                           </Badge>
                         </td>
 
                         {/* Elo */}
-                        <td className="py-2.5 px-3 text-right font-black text-amber-300">
+                        <td className="py-2.5 px-3 text-right font-black text-[var(--color-gold)] whitespace-nowrap">
                           {item.elo}
                         </td>
 
                         {/* Tiền Vốn */}
-                        <td className="py-2.5 px-3 text-right font-bold text-yellow-300">
-                          {item.coins.toLocaleString()}
+                        <td className="py-2.5 px-3 text-right font-bold text-[var(--text-primary)] whitespace-nowrap">
+                          {item.coins.toLocaleString()} <span className="text-[10px] text-[var(--text-muted)] font-normal">Xu</span>
                         </td>
 
                         {/* Tỉ Lệ Thắng */}
-                        <td className="py-2.5 px-3 text-center">
-                          <span className="font-bold text-emerald-400">
+                        <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                          <span className="font-bold text-[var(--color-emerald-text)]">
                             {item.winRate}%
                           </span>
                           <span className="text-[10px] text-[var(--text-muted)] block">
@@ -436,38 +467,37 @@ export const EcosystemModal: React.FC = () => {
                         </td>
 
                         {/* Phong Độ */}
-                        <td className="py-2.5 px-3 text-center">
+                        <td className="py-2.5 px-3 text-center whitespace-nowrap">
                           {item.currentStreak > 0 ? (
                             <span className="text-orange-400 font-bold flex items-center justify-center gap-0.5 text-[11px]">
-                              <Flame className="w-3 h-3" /> +{item.currentStreak}
+                              <Flame className="w-3 h-3 text-orange-400" /> +{item.currentStreak}
                             </span>
                           ) : item.currentStreak < 0 ? (
-                            <span className="text-cyan-400 font-bold flex items-center justify-center gap-0.5 text-[11px]">
-                              <Snowflake className="w-3 h-3" /> {item.currentStreak}
+                            <span className="text-[var(--color-sapphire-text)] font-bold flex items-center justify-center gap-0.5 text-[11px]">
+                              <Snowflake className="w-3 h-3 text-[var(--color-sapphire-text)]" /> {item.currentStreak}
                             </span>
                           ) : (
                             <span className="text-[var(--text-muted)] text-[11px]">--</span>
                           )}
                         </td>
 
-                        {/* Thao Tác */}
-                        <td className="py-2.5 px-3 text-center">
-                          {!isHuman ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 px-2 text-[11px] hover:bg-amber-500/20 hover:text-amber-300"
-                              onClick={() => {
-                                if (item.rawBot) {
-                                  handleOpenBotDetail(item.rawBot);
-                                }
-                              }}
-                            >
-                              <Eye className="w-3 h-3 mr-1" /> Căn Cước
-                            </Button>
-                          ) : (
-                            <span className="text-[10px] text-[var(--text-muted)] italic">Hồ sơ cá nhân</span>
-                          )}
+                        {/* Thao Tác (Hồ Sơ) */}
+                        <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                          <Button
+                            variant={isHuman ? 'gold' : 'surface'}
+                            size="sm"
+                            className={`py-1 px-2.5 text-xs ${!isHuman ? 'hover:border-[var(--color-gold-border)] hover:text-[var(--color-gold)]' : ''}`}
+                            onClick={() => {
+                              if (isHuman) {
+                                handleOpenBotDetail(humanAsBotEntity);
+                              } else if (item.rawBot) {
+                                handleOpenBotDetail(item.rawBot);
+                              }
+                            }}
+                            leftIcon={<Eye className={`w-3.5 h-3.5 ${isHuman ? 'text-black' : 'text-[var(--color-gold)]'}`} />}
+                          >
+                            Hồ Sơ
+                          </Button>
                         </td>
                       </tr>
                     );
@@ -479,30 +509,32 @@ export const EcosystemModal: React.FC = () => {
             {/* THANH PHÂN TRANG */}
             {totalPages > 1 && (
               <div className="flex items-center justify-between pt-1 text-xs">
-                <span className="text-[var(--text-muted)]">
+                <span className="text-[var(--text-muted)] text-[11px]">
                   Đang xem {((currentPage - 1) * PAGE_SIZE) + 1} - {Math.min(currentPage * PAGE_SIZE, sortedAndFilteredList.length)} trong tổng số {sortedAndFilteredList.length}
                 </span>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <Button
                     variant="surface"
                     size="sm"
-                    className="h-7 px-2"
+                    className="h-7 px-2.5 text-xs"
                     disabled={currentPage <= 1}
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    leftIcon={<ChevronLeft className="w-3.5 h-3.5" />}
                   >
-                    <ChevronLeft className="w-3.5 h-3.5 mr-0.5" /> Trước
+                    Trước
                   </Button>
-                  <span className="px-3 font-bold text-[var(--text-primary)]">
+                  <span className="px-2.5 font-bold text-[var(--text-primary)] text-xs">
                     {currentPage} / {totalPages}
                   </span>
                   <Button
                     variant="surface"
                     size="sm"
-                    className="h-7 px-2"
+                    className="h-7 px-2.5 text-xs"
                     disabled={currentPage >= totalPages}
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    rightIcon={<ChevronRight className="w-3.5 h-3.5" />}
                   >
-                    Sau <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+                    Sau
                   </Button>
                 </div>
               </div>
@@ -510,39 +542,46 @@ export const EcosystemModal: React.FC = () => {
           </div>
         )}
 
-        {/* TAB 2: BẢN TIN SỚI BẠC (CASINO NEWSFEED) */}
+        {/* TAB 2: BẢNG TIN */}
         {activeTab === 'NEWSFEED' && (
-          <div className="flex-1 overflow-y-auto min-h-0 space-y-2 pr-1">
+          <div className="flex-1 overflow-y-auto min-h-0 space-y-2.5 pr-1">
             {newsfeed.length === 0 ? (
-              <div className="text-center py-12 text-[var(--text-muted)] text-xs">
-                Chưa có sự kiện nổi bật nào trong sới bạc. Hãy tham gia thi đấu để kích hoạt các biến cố!
+              <div className="text-center py-16 text-[var(--text-muted)] text-xs flex flex-col items-center justify-center gap-2">
+                <Newspaper className="w-8 h-8 text-[var(--text-dim)]" />
+                <span>Chưa có sự kiện nổi bật nào hôm nay. Các trận thắng lớn và sự kiện nổ hũ sẽ được vinh danh tại đây!</span>
               </div>
             ) : (
-              newsfeed.map((news) => (
-                <UICard
-                  key={news.id}
-                  variant="card"
-                  className={`p-3 rounded-xl border flex items-start gap-3 transition-all ${
-                    news.type === 'BANKRUPTCY'
-                      ? 'bg-rose-950/20 border-rose-800/40 text-rose-200'
-                      : news.type === 'WIN_STREAK'
-                      ? 'bg-orange-950/20 border-orange-800/40 text-orange-200'
-                      : news.type === 'BIG_WIN'
-                      ? 'bg-yellow-950/20 border-yellow-800/40 text-yellow-200'
-                      : 'bg-[var(--bg-surface)] border-[var(--border-card)] text-[var(--text-primary)]'
-                  }`}
-                >
-                  <div className="p-2 rounded-xl bg-black/40 text-lg flex-shrink-0">
-                    {news.avatar || (news.type === 'BANKRUPTCY' ? '🚨' : news.type === 'WIN_STREAK' ? '🔥' : news.type === 'BIG_WIN' ? '💰' : '🎉')}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold leading-relaxed">{news.message}</p>
-                    <span className="text-[10px] text-[var(--text-muted)] mt-1 block">
-                      {new Date(news.timestamp).toLocaleTimeString('vi-VN')} - Sới Bạc Quốc Tế
-                    </span>
-                  </div>
-                </UICard>
-              ))
+              newsfeed.map((news) => {
+                const isBankruptcy = news.type === 'BANKRUPTCY';
+                const isStreak = news.type === 'WIN_STREAK';
+                const isBigWin = news.type === 'BIG_WIN';
+
+                return (
+                  <Card
+                    key={news.id}
+                    variant="card"
+                    className={`p-3.5 rounded-xl border flex items-start gap-3 transition-all ${
+                      isBankruptcy
+                        ? 'bg-[var(--color-ruby-bg)] border-[var(--color-ruby-border)] text-[var(--color-ruby-text)]'
+                        : isStreak
+                        ? 'border-orange-500/30 text-orange-200'
+                        : isBigWin
+                        ? 'border-[var(--color-gold-border)] bg-[var(--color-gold-dim)]'
+                        : 'border-[var(--border-card)]'
+                    }`}
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-[var(--bg-input)] border border-[var(--border-container)] flex items-center justify-center text-xl flex-shrink-0 shadow-inner">
+                      {news.avatar || (isBankruptcy ? '🚨' : isStreak ? '🔥' : isBigWin ? '💰' : '🎉')}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold leading-relaxed text-[var(--text-primary)]">{news.message}</p>
+                      <span className="text-[10px] text-[var(--text-muted)] mt-1 block">
+                        {new Date(news.timestamp).toLocaleTimeString('vi-VN')} - Toàn Server
+                      </span>
+                    </div>
+                  </Card>
+                );
+              })
             )}
           </div>
         )}
@@ -550,3 +589,4 @@ export const EcosystemModal: React.FC = () => {
     </Modal>
   );
 };
+

@@ -6,18 +6,16 @@ import {
   Download, 
   ChevronDown, 
   ChevronUp, 
-  Sparkles,
   Zap
 } from 'lucide-react';
 import { MatchLogger, MatchTurnLogEntry, BotCandidateEvaluation } from '../../engine/match-logger';
 import { Card as CardType } from '../../engine/types';
-import { Badge, Button } from '../primitives';
 
 interface BotReasoningHUDProps {
   isOpen: boolean;
   onToggle: () => void;
   gameNumber: number;
-  betAmount: number;
+  betAmount?: number;
   isDealing: boolean;
 }
 
@@ -25,7 +23,7 @@ export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
   isOpen,
   onToggle,
   gameNumber,
-  betAmount,
+  betAmount: _betAmount,
   isDealing
 }) => {
   const [turns, setTurns] = useState<MatchTurnLogEntry[]>([]);

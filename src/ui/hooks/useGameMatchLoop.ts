@@ -56,8 +56,6 @@ export function useGameMatchLoop() {
     customBotConfigs,
     currentCampaignChapter,
     setCurrentCampaignChapter,
-    gameNumber,
-    gameRules,
     gameSettings,
     isDealing,
     currentTurnPlayerId,
@@ -259,7 +257,7 @@ export function useGameMatchLoop() {
     const nextTotalEarned = humanNetEarned > 0 ? profile.stats.totalEarned + humanNetEarned : profile.stats.totalEarned;
 
     let updatedUnlockedChapter = profile.campaignUnlockedChapter;
-    let updatedChapterWins = { ...profile.campaignChapterWins };
+    const updatedChapterWins = { ...profile.campaignChapterWins };
     let unlockedNext = false;
     let allCompleted = false;
     let nextChapObj: CampaignChapter | null = null;

@@ -1,5 +1,5 @@
 import { Card, Combination, GameRules, PlayedMove, createDefaultGameRules } from '../engine/types';
-import { compareCards, isTwo, sortCards } from '../engine/card';
+import { isTwo, sortCards } from '../engine/card';
 import { identifyCombination } from '../engine/combinations';
 import { isValidMove } from '../engine/validator';
 import { BotConfig } from './types';
@@ -872,7 +872,7 @@ export function evaluateChoppingScore(
  * 2. Chấm điểm chiến thuật Ra Heo (2) & Tránh nguy cơ bị Chặt đè
  */
 export function evaluateTwoManagementScore(
-  move: ValidMoveInfo,
+  _move: ValidMoveInfo,
   targetCombo: Combination | null,
   context: DecisionContext,
   twoSafety: ReturnType<CardTracker['getTwoSafetyReport']>,

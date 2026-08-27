@@ -37,7 +37,7 @@ export const GameTableScreen: React.FC<GameTableScreenProps> = ({
   onPlaySelectedCards,
   onPassTurn,
   onAutoSort,
-  onApplyAiHint,
+  onApplyAiHint: _onApplyAiHint,
   onDealCard,
   onDealComplete,
   onResetMatch,

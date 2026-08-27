@@ -1,4 +1,4 @@
-import { Card, GameRules, createDefaultGameRules } from '../engine/types';
+import { Card, createDefaultGameRules } from '../engine/types';
 import { CardTracker } from './card-tracker';
 import { BotConfig } from './types';
 import { getBotConfig } from './bot-factory';

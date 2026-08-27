@@ -1,4 +1,4 @@
-import { ECOSYSTEM_CONSTANTS, AvailableBetAmount } from '../constants/ecosystem';
+import { ECOSYSTEM_CONSTANTS } from '../constants/ecosystem';
 import { BotEntity, TableGroup } from './ecosystem-types';
 
 /**

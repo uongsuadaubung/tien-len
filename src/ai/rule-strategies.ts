@@ -14,8 +14,8 @@
  * ============================================================================
  */
 
-import { Card, ChoppingRules, Combination, CongRules, GameFlowRules, GameRules, GameRulesBuilder, PlayedMove, TableRules, createDefaultGameRules } from '../engine/types';
-import { isTwo, sortCards } from '../engine/card';
+import { Card, ChoppingRules, Combination, CongRules, GameFlowRules, GameRules, PlayedMove, TableRules, createDefaultGameRules } from '../engine/types';
+import { isTwo } from '../engine/card';
 import { CardTracker } from './card-tracker';
 import { partitionHand } from './hand-partitioner';
 

@@ -10,7 +10,8 @@ import { getRandomBotConfigsForTable } from '../ai/bot-factory';
 import { 
   getActiveMatchSession, 
   clearActiveMatchSession, 
-  savePlayerProfile 
+  savePlayerProfile,
+  hydrateStorageFromIndexedDB
 } from '../engine/storage';
 import { GameRulesBuilder } from '../engine/types';
 import { calculateAdaptiveQuickBet } from '../engine/economy';
@@ -25,7 +26,7 @@ import { BotConfig } from '../ai/types';
 
 export const App: React.FC = () => {
   const { openModal, closeModal, setF5PenaltyData } = useModalStore();
-  const { profile, setProfile } = useUserStore();
+  const { profile, setProfile, hydrateProfile } = useUserStore();
   const {
     currentScreen,
     activeGameType,
@@ -51,6 +52,15 @@ export const App: React.FC = () => {
     handleForfeitMatch,
     handleRequestReturnToLobby
   } = useGameMatchLoop();
+
+  // Khởi động nạp dữ liệu từ IndexedDB thuần túy
+  useEffect(() => {
+    hydrateStorageFromIndexedDB().then((hydrated) => {
+      if (hydrated.profile) {
+        hydrateProfile(hydrated.profile);
+      }
+    });
+  }, [hydrateProfile]);
 
   // Kiểm tra gián đoạn do F5 / Đóng ứng dụng khi mở trang
   useEffect(() => {

@@ -19,7 +19,6 @@ import {
   BookOpen,
   ArrowRight,
   Users,
-  Sparkles,
   Newspaper
 } from 'lucide-react';
 import { Button, Badge, Card, SectionHeader } from '../primitives';
@@ -184,16 +183,16 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
             <span>Vòng Quay</span>
           </Button>
 
-          {/* Nút Thế Giới 200 Bot */}
+          {/* Nút Bảng Vàng Danh Vọng */}
           <Button
             variant="surface"
             size="md"
             onClick={() => openModal('ECOSYSTEM')}
-            leftIcon={<Users className="w-4 h-4 text-amber-400" />}
-            title="Bảng Xếp Hạng & Thế Giới 200 Bot Sống Động"
-            className="border-amber-500/40 text-amber-300 hover:text-amber-200"
+            leftIcon={<Trophy className="w-4 h-4 text-[var(--color-gold)]" />}
+            title="Bảng Vàng Danh Vọng & Xếp Hạng Toàn Server"
+            className="border-[var(--color-gold-border)]/50 text-[var(--color-gold)] hover:text-white"
           >
-            <span>Thế Giới Bot</span>
+            <span>Bảng Vàng</span>
           </Button>
 
           {/* Nút Luật & Khắc Chế */}
@@ -209,6 +208,17 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
               <span className="hidden md:inline">Luật &amp; Khắc Chế</span>
             </Button>
           )}
+
+          {/* Nút Cài Đặt */}
+          <Button
+            variant="surface"
+            size="md"
+            onClick={onOpenSettings}
+            leftIcon={<Settings className="w-4 h-4 text-[var(--text-secondary)]" />}
+            title="Cài đặt âm thanh và hiệu ứng"
+          >
+            <span className="hidden sm:inline">Cài Đặt</span>
+          </Button>
         </div>
       </Card>
 
@@ -220,14 +230,14 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
         >
           <div className="flex items-center gap-2 overflow-hidden text-xs">
             <span className="flex items-center gap-1 text-amber-400 font-bold uppercase text-[10px] tracking-wider bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/30 flex-shrink-0">
-              <Newspaper className="w-3 h-3" /> Tin Sới Bạc
+              <Newspaper className="w-3 h-3" /> Bảng Tin
             </span>
             <span className="text-[var(--text-secondary)] truncate group-hover:text-[var(--text-primary)] transition-colors">
               {newsfeed[0]?.message}
             </span>
           </div>
           <span className="text-[10px] text-amber-400 font-semibold flex-shrink-0 ml-2 flex items-center gap-0.5 group-hover:underline">
-            Xem BXH 200 Bot <ArrowRight className="w-3 h-3" />
+            Xem Bảng Vàng <ArrowRight className="w-3 h-3" />
           </span>
         </div>
       )}
@@ -408,25 +418,6 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
           </div>
         </section>
       </main>
-
-      {/* FOOTER */}
-      <footer className="relative z-10 w-full max-w-6xl mx-auto flex items-center justify-between text-xs text-[var(--text-muted)] pt-3 border-t border-[var(--border-container)]">
-        <div className="flex items-center gap-2">
-          <span>Tiến Lên Miền Nam</span>
-        </div>
-
-        <div className="flex items-center gap-2 sm:gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onOpenSettings}
-            leftIcon={<Settings className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
-            title="Cài đặt âm thanh và hiệu ứng"
-          >
-            <span>Cài Đặt</span>
-          </Button>
-        </div>
-      </footer>
     </div>
   );
 };

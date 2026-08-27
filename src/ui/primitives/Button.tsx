@@ -53,7 +53,7 @@ export const Button: React.FC<ButtonProps> = ({
     <button
       disabled={disabled}
       className={`
-        inline-flex items-center justify-center transition-all duration-200 select-none
+        inline-flex items-center justify-center transition-all duration-200 select-none whitespace-nowrap
         ${variantStyles[variant]}
         ${sizeStyles[size]}
         ${fullWidth ? 'w-full' : ''}

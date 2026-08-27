@@ -13,10 +13,13 @@ interface UserState {
   repayLoan: (amount: number) => void;
   claimDailyRelief: (amount: number) => void;
   resetProfile: () => void;
+  hydrateProfile: (profile: PlayerProfile) => void;
 }
 
 export const useUserStore = create<UserState>((set) => ({
   profile: loadPlayerProfile(),
+
+  hydrateProfile: (profile) => set({ profile }),
 
   setProfile: (profileOrUpdater) => set((state) => {
     const next = typeof profileOrUpdater === 'function' ? profileOrUpdater(state.profile) : profileOrUpdater;
@@ -25,12 +28,21 @@ export const useUserStore = create<UserState>((set) => ({
   }),
 
   addCoins: (amount) => set((state) => {
+    const prevStats = state.profile.stats || {
+      gamesPlayed: 0,
+      wins: 0,
+      chopsDone: 0,
+      congsGiven: 0,
+      totalEarned: 0,
+      highestStreak: 0,
+      currentStreak: 0
+    };
     const next: PlayerProfile = {
       ...state.profile,
       coins: state.profile.coins + amount,
       stats: {
-        ...state.profile.stats,
-        totalEarned: state.profile.stats.totalEarned + Math.max(0, amount)
+        ...prevStats,
+        totalEarned: (prevStats.totalEarned || 0) + Math.max(0, amount)
       }
     };
     savePlayerProfile(next);
@@ -59,18 +71,18 @@ export const useUserStore = create<UserState>((set) => ({
     const next: PlayerProfile = {
       ...state.profile,
       coins: state.profile.coins + amount,
-      loans: state.profile.loans + amount
+      loans: (state.profile.loans || 0) + amount
     };
     savePlayerProfile(next);
     return { profile: next };
   }),
 
   repayLoan: (amount) => set((state) => {
-    const pay = Math.min(amount, state.profile.loans);
+    const pay = Math.min(amount, state.profile.loans || 0);
     const next: PlayerProfile = {
       ...state.profile,
       coins: Math.max(0, state.profile.coins - pay),
-      loans: Math.max(0, state.profile.loans - pay)
+      loans: Math.max(0, (state.profile.loans || 0) - pay)
     };
     savePlayerProfile(next);
     return { profile: next };
@@ -80,14 +92,14 @@ export const useUserStore = create<UserState>((set) => ({
     const next: PlayerProfile = {
       ...state.profile,
       coins: state.profile.coins + amount,
-      dailyReliefClaimedCount: state.profile.dailyReliefClaimedCount + 1
+      dailyReliefClaimedCount: (state.profile.dailyReliefClaimedCount || 0) + 1
     };
     savePlayerProfile(next);
     return { profile: next };
   }),
 
-  resetProfile: () => {
+  resetProfile: () => set(() => {
     const initial = resetPlayerProfile();
     return { profile: initial };
-  }
+  })
 }));

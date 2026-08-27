@@ -24,7 +24,6 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
   const currentChapter = CAMPAIGN_CHAPTERS.find(c => c.id === selectedChapterId) || CAMPAIGN_CHAPTERS[0];
   const isUnlocked = selectedChapterId <= profile.campaignUnlockedChapter;
   const chapterWins = profile.campaignChapterWins[selectedChapterId] || 0;
-  const isCompleted = chapterWins >= currentChapter.requiredWins;
 
   return (
     <Modal

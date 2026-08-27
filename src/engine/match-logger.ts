@@ -1,4 +1,5 @@
 import { Card, Combination, CombinationType, GameRules, PlayedMove, Player, createDefaultGameRules } from './types';
+import { dbSaveMatchLog } from './db/indexed-db';
 
 /**
  * Đánh giá chi tiết của một ứng viên nước đi trong quá trình AI tính toán
@@ -283,6 +284,7 @@ export class MatchLogger {
     };
 
     this.latestFinalizedReport = report;
+    dbSaveMatchLog(report).catch(() => {});
     this.notifyListeners();
     return report;
   }

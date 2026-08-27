@@ -1,5 +1,4 @@
-import { GameMode, GameSettings } from './types';
-import { BOT_PERSONAS } from '../ai/bot-factory';
+import { GameMode } from './types';
 
 export type GameSettlementType = 'RANK_BASED' | 'CARD_COUNT' | 'WINNER_TAKES_ALL';
 

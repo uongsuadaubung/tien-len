@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, PlayedMove, Rank, Suit } from '../../engine/types';
+import { Card, Rank } from '../../engine/types';
 import { ALL_RANKS, ALL_SUITS, RANK_NAMES, SUIT_SYMBOLS, createCard, isRedCard } from '../../engine/card';
 import { CardTracker } from '../../ai/card-tracker';
 import { MoveHint } from '../../ai/hint-engine';
