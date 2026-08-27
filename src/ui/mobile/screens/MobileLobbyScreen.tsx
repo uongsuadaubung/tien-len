@@ -94,7 +94,7 @@ export const MobileLobbyScreen: React.FC<MobileLobbyScreenProps> = ({
     profile.achievements.filter(a => a.isCompleted && !a.isClaimed).length;
 
   return (
-    <div className="relative w-full h-[100dvh] max-h-[100dvh] flex flex-col justify-between bg-[var(--bg-canvas)] text-[var(--text-primary)] select-none font-sans overflow-hidden p-2 gap-1.5">
+    <div className="relative w-full h-[100dvh] max-h-[100dvh] flex flex-col justify-between bg-[var(--bg-canvas)] text-[var(--text-primary)] select-none font-sans overflow-hidden pt-[max(env(safe-area-inset-top),0.5rem)] pb-[max(env(safe-area-inset-bottom),0.5rem)] pl-[max(env(safe-area-inset-left),0.5rem)] pr-[max(env(safe-area-inset-right),0.5rem)] gap-1.5">
       
       {/* 1. TOP HEADER (ĐỒNG BỘ 100% DESIGN SYSTEM WEB) */}
       <header className="shrink-0 z-30 w-full max-w-4xl mx-auto bg-[var(--bg-container)] border border-[var(--border-container)] rounded-2xl px-3 py-1.5 shadow-sm">

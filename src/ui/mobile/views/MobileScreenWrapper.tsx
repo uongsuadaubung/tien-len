@@ -29,7 +29,7 @@ export const MobileScreenWrapper: React.FC<MobileScreenWrapperProps> = ({
   return (
     <div className={`fixed inset-0 z-50 flex flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)] w-full h-full select-none animate-in fade-in duration-200 overflow-hidden ${className || ''}`}>
       {/* 1. TOP APP BAR NATIVE (Chỉ có nút Quay Lại ←, tiêu đề và headerRight, TUYỆT ĐỐI KHÔNG CÓ NÚT X) */}
-      <header className="sticky top-0 z-20 w-full bg-[var(--bg-container)]/98 backdrop-blur-md border-b border-[var(--border-container)] px-3 py-2.5 flex items-center justify-between shadow-md shrink-0">
+      <header className="sticky top-0 z-20 w-full bg-[var(--bg-container)]/98 backdrop-blur-md border-b border-[var(--border-container)] pt-[max(env(safe-area-inset-top),10px)] pb-2.5 pl-[max(env(safe-area-inset-left),12px)] pr-[max(env(safe-area-inset-right),12px)] flex items-center justify-between shadow-md shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           {/* Nút Quay Lại Native */}
           <button
@@ -66,7 +66,7 @@ export const MobileScreenWrapper: React.FC<MobileScreenWrapperProps> = ({
       </header>
 
       {/* 2. BODY NỘI DUNG CUỘN CẢM ỨNG MƯỢT MÀ */}
-      <main className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3.5 text-xs custom-scrollbar bg-[var(--bg-canvas)]">
+      <main className="flex-1 overflow-y-auto pt-3 pb-4 pl-[max(env(safe-area-inset-left),12px)] pr-[max(env(safe-area-inset-right),12px)] space-y-3.5 text-xs custom-scrollbar bg-[var(--bg-canvas)]">
         <div className="max-w-3xl mx-auto w-full">
           {children}
         </div>
@@ -74,7 +74,7 @@ export const MobileScreenWrapper: React.FC<MobileScreenWrapperProps> = ({
 
       {/* 3. FOOTER GHIM ĐÁY (NẾU CÓ) */}
       {footer && (
-        <footer className="sticky bottom-0 z-20 w-full bg-[var(--bg-container)]/98 backdrop-blur-md border-t border-[var(--border-container)] px-4 py-3 shadow-lg shrink-0 safe-area-bottom">
+        <footer className="sticky bottom-0 z-20 w-full bg-[var(--bg-container)]/98 backdrop-blur-md border-t border-[var(--border-container)] pt-2.5 pb-[max(env(safe-area-inset-bottom),12px)] pl-[max(env(safe-area-inset-left),16px)] pr-[max(env(safe-area-inset-right),16px)] shadow-lg shrink-0">
           <div className="max-w-3xl mx-auto w-full flex items-center justify-end">
             {footer}
           </div>

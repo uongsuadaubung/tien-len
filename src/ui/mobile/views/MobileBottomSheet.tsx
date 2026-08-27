@@ -67,13 +67,13 @@ export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({
         </div>
 
         {/* Body Sheet */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 text-xs custom-scrollbar bg-[var(--bg-canvas)]">
+        <div className={`flex-1 overflow-y-auto p-4 space-y-3 text-xs custom-scrollbar bg-[var(--bg-canvas)] ${!footer ? 'pb-[max(env(safe-area-inset-bottom),1rem)]' : ''}`}>
           {children}
         </div>
 
         {/* Footer Sheet */}
         {footer && (
-          <div className="px-4 py-3 bg-[var(--bg-container)] border-t border-[var(--border-container)] shrink-0">
+          <div className="px-4 pt-3 pb-[max(env(safe-area-inset-bottom),12px)] bg-[var(--bg-container)] border-t border-[var(--border-container)] shrink-0">
             {footer}
           </div>
         )}

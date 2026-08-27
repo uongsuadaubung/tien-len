@@ -218,8 +218,8 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
         </div>
       )}
 
-      {/* 1. HEADER BAR TINH GỌN CHO MOBILE */}
-      <header className="relative z-30 w-full px-3 py-1.5 bg-[#0e131d]/90 backdrop-blur-md border-b border-white/10 flex items-center justify-between shadow-md">
+      {/* 1. HEADER BAR TINH GỌN CHO MOBILE (SAFE AREA TOP/LEFT/RIGHT) */}
+      <header className="relative z-30 w-full pl-[max(env(safe-area-inset-left),0.75rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pt-[max(env(safe-area-inset-top),0.375rem)] pb-1.5 bg-[#0e131d]/90 backdrop-blur-md border-b border-white/10 flex items-center justify-between shadow-md shrink-0">
         {/* Nhóm trái: Ván đấu & Tiền cược */}
         <div className="flex items-center gap-1.5">
           <button
@@ -295,8 +295,8 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
         </div>
       </header>
 
-      {/* 2. SÀN ĐẤU TIẾN LÊN MOBILE (LANDSCAPE CASINO FELT) */}
-      <main className="flex-1 flex flex-col items-center justify-between px-2 py-0.5 max-w-7xl mx-auto w-full min-h-0 overflow-hidden relative">
+      {/* 2. SÀN ĐẤU TIẾN LÊN MOBILE (LANDSCAPE CASINO FELT SAFE AREAS) */}
+      <main className="flex-1 flex flex-col items-center justify-between pl-[max(env(safe-area-inset-left),0.5rem)] pr-[max(env(safe-area-inset-right),0.5rem)] pb-[max(env(safe-area-inset-bottom),0.25rem)] pt-0.5 max-w-7xl mx-auto w-full min-h-0 overflow-hidden relative">
         
         {/* Banner thông báo nhiệm vụ */}
         {questToast && (
