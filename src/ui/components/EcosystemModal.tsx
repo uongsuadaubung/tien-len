@@ -325,17 +325,26 @@ export const EcosystemModal: React.FC = () => {
             <div className="flex flex-wrap items-center justify-between gap-2.5 text-xs">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-[11px] font-semibold text-[var(--text-muted)] mr-0.5">Bậc Rank:</span>
-                {(['ALL', 5, 4, 3, 2, 1] as const).map((tier) => (
+                {(['ALL', 9, 8, 7, 6, 5, 4, 3, 2, 1] as const).map((tier) => (
                   <button
                     key={tier}
-                    onClick={() => { setSelectedTierFilter(tier); setCurrentPage(1); }}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all select-none border ${
+                    onClick={() => { setSelectedTierFilter(tier as any); setCurrentPage(1); }}
+                    className={`px-2 py-0.5 rounded-lg text-[11px] font-semibold transition-all select-none border ${
                       selectedTierFilter === tier
                         ? 'bg-[var(--bg-card-active)] text-[var(--color-gold)] border-[var(--color-gold)] shadow-sm'
                         : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-card)] hover:border-[var(--border-card-hover)] hover:bg-[var(--bg-card-hover)]'
                     }`}
                   >
-                    {tier === 'ALL' ? 'Tất Cả' : tier === 5 ? '👑 Thần Bài' : tier === 4 ? '💎 Cao Thủ' : tier === 3 ? '🥇 Kinh Nghiệm' : tier === 2 ? '🥈 Phong Trào' : '🥉 Tập Sự'}
+                    {tier === 'ALL' ? 'Tất Cả' 
+                      : tier === 9 ? '⚡ T9' 
+                      : tier === 8 ? '🌌 T8' 
+                      : tier === 7 ? '👑 T7' 
+                      : tier === 6 ? '🔮 T6' 
+                      : tier === 5 ? '💎 T5' 
+                      : tier === 4 ? '🥇 T4' 
+                      : tier === 3 ? '🥈 T3' 
+                      : tier === 2 ? '🥉 T2' 
+                      : '🪵 T1'}
                   </button>
                 ))}
               </div>

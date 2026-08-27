@@ -29,7 +29,7 @@ describe('Log Replay & Deterministic Test Reproduction', () => {
 
     // Vận hành game tự động cho đến khi kết thúc ván
     let safetyLoop = 0;
-    while (!game.isGameOver && safetyLoop < 100) {
+    while (!game.isGameOver && safetyLoop < 400) {
       safetyLoop++;
       const currentTurnPlayer = game.getCurrentPlayer();
       const botConfig = (BOT_PERSONAS as any)[currentTurnPlayer.botPersonaId || 'BOT_ELO_1750'] || BOT_PERSONAS.BOT_ELO_1750;

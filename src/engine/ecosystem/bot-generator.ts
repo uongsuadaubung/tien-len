@@ -8,14 +8,18 @@ import {
 import { BotConfig } from '../../ai/types';
 import { ECOSYSTEM_CONSTANTS } from '../constants/ecosystem';
 import { ECONOMY_CONSTANTS } from '../constants/economy';
-import { BotEntity } from './ecosystem-types';
+import { BotEntity, getTierFromElo } from './ecosystem-types';
 
 const TIER_NAMES: Record<number, string> = {
-  1: 'Tập Sự',
-  2: 'Phong Trào',
-  3: 'Kinh Nghiệm',
-  4: 'Cao Thủ',
-  5: 'Thần Bài'
+  1: 'Tân Thủ',
+  2: 'Tập Sự',
+  3: 'Phong Trào',
+  4: 'Lão Luyện',
+  5: 'Tinh Anh',
+  6: 'Cao Thủ',
+  7: 'Đại Cao Thủ',
+  8: 'Thần Bài',
+  9: 'Siêu Trí Tuệ'
 };
 
 /**
@@ -65,7 +69,7 @@ export function generatePersonalityTags(config: Partial<BotConfig>): string[] {
 }
 
 /**
- * Sinh vốn ngân sách khởi điểm ngẫu nhiên cho Bot theo Tier
+ * Sinh vốn ngân sách khởi điểm ngẫu nhiên cho Bot theo Tier (Dùng khi sinh 200 Bot ban đầu)
  */
 export function generateEcosystemBankroll(tierNum: number, riskAppetite: number = 0.5): number {
   const range = ECOSYSTEM_CONSTANTS.TIER_INITIAL_BANKROLL[tierNum] || ECOSYSTEM_CONSTANTS.TIER_INITIAL_BANKROLL[2];
@@ -94,70 +98,99 @@ export function createBotEntityFromDNA(
   usedNames: Set<string>
 ): BotEntity {
   const dnaKeys = TIER_BASE_PERSONAS[tierNum] || TIER_BASE_PERSONAS[2];
-  const chosenDnaKey = dnaKeys[index % dnaKeys.length];
-  const baseDna = BOT_PERSONAS[chosenDnaKey] || BOT_PERSONAS.BOT_ELO_1150;
+  const selectedKey = dnaKeys[index % dnaKeys.length];
+  const basePersona = BOT_PERSONAS[selectedKey as keyof typeof BOT_PERSONAS] || BOT_PERSONAS.BOT_ELO_1150;
 
-  // Tìm tên độc nhất
-  let name = '';
-  let title = '';
-  const titlePool = GLOBAL_NICKNAMES_BY_TIER[tierNum] || GLOBAL_NICKNAMES_BY_TIER[2];
-  title = titlePool[Math.floor(Math.random() * titlePool.length)];
+  // 1. Tên và Avatar
+  const availableNames = GLOBAL_BOT_NAMES.filter(n => !usedNames.has(n));
+  const rawName = availableNames.length > 0
+    ? availableNames[Math.floor(Math.random() * availableNames.length)]
+    : `Cao Thủ ${tierNum}_${index + 1}`;
+  usedNames.add(rawName);
 
-  let attempts = 0;
-  while (attempts < 50) {
-    attempts++;
-    const randomBaseName = GLOBAL_BOT_NAMES[Math.floor(Math.random() * GLOBAL_BOT_NAMES.length)];
-    const candidate = `${randomBaseName} (${title})`;
-    if (!usedNames.has(candidate)) {
-      name = candidate;
-      usedNames.add(candidate);
-      break;
-    }
-  }
+  const nicknames = GLOBAL_NICKNAMES_BY_TIER[tierNum] || GLOBAL_NICKNAMES_BY_TIER[2];
+  const nickname = nicknames[index % nicknames.length];
+  const name = `${rawName} (${nickname})`;
 
-  if (!name) {
-    name = `Player ${tierNum}-${index + 1} (${title})`;
-  }
+  const avatars = GLOBAL_AVATARS[tierNum] || GLOBAL_AVATARS[2];
+  const avatar = avatars[index % avatars.length];
 
-  // Chọn avatar ngẫu nhiên
-  const avatar = GLOBAL_AVATARS[Math.floor(Math.random() * GLOBAL_AVATARS.length)] || '🤖';
+  // 2. Tính Elo với Jitter
+  let minElo = 600;
+  let maxElo = 899;
+  if (tierNum === 2) { minElo = 900; maxElo = 1199; }
+  else if (tierNum === 3) { minElo = 1200; maxElo = 1499; }
+  else if (tierNum === 4) { minElo = 1500; maxElo = 1799; }
+  else if (tierNum === 5) { minElo = 1800; maxElo = 2099; }
+  else if (tierNum === 6) { minElo = 2100; maxElo = 2399; }
+  else if (tierNum === 7) { minElo = 2400; maxElo = 2699; }
+  else if (tierNum === 8) { minElo = 2700; maxElo = 2999; }
+  else if (tierNum === 9) { minElo = 3000; maxElo = 3400; }
 
-  // Áp dụng Gaussian Jitter cho các chỉ số
-  const eloOffset = Math.round((Math.random() - 0.5) * 60);
-  const finalElo = Math.max(800, Math.min(2600, baseDna.elo + eloOffset));
-  const riskAppetite = applyJitter(baseDna.riskAppetite);
+  const baseElo = basePersona.elo;
+  const eloOffset = (Math.random() - 0.5) * 80;
+  const rawElo = Math.round(baseElo + eloOffset);
+  const elo = Math.max(minElo, Math.min(maxElo, rawElo));
 
-  const config: BotConfig = {
-    ...baseDna,
-    id: `eco_bot_${tierNum}_${index + 1}_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`,
-    name,
-    avatar,
-    elo: finalElo,
-    tier: `Tier ${tierNum}: ${TIER_NAMES[tierNum]}`,
-    description: `Đấu thủ ${TIER_NAMES[tierNum]} (Elo ${finalElo}). Lối đánh chiến thuật, cá tính riêng.`,
-    memoryDepth: applyJitter(baseDna.memoryDepth),
+  // 3. Jitter các chỉ số AI
+  const memoryDepth = applyJitter(basePersona.memoryDepth, 0.08, 0.1, 1.0);
+  const riskAppetite = applyJitter(basePersona.riskAppetite, 0.1, 0.1, 0.95);
+  const trapTendency = applyJitter(basePersona.trapTendency, 0.1, 0.05, 0.95);
+  const baitingTendency = applyJitter(basePersona.baitingTendency, 0.1, 0.05, 0.95);
+  const antiLeaderAggression = applyJitter(basePersona.antiLeaderAggression ?? 0.5, 0.08, 0.1, 0.95);
+  const tempoControl = applyJitter(basePersona.tempoControl ?? 0.5, 0.08, 0.1, 0.95);
+  const damageControl = applyJitter(basePersona.damageControl, 0.1, 0.1, 0.95);
+  const turnsToWinLookahead = applyJitter(basePersona.turnsToWinLookahead, 0.08, 0.1, 0.95);
+  const dynamicHandSacrifice = applyJitter(basePersona.dynamicHandSacrifice ?? 0.5, 0.08, 0.1, 0.95);
+  const bombInferenceRate = applyJitter(basePersona.bombInferenceRate, 0.1, 0.05, 0.95);
+  const semiCooperativeCooperation = applyJitter(basePersona.semiCooperativeCooperation ?? 0.5, 0.08, 0.1, 0.95);
+  const positionalAwareness = applyJitter(basePersona.positionalAwareness, 0.1, 0.1, 0.95);
+  const inMatchAdaptationRate = applyJitter(basePersona.inMatchAdaptationRate ?? 0.5, 0.08, 0.1, 0.95);
+  const handPartitioningOptimality = applyJitter(basePersona.handPartitioningOptimality ?? 0.5, 0.08, 0.1, 0.95);
+  const simulationLookahead = basePersona.simulationLookahead ?? (tierNum >= 5 ? 2 : 1);
+
+  const personalityTags = generatePersonalityTags({
+    trapTendency,
+    baitingTendency,
+    memoryDepth,
     riskAppetite,
-    trapTendency: applyJitter(baseDna.trapTendency),
-    baitingTendency: applyJitter(baseDna.baitingTendency),
-    antiLeaderAggression: 1.0, // Luôn giữ 1.0 vì độc lập và chống đối thủ sắp về nhất
-    tempoControl: applyJitter(baseDna.tempoControl),
-    damageControl: applyJitter(baseDna.damageControl),
-    turnsToWinLookahead: applyJitter(baseDna.turnsToWinLookahead),
-    dynamicHandSacrifice: applyJitter(baseDna.dynamicHandSacrifice),
-    bombInferenceRate: applyJitter(baseDna.bombInferenceRate),
-    semiCooperativeCooperation: baseDna.semiCooperativeCooperation,
-    positionalAwareness: applyJitter(baseDna.positionalAwareness),
-    inMatchAdaptationRate: applyJitter(baseDna.inMatchAdaptationRate),
-    handPartitioningOptimality: applyJitter(baseDna.handPartitioningOptimality),
-    simulationLookahead: baseDna.simulationLookahead,
-    mctsSimulations: baseDna.mctsSimulations
-  };
+    damageControl,
+    turnsToWinLookahead,
+    positionalAwareness,
+    bombInferenceRate
+  });
 
-  const personalityTags = generatePersonalityTags(config);
   const coins = generateEcosystemBankroll(tierNum, riskAppetite);
+  const tierName = `Tier ${tierNum}: ${TIER_NAMES[tierNum] || 'Tập Sự'}`;
+  const title = tierNum >= 9 ? 'Siêu Trí Tuệ Boss' : tierNum >= 8 ? 'Thần Bài' : tierNum >= 7 ? 'Đại Cao Thủ' : nickname;
 
   return {
-    ...config,
+    id: `bot_eco_t${tierNum}_${index}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    name,
+    avatar,
+    description: basePersona.description || 'Cao thủ sới bạc',
+    elo,
+    tier: tierName,
+    memoryDepth,
+    riskAppetite,
+    trapTendency,
+    baitingTendency,
+    antiLeaderAggression,
+    tempoControl,
+    damageControl,
+    turnsToWinLookahead,
+    dynamicHandSacrifice,
+    bombInferenceRate,
+    semiCooperativeCooperation,
+    positionalAwareness,
+    inMatchAdaptationRate,
+    handPartitioningOptimality,
+    simulationLookahead,
+    mctsSimulations: basePersona.mctsSimulations || 0,
+    useMinimaxEndgame: basePersona.useMinimaxEndgame || tierNum >= 7,
+    useBayesianInference: basePersona.useBayesianInference || tierNum >= 8,
+    useNashEquilibrium: basePersona.useNashEquilibrium || tierNum >= 9,
+    useDynamicRepartitioning: basePersona.useDynamicRepartitioning || tierNum >= 6,
     coins,
     currentStreak: 0,
     highestStreak: 0,
@@ -183,13 +216,13 @@ export function createBotEntityFromDNA(
 }
 
 /**
- * Khởi tạo toàn bộ 200 Bot ban đầu theo đúng tỉ lệ 5 Tiers
+ * Khởi tạo toàn bộ 200 Bot ban đầu theo đúng tỉ lệ 9 Tiers Esports
  */
 export function generateInitial200Bots(): BotEntity[] {
   const bots: BotEntity[] = [];
   const usedNames = new Set<string>();
 
-  for (let tier = 1; tier <= 5; tier++) {
+  for (let tier = 1; tier <= 9; tier++) {
     const count = ECOSYSTEM_CONSTANTS.TIER_DISTRIBUTION[tier] || 20;
     for (let i = 0; i < count; i++) {
       const bot = createBotEntityFromDNA(tier, i, usedNames);
@@ -201,35 +234,99 @@ export function generateInitial200Bots(): BotEntity[] {
 }
 
 /**
- * Sinh 1 Tân Binh mới thay thế khi có bot bị phá sản:
- * - Kế thừa bộ chỉ số AI (DNA/Skill attributes) tương ứng với Bậc Rank của Bot vừa bị đào thải (bankruptTierNum).
- * - Vị trí Elo được đặt về mức khởi điểm chuẩn người chơi thật (1.000 Elo).
- * - Số tiền vốn (vàng) được cấp mặc định 50.000 Xu (như người chơi thật khi mới tạo tài khoản).
- * - Bot sẽ bắt đầu từ Tier 1 (Tập Sự) và tự đánh, tích lũy tiền và leo lại rank bằng chính thực lực của nó.
+ * Tìm Bậc Rank (AI DNA) đang bị thiếu hụt số lượng Bot so với định mức TIER_DISTRIBUTION.
+ * Duyệt từ Tier CAO (Tier 9 Boss) xuống Tier THẤP (Tier 1 Tân Thủ).
+ * Xác định trình độ AI cần được triệu hồi để sới bạc luôn có đủ mầm mống cao thủ tự leo tháp.
+ */
+export function findUnderfilledTier(activeBots: BotEntity[]): number {
+  const currentCounts: Record<number, number> = {
+    1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0
+  };
+
+  for (const bot of activeBots) {
+    if (bot.status === 'ACTIVE') {
+      // Ước lượng Tier DNA của bot dựa trên các khả năng AI đặc thù hoặc điểm Elo
+      let dnaTier = 1;
+      if (bot.useNashEquilibrium) {
+        dnaTier = 9;
+      } else if (bot.useBayesianInference) {
+        dnaTier = 8;
+      } else if (bot.useMinimaxEndgame) {
+        dnaTier = 7;
+      } else if (bot.useDynamicRepartitioning) {
+        dnaTier = 6;
+      } else {
+        dnaTier = getTierFromElo(bot.elo).tierNum;
+      }
+
+      currentCounts[dnaTier] = (currentCounts[dnaTier] || 0) + 1;
+    }
+  }
+
+  // Duyệt từ Tier 9 xuống Tier 1 để tìm vị trí thiếu hụt cao nhất
+  for (let tier = 9; tier >= 1; tier--) {
+    const quota = ECOSYSTEM_CONSTANTS.TIER_DISTRIBUTION[tier] || 0;
+    const current = currentCounts[tier] || 0;
+    if (current < quota) {
+      return tier;
+    }
+  }
+
+  return 1;
+}
+
+/**
+ * Sinh Tân Binh mới gia nhập sới bạc:
+ * - KẾ THỪA TRỌN VẸN BỘ NÃO / AI DNA của Bậc Rank thiếu hụt (targetTier).
+ * - XUẤT PHÁT ĐIỂM CHUẨN THỰC TẾ: Elo khởi điểm = 1.000 (±30) như mọi người chơi mới tạo tài khoản.
+ * - VỐN KHỞI ĐIỂM = 50.000 Xu (như tài khoản mới gia nhập).
+ * - Bot sẽ tự tham gia các bàn đấu, đánh thắng, tích lũy tiền và tự leo tháp Elo bằng chính thực lực đỉnh cao của nó!
+ */
+export function draftBotForTier(
+  existingNames: Set<string>,
+  targetTier: number
+): BotEntity {
+  const index = Math.floor(Math.random() * 1000);
+  const tier = Math.min(9, Math.max(1, targetTier));
+  
+  // 1. Tạo bot mang đầy đủ bộ não / AI DNA của targetTier (Minimax, Bayesian, Nash, Lookahead...)
+  const bot = createBotEntityFromDNA(tier, index, existingNames);
+
+  // 2. Thiết lập Elo xuất phát điểm chuẩn 1.000 Elo (như người chơi thật mới tạo tài khoản)
+  const eloOffset = Math.floor(Math.random() * 60) - 30; // 970 -> 1030
+  bot.elo = ECONOMY_CONSTANTS.DEFAULT_STARTING_ELO + eloOffset;
+
+  // 3. Cấp vốn xuất phát điểm 50.000 Xu (như người chơi mới nhận gói tân thủ)
+  bot.coins = ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS;
+
+  // 4. Bậc hiển thị theo Elo ban đầu
+  const initialTierInfo = getTierFromElo(bot.elo);
+  bot.tier = initialTierInfo.tier;
+
+  // 5. Danh hiệu & mô tả phản ánh phong thái của cao thủ ẩn danh
+  if (tier >= 8) {
+    bot.title = 'Thần Đồng Ẩn Danh';
+    bot.description = 'Thiên tài bài bạc mang tư duy tính toán siêu việt, khởi đầu từ 1.000 Elo với 50.000 Xu để tự leo lên ngôi vương.';
+  } else if (tier >= 6) {
+    bot.title = 'Cao Thủ Ẩn Dật';
+    bot.description = 'Cao thủ mang lối đánh nhạy bén, bắt đầu từ mốc 1.000 Elo để xây dựng lại cơ đồ bằng thực lực.';
+  } else if (tier >= 4) {
+    bot.title = 'Ẩn Sĩ Giang Hồ';
+    bot.description = 'Tay chơi già dơ vừa lập tài khoản mới, sẵn sàng chinh phục các bàn đấu.';
+  } else {
+    bot.title = 'Tân Binh';
+    bot.description = 'Đấu thủ mới gia nhập sới bạc với 50.000 Xu, sẵn sàng thử thách.';
+  }
+
+  return bot;
+}
+
+/**
+ * Hàm tương thích ngược: Sinh bot thay thế
  */
 export function draftRookieBot(
   existingNames: Set<string>,
-  bankruptTierNum: number = 1
+  targetTierNum: number = 1
 ): BotEntity {
-  const index = Math.floor(Math.random() * 1000);
-  const targetTier = Math.min(5, Math.max(1, bankruptTierNum));
-  // Tạo bot kế thừa DNA của bậc vừa bị đào thải
-  const rookie = createBotEntityFromDNA(targetTier, index, existingNames);
-
-  // Đặt Elo về mức khởi nghiệp chuẩn (1.000 Elo kèm độ lệch nhẹ ±50)
-  rookie.elo = ECONOMY_CONSTANTS.DEFAULT_STARTING_ELO + Math.floor(Math.random() * 100) - 50;
-
-  // Cấp vốn khởi tạo tân binh mặc định 50.000 Xu như người chơi thật mới gia nhập sới
-  rookie.coins = ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS;
-
-  rookie.tier = 'Tier 1: Tập Sự';
-  rookie.title = targetTier >= 4 ? 'Thần Đồng Ẩn Danh' : targetTier >= 3 ? 'Ẩn Sĩ Giang Hồ' : 'Tân Binh';
-  rookie.name = (rookie.name || 'Tân Binh').replace(/\(.*?\)/, `(${rookie.title})`);
-  rookie.description = targetTier >= 4
-    ? 'Thiên tài bài bạc mang tư duy đỉnh cao, vừa gia nhập sới với số vốn 50.000 Xu để tự mình leo lên đỉnh vinh quang.'
-    : targetTier >= 3
-    ? 'Cao thủ ẩn dật bước vào sới với lối đánh lão luyện, bắt đầu hành trình gầy dựng lại cơ đồ từ những bàn đấu cơ bản.'
-    : 'Đấu thủ mới gia nhập sới bạc với quyết tâm khởi nghiệp làm giàu.';
-
-  return rookie;
+  return draftBotForTier(existingNames, targetTierNum);
 }

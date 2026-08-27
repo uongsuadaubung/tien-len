@@ -12,6 +12,7 @@ import { partitionHand } from '../hand-partitioner';
 import { CfrEngine } from '../cfr-engine';
 import { RuleDecisionContext } from '../rule-strategies';
 import { BotCandidateEvaluation } from '../../engine/match-logger';
+import { NashEquilibriumSolver } from '../solvers/nash-equilibrium-solver';
 import { 
   evaluateChoppingScore,
   evaluateTwoManagementScore,
@@ -269,6 +270,28 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
     }
 
     const sortedCandidates = [...evaluatedCandidateList].sort((a, b) => b.score - a.score).slice(0, 5);
+
+    // Nash Equilibrium Mixed-Strategy Check (cho Tier 8, 9 hoặc khi kích hoạt useNashEquilibrium)
+    if (bestMove && bestMoveScore > 0 && (config.useNashEquilibrium || config.elo >= 2700)) {
+      const containsTwo = bestMove.cards.some(isTwo);
+      if (bestMove.isChop || containsTwo) {
+        const nash = NashEquilibriumSolver.evaluateNashChoppingAction(
+          bestMove,
+          targetCombo,
+          tracker,
+          config,
+          hand.length
+        );
+        if (!nash.shouldTakeAction) {
+          return buildBotDecision('PASS', {
+            reason: nash.reason,
+            strategyUsed: 'NASH_MIXED_PASS',
+            evaluationScore: Math.round(bestMoveScore),
+            candidatesEvaluated: sortedCandidates
+          });
+        }
+      }
+    }
 
     if (bestMove && bestMoveScore > 0) {
       return buildBotDecision('PLAY', {

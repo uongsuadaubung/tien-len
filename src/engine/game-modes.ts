@@ -222,29 +222,29 @@ export const BOT_LINEUP_PRESETS: BotLineupPreset[] = [
     id: 'NOVICE',
     name: 'Tân Thủ Nhập Môn',
     icon: '👶',
-    description: 'Alex, Leo, Mia (Đánh ngây thơ hồn nhiên)',
-    botIds: ['BOT_ELO_850', 'BOT_ELO_900', 'BOT_ELO_950']
+    description: 'Tí Chuột, Tèo Bờ Rào, Bác Ba (Tier 1: Tân Thủ)',
+    botIds: ['BOT_ELO_700', 'BOT_ELO_750', 'BOT_ELO_850']
   },
   {
     id: 'CHALLENGERS',
-    name: 'Sới Đấu Tốc Độ',
+    name: 'Phong Trào Sôi Động',
     icon: '⚡',
-    description: 'Kai, Max, Rex (Phong cách tốc chiến xả láng)',
-    botIds: ['BOT_ELO_1150', 'BOT_ELO_1200', 'BOT_ELO_1250']
+    description: 'Ba Gác, Chú Tư, Zane (Tier 2-3: Tốc chiến xả láng)',
+    botIds: ['BOT_ELO_1150', 'BOT_ELO_1250', 'BOT_ELO_1350']
   },
   {
     id: 'MASTERS',
-    name: 'Cao Thủ Bán Chuyên',
+    name: 'Cao Thủ Sới Bạc',
     icon: '💎',
-    description: 'Sophia, Drake, Raven (Biết gài bẫy, rình chặt Heo)',
+    description: 'Sophia, Long, Raven (Tier 5-6: Gài bẫy, rình chặt Heo)',
     botIds: ['BOT_ELO_1750', 'BOT_ELO_1850', 'BOT_ELO_1950']
   },
   {
     id: 'GOD_MODE',
-    name: 'Thần Bài Tối Thượng (God Mode)',
+    name: 'Siêu Trí Tuệ & Thần Bài (God Mode)',
     icon: '👑',
-    description: 'Nova, Alpha-TL, Shadow (MCTS Lookahead, Nhớ bài 100%)',
-    botIds: ['BOT_ELO_2500', 'BOT_ELO_2300', 'BOT_ELO_2150']
+    description: 'Alpha Mind, Oracle, Nova (Tier 8-9: Minimax, Bayesian, Nash)',
+    botIds: ['BOT_ELO_3200', 'BOT_ELO_2750', 'BOT_ELO_2500']
   }
 ];
 

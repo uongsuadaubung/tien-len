@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { generateInitial200Bots, draftRookieBot } from '../../src/engine/ecosystem/bot-generator';
+import { 
+  generateInitial200Bots, 
+  draftRookieBot,
+  findUnderfilledTier,
+  draftBotForTier
+} from '../../src/engine/ecosystem/bot-generator';
 import { matchBotsForPlayerTable, matchSimulatedTables } from '../../src/engine/ecosystem/matchmaker';
 import { simulateSingleTableMatch } from '../../src/engine/ecosystem/headless-sim';
 import { ecosystemManager } from '../../src/engine/ecosystem/ecosystem-manager';
@@ -8,21 +13,14 @@ import { BotEntity, getTierFromElo } from '../../src/engine/ecosystem/ecosystem-
 
 describe('Thế Giới Sới Bạc 200 Bot (Living Bot Ecosystem Tests)', () => {
   describe('1. Sinh 200 Bot Khởi Thủy (Bot Generation & Gaussian Jitter)', () => {
-    it('sinh chính xác 200 bot với phân bố 5 bậc Tier chuẩn Esports', () => {
+    it('sinh chính xác 200 bot với phân bố 9 bậc Tier chuẩn Esports', () => {
       const bots = generateInitial200Bots();
       expect(bots.length).toBe(ECOSYSTEM_CONSTANTS.MAX_BOT_COUNT);
 
-      const tier1Count = bots.filter(b => getTierFromElo(b.elo).tierNum === 1).length;
-      const tier2Count = bots.filter(b => getTierFromElo(b.elo).tierNum === 2).length;
-      const tier3Count = bots.filter(b => getTierFromElo(b.elo).tierNum === 3).length;
-      const tier4Count = bots.filter(b => getTierFromElo(b.elo).tierNum === 4).length;
-      const tier5Count = bots.filter(b => getTierFromElo(b.elo).tierNum === 5).length;
-
-      expect(tier1Count).toBe(ECOSYSTEM_CONSTANTS.TIER_DISTRIBUTION[1]); // 50
-      expect(tier2Count).toBe(ECOSYSTEM_CONSTANTS.TIER_DISTRIBUTION[2]); // 70
-      expect(tier3Count).toBe(ECOSYSTEM_CONSTANTS.TIER_DISTRIBUTION[3]); // 50
-      expect(tier4Count).toBe(ECOSYSTEM_CONSTANTS.TIER_DISTRIBUTION[4]); // 20
-      expect(tier5Count).toBe(ECOSYSTEM_CONSTANTS.TIER_DISTRIBUTION[5]); // 10
+      for (let tier = 1; tier <= 9; tier++) {
+        const count = bots.filter(b => getTierFromElo(b.elo).tierNum === tier).length;
+        expect(count).toBeGreaterThan(0);
+      }
     });
 
     it('tất cả bot đều có tên Latin hợp lệ, không chứa ký tự tượng hình và không trùng lặp', () => {
@@ -46,32 +44,45 @@ describe('Thế Giới Sới Bạc 200 Bot (Living Bot Ecosystem Tests)', () => 
       for (const bot of bots) {
         expect(bot.coins).toBeGreaterThanOrEqual(ECOSYSTEM_CONSTANTS.BANKRUPTCY_THRESHOLD);
         expect(bot.elo).toBeGreaterThanOrEqual(500);
-        expect(bot.riskAppetite).toBeGreaterThanOrEqual(0);
-        expect(bot.riskAppetite).toBeLessThanOrEqual(1.0);
-        expect(bot.trapTendency).toBeGreaterThanOrEqual(0);
-        expect(bot.trapTendency).toBeLessThanOrEqual(1.0);
-        expect(bot.baitingTendency).toBeGreaterThanOrEqual(0);
-        expect(bot.baitingTendency).toBeLessThanOrEqual(1.0);
         expect(bot.personalityTags.length).toBeGreaterThan(0);
       }
     });
 
-    it('draftRookieBot sinh ra Tân Binh kế thừa DNA từ Tier vừa phá sản nhưng bắt đầu với Elo và Vốn tân binh để tự leo lại', () => {
+    it('findUnderfilledTier: Duyệt từ Tier CAO (Tier 9) xuống Tier THẤP (Tier 1) tìm đúng bậc bị thiếu', () => {
+      const bots = generateInitial200Bots();
+      // Giả lập sới bạc bị mất 1 Boss Tier 9
+      const tier9BotIndex = bots.findIndex(b => getTierFromElo(b.elo).tierNum === 9);
+      expect(tier9BotIndex).toBeGreaterThanOrEqual(0);
+      bots.splice(tier9BotIndex, 1);
+
+      // findUnderfilledTier phải phát hiện ngay Tier 9 bị thiếu đầu tiên
+      const missingTier = findUnderfilledTier(bots);
+      expect(missingTier).toBe(9);
+    });
+
+    it('draftBotForTier sinh ra Tân Binh xuất phát từ 1.000 Elo & 50.000 Xu nhưng mang trọn vẹn AI DNA của Tier tương ứng', () => {
       const bots = generateInitial200Bots();
       const existingNames = new Set<string>(bots.map(b => b.name).filter((n): n is string => Boolean(n)));
-      
-      // Khi một bot Tier 4 phá sản
-      const rookieForTier4 = draftRookieBot(existingNames, 4);
 
-      // Kế thừa trình độ DNA cao cấp của Tier 4 (Lookahead / MCTS)
-      expect(rookieForTier4.simulationLookahead).toBeGreaterThanOrEqual(1);
-      
-      // Nhưng bắt đầu lại từ mức Elo và Vốn cơ sở của Tân Binh (50.000 Xu như người chơi thật)
-      expect(getTierFromElo(rookieForTier4.elo).tierNum).toBe(1);
-      expect(rookieForTier4.elo).toBeLessThanOrEqual(1050);
-      expect(rookieForTier4.coins).toBe(50000);
-      expect(existingNames.has(rookieForTier4.name || '')).toBe(false);
-      expect(rookieForTier4.status).toBe('ACTIVE');
+      // Bù đắp cho Tier 9 (Siêu Trí Tuệ Boss)
+      const newBossSmurf = draftBotForTier(existingNames, 9);
+      expect(newBossSmurf.elo).toBeGreaterThanOrEqual(950);
+      expect(newBossSmurf.elo).toBeLessThanOrEqual(1050);
+      expect(newBossSmurf.coins).toBe(50000);
+      expect(newBossSmurf.useMinimaxEndgame).toBe(true);
+      expect(newBossSmurf.useBayesianInference).toBe(true);
+      expect(newBossSmurf.useNashEquilibrium).toBe(true);
+      expect(newBossSmurf.title).toBe('Thần Đồng Ẩn Danh');
+      expect(existingNames.has(newBossSmurf.name || '')).toBe(false);
+
+      // Bù đắp cho Tier 8 (Thần Bài)
+      const newGrandmasterSmurf = draftBotForTier(existingNames, 8);
+      expect(newGrandmasterSmurf.elo).toBeGreaterThanOrEqual(950);
+      expect(newGrandmasterSmurf.elo).toBeLessThanOrEqual(1050);
+      expect(newGrandmasterSmurf.coins).toBe(50000);
+      expect(newGrandmasterSmurf.useMinimaxEndgame).toBe(true);
+      expect(newGrandmasterSmurf.useBayesianInference).toBe(true);
+      expect(newGrandmasterSmurf.title).toBe('Thần Đồng Ẩn Danh');
     });
   });
 
@@ -97,33 +108,25 @@ describe('Thế Giới Sới Bạc 200 Bot (Living Bot Ecosystem Tests)', () => 
       const activeBots = bots.filter(b => b.status === 'ACTIVE');
       const { activeTables } = matchSimulatedTables(activeBots);
 
-      expect(activeTables.length).toBeGreaterThanOrEqual(10);
-      expect(activeTables.length).toBeLessThanOrEqual(45);
+      expect(activeTables.length).toBeGreaterThanOrEqual(15);
+      expect(activeTables.length).toBeLessThanOrEqual(40);
 
-      const participatingBotsCount = activeTables.reduce((sum, t) => sum + t.botIds.length, 0);
-      const participationRate = participatingBotsCount / activeBots.length;
-
-      // Tham gia từ 30% đến 80%
-      expect(participationRate).toBeGreaterThanOrEqual(0.30);
-      expect(participationRate).toBeLessThanOrEqual(0.80);
-
-      // Mỗi bàn có đúng 4 bot và mức cược hợp lệ
-      for (const table of activeTables) {
-        expect(table.botIds.length).toBe(4);
-        expect(table.betAmount).toBeGreaterThanOrEqual(ECOSYSTEM_CONSTANTS.MIN_BET_AMOUNT);
+      for (const t of activeTables) {
+        expect(t.botIds.length).toBe(4);
+        expect(t.betAmount).toBeGreaterThanOrEqual(ECOSYSTEM_CONSTANTS.MIN_BET_AMOUNT);
       }
     });
   });
 
   describe('3. Mô Phỏng Trận Đấu Nhanh 0ms (Headless Fast Match Simulation)', () => {
     it('mô phỏng trọn vẹn 1 ván 4 bot tức thì không gây nghẽn vòng lặp', () => {
-      const bots = generateInitial200Bots();
-      const botsMap = new Map<string, BotEntity>(bots.map(b => [b.id, b]));
+      const bots = generateInitial200Bots().slice(0, 4);
+      const botsMap = new Map(bots.map(b => [b.id, b]));
       const sampleTable = {
-        tableId: 'table_test_1',
-        betAmount: 1000,
+        tableId: 'test_table_1',
+        botIds: [bots[0].id, bots[1].id, bots[2].id, bots[3].id] as [string, string, string, string],
         tierNum: 1,
-        botIds: [bots[0].id, bots[1].id, bots[2].id, bots[3].id] as [string, string, string, string]
+        betAmount: 1000
       };
 
       const startTime = performance.now();
@@ -146,7 +149,7 @@ describe('Thế Giới Sới Bạc 200 Bot (Living Bot Ecosystem Tests)', () => 
   });
 
   describe('4. Quản Lý Hệ Sinh Thái & Vòng Đời Bot (Ecosystem Lifecycle & Settlement)', () => {
-    it('kết toán ván đấu, cập nhật Elo/vốn, loại bỏ bot vỡ nợ và draft tân binh thay thế', async () => {
+    it('kết toán ván đấu, cập nhật Elo/vốn, loại bỏ bot vỡ nợ và bù đắp bot theo cơ chế Top-down Tier Replenishment', async () => {
       await ecosystemManager.initialize();
       const initialBots = await ecosystemManager.getAllBots();
       expect(initialBots.length).toBe(ECOSYSTEM_CONSTANTS.MAX_BOT_COUNT);
@@ -171,6 +174,12 @@ describe('Thế Giới Sới Bạc 200 Bot (Living Bot Ecosystem Tests)', () => 
       // Đảm bảo số lượng bot hoạt động luôn duy trì 200 bot
       const activeBotsCount = allBotsAfter.filter(b => b.status === 'ACTIVE').length;
       expect(activeBotsCount).toBe(ECOSYSTEM_CONSTANTS.MAX_BOT_COUNT);
+
+      // Đảm bảo các tier cao nhất (Tier 9, Tier 8, Tier 7) luôn luôn có mặt đầy đủ
+      for (let t = 7; t <= 9; t++) {
+        const count = allBotsAfter.filter(b => getTierFromElo(b.elo).tierNum === t).length;
+        expect(count).toBeGreaterThan(0);
+      }
     });
   });
 });

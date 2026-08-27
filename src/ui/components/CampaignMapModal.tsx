@@ -36,7 +36,7 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
       height="h-[92vh] sm:h-[680px]"
       headerRight={
         <Badge variant="gold" size="md">
-          Tiến Độ: {profile.campaignUnlockedChapter}/5 Chương
+          Tiến Độ: {profile.campaignUnlockedChapter}/{CAMPAIGN_CHAPTERS.length} Chương
         </Badge>
       }
       footer={
@@ -62,8 +62,8 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
         </div>
       }
     >
-      {/* BẢN ĐỒ 5 CHƯƠNG THEO HÀNG NGANG */}
-      <div className="grid grid-cols-5 gap-2 sm:gap-3 mb-4">
+      {/* BẢN ĐỒ 9 CHƯƠNG DẠNG TRACK CUỘN NGANG HOẶC GRID */}
+      <div className="flex gap-2.5 sm:gap-3 overflow-x-auto pb-3 pt-1 px-1 scrollbar-thin mb-4">
         {CAMPAIGN_CHAPTERS.map(ch => {
           const unlocked = ch.id <= profile.campaignUnlockedChapter;
           const isSelected = selectedChapterId === ch.id;
@@ -74,9 +74,9 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
             <button
               key={ch.id}
               onClick={() => setSelectedChapterId(ch.id)}
-              className={`relative flex flex-col items-center p-2.5 sm:p-3.5 rounded-2xl border transition-all cursor-pointer select-none text-center ${
+              className={`relative flex flex-col items-center flex-shrink-0 w-[105px] sm:w-[125px] p-2.5 sm:p-3.5 rounded-2xl border transition-all cursor-pointer select-none text-center ${
                 isSelected
-                  ? 'bg-[var(--bg-card-active)] border-2 border-[var(--color-gold)] shadow-md scale-105'
+                  ? 'bg-[var(--bg-card-active)] border-2 border-[var(--color-gold)] shadow-lg scale-105 z-10'
                   : unlocked
                   ? 'bg-[var(--bg-card)] border-[var(--border-card)] hover:border-[var(--border-gold)] hover:bg-[var(--bg-card-hover)]'
                   : 'bg-[var(--bg-container)] border-white/5 opacity-40 cursor-not-allowed'

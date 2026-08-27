@@ -86,7 +86,14 @@ export function simulateSingleTableMatch(
       trackersMap.set(currentTurnId, tracker);
     }
 
-    const result = engine.executeBotTurn(bot, tracker);
+    const fastBotConfig: BotEntity = {
+      ...bot,
+      mctsSimulations: 0,
+      useMinimaxEndgame: false,
+      useBayesianInference: false,
+      useNashEquilibrium: false
+    };
+    const result = engine.executeBotTurn(fastBotConfig, tracker);
     if (result.isGameOver || engine.isGameOver) {
       break;
     }

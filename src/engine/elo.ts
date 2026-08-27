@@ -14,67 +14,85 @@ export interface RankTierInfo {
 
 export const RANK_TIERS: RankTierInfo[] = [
   {
-    id: 'BRONZE',
-    name: 'Đồng Đoàn',
-    badge: '🥉',
+    id: 'WOOD',
+    name: 'Tân Thủ',
+    badge: '🪵',
     minElo: 0,
-    maxElo: 999,
+    maxElo: 899,
+    color: '#8B5A2B',
+    description: 'Bậc khởi đầu dành cho người mới làm quen với sới bạc.'
+  },
+  {
+    id: 'BRONZE',
+    name: 'Tập Sự',
+    badge: '🥉',
+    minElo: 900,
+    maxElo: 1199,
     color: '#CD7F32',
-    description: 'Bậc nhập môn dành cho người mới làm quen luật chơi.'
+    description: 'Nắm vững luật cơ bản, bắt đầu biết xả rác và giữ Heo an toàn.'
   },
   {
     id: 'SILVER',
-    name: 'Bạc Đoàn',
+    name: 'Phong Trào',
     badge: '🥈',
-    minElo: 1000,
-    maxElo: 1249,
+    minElo: 1200,
+    maxElo: 1499,
     color: '#C0C0C0',
-    description: 'Người chơi đã nắm vững tổ hợp bài và bắt đầu biết giữ Heo.'
+    description: 'Phong cách phóng khoáng, biết đếm Heo và gài bẫy nhử mồi cơ bản.'
   },
   {
     id: 'GOLD',
-    name: 'Vàng Đoàn',
+    name: 'Lão Luyện',
     badge: '🥇',
-    minElo: 1250,
-    maxElo: 1499,
+    minElo: 1500,
+    maxElo: 1799,
     color: '#FFD700',
-    description: 'Phong trào lão luyện, thích chặt chém và xả rác nhanh.'
+    description: 'Già dơ sới bạc, đếm Heo + Át chuẩn xác và chống đền bài 1 lá quyết liệt.'
   },
   {
     id: 'PLATINUM',
-    name: 'Bạch Kim',
+    name: 'Tinh Anh',
     badge: '💎',
-    minElo: 1500,
-    maxElo: 1749,
+    minElo: 1800,
+    maxElo: 2099,
     color: '#E5E4E2',
-    description: 'Kinh nghiệm già dơ, biết nhớ bài và gài bẫy săn Heo.'
+    description: 'Bán chuyên đẳng cấp, nhớ trọn 52 lá và tung hỏa mù CFR Bluffing.'
   },
   {
     id: 'DIAMOND',
-    name: 'Kim Cương',
-    badge: '💠',
-    minElo: 1750,
-    maxElo: 1999,
+    name: 'Cao Thủ',
+    badge: '🔮',
+    minElo: 2100,
+    maxElo: 2399,
     color: '#00FFFF',
-    description: 'Cao thủ bán chuyên, đếm bài chuẩn và ép nhịp đối thủ gần về nhất.'
+    description: 'Chuyên nghiệp Esports, tự động tái cấu trúc thế bài theo nhịp trận đấu.'
   },
   {
     id: 'MASTER',
-    name: 'Cao Thủ',
+    name: 'Đại Cao Thủ',
     badge: '👑',
-    minElo: 2000,
-    maxElo: 2299,
+    minElo: 2400,
+    maxElo: 2699,
     color: '#FF4500',
-    description: 'Thần bài thực thụ, kiểm soát nhịp độ bàn chơi đỉnh cao.'
+    description: 'Đỉnh cao suy luận, dùng xác suất Bayes đoán chính xác 85% bài ẩn của đối thủ.'
   },
   {
     id: 'GRANDMASTER',
-    name: 'Thần Bài Tối Thượng',
-    badge: '🤖',
-    minElo: 2300,
-    maxElo: 9999,
+    name: 'Thần Bài Huyền Thoại',
+    badge: '🌌',
+    minElo: 2700,
+    maxElo: 2999,
     color: '#9932CC',
-    description: 'Đỉnh cao trí tuệ nhân tạo, giải cờ tàn MCTS không có nước đi thừa.'
+    description: 'Khắc tinh cờ tàn, vét cạn Minimax Alpha-Beta tìm chuỗi Forced-Win tất thắng.'
+  },
+  {
+    id: 'CHALLENGER',
+    name: 'Siêu Trí Tuệ Vô Địch',
+    badge: '⚡',
+    minElo: 3000,
+    maxElo: 9999,
+    color: '#FFD700',
+    description: 'Trùm cuối siêu AI (Alpha Mind, Zero Defeat), hoàn hảo không tì vết.'
   }
 ];
 

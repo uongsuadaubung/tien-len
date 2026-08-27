@@ -154,9 +154,10 @@ describe('Kiểm Thử Giả Lập Ghép Trận Online (Matchmaking Simulation T
 
   it('4. Kết toán Elo: Cập nhật biến động Elo trực tiếp cho các Bot tại bàn', async () => {
     const { useEcosystemStore } = await import('../../src/stores/useEcosystemStore');
+    const { ecosystemManager } = await import('../../src/engine/ecosystem/ecosystem-manager');
     await useEcosystemStore.getState().initEcosystem();
 
-    const botsBefore = useEcosystemStore.getState().bots;
+    const botsBefore = await ecosystemManager.getAllBots();
     expect(botsBefore.length).toBeGreaterThan(0);
 
     const testBot = botsBefore[0];

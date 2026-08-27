@@ -4,8 +4,52 @@ type BotPersonaRaw = Omit<BotConfig, 'name' | 'avatar'> & { name?: string | null
 
 const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   // ==========================================
-  // TIER 1: TẬP SỰ / NOVICE (ELO 850 - 1000)
+  // TIER 1: TÂN THỦ / BEGINNER (ELO 600 - 899)
   // ==========================================
+  BOT_ELO_700: {
+    id: 'BOT_ELO_700',
+    tier: 'Tier 1: Tân Thủ',
+    elo: 700,
+    description: 'Chơi ngây thơ hồn nhiên, có bài gì nhỏ nhất đánh nấy, không nhớ bài.',
+    memoryDepth: 0.05,
+    riskAppetite: 0.8,
+    trapTendency: 0.0,
+    baitingTendency: 0.0,
+    antiLeaderAggression: 1.0,
+    tempoControl: 0.1,
+    damageControl: 0.1,
+    turnsToWinLookahead: 0.0,
+    dynamicHandSacrifice: 0.0,
+    bombInferenceRate: 0.0,
+    semiCooperativeCooperation: 0.0,
+    positionalAwareness: 0.0,
+    inMatchAdaptationRate: 0.0,
+    handPartitioningOptimality: 0.3,
+    simulationLookahead: 0,
+    mctsSimulations: 0
+  },
+  BOT_ELO_750: {
+    id: 'BOT_ELO_750',
+    tier: 'Tier 1: Tân Thủ',
+    elo: 750,
+    description: 'Tân binh mới vào sới, đánh bài theo bản năng.',
+    memoryDepth: 0.1,
+    riskAppetite: 0.8,
+    trapTendency: 0.0,
+    baitingTendency: 0.0,
+    antiLeaderAggression: 1.0,
+    tempoControl: 0.15,
+    damageControl: 0.15,
+    turnsToWinLookahead: 0.0,
+    dynamicHandSacrifice: 0.0,
+    bombInferenceRate: 0.0,
+    semiCooperativeCooperation: 0.0,
+    positionalAwareness: 0.0,
+    inMatchAdaptationRate: 0.0,
+    handPartitioningOptimality: 0.35,
+    simulationLookahead: 0,
+    mctsSimulations: 0
+  },
   BOT_ELO_850: {
     id: 'BOT_ELO_850',
     tier: 'Tier 1: Rookie',
@@ -442,7 +486,7 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
   BOT_ELO_2500: {
     id: 'BOT_ELO_2500',
-    tier: 'Tier 5: Mythic',
+    tier: 'Tier 7: Đại Cao Thủ',
     elo: 2500,
     description: 'Trí tuệ nhân tạo tối cao: Đọc vị đối thủ, giữ bài bọc lót hoàn hảo, dứt điểm cờ tàn chuẩn xác.',
     memoryDepth: 1.0,
@@ -461,6 +505,56 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     handPartitioningOptimality: 0.88,
     simulationLookahead: 4,
     mctsSimulations: 0
+  },
+  BOT_ELO_2750: {
+    id: 'BOT_ELO_2750',
+    tier: 'Tier 8: Thần Bài',
+    elo: 2750,
+    description: 'Thần bài cờ tàn: Vét cạn Minimax Alpha-Beta tìm chuỗi Forced-Win tất thắng.',
+    memoryDepth: 1.0,
+    riskAppetite: 0.75,
+    trapTendency: 0.75,
+    baitingTendency: 1.0,
+    antiLeaderAggression: 1.0,
+    tempoControl: 1.0,
+    damageControl: 1.0,
+    turnsToWinLookahead: 1.0,
+    dynamicHandSacrifice: 1.0,
+    bombInferenceRate: 1.0,
+    semiCooperativeCooperation: 1.0,
+    positionalAwareness: 1.0,
+    inMatchAdaptationRate: 1.0,
+    handPartitioningOptimality: 0.95,
+    simulationLookahead: 4,
+    mctsSimulations: 30,
+    useMinimaxEndgame: true,
+    useBayesianInference: true
+  },
+  BOT_ELO_3200: {
+    id: 'BOT_ELO_3200',
+    tier: 'Tier 9: Siêu Trí Tuệ',
+    elo: 3200,
+    description: 'BOSS Alpha Mind: Hợp nhất toàn bộ siêu thuật toán, tính toán xác suất Bayes và cờ tàn hoàn hảo.',
+    memoryDepth: 1.0,
+    riskAppetite: 0.8,
+    trapTendency: 0.8,
+    baitingTendency: 1.0,
+    antiLeaderAggression: 1.0,
+    tempoControl: 1.0,
+    damageControl: 1.0,
+    turnsToWinLookahead: 1.0,
+    dynamicHandSacrifice: 1.0,
+    bombInferenceRate: 1.0,
+    semiCooperativeCooperation: 1.0,
+    positionalAwareness: 1.0,
+    inMatchAdaptationRate: 1.0,
+    handPartitioningOptimality: 1.0,
+    simulationLookahead: 4,
+    mctsSimulations: 50,
+    useMinimaxEndgame: true,
+    useNashEquilibrium: true,
+    useBayesianInference: true,
+    useDynamicRepartitioning: true
   }
 };
 
@@ -561,11 +655,15 @@ export const GLOBAL_BOT_NAMES = [
 ];
 
 export const GLOBAL_NICKNAMES_BY_TIER: Record<number, string[]> = {
-  1: ['Rookie', 'Novice', 'Apprentice', 'Newbie', 'Starter', 'Junior', 'Cadet'],
-  2: ['Challenger', 'Striker', 'Wildcard', 'Blitzer', 'Gambit', 'Rebel', 'Fighter'],
-  3: ['Veteran', 'Tactician', 'Card Hunter', 'Strategist', 'Sniper', 'Sentinel', 'Tracker'],
-  4: ['Grandmaster', 'Mind Reader', 'Predator', 'Pro Ace', 'Vanguard', 'Executioner', 'Warlock'],
-  5: ['Mythic', 'Overlord', 'Supreme AI', 'Apex Legend', 'Immortal', 'Alpha Mind', 'Zero Defeat']
+  1: ['Rookie', 'Newbie', 'Starter', 'Cadet', 'Trainee', 'Apprentice'],
+  2: ['Novice', 'Striker', 'Wildcard', 'Blitzer', 'Gambit', 'Rebel'],
+  3: ['Amateur', 'Fighter', 'Brawler', 'Tactician', 'Scout', 'Duelist'],
+  4: ['Veteran', 'Card Hunter', 'Strategist', 'Sniper', 'Sentinel', 'Tracker'],
+  5: ['Elite', 'Mind Reader', 'Predator', 'Pro Ace', 'Vanguard', 'Executioner'],
+  6: ['Master', 'Warlock', 'Shadow Master', 'Phantom', 'Nexus', 'Zenith'],
+  7: ['Grandmaster', 'Bayesian Mind', 'Oracle', 'Overlord', 'Dominator'],
+  8: ['Mythic Legend', 'Endgame King', 'Nash Master', 'Apex Predator', 'Immortal'],
+  9: ['Supreme AI', 'Alpha Mind', 'Zero Defeat', 'God of Cards', 'Singularity']
 };
 
 export const GLOBAL_AVATARS = [
@@ -575,11 +673,15 @@ export const GLOBAL_AVATARS = [
 ];
 
 export const TIER_BASE_PERSONAS: Record<number, string[]> = {
-  1: ['BOT_ELO_850', 'BOT_ELO_900', 'BOT_ELO_950', 'BOT_ELO_1000'],
-  2: ['BOT_ELO_1150', 'BOT_ELO_1200', 'BOT_ELO_1250', 'BOT_ELO_1350'],
-  3: ['BOT_ELO_1450', 'BOT_ELO_1550', 'BOT_ELO_1600', 'BOT_ELO_1650'],
-  4: ['BOT_ELO_1750', 'BOT_ELO_1850', 'BOT_ELO_1900', 'BOT_ELO_1950'],
-  5: ['BOT_ELO_2050', 'BOT_ELO_2150', 'BOT_ELO_2300', 'BOT_ELO_2500']
+  1: ['BOT_ELO_700', 'BOT_ELO_750'],
+  2: ['BOT_ELO_950', 'BOT_ELO_1000', 'BOT_ELO_1150'],
+  3: ['BOT_ELO_1200', 'BOT_ELO_1250', 'BOT_ELO_1350'],
+  4: ['BOT_ELO_1450', 'BOT_ELO_1550', 'BOT_ELO_1600'],
+  5: ['BOT_ELO_1650', 'BOT_ELO_1750', 'BOT_ELO_1850'],
+  6: ['BOT_ELO_1900', 'BOT_ELO_1950', 'BOT_ELO_2050'],
+  7: ['BOT_ELO_2150', 'BOT_ELO_2300', 'BOT_ELO_2500'],
+  8: ['BOT_ELO_2750'],
+  9: ['BOT_ELO_3200']
 };
 
 /**
@@ -593,7 +695,7 @@ export function generateRandomBotConfig(
     baseId?: string;
   }
 ): BotConfig {
-  const normalizedTier = Math.max(1, Math.min(5, tier));
+  const normalizedTier = Math.max(1, Math.min(9, tier));
   const candidateIds = TIER_BASE_PERSONAS[normalizedTier] || TIER_BASE_PERSONAS[2];
   const chosenBaseId = options?.baseId || candidateIds[Math.floor(Math.random() * candidateIds.length)];
   const baseConfig = BOT_PERSONAS[chosenBaseId] || BOT_PERSONAS.BOT_ELO_1150;

@@ -17,11 +17,11 @@ import {
  * 3. Handler Ra Bài Cầm Cái (Rule-Driven, Hand-Strength & Grandmaster Governed Lead Move Heuristic):
  * Tự động đồng bộ chính sách ra bài với Lực bài, Nhịp độ, Bẫy Nhử Mồi & Bẻ bài:
  * - Chặn đầu đền bài (Dynamic Sacrifice): Bẻ bài đánh lá to nhất tuyệt đối khi người kế bên còn 1 lá.
+ * - Khai thác điểm yếu & bắt bài (In-Match Adaptation): Đánh bài vào loại combo đối thủ hay bỏ lượt.
  * - Gài bẫy nhử mồi (Baiting Trap): Đánh Át/Heo đen khi ôm Hàng để câu Heo đối thủ Chặt Chồng.
- * - Tăng tốc dứt điểm (Turns-to-Win): Đẩy nhanh tiến độ khi còn <= 2 nhịp dứt điểm.
  * - Thế Bài Thượng Đẳng / Nắm >= 2 Heo: "Bảo Kê Tẩu Rác", dùng rác nhỏ thăm dò, giữ Heo bọc lót cướp cái dứt điểm.
- * - PreferLongestComboFirst (Đếm Lá / Sát phạt tốc độ): Xả sảnh dài & bộ thường (3..A) nhiều lá trước (KHÔNG xả Heo).
- * - DumpSmallTrashFirst (Truyền Thống / Elo): Tẩu rác nhỏ 3, 4, 5... trước để xả bài yếu và thăm dò.
+ * - Composite Lead Policy: Tẩu rác (với Positional Awareness đì nhà dưới) hoặc Xả combo.
+ * - Tăng tốc dứt điểm (Turns-to-Win): Đẩy nhanh tiến độ khi còn <= 2 nhịp dứt điểm.
  */
 export class LeadMoveHeuristicHandler extends BotDecisionHandler {
   public handle(context: DecisionContext, validMoves: ValidMoveInfo[]): BotDecision | null {
@@ -156,41 +156,8 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
     }
 
     // =========================================================================
-    // 3. QUẢN LÝ NHỊP ĐỘ DỰA TRÊN SỐ NHỊP VỀ BÀI (TURNS-TO-WIN TEMPO ACCELERATION)
+    // 3. THẾ BÀI THƯỢNG ĐẲNG / ÁP ĐẢO (DOMINANT HAND: Nắm >= 2-3 Heo hoặc Hàng)
     // =========================================================================
-    const turnsToWin = calculateTurnsToClearHand(hand, partition);
-    if (
-      config.turnsToWinLookahead >= 0.5 &&
-      turnsToWin <= 2 &&
-      !isEmergencyAntiLeader &&
-      !isNextPlayerOneCard
-    ) {
-      if (regularNonTwoCombos.length > 0) {
-        const sortedCombos = [...regularNonTwoCombos].sort((a, b) => b.cards.length - a.cards.length);
-        const bestSprintCombo = sortedCombos[0];
-        const move = validMoves.find(
-          m =>
-            m.combination.type === bestSprintCombo.type &&
-            m.cards.length === bestSprintCombo.cards.length &&
-            m.combination.highestCard.id === bestSprintCombo.highestCard.id
-        );
-        if (move) {
-          return buildBotDecision('PLAY', {
-            cards: move.cards,
-            combination: move.combination,
-            reason: `Tăng tốc dứt điểm (Turns-to-Win: ${turnsToWin} nhịp): Xả ${bestSprintCombo.type} để về bài thần tốc`,
-            strategyUsed: 'TEMPO_SPRINT'
-          });
-        }
-      }
-    }
-
-    // =========================================================================
-    // 4. CHIẾN THUẬT DỰA TRÊN LỰC BÀI (HAND STRENGTH GOVERNED LEAD POLICY)
-    // =========================================================================
-
-    // THẾ BÀI THƯỢNG ĐẲNG / ÁP ĐẢO (DOMINANT HAND: Nắm >= 2-3 Heo hoặc Hàng):
-    // Chiến thuật: "Bảo Kê Tẩu Rác". Có Heo giữ cái thì tẩu rác nhỏ trước để rảnh tay dứt điểm về Nhất!
     if (
       (handStrength.tier === 'DOMINANT' || (handStrength.tier === 'STRONG' && handStrength.twoCount >= 2)) &&
       !isEmergencyAntiLeader &&
@@ -210,7 +177,6 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
           });
         }
       }
-      // Nếu đã sạch rác (nonTwoTrash = 0): Xả sảnh/bộ dài nhất để dứt điểm!
       if (regularNonTwoCombos.length > 0) {
         const sortedCombos = [...regularNonTwoCombos].sort((a, b) => {
           if (b.cards.length !== a.cards.length) return b.cards.length - a.cards.length;
@@ -235,7 +201,7 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
     }
 
     // =========================================================================
-    // 5. CHÍNH SÁCH RA BÀI HỢP THÀNH TỪ CÁC RULE ACTIVE (COMPOSITE LEAD POLICY)
+    // 4. CHÍNH SÁCH RA BÀI HỢP THÀNH TỪ CÁC RULE ACTIVE (COMPOSITE LEAD POLICY)
     // =========================================================================
     const compositeStrategy = context.compositeRuleStrategy;
     const leadPolicy = compositeStrategy ? compositeStrategy.getCompositeLeadPolicy() : {
@@ -274,9 +240,6 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
     if (nonTwoTrash.length > 0) {
       if (!isNextPlayerOneCard) {
         // Positional Awareness (Tie-breaker an toàn đì nhà dưới):
-        // Nếu Bot có positionalAwareness >= 0.4 và có >= 2 lá rác độc lập:
-        // Bot chọn lá rác tầm trung (8, 9, 10, J) trong danh sách nonTwoTrash để đì nhà dưới
-        // nếu nhà dưới có ít bài (<= 6 lá) hoặc có thói quen tẩu rác nhỏ (trashLeadRate >= 0.6)!
         if (config.positionalAwareness >= 0.4 && nonTwoTrash.length >= 2) {
           const nextCardsCount = remainingPlayerCards[nextPlayerId] ?? 10;
           const nextProfile = context.opponentProfiles?.[nextPlayerId] ?? OpponentProfiler.getInstance().getProfile(nextPlayerId);
@@ -350,6 +313,36 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
           reason: `Đánh bộ nhỏ ${smallestCombo.type} ${smallestCombo.cards.length} lá để giữ nhịp`,
           strategyUsed: 'SMALLEST_COMBO_LEAD'
         });
+      }
+    }
+
+    // =========================================================================
+    // 5. QUẢN LÝ NHỊP ĐỘ DỰA TRÊN SỐ NHỊP VỀ BÀI (TURNS-TO-WIN TEMPO ACCELERATION)
+    // =========================================================================
+    const turnsToWin = calculateTurnsToClearHand(hand, partition);
+    if (
+      config.turnsToWinLookahead >= 0.5 &&
+      turnsToWin <= 2 &&
+      !isEmergencyAntiLeader &&
+      !isNextPlayerOneCard
+    ) {
+      if (regularNonTwoCombos.length > 0) {
+        const sortedCombos = [...regularNonTwoCombos].sort((a, b) => b.cards.length - a.cards.length);
+        const bestSprintCombo = sortedCombos[0];
+        const move = validMoves.find(
+          m =>
+            m.combination.type === bestSprintCombo.type &&
+            m.cards.length === bestSprintCombo.cards.length &&
+            m.combination.highestCard.id === bestSprintCombo.highestCard.id
+        );
+        if (move) {
+          return buildBotDecision('PLAY', {
+            cards: move.cards,
+            combination: move.combination,
+            reason: `Tăng tốc dứt điểm (Turns-to-Win: ${turnsToWin} nhịp): Xả ${bestSprintCombo.type} để về bài thần tốc`,
+            strategyUsed: 'TEMPO_SPRINT'
+          });
+        }
       }
     }
 

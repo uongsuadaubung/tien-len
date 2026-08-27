@@ -6,6 +6,7 @@ import { MctsSolver } from './mcts-solver';
 import { OpponentProfiler } from './opponent-profiler';
 import { resolveCompositeRuleStrategy } from './rule-strategies';
 import { BotDecisionTelemetry } from '../engine/match-logger';
+import { getBotConfig } from './bot-factory';
 
 // 1. Re-export toàn bộ Types & Helpers cơ sở
 export * from './decision-types';
@@ -59,12 +60,16 @@ const DEFAULT_DECISION_CHAIN = buildBotDecisionChain();
  * Hàm quyết định nước đi của AI Bot áp dụng Kiến trúc Rule-First & Chain of Responsibility
  */
 export function makeBotDecision(context: DecisionContext): BotDecision {
+  const config = {
+    ...getBotConfig('BOT_ELO_1150'),
+    ...(context.config || {})
+  };
+
   const { 
     hand, 
     currentRoundLeadingMove, 
     isFirstMoveOfGame, 
     isLeadMove, 
-    config, 
     remainingPlayerCards, 
     tracker 
   } = context;

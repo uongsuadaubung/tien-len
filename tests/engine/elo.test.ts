@@ -2,14 +2,16 @@ import { describe, expect, test } from 'bun:test';
 import { getRankTierByElo, calculateEloDelta, matchmakeRankedOpponents } from '../../src/engine/elo';
 
 describe('Elo & Ranked Matchmaking System', () => {
-  test('Phân hạng 7 bậc Rank chính xác theo mốc điểm Elo', () => {
-    expect(getRankTierByElo(850).id).toBe('BRONZE');
-    expect(getRankTierByElo(1100).id).toBe('SILVER');
-    expect(getRankTierByElo(1350).id).toBe('GOLD');
-    expect(getRankTierByElo(1600).id).toBe('PLATINUM');
-    expect(getRankTierByElo(1850).id).toBe('DIAMOND');
-    expect(getRankTierByElo(2150).id).toBe('MASTER');
-    expect(getRankTierByElo(2400).id).toBe('GRANDMASTER');
+  test('Phân hạng 9 bậc Rank chính xác theo mốc điểm Elo', () => {
+    expect(getRankTierByElo(750).id).toBe('WOOD');
+    expect(getRankTierByElo(1050).id).toBe('BRONZE');
+    expect(getRankTierByElo(1350).id).toBe('SILVER');
+    expect(getRankTierByElo(1650).id).toBe('GOLD');
+    expect(getRankTierByElo(1950).id).toBe('PLATINUM');
+    expect(getRankTierByElo(2250).id).toBe('DIAMOND');
+    expect(getRankTierByElo(2550).id).toBe('MASTER');
+    expect(getRankTierByElo(2850).id).toBe('GRANDMASTER');
+    expect(getRankTierByElo(3150).id).toBe('CHALLENGER');
   });
 
   test('Tính toán biến động Elo sau ván đấu', () => {

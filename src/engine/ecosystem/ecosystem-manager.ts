@@ -14,7 +14,9 @@ import {
 } from './ecosystem-types';
 import { 
   generateInitial200Bots, 
-  draftRookieBot 
+  draftRookieBot,
+  findUnderfilledTier,
+  draftBotForTier
 } from './bot-generator';
 import { 
   matchBotsForPlayerTable, 
@@ -58,35 +60,68 @@ class EcosystemManager {
   }
 
   /**
-   * Khởi tạo hệ sinh thái từ IndexedDB (Tự động sinh 200 Bot nếu DB trống)
+   * Khởi tạo hệ sinh thái từ IndexedDB:
+   * - Tự động sinh 200 Bot nếu DB trống.
+   * - Tự động phát hiện và bù đắp các Bậc Rank còn trống (từ Tier 9 xuống Tier 1) nếu database cũ bị thiếu.
    */
   public async initialize(): Promise<BotEntity[]> {
     try {
       const storedBots = await dbGetAllBots();
 
-      if (storedBots && storedBots.length >= ECOSYSTEM_CONSTANTS.MAX_BOT_COUNT) {
-        // Lọc bỏ bot phá sản và chỉ giữ đúng 200 bot ACTIVE hợp lệ
+      if (storedBots && storedBots.length > 0) {
+        // Lọc bỏ bot phá sản và nạp các bot ACTIVE
         const activeBots = storedBots.filter(b => b.status === 'ACTIVE' && b.coins >= ECOSYSTEM_CONSTANTS.BANKRUPTCY_THRESHOLD);
-        const validBots = (activeBots.length >= ECOSYSTEM_CONSTANTS.MAX_BOT_COUNT) 
-          ? activeBots.slice(0, ECOSYSTEM_CONSTANTS.MAX_BOT_COUNT) 
-          : storedBots.slice(0, ECOSYSTEM_CONSTANTS.MAX_BOT_COUNT);
+        
+        this.activeBotsMap.clear();
+        for (const b of activeBots) {
+          this.activeBotsMap.set(b.id, b);
+        }
 
-        // Tìm toàn bộ bot dư thừa / phá sản cũ còn sót lại trong DB để xóa sạch
-        const validIds = new Set(validBots.map(b => b.id));
+        const existingNames = new Set<string>(
+          Array.from(this.activeBotsMap.values())
+            .map(b => b.name)
+            .filter((n): n is string => Boolean(n))
+        );
+
+        let hasChanges = false;
+
+        // Bù đắp cho đủ 200 Bot theo thứ tự ưu tiên từ Tier 9 Boss xuống Tier 1
+        while (this.activeBotsMap.size < ECOSYSTEM_CONSTANTS.MAX_BOT_COUNT) {
+          const underfilledTier = findUnderfilledTier(Array.from(this.activeBotsMap.values()));
+          const newBot = draftBotForTier(existingNames, underfilledTier);
+          if (newBot.name) {
+            existingNames.add(newBot.name);
+          }
+          this.activeBotsMap.set(newBot.id, newBot);
+          hasChanges = true;
+        }
+
+        // Cắt bớt nếu dư > 200 bot
+        if (this.activeBotsMap.size > ECOSYSTEM_CONSTANTS.MAX_BOT_COUNT) {
+          const allBots = Array.from(this.activeBotsMap.values()).slice(0, ECOSYSTEM_CONSTANTS.MAX_BOT_COUNT);
+          this.activeBotsMap.clear();
+          for (const b of allBots) {
+            this.activeBotsMap.set(b.id, b);
+          }
+          hasChanges = true;
+        }
+
+        // Xóa bot dư thừa khỏi DB nếu cần
+        const validIds = new Set(this.activeBotsMap.keys());
         const excessIds = storedBots.filter(b => !validIds.has(b.id)).map(b => b.id);
         if (excessIds.length > 0) {
           await dbDeleteBotsBatch(excessIds);
         }
 
-        this.activeBotsMap.clear();
-        for (const b of validBots) {
-          this.activeBotsMap.set(b.id, b);
+        if (hasChanges) {
+          await dbSaveBotsBatch(Array.from(this.activeBotsMap.values()));
         }
+
         this.isInitialized = true;
         return Array.from(this.activeBotsMap.values());
       }
 
-      // Chưa đủ 200 Bot -> Sinh mới 200 Bot theo chuẩn
+      // Chưa có Bot nào trong DB -> Sinh mới 200 Bot chuẩn 9 Tiers
       const initialBots = generateInitial200Bots();
       this.activeBotsMap.clear();
       for (const b of initialBots) {
@@ -104,26 +139,27 @@ class EcosystemManager {
         botName: null,
         avatar: null,
         amount: null,
-        message: `🎉 Sới Bạc Quốc Tế chính thức khai trương với 200 cao thủ từ khắp nơi trên thế giới!`
+        message: `🎉 Sới Bạc Quốc Tế chính thức khai trương với 200 cao thủ từ 9 bậc rank!`
       };
       await dbAddNewsBatch([welcomeNews]);
 
       this.isInitialized = true;
       return initialBots;
     } catch (e) {
-      console.warn('Lỗi khi khởi tạo Ecosystem, fallback in-memory:', e);
-      const initialBots = generateInitial200Bots();
+      console.error('Lỗi khi khởi tạo EcosystemManager:', e);
+      // Fallback in-memory nếu DB lỗi
+      const fallback = generateInitial200Bots();
       this.activeBotsMap.clear();
-      for (const b of initialBots) {
+      for (const b of fallback) {
         this.activeBotsMap.set(b.id, b);
       }
       this.isInitialized = true;
-      return initialBots;
+      return fallback;
     }
   }
 
   /**
-   * Lấy toàn bộ danh sách Bot hiện tại
+   * Lấy danh sách toàn bộ 200 Bot hiện tại
    */
   public async getAllBots(): Promise<BotEntity[]> {
     if (!this.isInitialized || this.activeBotsMap.size === 0) {
@@ -133,7 +169,7 @@ class EcosystemManager {
   }
 
   /**
-   * Chuẩn bị ván đấu: Chọn 3 bot cho người chơi và kích hoạt chạy Web Worker mô phỏng ngầm
+   * Chuẩn bị bàn đấu cho Người Chơi và khởi chạy mô phỏng ngầm song song
    */
   public async prepareMatchRound(
     playerElo: number,
@@ -148,31 +184,39 @@ class EcosystemManager {
   }> {
     const allBots = await this.getAllBots();
 
-    // 1. Chọn 3 bot cho Bàn Người Chơi
-    const tableOpponents = matchBotsForPlayerTable(allBots, playerElo, betAmount, 3);
-    const chosenIds = new Set(tableOpponents.map(b => b.id));
+    // 1. Ghép 3 Bot phù hợp nhất cho bàn người chơi
+    const tableOpponents = matchBotsForPlayerTable(allBots, playerElo, betAmount);
 
-    // Đánh dấu trạng thái IN_MATCH cho 3 bot này
-    for (const opp of tableOpponents) {
-      opp.activityStatus = 'IN_MATCH';
-      this.activeBotsMap.set(opp.id, opp);
+    // Đánh dấu 3 bot này đang bận chơi với Người Chơi
+    for (const b of tableOpponents) {
+      const entity = this.activeBotsMap.get(b.id);
+      if (entity) {
+        entity.activityStatus = 'IN_MATCH';
+      }
     }
 
-    // 2. Gom các bot còn lại cho các bàn giả lập
-    const remainingBots = allBots.filter(b => !chosenIds.has(b.id));
-    const { activeTables, participatingBots, restingBots } = matchSimulatedTables(remainingBots);
+    // 2. Ghép các bàn đấu ngầm cho phần còn lại của sới bạc
+    const candidateBotsForSim = allBots.filter(
+      b => !tableOpponents.some(op => op.id === b.id)
+    );
+    const { activeTables, participatingBots, restingBots } = matchSimulatedTables(candidateBotsForSim);
 
+    // Đánh dấu các bot tham gia bàn ngầm
     for (const b of participatingBots) {
-      b.activityStatus = 'IN_MATCH';
-      this.activeBotsMap.set(b.id, b);
+      const entity = this.activeBotsMap.get(b.id);
+      if (entity) {
+        entity.activityStatus = 'IN_MATCH';
+      }
     }
     for (const b of restingBots) {
-      b.activityStatus = 'RESTING';
-      this.activeBotsMap.set(b.id, b);
+      const entity = this.activeBotsMap.get(b.id);
+      if (entity) {
+        entity.activityStatus = 'RESTING';
+      }
     }
 
-    // 3. Khởi chạy Web Worker mô phỏng ngầm song song (0% lag UI)
-    const simulationPromise = runEcosystemSimulation(activeTables, Array.from(this.activeBotsMap.values()));
+    // 3. Khởi chạy Web Worker mô phỏng ngầm ở chế độ Non-blocking
+    const simulationPromise = runEcosystemSimulation(activeTables, allBots);
 
     return {
       tableOpponents,
@@ -181,7 +225,7 @@ class EcosystemManager {
   }
 
   /**
-   * Kết toán ván đấu của Người Chơi kết hợp với kết quả của Web Worker
+   * Kết toán ván đấu của Người Chơi và các bàn mô phỏng ngầm
    */
   public async settleRound(
     humanSummary: HumanMatchSummary,
@@ -191,26 +235,19 @@ class EcosystemManager {
       executionTimeMs: number;
     }>
   ): Promise<{
-    allNews: EcosystemNewsItem[];
-    bankruptCount: number;
+    updatedBots: BotEntity[];
+    newsItems: EcosystemNewsItem[];
   }> {
-    if (this.activeBotsMap.size === 0) {
-      await this.getAllBots();
-    }
-
     const simOutput = await simulationPromise;
-    const newEvents: EcosystemNewsItem[] = [...(simOutput.highlightNews || [])];
+    const newEvents: EcosystemNewsItem[] = [...simOutput.highlightNews];
 
-    // 1. Cập nhật 3 Bot ở Bàn Người Chơi
+    // 1. Cập nhật kết quả cho 3 Bot chơi với Người Chơi
     for (const res of humanSummary.botResults) {
-      let bot = this.activeBotsMap.get(res.botId);
-      if (!bot) {
-        bot = Array.from(this.activeBotsMap.values()).find(b => b.id === res.botId || b.name === res.botId);
-      }
+      const bot = this.activeBotsMap.get(res.botId);
       if (!bot) continue;
 
       bot.coins = Math.max(0, bot.coins + res.deltaCoins);
-      bot.elo = Math.max(800, Math.min(2600, bot.elo + res.deltaElo));
+      bot.elo = Math.max(ECOSYSTEM_CONSTANTS.MIN_ELO, Math.min(ECOSYSTEM_CONSTANTS.MAX_ELO, bot.elo + res.deltaElo));
       bot.stats.gamesPlayed++;
       bot.stats.totalEarned += Math.max(0, res.deltaCoins);
 
@@ -244,7 +281,7 @@ class EcosystemManager {
         if (!bot) continue;
 
         bot.coins = Math.max(0, bot.coins + res.deltaCoins);
-        bot.elo = Math.max(800, Math.min(2600, bot.elo + res.deltaElo));
+        bot.elo = Math.max(ECOSYSTEM_CONSTANTS.MIN_ELO, Math.min(ECOSYSTEM_CONSTANTS.MAX_ELO, bot.elo + res.deltaElo));
         bot.stats.gamesPlayed++;
         bot.stats.totalEarned += Math.max(0, res.deltaCoins);
 
@@ -277,7 +314,7 @@ class EcosystemManager {
       }
     }
 
-    // 3. Kiểm tra Vỡ Nợ / Phá Sản và Draft Tân Binh mới
+    // 3. Kiểm tra Vỡ Nợ / Phá Sản và Bù đắp Bot theo thứ tự Tier từ CAO xuống THẤP (Top-down Tier Replenishment)
     let bankruptCount = 0;
     const existingNames = new Set<string>(
       Array.from(this.activeBotsMap.values())
@@ -293,18 +330,23 @@ class EcosystemManager {
         // Đào thải bot cũ
         bot.status = 'BANKRUPT';
 
-        // Draft tân binh mới thế chỗ kế thừa trình độ AI của bot vừa vỡ nợ
-        const rookie = draftRookieBot(existingNames, getTierFromElo(bot.elo).tierNum);
-        if (rookie.name) {
-          existingNames.add(rookie.name);
+        // Xóa bot vỡ nợ khỏi map để tính toán đúng bậc thiếu hụt
+        this.activeBotsMap.delete(botId);
+
+        // Duyệt từ Tier 9 xuống Tier 1 xem bậc nào đang bị thiếu hụt để sinh bot bù đắp
+        const underfilledTier = findUnderfilledTier(Array.from(this.activeBotsMap.values()));
+        const replacementBot = draftBotForTier(existingNames, underfilledTier);
+        if (replacementBot.name) {
+          existingNames.add(replacementBot.name);
         }
 
-        // Ghi nhận sự kiện phá sản & tân binh gia nhập
+        // Ghi nhận sự kiện phá sản & nhân tố mới gia nhập sới bạc
+        const tierName = getTierFromElo(replacementBot.elo).label;
         newEvents.push({
           id: `news_bankrupt_${bot.id}_${Date.now()}`,
           timestamp: Date.now(),
           type: 'BANKRUPTCY',
-          message: `🚨 ${bot.name} đã cháy túi và chính thức VỠ NỢ! Tân binh ${rookie.name} vừa gia nhập sới bạc!`,
+          message: `🚨 ${bot.name} đã cháy túi và chính thức VỠ NỢ! Tay chơi mới ${replacementBot.name} (${tierName}) vừa gia nhập sới bạc!`,
           botId: bot.id,
           botName: bot.name,
           avatar: bot.avatar,
@@ -312,8 +354,7 @@ class EcosystemManager {
         });
 
         // Thay thế vị trí trong pool
-        this.activeBotsMap.delete(botId);
-        this.activeBotsMap.set(rookie.id, rookie);
+        this.activeBotsMap.set(replacementBot.id, replacementBot);
       }
     }
 
@@ -326,27 +367,31 @@ class EcosystemManager {
     if (deletedBotIds.length > 0) {
       await dbDeleteBotsBatch(deletedBotIds);
     }
-    const updatedBotsList = Array.from(this.activeBotsMap.values());
-    await dbSaveBotsBatch(updatedBotsList);
+    await dbSaveBotsBatch(Array.from(this.activeBotsMap.values()));
 
+    // 5. Lưu tin tức mới vào DB
     if (newEvents.length > 0) {
       await dbAddNewsBatch(newEvents);
     }
 
     return {
-      allNews: newEvents,
-      bankruptCount
+      updatedBots: Array.from(this.activeBotsMap.values()),
+      newsItems: newEvents
     };
   }
 
   /**
-   * Reset toàn bộ dữ liệu hệ sinh thái sới bạc về mặc định
+   * Reset toàn bộ hệ sinh thái về trạng thái khởi thủy
    */
-  public async resetEcosystem(): Promise<BotEntity[]> {
+  public async reset(): Promise<BotEntity[]> {
     await dbResetEcosystem();
     this.isInitialized = false;
     this.activeBotsMap.clear();
     return this.initialize();
+  }
+
+  public async resetEcosystem(): Promise<BotEntity[]> {
+    return this.reset();
   }
 }
 

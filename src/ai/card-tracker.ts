@@ -119,6 +119,20 @@ export class CardTracker {
     return unseen;
   }
 
+  public getUnseenCards(myHandCards?: Card[]): Card[] {
+    const unseen: Card[] = [];
+    const ownIds = myHandCards ? new Set(myHandCards.map(c => c.id)) : this.ownHandCardIds;
+    for (const rank of ALL_RANKS) {
+      for (const suit of ALL_SUITS) {
+        const card = createCard(rank, suit);
+        if (!this.playedCards.has(card.id) && !ownIds.has(card.id)) {
+          unseen.push(card);
+        }
+      }
+    }
+    return unseen;
+  }
+
   public getDangerousFourOfAKindRanks(): Rank[] {
     const dangerous: Rank[] = [];
     for (const rank of ALL_RANKS) {

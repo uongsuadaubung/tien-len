@@ -3,6 +3,7 @@ import { ALL_RANKS, ALL_SUITS, createCard, isTwo, sortCards } from '../engine/ca
 import { identifyCombination } from '../engine/combinations';
 import { CardTracker } from './card-tracker';
 import { MctsEvaluation } from './types';
+import { BayesianCardInferenceEngine } from './solvers/bayesian-card-tracker';
 
 /**
  * Information Set Monte Carlo Rollout Engine (ISMCTS)
@@ -18,7 +19,8 @@ export class MctsSolver {
     candidateMoves: { cards: Card[]; combination: Combination; isChop: boolean }[],
     tracker: CardTracker,
     remainingPlayerCards: Record<string, number>,
-    simulationsCount: number = 30
+    simulationsCount: number = 30,
+    useBayesianInference: boolean = true
   ): MctsEvaluation[] {
     if (candidateMoves.length === 0 || simulationsCount <= 0) {
       return [];
@@ -52,27 +54,37 @@ export class MctsSolver {
 
     const targetCandidates = sortedCandidates.length > 10 ? sortedCandidates.slice(0, 10) : sortedCandidates;
     const winCounts = new Array(targetCandidates.length).fill(0);
-    const sims = Math.min(simulationsCount, 30); // Giới hạn 30 sims/lượt để giữ FPS 60 mượt mà
+    const sims = Math.min(simulationsCount, 40);
 
     // 2. Chạy N vòng giả lập (Rollouts)
     for (let sim = 0; sim < sims; sim++) {
-      // Xáo trộn ngẫu nhiên các lá bài chưa thấy (Determinization)
-      const shuffled = [...unseenPool];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        const temp = shuffled[i];
-        shuffled[i] = shuffled[j];
-        shuffled[j] = temp;
-      }
+      let simulatedHands: Record<string, Card[]>;
 
-      // Chia bài giả định cho các đối thủ
-      const simulatedHands: Record<string, Card[]> = {};
-      let cardOffset = 0;
+      if (useBayesianInference) {
+        // Lấy mẫu phân phối Bayes có trọng số
+        simulatedHands = BayesianCardInferenceEngine.sampleWeightedHands(
+          unseenPool,
+          remainingPlayerCards,
+          tracker,
+          opponentIds
+        );
+      } else {
+        // Xáo trộn ngẫu nhiên đồng đều cổ điển
+        const shuffled = [...unseenPool];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          const temp = shuffled[i];
+          shuffled[i] = shuffled[j];
+          shuffled[j] = temp;
+        }
 
-      for (const oppId of opponentIds) {
-        const needed = remainingPlayerCards[oppId] || 0;
-        simulatedHands[oppId] = sortCards(shuffled.slice(cardOffset, cardOffset + needed));
-        cardOffset += needed;
+        simulatedHands = {};
+        let cardOffset = 0;
+        for (const oppId of opponentIds) {
+          const needed = remainingPlayerCards[oppId] || 0;
+          simulatedHands[oppId] = sortCards(shuffled.slice(cardOffset, cardOffset + needed));
+          cardOffset += needed;
+        }
       }
 
       // Thử nghiệm từng nước đi ứng viên trong thế bài giả định này

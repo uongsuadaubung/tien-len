@@ -14,6 +14,10 @@ let workerInstance: Worker | null = null;
 
 function getOrCreateWorker(): Worker | null {
   if (typeof Worker === 'undefined') return null;
+  // Trong môi trường test runner (Node / Bun test), chạy inline để đạt độ trễ 0ms tức thì
+  if (typeof process !== 'undefined' && (process.env?.NODE_ENV === 'test' || (globalThis as any).Bun)) {
+    return null;
+  }
 
   if (!workerInstance) {
     try {
@@ -48,6 +52,10 @@ export async function runEcosystemSimulation(
   tables: TableGroup[],
   bots: BotEntity[]
 ): Promise<WorkerOutputMessage> {
+  if (typeof window === 'undefined' || typeof process !== 'undefined') {
+    return runInlineFallback(tables, bots);
+  }
+
   const worker = getOrCreateWorker();
 
   if (!worker) {

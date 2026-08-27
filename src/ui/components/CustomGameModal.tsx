@@ -106,11 +106,11 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
   };
 
   const handleApplyGodModeAll = () => {
-    setBotPersonaIds(['BOT_ELO_2500', 'BOT_ELO_2300', 'BOT_ELO_2150']);
+    setBotPersonaIds(['BOT_ELO_3200', 'BOT_ELO_2750', 'BOT_ELO_2500']);
     setCustomBotConfigs([
-      { mctsSimulations: 80, memoryDepth: 1.0, tempoControl: 1.0, damageControl: 1.0, antiLeaderAggression: 1.0, baitingTendency: 0.95 },
-      { mctsSimulations: 60, memoryDepth: 1.0, tempoControl: 1.0, damageControl: 1.0, antiLeaderAggression: 1.0, baitingTendency: 0.90 },
-      { mctsSimulations: 40, memoryDepth: 1.0, tempoControl: 0.98, damageControl: 0.98, antiLeaderAggression: 1.0, baitingTendency: 0.85 }
+      { mctsSimulations: 50, memoryDepth: 1.0, tempoControl: 1.0, damageControl: 1.0, antiLeaderAggression: 1.0, baitingTendency: 1.0, useMinimaxEndgame: true, useBayesianInference: true, useNashEquilibrium: true },
+      { mctsSimulations: 30, memoryDepth: 1.0, tempoControl: 1.0, damageControl: 1.0, antiLeaderAggression: 1.0, baitingTendency: 0.95, useMinimaxEndgame: true, useBayesianInference: true },
+      { mctsSimulations: 20, memoryDepth: 1.0, tempoControl: 0.98, damageControl: 0.98, antiLeaderAggression: 1.0, baitingTendency: 0.90, useMinimaxEndgame: true }
     ]);
   };
 
@@ -300,14 +300,14 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
                 </button>
               ))}
               
-              {/* Preset Thần Bài */}
+              {/* Preset Thần Bài & Siêu Trí Tuệ */}
               <button
                 onClick={handleApplyGodModeAll}
                 className="p-2.5 rounded-xl bg-[var(--color-ruby-bg)] hover:brightness-110 border border-[var(--color-ruby-border)] text-left transition-all cursor-pointer col-span-2 sm:col-span-4 flex items-center gap-2 shadow-sm"
               >
                 <Crown className="w-4 h-4 text-[var(--color-gold)] flex-shrink-0" />
                 <span className="text-xs font-bold text-red-200">
-                  Thách Thức 3 Thần Bài Tối Thượng (God Mode 2300-2500 Elo + Full MCTS)
+                  Thách Thức Tam Đại Boss & Thần Bài (God Mode 2750-3200 Elo + Minimax + Nash)
                 </span>
               </button>
             </div>
@@ -527,6 +527,70 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
                 className="w-full accent-[var(--color-gold)] cursor-pointer"
               />
               <div className="text-[10px] text-[var(--text-muted)]">Quyết liệt chặn đối thủ còn ít bài để giữ thế trận</div>
+            </Card>
+
+            {/* 7. Bộ Thuật Toán AI Solvers Cao Cấp */}
+            <Card variant="nested" className="p-3.5 sm:col-span-2 space-y-3">
+              <div className="text-xs font-bold text-[var(--color-gold)] uppercase tracking-wider flex items-center gap-1.5">
+                <BrainCircuit className="w-4 h-4" /> Bộ Thuật Toán AI Solvers Cao Cấp (Tier 7 - 9)
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* Minimax Alpha-Beta Endgame */}
+                <label className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] cursor-pointer hover:border-[var(--border-gold)] transition-colors">
+                  <div>
+                    <div className="text-xs font-bold text-[var(--text-primary)]">Minimax Alpha-Beta (Tier 8+)</div>
+                    <div className="text-[10px] text-[var(--text-muted)]">Vét cạn độ sâu 10-12 plies tìm thế Forced-Win</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(currentConfig.useMinimaxEndgame)}
+                    onChange={(e) => handleSliderChange('useMinimaxEndgame' as any, e.target.checked as any)}
+                    className="w-4 h-4 accent-[var(--color-gold)] cursor-pointer"
+                  />
+                </label>
+
+                {/* Bayesian Probability Tracker */}
+                <label className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] cursor-pointer hover:border-[var(--border-gold)] transition-colors">
+                  <div>
+                    <div className="text-xs font-bold text-[var(--text-primary)]">Suy Luận Xác Suất Bayes (Tier 8+)</div>
+                    <div className="text-[10px] text-[var(--text-muted)]">Đoán xác suất bài ẩn dựa vào nhịp bỏ lượt</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(currentConfig.useBayesianInference)}
+                    onChange={(e) => handleSliderChange('useBayesianInference' as any, e.target.checked as any)}
+                    className="w-4 h-4 accent-[var(--color-gold)] cursor-pointer"
+                  />
+                </label>
+
+                {/* Nash Equilibrium Solver */}
+                <label className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] cursor-pointer hover:border-[var(--border-gold)] transition-colors">
+                  <div>
+                    <div className="text-xs font-bold text-[var(--text-primary)]">Cân Bằng Nash Hỗn Hợp (Tier 9 Boss)</div>
+                    <div className="text-[10px] text-[var(--text-muted)]">Chiến lược ngẫu hóa chống bị đối thủ bắt bài</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(currentConfig.useNashEquilibrium)}
+                    onChange={(e) => handleSliderChange('useNashEquilibrium' as any, e.target.checked as any)}
+                    className="w-4 h-4 accent-[var(--color-gold)] cursor-pointer"
+                  />
+                </label>
+
+                {/* Dynamic Repartitioning */}
+                <label className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] cursor-pointer hover:border-[var(--border-gold)] transition-colors">
+                  <div>
+                    <div className="text-xs font-bold text-[var(--text-primary)]">Tái Cấu Trúc Nhánh Bài Động (Tier 6+)</div>
+                    <div className="text-[10px] text-[var(--text-muted)]">Xé phỏm bẻ sảnh Branch & Bound cứu Cóng</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(currentConfig.useDynamicRepartitioning)}
+                    onChange={(e) => handleSliderChange('useDynamicRepartitioning' as any, e.target.checked as any)}
+                    className="w-4 h-4 accent-[var(--color-gold)] cursor-pointer"
+                  />
+                </label>
+              </div>
             </Card>
           </div>
         </div>
