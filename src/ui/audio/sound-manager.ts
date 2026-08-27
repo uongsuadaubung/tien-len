@@ -220,6 +220,31 @@ class SoundManager {
       osc.stop(startTime + 0.45);
     });
   }
+
+  // Âm thanh Tìm Thấy Trận Đấu "Tưng tưng tưng TONG!"
+  public playMatchFound() {
+    if (!this.enabled) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    const notes = [440, 554.37, 659.25, 880]; // A4, C#5, E5, A5
+    notes.forEach((freq, idx) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      const startTime = this.ctx!.currentTime + idx * 0.09;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      gain.gain.setValueAtTime(0.5, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.35);
+
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+      osc.start(startTime);
+      osc.stop(startTime + 0.38);
+    });
+  }
 }
 
 export const soundManager = new SoundManager();

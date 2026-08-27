@@ -240,7 +240,7 @@ function computeMatchEloDelta(context: MatchSettlementContext): number {
       )
     : 1000;
 
-  const eloRes = calculateEloDelta(playerRank, playerElo, opponentsAvgElo);
+  const eloRes = calculateEloDelta(playerRank, playerElo, opponentsAvgElo, context.players.length);
   return eloRes.delta;
 }
 

@@ -2,8 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { 
   calculateChopPenalty, 
   calculateRottenPenalty, 
-  calculateCongPenalty,
-  calculateAdaptiveQuickBet 
+  calculateCongPenalty
 } from '../../src/engine/economy';
 import { Combination } from '../../src/engine/types';
 import { parseCard, parseCards } from '../../src/engine/card';
@@ -141,25 +140,5 @@ describe('Economy & Hardcore Penalties (Kinh Tế & Trừng Phạt Cược Lớn
     expect(calculateCongPenalty(BET, 1)).toBe(26000);
     // Hệ số nhân phạt x2: 52x cược = 52,000 xu
     expect(calculateCongPenalty(BET, 2)).toBe(52000);
-  });
-
-  test('calculateAdaptiveQuickBet: Thích ứng mức cược theo số dư ví an toàn', () => {
-    // 1. Số dư lớn (>= 26.000 Xu) -> Cược mặc định 1.000 Xu / lá
-    expect(calculateAdaptiveQuickBet(50000)).toBe(1000);
-    expect(calculateAdaptiveQuickBet(26000)).toBe(1000);
-    expect(calculateAdaptiveQuickBet(100000)).toBe(1000);
-
-    // 2. Số dư vừa phải (< 26.000 Xu) -> Tự động giảm tỷ lệ thuận theo 26 mức cược an toàn
-    expect(calculateAdaptiveQuickBet(13000)).toBe(500);
-    expect(calculateAdaptiveQuickBet(5200)).toBe(200);
-    expect(calculateAdaptiveQuickBet(2600)).toBe(100);
-
-    // 3. Số dư thấp -> Giảm về mức nhỏ phù hợp
-    expect(calculateAdaptiveQuickBet(500)).toBe(10);
-    expect(calculateAdaptiveQuickBet(200)).toBe(7);
-
-    // 4. Hết tiền (0 hoặc âm)
-    expect(calculateAdaptiveQuickBet(0)).toBe(0);
-    expect(calculateAdaptiveQuickBet(-100)).toBe(0);
   });
 });

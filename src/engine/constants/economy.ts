@@ -182,6 +182,12 @@ export const ECONOMY_CONSTANTS = {
   /** Điểm Elo ban đầu cho người chơi mới */
   DEFAULT_STARTING_ELO: 1_000,
 
+  /** Mức cược mặc định cho Chơi Nhanh (Xu / lá) */
+  DEFAULT_QUICK_BET: 1_000,
+
+  /** Mức cược tối thiểu cho mọi bàn đấu (Xu / lá) */
+  MIN_TABLE_BET: 1_000,
+
   /** Chi phí mua 1 vé quay Vòng Quay Thần Bài */
   LUCKY_WHEEL_SPIN_COST: 10_000,
 

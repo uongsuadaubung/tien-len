@@ -4,6 +4,7 @@ export type ModalType =
   | 'SETTINGS'
   | 'CUSTOM_GAME'
   | 'QUICK_SETUP'
+  | 'MATCHMAKING'
   | 'XRAY'
   | 'VICTORY'
   | 'QUEST'
@@ -21,6 +22,7 @@ interface ModalState {
   isSettingsOpen: boolean;
   isCustomGameModalOpen: boolean;
   isQuickSetupOpen: boolean;
+  isMatchmakingOpen: boolean;
   isXRayOpen: boolean;
   isVictoryOpen: boolean;
   isQuestModalOpen: boolean;
@@ -46,6 +48,7 @@ interface ModalState {
   setIsSettingsOpen: (open: boolean) => void;
   setIsCustomGameModalOpen: (open: boolean) => void;
   setIsQuickSetupOpen: (open: boolean) => void;
+  setIsMatchmakingOpen: (open: boolean) => void;
   setIsXRayOpen: (open: boolean) => void;
   setIsVictoryOpen: (open: boolean) => void;
   setIsQuestModalOpen: (open: boolean) => void;
@@ -66,6 +69,7 @@ export const useModalStore = create<ModalState>((set) => ({
   isSettingsOpen: false,
   isCustomGameModalOpen: false,
   isQuickSetupOpen: false,
+  isMatchmakingOpen: false,
   isXRayOpen: false,
   isVictoryOpen: false,
   isQuestModalOpen: false,
@@ -86,6 +90,7 @@ export const useModalStore = create<ModalState>((set) => ({
       case 'SETTINGS': set({ isSettingsOpen: true }); break;
       case 'CUSTOM_GAME': set({ isCustomGameModalOpen: true }); break;
       case 'QUICK_SETUP': set({ isQuickSetupOpen: true }); break;
+      case 'MATCHMAKING': set({ isMatchmakingOpen: true }); break;
       case 'XRAY': set({ isXRayOpen: true }); break;
       case 'VICTORY': set({ isVictoryOpen: true }); break;
       case 'QUEST': set({ isQuestModalOpen: true }); break;
@@ -106,6 +111,7 @@ export const useModalStore = create<ModalState>((set) => ({
       case 'SETTINGS': set({ isSettingsOpen: false }); break;
       case 'CUSTOM_GAME': set({ isCustomGameModalOpen: false }); break;
       case 'QUICK_SETUP': set({ isQuickSetupOpen: false }); break;
+      case 'MATCHMAKING': set({ isMatchmakingOpen: false }); break;
       case 'XRAY': set({ isXRayOpen: false }); break;
       case 'VICTORY': set({ isVictoryOpen: false }); break;
       case 'QUEST': set({ isQuestModalOpen: false }); break;
@@ -125,6 +131,7 @@ export const useModalStore = create<ModalState>((set) => ({
     isSettingsOpen: false,
     isCustomGameModalOpen: false,
     isQuickSetupOpen: false,
+    isMatchmakingOpen: false,
     isXRayOpen: false,
     isVictoryOpen: false,
     isQuestModalOpen: false,
@@ -142,6 +149,7 @@ export const useModalStore = create<ModalState>((set) => ({
   setIsSettingsOpen: (open) => set({ isSettingsOpen: open }),
   setIsCustomGameModalOpen: (open) => set({ isCustomGameModalOpen: open }),
   setIsQuickSetupOpen: (open) => set({ isQuickSetupOpen: open }),
+  setIsMatchmakingOpen: (open) => set({ isMatchmakingOpen: open }),
   setIsXRayOpen: (open) => set({ isXRayOpen: open }),
   setIsVictoryOpen: (open) => set({ isVictoryOpen: open }),
   setIsQuestModalOpen: (open) => set({ isQuestModalOpen: open }),

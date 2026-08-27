@@ -94,25 +94,44 @@ export function getRankTierByElo(elo: number): RankTierInfo {
  * Tính toán thay đổi Elo sau một ván xếp hạng
  * @param rankPosition Vị trí về đích: 1 (Nhất), 2 (Nhì), 3 (Ba), 4 (Bét)
  * @param playerElo Điểm Elo hiện tại của người chơi
- * @param opponentsAvgElo Điểm Elo trung bình của 3 bot đối thủ
+ * @param opponentsAvgElo Điểm Elo trung bình của các bot đối thủ
+ * @param totalPlayers Tổng số người chơi tại bàn (2, 3 hoặc 4 người)
  */
 export function calculateEloDelta(
   rankPosition: number,
   playerElo: number,
-  opponentsAvgElo: number
+  opponentsAvgElo: number,
+  totalPlayers: number = 4
 ): { delta: number; newElo: number } {
   const eloDiff = opponentsAvgElo - playerElo;
   const scaling = Math.max(0.5, Math.min(1.5, 1 + eloDiff / 800));
 
   let baseDelta = 0;
-  if (rankPosition === 1) {
-    baseDelta = Math.round(35 * scaling);
-  } else if (rankPosition === 2) {
-    baseDelta = Math.round(12 * scaling);
-  } else if (rankPosition === 3) {
-    baseDelta = -Math.round(12 / scaling);
+  if (totalPlayers === 2) {
+    if (rankPosition === 1) {
+      baseDelta = Math.round(30 * scaling);
+    } else {
+      baseDelta = -Math.round(30 / scaling);
+    }
+  } else if (totalPlayers === 3) {
+    if (rankPosition === 1) {
+      baseDelta = Math.round(32 * scaling);
+    } else if (rankPosition === 2) {
+      baseDelta = Math.round(eloDiff / 400); // Hòa Elo (±2)
+    } else {
+      baseDelta = -Math.round(32 / scaling);
+    }
   } else {
-    baseDelta = -Math.round(35 / scaling);
+    // 4 Players
+    if (rankPosition === 1) {
+      baseDelta = Math.round(35 * scaling);
+    } else if (rankPosition === 2) {
+      baseDelta = Math.round(12 * scaling);
+    } else if (rankPosition === 3) {
+      baseDelta = -Math.round(12 / scaling);
+    } else {
+      baseDelta = -Math.round(35 / scaling);
+    }
   }
 
   const newElo = Math.max(100, playerElo + baseDelta);

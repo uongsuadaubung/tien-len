@@ -18,10 +18,12 @@ import { NameSetupModal } from './NameSetupModal';
 import { RulesModal } from './RulesModal';
 import { EcosystemModal } from './EcosystemModal';
 import { BotProfileModal } from './BotProfileModal';
+import { MatchmakingModal } from './MatchmakingModal';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { CardTracker } from '../../ai/card-tracker';
 import { CampaignChapter } from '../../engine/campaign';
 import { normalizePlayerCount } from '../../engine/types';
+import { BotConfig } from '../../ai/types';
 
 interface GameModalsProps {
   player0Tracker?: CardTracker;
@@ -38,6 +40,14 @@ interface GameModalsProps {
     currentWins: number;
   } | null;
   onOpenCampaignMap?: () => void;
+  matchmakingData?: {
+    betAmount: number;
+    modeName: string;
+    botConfigs: Partial<BotConfig>[];
+    playerCount?: number;
+  } | null;
+  onCancelMatchmaking?: () => void;
+  onMatchReady?: () => void;
 }
 
 export const GameModals: React.FC<GameModalsProps> = ({
@@ -49,13 +59,17 @@ export const GameModals: React.FC<GameModalsProps> = ({
   onReturnToLobby,
   onConfirmForfeit,
   campaignResultMeta,
-  onOpenCampaignMap
+  onOpenCampaignMap,
+  matchmakingData,
+  onCancelMatchmaking,
+  onMatchReady
 }) => {
   // Modal Store
   const {
     isSettingsOpen,
     isCustomGameModalOpen,
     isQuickSetupOpen,
+    isMatchmakingOpen,
     isXRayOpen,
     isVictoryOpen,
     isQuestModalOpen,
@@ -152,6 +166,18 @@ export const GameModals: React.FC<GameModalsProps> = ({
         onClose={() => closeModal('QUICK_SETUP')}
         playerCoins={profile.coins}
         onStartGame={onStartQuickGame}
+      />
+
+      {/* 5.1. Matchmaking Modal (Giả Lập Ghép Trận Online) */}
+      <MatchmakingModal
+        isOpen={isMatchmakingOpen}
+        onCancel={onCancelMatchmaking || (() => closeModal('MATCHMAKING'))}
+        onMatchReady={onMatchReady || (() => {})}
+        playerProfile={profile}
+        betAmount={matchmakingData?.betAmount || 100}
+        modeName={matchmakingData?.modeName || 'Tiến Lên Miền Nam'}
+        matchedBots={matchmakingData?.botConfigs || []}
+        playerCount={matchmakingData?.playerCount || 4}
       />
 
       {/* 6. Custom Game Config Modal */}

@@ -28,6 +28,7 @@ import { useModalStore } from '../../stores/useModalStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useGameStore } from '../../stores/useGameStore';
+import { useEcosystemStore } from '../../stores/useEcosystemStore';
 
 export type { CampaignResultMeta };
 
@@ -241,19 +242,23 @@ export function useGameMatchLoop() {
     setPlayerCount(setup.playerCount);
 
     // 3.1. Tính toán và Tạm giữ tiền cọc an toàn (Buy-in Deposit)
+    const currentProfile = useUserStore.getState().profile;
     const penaltyMultiplier = setup.rules.chopping.multiplier || setup.rules.cong.multiplier || 1;
     const tableBetAmount = setup.rules.table.betAmount || 0;
-    const requiredDeposit = calculateRequiredDeposit(tableBetAmount, penaltyMultiplier);
+    const targetDeposit = calculateRequiredDeposit(tableBetAmount, penaltyMultiplier);
 
-    if (requiredDeposit > 0) {
-      if (profile.coins < requiredDeposit) {
+    let actualDeposit = 0;
+    if (tableBetAmount > 0) {
+      // Chỉ chặn nếu người chơi thực sự không đủ tiền đặt cược tối thiểu
+      if (currentProfile.coins < tableBetAmount) {
         openModal('BANK');
         return;
       }
 
-      const postDepositCoins = profile.coins - requiredDeposit;
+      actualDeposit = Math.min(currentProfile.coins, targetDeposit);
+      const postDepositCoins = currentProfile.coins - actualDeposit;
       const updatedProfile = {
-        ...profile,
+        ...currentProfile,
         coins: postDepositCoins
       };
       setProfile(updatedProfile);
@@ -266,7 +271,7 @@ export function useGameMatchLoop() {
       gameType: activeGameType,
       mode: setup.settings.mode,
       gameNumber: effectiveGameNumber,
-      depositAmount: requiredDeposit,
+      depositAmount: actualDeposit,
       betAmount: tableBetAmount,
       penaltyMultiplier: penaltyMultiplier !== undefined ? penaltyMultiplier : null,
       activeGameType: activeGameType,
@@ -275,6 +280,13 @@ export function useGameMatchLoop() {
       startedAt: Date.now(),
       timestamp: Date.now()
     });
+
+    // Kích hoạt mô phỏng ngầm song song cho các bot rảnh rỗi (tự động phân bổ ngẫu nhiên bot thi đấu và bot nghỉ ngơi)
+    if (effectiveGameNumber > 1 && activeGameType !== 'CAMPAIGN' && tableBetAmount > 0) {
+      try {
+        useEcosystemStore.getState().prepareMatchEcosystem(currentProfile.elo, tableBetAmount);
+      } catch {}
+    }
 
     // 4. Giữ lại người chơi và số tiền nếu là ván tiếp theo trong cùng bàn
     let initialPlayers = setup.initialPlayers;
@@ -287,7 +299,10 @@ export function useGameMatchLoop() {
         const prevPlayer = prevEngine.getPlayer(p.id);
         let prevScore = prevPlayer ? prevPlayer.score : p.score;
 
-        if (isCampaign && p.isBot && prevScore < betAmount) {
+        // Đối với người chơi (p0): Luôn đồng bộ chuẩn xác với tổng số dư thực tế
+        if (p.id === 'p0') {
+          prevScore = currentProfile.coins;
+        } else if (isCampaign && p.isBot && prevScore < betAmount) {
           const botIdx = idx - 1;
           const chapterBot = chapter?.bots[botIdx] || setup.customBotConfigs[botIdx];
           prevScore = generateRealisticBotBankroll(chapterBot || {}, betAmount);

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { GameSettlementRule } from '../../engine/types';
-import { calculateAdaptiveQuickBet } from '../../engine/economy';
-import { calculateRequiredDeposit } from '../../engine/constants/economy';
+import { ECONOMY_CONSTANTS, calculateRequiredDeposit } from '../../engine/constants/economy';
 import { Play, Sliders } from 'lucide-react';
 import { TableRulesConfigPanel, TableConfigState } from './TableRulesConfigPanel';
 import { Modal, Button } from '../primitives';
@@ -34,7 +33,7 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
   const [config, setConfig] = useState<TableConfigState>({
     playerCount: 4,
     mode: 'COUNT_CARDS',
-    betAmount: Math.max(1, calculateAdaptiveQuickBet(playerCoins) || 100),
+    betAmount: ECONOMY_CONSTANTS.DEFAULT_QUICK_BET,
     choppingMultiplier: 1,
     congEnabled: true,
     prohibitEndingWithTwo: true,
@@ -46,15 +45,16 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
 
   const currentMultiplier = config.choppingMultiplier || 1;
   const depositRequired = calculateRequiredDeposit(config.betAmount, currentMultiplier);
-  const isInsufficientCoins = playerCoins < depositRequired;
+  const isInsufficientCoins = playerCoins < config.betAmount;
+  const actualDeposit = Math.min(playerCoins, depositRequired);
 
   const handleConfigChange = (updated: Partial<TableConfigState>) => {
     setConfig(prev => ({ ...prev, ...updated }));
   };
 
   const handleStart = () => {
-    if (isInsufficientCoins && playerCoins > 0) {
-      alert(`Số dư hiện tại (${playerCoins.toLocaleString()} Xu) không đủ để đặt cọc an toàn cho bàn đấu (Cần tối thiểu ${depositRequired.toLocaleString()} Xu)!`);
+    if (isInsufficientCoins) {
+      alert(`Số dư hiện tại (${playerCoins.toLocaleString()} Xu) không đủ mức cược tối thiểu của bàn (${config.betAmount.toLocaleString()} Xu)!`);
       return;
     }
 
@@ -88,7 +88,10 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
         <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-xs text-[var(--text-muted)] text-center sm:text-left">
             <span>Tiền cọc an toàn: </span>
-            <strong className="text-[var(--color-gold)] font-bold">{depositRequired.toLocaleString()} Xu</strong>
+            <strong className="text-[var(--color-gold)] font-bold">{actualDeposit.toLocaleString()} Xu</strong>
+            {depositRequired > actualDeposit && (
+              <span className="text-[10px] text-zinc-500 ml-1">(Tối đa {depositRequired.toLocaleString()} Xu)</span>
+            )}
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -108,7 +111,7 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
               leftIcon={<Play className="w-4 h-4 fill-current" />}
               className="flex-1 sm:flex-none"
             >
-              <span>{isInsufficientCoins ? 'Không Đủ Tiền Cọc' : 'Vào Bàn Chơi Ngay'}</span>
+              <span>{isInsufficientCoins ? 'Không Đủ Tiền Cược' : 'Vào Bàn Chơi Ngay'}</span>
             </Button>
           </div>
         </div>

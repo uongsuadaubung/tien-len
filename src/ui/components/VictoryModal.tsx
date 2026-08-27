@@ -284,13 +284,13 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
       }
     >
       <div className="space-y-3">
-        {/* BANNER GIẢI TÁN SỚI BẠC KHI CÓ NGƯỜI CHÁY TÚI */}
+        {/* BANNER GIẢI TÁN SỚI BẠC KHI CÓ NGƯỜI KHÔNG ĐỦ TIỀN */}
         {isTableDismissed && (
           <Card variant="active" className="p-3 bg-rose-950/40 border-rose-500/40 flex items-center justify-center gap-2 text-center">
             <span className="text-rose-300 font-bold text-xs sm:text-sm">
               {isHumanBankrupt
-                ? '💸 Bạn không đủ tiền cọc cho ván tiếp theo! Bàn chơi kết thúc, hãy quay về sảnh.'
-                : `🚨 Đối thủ ${bankruptBots.map(b => b.name).join(', ')} đã cháy túi! Bàn chơi giải tán, vui lòng về sảnh để tìm trận mới.`
+                ? '💸 Số dư của bạn không đủ mức cược cho ván tiếp theo! Bàn chơi giải tán, vui lòng quay về sảnh.'
+                : `🚨 Đối thủ ${bankruptBots.map(b => b.name).join(', ')} không đủ tiền cược cho ván tiếp theo! Bàn chơi giải tán, vui lòng về sảnh để tìm trận mới.`
               }
             </span>
           </Card>

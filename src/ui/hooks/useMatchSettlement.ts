@@ -12,6 +12,7 @@ import { useGameStore } from '../../stores/useGameStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { useModalStore } from '../../stores/useModalStore';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
+import { BotConfig } from '../../ai/types';
 
 export interface CampaignResultMeta {
   isUnlockedNext: boolean;
@@ -80,9 +81,10 @@ export function useMatchSettlement(
       soundManager.playVictory();
     }
 
-    const currentCoins = profile.coins;
-    const isBankLoanActive = profile.loans > 0;
-    const currentElo = profile.elo;
+    const currentProfile = useUserStore.getState().profile;
+    const currentCoins = currentProfile.coins;
+    const isBankLoanActive = currentProfile.loans > 0;
+    const currentElo = currentProfile.elo;
     const effectiveMode = engine.settings.mode;
     const strategy = resolveStrategyForMatch(activeGameType, effectiveMode);
 
@@ -108,18 +110,18 @@ export function useMatchSettlement(
 
     const humanNetEarned = settlement.payouts['p0'] || 0;
     const nextCoins = Math.max(0, currentCoins + heldDeposit + humanNetEarned);
-    const nextLoans = Math.max(0, profile.loans - settlement.loanDeduction);
+    const nextLoans = Math.max(0, currentProfile.loans - settlement.loanDeduction);
     const nextElo = settlement.isVictoryModalRanked
       ? Math.max(0, currentElo + settlement.eloDelta)
       : currentElo;
 
-    const nextWins = isPlayerWin ? profile.stats.wins + 1 : profile.stats.wins;
-    const nextCurrentStreak = isPlayerWin ? profile.stats.currentStreak + 1 : 0;
-    const nextHighestStreak = Math.max(profile.stats.highestStreak, nextCurrentStreak);
-    const nextTotalEarned = humanNetEarned > 0 ? profile.stats.totalEarned + humanNetEarned : profile.stats.totalEarned;
+    const nextWins = isPlayerWin ? currentProfile.stats.wins + 1 : currentProfile.stats.wins;
+    const nextCurrentStreak = isPlayerWin ? currentProfile.stats.currentStreak + 1 : 0;
+    const nextHighestStreak = Math.max(currentProfile.stats.highestStreak, nextCurrentStreak);
+    const nextTotalEarned = humanNetEarned > 0 ? currentProfile.stats.totalEarned + humanNetEarned : currentProfile.stats.totalEarned;
 
-    let updatedUnlockedChapter = profile.campaignUnlockedChapter;
-    const updatedChapterWins = { ...profile.campaignChapterWins };
+    let updatedUnlockedChapter = currentProfile.campaignUnlockedChapter;
+    const updatedChapterWins = { ...currentProfile.campaignChapterWins };
     let unlockedNext = false;
     let allCompleted = false;
     let nextChapObj: CampaignChapter | null = null;
@@ -213,27 +215,62 @@ export function useMatchSettlement(
 
     // Cập nhật hệ sinh thái 200 Bot nếu không phải Campaign
     if (activeGameType !== 'CAMPAIGN') {
-      const humanRank = isPlayerWin ? 1 : (engine.winners.findIndex(w => w.id === 'p0') + 1 || 4);
+      const totalPlayers = engine.players.length;
+      const humanRank = isPlayerWin ? 1 : (engine.winners.findIndex(w => w.id === 'p0') + 1 || totalPlayers);
       const botResults = engine.players
         .filter(p => p.id !== 'p0')
         .map(p => {
-          const rank = engine.winners.findIndex(w => w.id === p.id) + 1 || 4;
+          const rank = engine.winners.findIndex(w => w.id === p.id) + 1 || totalPlayers;
           const deltaCoins = settlement.payouts[p.id] || 0;
           let deltaElo = 0;
-          if (rank === 1) deltaElo = Math.floor(Math.random() * 9) + 24;
-          else if (rank === 2) deltaElo = Math.floor(Math.random() * 5) + 8;
-          else if (rank === 3) deltaElo = -(Math.floor(Math.random() * 5) + 8);
-          else deltaElo = -(Math.floor(Math.random() * 9) + 24);
+          if (totalPlayers === 2) {
+            if (rank === 1) deltaElo = Math.floor(Math.random() * 9) + 24;
+            else deltaElo = -(Math.floor(Math.random() * 9) + 24);
+          } else if (totalPlayers === 3) {
+            if (rank === 1) deltaElo = Math.floor(Math.random() * 9) + 24;
+            else if (rank === 2) deltaElo = Math.floor(Math.random() * 5) - 2;
+            else deltaElo = -(Math.floor(Math.random() * 9) + 24);
+          } else {
+            if (rank === 1) deltaElo = Math.floor(Math.random() * 9) + 24;
+            else if (rank === 2) deltaElo = Math.floor(Math.random() * 5) + 8;
+            else if (rank === 3) deltaElo = -(Math.floor(Math.random() * 5) + 8);
+            else deltaElo = -(Math.floor(Math.random() * 9) + 24);
+          }
+
+          // Trích xuất thống kê Chặt Heo và Bắt Cóng thực tế trong trận
+          const chopsDone = matchReport?.turns.filter(t => t.isChop && t.playerId === p.id).length || 0;
+          const congsGiven = (engine.winners[0]?.id === p.id)
+            ? engine.players.filter(pl => pl.id !== p.id && pl.hand.length === 13).length
+            : 0;
 
           return {
             botId: p.botPersonaId || p.id,
             rank,
             deltaCoins,
             deltaElo,
-            chopsDone: 0,
-            congsGiven: 0
+            chopsDone,
+            congsGiven
           };
         });
+
+      // Cập nhật customBotConfigs để bảo lưu Elo mới của Bot ngay trong State bàn đấu
+      const currentConfigs = useGameStore.getState().customBotConfigs;
+      if (currentConfigs) {
+        const updated = currentConfigs.map((cfg, idx) => {
+          const playerAtIdx = engine.players[idx + 1];
+          if (!playerAtIdx) return cfg;
+          const res = botResults.find(b => b.botId === playerAtIdx.botPersonaId || b.botId === playerAtIdx.id || b.botId === playerAtIdx.name);
+          if (res) {
+            const currentElo = cfg.elo || 1000;
+            return {
+              ...cfg,
+              elo: Math.max(800, Math.min(2600, currentElo + res.deltaElo))
+            };
+          }
+          return cfg;
+        }) as [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>];
+        useGameStore.getState().setCustomBotConfigs(updated);
+      }
 
       useEcosystemStore.getState().settleMatchEcosystem({
         humanRank,

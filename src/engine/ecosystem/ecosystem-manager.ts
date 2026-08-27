@@ -2,6 +2,7 @@ import { ECOSYSTEM_CONSTANTS } from '../constants/ecosystem';
 import { 
   dbGetAllBots, 
   dbSaveBotsBatch, 
+  dbDeleteBotsBatch,
   dbAddNewsBatch, 
   dbResetEcosystem 
 } from '../db/indexed-db';
@@ -64,8 +65,21 @@ class EcosystemManager {
       const storedBots = await dbGetAllBots();
 
       if (storedBots && storedBots.length >= ECOSYSTEM_CONSTANTS.MAX_BOT_COUNT) {
+        // Lọc bỏ bot phá sản và chỉ giữ đúng 200 bot ACTIVE hợp lệ
+        const activeBots = storedBots.filter(b => b.status === 'ACTIVE' && b.coins >= ECOSYSTEM_CONSTANTS.BANKRUPTCY_THRESHOLD);
+        const validBots = (activeBots.length >= ECOSYSTEM_CONSTANTS.MAX_BOT_COUNT) 
+          ? activeBots.slice(0, ECOSYSTEM_CONSTANTS.MAX_BOT_COUNT) 
+          : storedBots.slice(0, ECOSYSTEM_CONSTANTS.MAX_BOT_COUNT);
+
+        // Tìm toàn bộ bot dư thừa / phá sản cũ còn sót lại trong DB để xóa sạch
+        const validIds = new Set(validBots.map(b => b.id));
+        const excessIds = storedBots.filter(b => !validIds.has(b.id)).map(b => b.id);
+        if (excessIds.length > 0) {
+          await dbDeleteBotsBatch(excessIds);
+        }
+
         this.activeBotsMap.clear();
-        for (const b of storedBots) {
+        for (const b of validBots) {
           this.activeBotsMap.set(b.id, b);
         }
         this.isInitialized = true;
@@ -180,12 +194,19 @@ class EcosystemManager {
     allNews: EcosystemNewsItem[];
     bankruptCount: number;
   }> {
+    if (this.activeBotsMap.size === 0) {
+      await this.getAllBots();
+    }
+
     const simOutput = await simulationPromise;
     const newEvents: EcosystemNewsItem[] = [...(simOutput.highlightNews || [])];
 
     // 1. Cập nhật 3 Bot ở Bàn Người Chơi
     for (const res of humanSummary.botResults) {
-      const bot = this.activeBotsMap.get(res.botId);
+      let bot = this.activeBotsMap.get(res.botId);
+      if (!bot) {
+        bot = Array.from(this.activeBotsMap.values()).find(b => b.id === res.botId || b.name === res.botId);
+      }
       if (!bot) continue;
 
       bot.coins = Math.max(0, bot.coins + res.deltaCoins);
@@ -264,9 +285,11 @@ class EcosystemManager {
         .filter((n): n is string => Boolean(n))
     );
 
+    const deletedBotIds: string[] = [];
     for (const [botId, bot] of this.activeBotsMap.entries()) {
       if (bot.coins <= ECOSYSTEM_CONSTANTS.BANKRUPTCY_THRESHOLD) {
         bankruptCount++;
+        deletedBotIds.push(botId);
         // Đào thải bot cũ
         bot.status = 'BANKRUPT';
 
@@ -299,7 +322,10 @@ class EcosystemManager {
       bot.activityStatus = 'IDLE';
     }
 
-    // 4. Lưu đồng bộ vào IndexedDB
+    // 4. Xóa vĩnh viễn bot vỡ nợ khỏi IndexedDB và lưu đồng bộ batch mới
+    if (deletedBotIds.length > 0) {
+      await dbDeleteBotsBatch(deletedBotIds);
+    }
     const updatedBotsList = Array.from(this.activeBotsMap.values());
     await dbSaveBotsBatch(updatedBotsList);
 

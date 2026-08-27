@@ -10,7 +10,7 @@ import {
 import { BOT_LINEUP_PRESETS } from '../../engine/game-modes';
 import { BOT_PERSONAS, getAllBotConfigs } from '../../ai/bot-factory';
 import { BotConfig } from '../../ai/types';
-import { calculateRequiredDeposit } from '../../engine/constants/economy';
+import { ECONOMY_CONSTANTS, calculateRequiredDeposit } from '../../engine/constants/economy';
 import { 
   Play, 
   Sliders, 
@@ -64,7 +64,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
   const allPersonas = getAllBotConfigs();
 
   const initialBet = Math.min(
-    initialConfig?.settings?.betAmount || 1000,
+    initialConfig?.settings?.betAmount || ECONOMY_CONSTANTS.DEFAULT_QUICK_BET,
     Math.max(1, playerCoins)
   );
 
@@ -98,7 +98,8 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
   const [activeBotSeatIndex, setActiveBotSeatIndex] = useState<number>(0);
 
   const depositRequired = calculateRequiredDeposit(settings.betAmount, choppingMultiplier);
-  const isInsufficientCoins = playerCoins < depositRequired;
+  const isInsufficientCoins = playerCoins < settings.betAmount;
+  const actualDeposit = Math.min(playerCoins, depositRequired);
 
   const handleApplyBotPreset = (presetBotIds: BotPersonaIdTuple) => {
     setBotPersonaIds([presetBotIds[0], presetBotIds[1], presetBotIds[2]]);
@@ -108,9 +109,15 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
     setBotPersonaIds(['BOT_ELO_2500', 'BOT_ELO_2300', 'BOT_ELO_2150']);
     setCustomBotConfigs([
       { mctsSimulations: 80, memoryDepth: 1.0, tempoControl: 1.0, damageControl: 1.0, antiLeaderAggression: 1.0, baitingTendency: 0.95 },
-      { mctsSimulations: 60, memoryDepth: 1.0, tempoControl: 1.0, damageControl: 1.0, antiLeaderAggression: 1.0, baitingTendency: 0.95 },
-      { mctsSimulations: 50, memoryDepth: 1.0, tempoControl: 1.0, damageControl: 1.0, antiLeaderAggression: 1.0, baitingTendency: 0.95 }
+      { mctsSimulations: 60, memoryDepth: 1.0, tempoControl: 1.0, damageControl: 1.0, antiLeaderAggression: 1.0, baitingTendency: 0.90 },
+      { mctsSimulations: 40, memoryDepth: 1.0, tempoControl: 0.98, damageControl: 0.98, antiLeaderAggression: 1.0, baitingTendency: 0.85 }
     ]);
+  };
+
+  const handleApplyBalancedAll = () => {
+    const shuffled = ['BOT_ELO_950', 'BOT_ELO_1150', 'BOT_ELO_1450', 'BOT_ELO_1750'].sort(() => Math.random() - 0.5);
+    setBotPersonaIds([shuffled[0] || 'BOT_ELO_850', shuffled[1] || 'BOT_ELO_1150', shuffled[2] || 'BOT_ELO_1450']);
+    setCustomBotConfigs([{}, {}, {}]);
   };
 
   const handleRandomizeBots = () => {
@@ -152,8 +159,8 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
       alert('Mức cược phải lớn hơn 0 Xu!');
       return;
     }
-    if (isInsufficientCoins && playerCoins > 0) {
-      alert(`Số dư hiện tại (${playerCoins.toLocaleString()} Xu) không đủ để đặt cọc an toàn cho bàn đấu (Cần tối thiểu ${depositRequired.toLocaleString()} Xu)!`);
+    if (isInsufficientCoins) {
+      alert(`Số dư hiện tại (${playerCoins.toLocaleString()} Xu) không đủ mức cược tối thiểu của bàn (${settings.betAmount.toLocaleString()} Xu)!`);
       return;
     }
 
@@ -201,7 +208,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
       footer={
         <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-xs text-[var(--text-muted)] hidden sm:block">
-            Đang chọn: <span className="text-[var(--text-primary)] font-bold">{playerCount} Người</span> • Cược: <span className="text-[var(--color-gold)] font-bold">{settings.betAmount.toLocaleString()} Xu</span> • Phạt: <span className="text-[var(--color-gold)] font-bold">x{choppingMultiplier}</span> • Tiền cọc: <span className="text-[var(--color-gold)] font-bold">{depositRequired.toLocaleString()} Xu</span>
+            Đang chọn: <span className="text-[var(--text-primary)] font-bold">{playerCount} Người</span> • Cược: <span className="text-[var(--color-gold)] font-bold">{settings.betAmount.toLocaleString()} Xu</span> • Phạt: <span className="text-[var(--color-gold)] font-bold">x{choppingMultiplier}</span> • Tiền cọc an toàn: <span className="text-[var(--color-gold)] font-bold">{actualDeposit.toLocaleString()} Xu</span>
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -221,7 +228,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
               leftIcon={<Play className="w-4 h-4 fill-current" />}
               className="flex-1 sm:flex-none"
             >
-              <span>{isInsufficientCoins ? 'Không Đủ Tiền Cọc' : 'Vào Bàn Chơi Ngay'}</span>
+              <span>{isInsufficientCoins ? 'Không Đủ Tiền Cược' : 'Bắt Đầu Trận Đấu'}</span>
             </Button>
           </div>
         </div>

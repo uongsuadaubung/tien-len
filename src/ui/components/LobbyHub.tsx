@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { PlayerProfile } from '../../engine/storage';
 import { getRankTierByElo, RANK_TIERS } from '../../engine/elo';
-import { calculateAdaptiveQuickBet } from '../../engine/economy';
+import { ECONOMY_CONSTANTS } from '../../engine/constants/economy';
 import { useModalStore } from '../../stores/useModalStore';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { 
@@ -290,7 +290,7 @@ export const LobbyHub: React.FC<LobbyHubProps> = ({
                   {currentRank.badge} {currentRank.name} ({profile.elo} Elo)
                 </Badge>
                 <Badge variant="neutral" size="md">
-                  💰 Cược: {calculateAdaptiveQuickBet(profile.coins).toLocaleString()} Xu / Lá
+                  💰 Cược: {ECONOMY_CONSTANTS.DEFAULT_QUICK_BET.toLocaleString()} Xu / Lá
                 </Badge>
                 <Badge variant="neutral" size="md">
                   ⚡ Phạt Chặt: x1 - x5

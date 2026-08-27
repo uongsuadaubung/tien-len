@@ -108,6 +108,14 @@ export async function dbSaveBotsBatch(bots: BotEntity[]): Promise<void> {
   } catch {}
 }
 
+export async function dbDeleteBotsBatch(botIds: string[]): Promise<void> {
+  botIds.forEach(id => memoryStore.bots.delete(id));
+  try {
+    const db = getGameDB();
+    await db.bots.bulkDelete(botIds);
+  } catch {}
+}
+
 // ============================================================================
 // NEWSFEED OPERATIONS (Tối đa 100 tin, tự động dọn tin cũ)
 // ============================================================================

@@ -82,8 +82,14 @@ export const useEcosystemStore = create<EcosystemState>((set, get) => ({
   },
 
   settleMatchEcosystem: async (humanSummary) => {
-    const { activeSimulationPromise } = get();
-    if (!activeSimulationPromise) return;
+    let { activeSimulationPromise } = get();
+    if (!activeSimulationPromise) {
+      activeSimulationPromise = Promise.resolve({
+        tableResults: [],
+        highlightNews: [],
+        executionTimeMs: 0
+      });
+    }
 
     try {
       await ecosystemManager.settleRound(humanSummary, activeSimulationPromise);

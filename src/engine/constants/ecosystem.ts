@@ -44,7 +44,7 @@ export const ECOSYSTEM_CONSTANTS: EcosystemConfig = {
 
   // Khoảng vốn khởi điểm theo từng Tier (Xu)
   TIER_INITIAL_BANKROLL: {
-    1: { min: 3000, max: 6000 },
+    1: { min: 5000, max: 15000 },
     2: { min: 10000, max: 25000 },
     3: { min: 40000, max: 100000 },
     4: { min: 150000, max: 400000 },

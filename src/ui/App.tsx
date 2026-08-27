@@ -15,8 +15,7 @@ import {
 } from '../engine/storage';
 import { dbGetGameSettings } from '../engine/db/indexed-db';
 import { GameRulesBuilder } from '../engine/types';
-import { calculateAdaptiveQuickBet } from '../engine/economy';
-import { ECONOMY_CONSTANTS } from '../engine/constants/economy';
+import { ECONOMY_CONSTANTS, calculateRequiredDeposit } from '../engine/constants/economy';
 import { matchBotsForPlayerTable } from '../engine/ecosystem/matchmaker';
 
 // Stores
@@ -121,25 +120,47 @@ export const App: React.FC = () => {
     }
   }, [currentScreen, startNewGame, engineRef]);
 
+  const [pendingMatch, setPendingMatch] = useState<{
+    betAmount: number;
+    modeName: string;
+    botConfigs: Partial<BotConfig>[];
+    playerCount?: number;
+    onStart: () => void;
+  } | null>(null);
+
   // ==========================================================================
   // ĐIỀU HƯỚNG TỪ SẢNH VÀO CÁC CHẾ ĐỘ CHƠI (STRATEGY DISPATCH)
   // ==========================================================================
 
-  const handleStartQuickGame = (config: QuickSetupConfig) => {
-    closeModal('QUICK_SETUP');
-    setActiveGameType('QUICK');
-    setCurrentScreen('GAME_TABLE');
+  const handleStartQuickGame = async (config: QuickSetupConfig) => {
+    // 1. Kiểm tra số dư tối thiểu của người chơi trước khi vào tìm trận
+    const liveProfile = useUserStore.getState().profile;
+    if (liveProfile.coins < config.betAmount) {
+      openModal('BANK');
+      return;
+    }
 
-    // Ghép Bot trực tiếp từ Hệ Sinh Thái 200 Bot sống động
-    const ecosystemBots = useEcosystemStore.getState().bots;
+    closeModal('QUICK_SETUP');
+
+    // 2. Ghép Bot trực tiếp từ Hệ Sinh Thái 200 Bot & Kích hoạt Web Worker mô phỏng ngầm
     const requiredCount = (config.playerCount || 4) - 1;
     let botConfigs: Partial<BotConfig>[] = [];
     let botIds: string[] = [];
 
-    if (ecosystemBots.length > 0) {
-      const matched = matchBotsForPlayerTable(ecosystemBots, profile.elo, config.betAmount, requiredCount);
-      botConfigs = matched;
-      botIds = matched.map(b => b.id);
+    try {
+      const tableOpponents = await useEcosystemStore.getState().prepareMatchEcosystem(liveProfile.elo, config.betAmount);
+      if (tableOpponents && tableOpponents.length > 0) {
+        const chosen = tableOpponents.slice(0, requiredCount);
+        botConfigs = chosen;
+        botIds = chosen.map(b => b.id);
+      }
+    } catch {
+      const ecosystemBots = useEcosystemStore.getState().bots;
+      if (ecosystemBots.length > 0) {
+        const matched = matchBotsForPlayerTable(ecosystemBots, liveProfile.elo, config.betAmount, requiredCount);
+        botConfigs = matched;
+        botIds = matched.map(b => b.id);
+      }
     }
 
     if (botConfigs.length < requiredCount) {
@@ -148,49 +169,110 @@ export const App: React.FC = () => {
       botIds = fallbacks.map(b => b.id || 'BOT_ELO_1150');
     }
 
-    const customRules = new GameRulesBuilder()
-      .withSettlement(config.settlementRule)
-      .withChopping(c => c
-        .multiplier(config.choppingMultiplier)
-        .allowFourPairsCutAnytime(config.allowFourPairsCutAnytime)
-        .allowThreePairsCutTwo(true)
-        .allowFourOfAKindCutPairsOfTwos(true)
-      )
-      .withCong(cg => cg
-        .enabled(config.congEnabled)
-        .penaltyCards(config.congEnabled ? 26 : 0)
-        .multiplier(config.choppingMultiplier)
-      )
-      .withGameFlow(f => f
-        .prohibitEndingWithTwo(config.prohibitEndingWithTwo)
-      )
-      .withTable(t => t
-        .playerCount(config.playerCount)
-        .betAmount(config.betAmount)
-      )
-      .build();
-
-    startNewGame(1, {
+    setPendingMatch({
+      betAmount: config.betAmount,
+      modeName: config.settlementRule === 'CARD_COUNT' ? 'Đếm Lá (Đấu Hạng)' : 'Tiến Lên Miền Nam',
+      botConfigs,
       playerCount: config.playerCount,
-      customRules,
-      customBotPersonaIds: botIds,
-      customBotConfigs: botConfigs
+      onStart: () => {
+        const customRules = new GameRulesBuilder()
+          .withSettlement(config.settlementRule)
+          .withChopping(c => c
+            .multiplier(config.choppingMultiplier)
+            .allowFourPairsCutAnytime(config.allowFourPairsCutAnytime)
+            .allowThreePairsCutTwo(true)
+            .allowFourOfAKindCutPairsOfTwos(true)
+          )
+          .withCong(cg => cg
+            .enabled(config.congEnabled)
+            .penaltyCards(config.congEnabled ? 26 : 0)
+            .multiplier(config.choppingMultiplier)
+          )
+          .withGameFlow(f => f
+            .prohibitEndingWithTwo(config.prohibitEndingWithTwo)
+          )
+          .withTable(t => t
+            .playerCount(config.playerCount)
+            .betAmount(config.betAmount)
+          )
+          .build();
+
+        startNewGame(1, {
+          playerCount: config.playerCount,
+          customRules,
+          customBotPersonaIds: botIds,
+          customBotConfigs: botConfigs
+        });
+      }
     });
+    openModal('MATCHMAKING');
   };
 
-  const handlePlayNowDefault = () => {
-    // Nếu hết sạch tiền (cháy túi), tự động mở Ngân hàng / Quỹ cứu trợ
-    if (profile.coins <= 0) {
+  const handleStartCustomGameWithConfig = async (config: CustomGameModalConfig) => {
+    // 1. Kiểm tra số dư tối thiểu của người chơi trước khi vào tìm trận
+    const liveProfile = useUserStore.getState().profile;
+    if (liveProfile.coins < config.settings.betAmount) {
       openModal('BANK');
       return;
     }
 
-    // Mức cược thích ứng: 1.000 Xu / lá nếu có từ 26.000 Xu trở lên; tự động giảm tỷ lệ thuận nếu không đủ
-    const adaptiveBet = calculateAdaptiveQuickBet(profile.coins);
+    closeModal('CUSTOM_GAME');
+
+    // Kích hoạt mô phỏng ngầm song song
+    try {
+      await useEcosystemStore.getState().prepareMatchEcosystem(liveProfile.elo, config.settings.betAmount);
+    } catch {}
+
+    const modeTitle = config.settings.mode === 'COUNT_CARDS'
+      ? 'Đếm Lá Tùy Chỉnh'
+      : config.settings.mode === 'WINNER_TAKES_ALL'
+        ? 'Nhất Ăn Tất Tùy Chỉnh'
+        : 'Truyền Thống Tùy Chỉnh';
+
+    setPendingMatch({
+      betAmount: config.settings.betAmount,
+      modeName: modeTitle,
+      botConfigs: config.customBotConfigs,
+      playerCount: config.playerCount,
+      onStart: () => {
+        startNewGame(1, {
+          customSettings: config.settings,
+          customBotPersonaIds: config.botPersonaIds,
+          customBotConfigs: config.customBotConfigs,
+          playerCount: config.playerCount
+        });
+      }
+    });
+    openModal('MATCHMAKING');
+  };
+
+  const handleExecuteMatch = () => {
+    if (!pendingMatch) return;
+    closeModal('MATCHMAKING');
+    setActiveGameType('QUICK');
+    setCurrentScreen('GAME_TABLE');
+    pendingMatch.onStart();
+    setPendingMatch(null);
+  };
+
+  const handleCancelMatchmaking = () => {
+    closeModal('MATCHMAKING');
+    setPendingMatch(null);
+  };
+
+  const handlePlayNowDefault = () => {
+    const liveCoins = useUserStore.getState().profile.coins;
+    const defaultBet = ECONOMY_CONSTANTS.DEFAULT_QUICK_BET;
+
+    // Nếu không đủ mức cược tiêu chuẩn (1.000 Xu), không cho chơi nhanh và mở Ngân Hàng / Cứu trợ
+    if (liveCoins < defaultBet) {
+      openModal('BANK');
+      return;
+    }
 
     handleStartQuickGame({
       playerCount: 4,
-      betAmount: Math.max(1, adaptiveBet),
+      betAmount: defaultBet,
       settlementRule: 'CARD_COUNT',
       choppingMultiplier: 1,
       congEnabled: true,
@@ -198,18 +280,6 @@ export const App: React.FC = () => {
       allowFourPairsCutAnytime: true,
       threeSpadesEndingBonus: true,
       cascadeChopEnabled: true
-    });
-  };
-
-  const handleStartCustomGameWithConfig = (config: CustomGameModalConfig) => {
-    setActiveGameType('QUICK');
-    closeModal('CUSTOM_GAME');
-    setCurrentScreen('GAME_TABLE');
-    startNewGame(1, {
-      customSettings: config.settings,
-      customBotPersonaIds: config.botPersonaIds,
-      customBotConfigs: config.customBotConfigs,
-      playerCount: config.playerCount
     });
   };
 
@@ -272,6 +342,9 @@ export const App: React.FC = () => {
         onSelectCampaignChapter={handleStartCampaignChapter}
         onConfirmForfeit={handleForfeitMatch}
         campaignResultMeta={campaignResultMeta}
+        matchmakingData={pendingMatch}
+        onCancelMatchmaking={handleCancelMatchmaking}
+        onMatchReady={handleExecuteMatch}
         onOpenCampaignMap={() => {
           closeModal('VICTORY');
           openModal('CAMPAIGN');
@@ -279,7 +352,8 @@ export const App: React.FC = () => {
         onNextGame={() => {
           closeModal('VICTORY');
           const betAmount = gameSettings.betAmount || 0;
-          if (activeGameType !== 'CAMPAIGN' && betAmount > 0 && profile.coins < betAmount) {
+          const liveCoins = useUserStore.getState().profile.coins;
+          if (activeGameType !== 'CAMPAIGN' && betAmount > 0 && liveCoins < betAmount) {
             openModal('BANK');
             return;
           }

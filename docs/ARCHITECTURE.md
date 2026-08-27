@@ -149,10 +149,28 @@ Sử dụng **Zustand** cho kiến trúc State mỏng, hiệu năng cao:
 - **Điểm Elo là nguồn chân lý duy nhất (Single Source of Truth)**.
 - Toàn bộ Bậc Rank (5 Tier Bot / 7 Tier Esports), Huy hiệu, Tên Bậc, Khung Màu đều được phái sinh thuần túy qua hàm thuần túy `getTierFromElo(elo)`. Không lưu trữ trùng lặp các trường tính toán được vào Database.
 
-### 6.3. Web Worker Concurrency & Error Boundary Fallback
-- Khi người chơi vào bàn, 197 đối thủ còn lại được gom vào các bàn đấu ngầm và chạy mô phỏng qua Web Worker (`simulation-worker.ts`), giải phóng 100% CPU Main Thread.
+### 6.3. Web Worker Concurrency & Organic Random Concurrency
+- Khi người chơi vào bàn đấu, hệ thống kích hoạt Web Worker (`simulation-worker.ts`) mô phỏng ngầm song song cho các đối thủ còn lại, giải phóng 100% CPU Main Thread.
+- **Xác Suất Tham Gia Tự Nhiên (Organic Random Concurrency)**: Không ép toàn bộ đối thủ vào bàn cùng lúc. Từng bot được tính xác suất tham gia từ 30% đến 85% dựa trên khẩu vị rủi ro (`riskAppetite`) và chuỗi thắng/thua (`currentStreak`/`Tilt`). Kết quả: ~40% - 70% bot thi đấu (`participatingBots`), ~30% - 60% bot nghỉ ngơi (`restingBots`) để mô phỏng không khí sới bạc chân thực.
 - **Error Boundary & 3s Safety Timeout**: Client bridge (`simulation-worker-client.ts`) tích hợp sẵn `worker.onerror` và bộ đếm Timeout 3 giây. Nếu Web Worker gặp sự cố, hệ thống tự động fallback sang chạy inline `simulateAllTablesBatch` mượt mà, ngăn ngừa tuyệt đối lỗi treo Promise (Hanging Promise).
 
-### 6.4. Cinematic 3-Second Loading Gate (`SplashScreen.tsx`)
+### 6.4. Vòng Đời Bot & Dọn Sạch Bản Ghi Phá Sản (Dexie Purge & Rookie Drafting)
+- **Ngưỡng Phá Sản Chuẩn Hóa**: Mức cược tối thiểu toàn sới là `1.000 Xu / lá`. Bất kỳ Bot nào rớt xuống $\le 1.000\ \text{Xu}$ sẽ lập tức bị xử Vỡ nợ (`BANKRUPT`).
+- **Dọn Sạch Bản Ghi Cũ (`dbDeleteBotsBatch`)**: Bản ghi của bot phá sản bị xóa vĩnh viễn khỏi Dexie IndexedDB (`db.bots.bulkDelete`), duy trì kích thước cơ sở dữ liệu luôn chính xác 200 Bot.
+- **Tuyển Mộ Tân Binh (`draftRookieBot`)**: Tự động sinh Tân Binh mới kế thừa DNA AI của bậc rank vừa vỡ nợ, cấp vốn khởi điểm `50.000 Xu` và `1.000 Elo` để tự gầy dựng lại cơ đồ.
+
+### 6.5. Kinh Tế Co Giãn & Tiền Cọc Động (Elastic Dynamic Deposit)
+- **Công Thức Tiền Cọc Co Giãn**:
+  $$\text{actualDeposit} = \min(\text{playerCoins}, 26 \times \text{betAmount} \times \text{multiplier})$$
+- Người chơi không bị chặn tham gia khi thiếu cọc tối đa 26 lá; chỉ bị chặn khi số dư thực sự nhỏ hơn mức cược tối thiểu bàn (`coins < betAmount`).
+- Bảo toàn 100% số dư ví người chơi qua nhiều ván liên tiếp, ngăn chặn triệt để tình trạng stale closure và trừ tiền oan.
+
+### 6.6. Thuật Toán Thích Ứng Elo Đa Quy Mô (Adaptive Multi-Scale Elo)
+- Hỗ trợ tính toán chính xác biến động Elo cho cả bàn 2 người (Solo 1v1), 3 người và 4 người:
+  * **Bàn 2 người (Solo 1v1)**: Nhất ($+24 \to +32$ Elo), Bét/Thua ($-24 \to -32$ Elo).
+  * **Bàn 3 người**: Nhất ($+24 \to +32$ Elo), Nhì ($\pm 2$ Elo - Hòa điểm), Ba/Bét ($-24 \to -32$ Elo).
+  * **Bàn 4 người**: Nhất ($+24 \to +32$), Nhì ($+8 \to +12$), Ba ($-8 \to -12$), Bét ($-24 \to -32$).
+
+### 6.7. Cinematic 3-Second Loading Gate (`SplashScreen.tsx`)
 - Khi người chơi mở ứng dụng hoặc F5, cổng tải `SplashScreen` kích hoạt song song quá trình hydrate IndexedDB và bộ đếm thời gian thực `Date.now() - startTime`.
 - Đảm bảo hiển thị tối thiểu 3.000ms với thanh tiến trình mượt mà từ 5% đến 100%, tạo cảm giác nhập vai sang trọng của sới bạc chuyên nghiệp.

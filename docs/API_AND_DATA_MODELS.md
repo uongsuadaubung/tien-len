@@ -345,6 +345,7 @@ Tọa lạc tại [`src/engine/constants/economy.ts`](../src/engine/constants/ec
 export const ECONOMY_CONSTANTS = {
   DEFAULT_STARTING_COINS: 50_000,
   DEFAULT_STARTING_ELO: 1_000,
+  DEFAULT_QUICK_BET: 1_000,
   F5_DISCONNECT_ELO_PENALTY: 30,
   DEPOSIT_CARD_MULTIPLIER: 26,
   BANKRUPTCY_RELIEF_THRESHOLD: 10_000,
@@ -355,8 +356,54 @@ export const ECONOMY_CONSTANTS = {
 } as const;
 
 /**
- * Tính tiền cọc an toàn bắt buộc trước khi vào bàn đấu:
+ * Tính tiền cọc an toàn tối đa cho bàn đấu:
  * 26 * betAmount * choppingMultiplier
  */
 export function calculateRequiredDeposit(betAmount: number, choppingMultiplier: number = 1): number;
+
+/**
+ * Tính toán biến động Elo sau một ván xếp hạng theo số lượng người chơi (2, 3 hoặc 4 người):
+ */
+export function calculateEloDelta(
+  rankPosition: number,
+  playerElo: number,
+  opponentsAvgElo: number,
+  totalPlayers?: number
+): { delta: number; newElo: number };
+```
+
+---
+
+## 10. HẰNG SỐ HỆ SINH THÁI 200 BOT (ECOSYSTEM CONSTANTS)
+
+Tọa lạc tại [`src/engine/constants/ecosystem.ts`](../src/engine/constants/ecosystem.ts):
+
+```typescript
+export type AvailableBetAmount = 1000 | 2000 | 5000 | 10000 | 20000 | 50000 | 100000;
+
+export const ECOSYSTEM_CONSTANTS = {
+  MAX_BOT_COUNT: 200,
+  BANKRUPTCY_THRESHOLD: 1000,
+  MIN_BET_AMOUNT: 1000,
+  AVAILABLE_BET_AMOUNTS: [1000, 2000, 5000, 10000, 20000, 50000, 100000],
+  TIER_DISTRIBUTION: {
+    1: 50, // Tier 1: Tập Sự (Rookie) - 25% (Elo 850 - 1050)
+    2: 70, // Tier 2: Phong Trào (Challenger) - 35% (Elo 1100 - 1350)
+    3: 50, // Tier 3: Kinh Nghiệm (Veteran) - 25% (Elo 1400 - 1650)
+    4: 20, // Tier 4: Cao Thủ (Master) - 10% (Elo 1700 - 1950)
+    5: 10  // Tier 5: Thần Bài (Mythic) - 5% (Elo 2000 - 2500)
+  },
+  TIER_INITIAL_BANKROLL: {
+    1: { min: 5000, max: 15000 },
+    2: { min: 10000, max: 25000 },
+    3: { min: 40000, max: 100000 },
+    4: { min: 150000, max: 400000 },
+    5: { min: 800000, max: 2500000 }
+  },
+  JITTER_RATE: 0.15,
+  BASE_ACTIVITY_PROBABILITY: 0.55,
+  TILT_RISK_BOOST: 0.20,
+  DB_NAME: 'TIEN_LEN_DEXIE_DB_V1',
+  DB_VERSION: 1
+} as const;
 ```
