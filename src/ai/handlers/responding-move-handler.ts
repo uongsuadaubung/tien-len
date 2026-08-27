@@ -1,0 +1,291 @@
+import { 
+  BotDecisionHandler, 
+  DecisionContext, 
+  ValidMoveInfo, 
+  BotDecision, 
+  buildBotDecision,
+  AI_HEURISTIC_WEIGHTS
+} from '../decision-types';
+import { isTwo } from '../../engine/card';
+import { createDefaultGameRules } from '../../engine/types';
+import { partitionHand } from '../hand-partitioner';
+import { CfrEngine } from '../cfr-engine';
+import { RuleDecisionContext } from '../rule-strategies';
+import { BotCandidateEvaluation } from '../../engine/match-logger';
+import { 
+  evaluateChoppingScore,
+  evaluateTwoManagementScore,
+  evaluateComboIntegrityCost,
+  evaluatePositionalAndAdaptationModifiers
+} from './heuristic-evaluators';
+
+/**
+ * 4. Handler Chặn Bài Vòng Đấu (Rule-Driven Responding Move Heuristic): Đỡ bài hoặc bỏ lượt
+ */
+export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
+  public handle(context: DecisionContext, validMoves: ValidMoveInfo[]): BotDecision | null {
+    if (context.isLeadMove) {
+      return this.passToNext(context, validMoves);
+    }
+
+    const { hand, tracker, config, remainingPlayerCards, currentRoundLeadingMove, mctsMap } = context;
+    const targetCombo = currentRoundLeadingMove?.combination || null;
+    const partition = partitionHand(hand, config.handPartitioningOptimality);
+    const twoSafety = tracker.getTwoSafetyReport();
+    const isEmergencyAntiLeader = Object.values(remainingPlayerCards).some(c => c === 1);
+    const activeOpponentsCount = Object.entries(remainingPlayerCards).filter(([id, cnt]) => id !== config.id && cnt > 0).length;
+
+    const compositeStrategy = context.compositeRuleStrategy;
+    const choppingRiskFactor = compositeStrategy ? compositeStrategy.getChoppingRiskFactor() : 1.0;
+    const trapTendencyBonus = compositeStrategy ? compositeStrategy.getTrapTendencyBonus() : 0;
+
+    const ruleContext: RuleDecisionContext = {
+      hand: context.hand,
+      currentRoundLeadingMove: context.currentRoundLeadingMove,
+      isFirstMoveOfGame: context.isFirstMoveOfGame,
+      isLeadMove: context.isLeadMove,
+      tracker: context.tracker,
+      remainingPlayerCards: context.remainingPlayerCards,
+      nextPlayerId: context.nextPlayerId,
+      hasPlayedFirstCard: context.hasPlayedFirstCard,
+      isNextPlayerOneCard: context.isNextPlayerOneCard,
+      prohibitEndingWithTwo: context.prohibitEndingWithTwo,
+      rules: compositeStrategy ? compositeStrategy.rules : (context.rules || createDefaultGameRules()),
+      handPartitioningOptimality: config.handPartitioningOptimality,
+      antiLeaderAggression: config.antiLeaderAggression,
+      tempoControl: config.tempoControl,
+      trapTendency: config.trapTendency,
+      riskAppetite: config.riskAppetite
+    };
+
+    // =========================================================================
+    // CFR BLUFF PASS CHECK (Tung hỏa mù theo lý thuyết trò chơi CFR)
+    // =========================================================================
+    if (currentRoundLeadingMove && config.elo >= 1600 && !isEmergencyAntiLeader) {
+      const targetPlayerId = currentRoundLeadingMove.playerId;
+      const targetProfile = context.opponentProfiles?.[targetPlayerId] ?? null;
+      const remainingTargetCards = remainingPlayerCards[targetPlayerId] ?? 10;
+
+      const bluffCheck = CfrEngine.getInstance().evaluateBluffPass(
+        hand,
+        currentRoundLeadingMove,
+        targetPlayerId,
+        targetProfile,
+        config,
+        remainingTargetCards
+      );
+
+      if (bluffCheck.shouldBluffPass) {
+        return buildBotDecision('PASS', {
+          reason: bluffCheck.reason,
+          strategyUsed: 'CFR_BLUFF_PASS'
+        });
+      }
+    }
+
+    let bestMoveScore = -9999;
+    let bestMove: ValidMoveInfo | null = null;
+
+    const pendingCombosCardCount = partition.combinations.reduce((acc, c) => acc + c.cards.length, 0);
+    const leadValueRatio = pendingCombosCardCount / Math.max(1, hand.length);
+
+    const evaluatedCandidateList: BotCandidateEvaluation[] = [];
+
+    for (const move of validMoves) {
+      let score = 50;
+      const reasons: string[] = ['Điểm cơ bản +50'];
+      const containsTwo = move.cards.some(isTwo);
+
+      // 1. Chặt Heo & Hàng
+      const chopScore = evaluateChoppingScore(move, targetCombo, config, trapTendencyBonus);
+      if (chopScore !== 0) {
+        score += chopScore;
+        reasons.push(`Chặt bài (${chopScore > 0 ? '+' : ''}${Math.round(chopScore)})`);
+      }
+
+      // 2. Quản lý Heo (2) & Tránh nguy cơ bị Chặt đè
+      if (containsTwo) {
+        const twoScore = evaluateTwoManagementScore(
+          move,
+          targetCombo,
+          context,
+          twoSafety,
+          hand,
+          pendingCombosCardCount,
+          activeOpponentsCount,
+          isEmergencyAntiLeader,
+          choppingRiskFactor,
+          config
+        );
+        score += twoScore;
+        reasons.push(`Quản lý Heo (${twoScore > 0 ? '+' : ''}${Math.round(twoScore)})`);
+      }
+
+      // 3. Liên minh tạm thời dìm người dẫn đầu bàn 4 người (Semi-Cooperative Passing)
+      if (
+        config.semiCooperativeCooperation >= 0.5 &&
+        (context.gameMode === 'TRADITIONAL' || context.gameMode === 'QUICK') &&
+        isEmergencyAntiLeader &&
+        activeOpponentsCount >= 2 &&
+        currentRoundLeadingMove
+      ) {
+        const leaderId = Object.entries(remainingPlayerCards).find(([pid, cnt]) => pid !== config.id && cnt === 1)?.[0];
+        const currentLeadingPlayerId = currentRoundLeadingMove.playerId;
+        if (currentLeadingPlayerId !== leaderId) {
+          const isAllyMoveStrong = currentRoundLeadingMove.combination.highestCard.rank >= 13 || isTwo(currentRoundLeadingMove.combination.highestCard);
+          if (isAllyMoveStrong) {
+            score -= AI_HEURISTIC_WEIGHTS.SEMI_COOP_PASS_DEDUCTION * config.semiCooperativeCooperation;
+            reasons.push('Nhường đồng minh dìm người 1 lá');
+          }
+        }
+      }
+
+      // 4. Vị thế ghế ngồi & Bắt bài khắc chế
+      const posScore = evaluatePositionalAndAdaptationModifiers(
+        move,
+        currentRoundLeadingMove,
+        context,
+        config,
+        twoSafety,
+        targetCombo,
+        hand
+      );
+      if (posScore !== 0) {
+        score += posScore;
+        reasons.push(`Vị thế ghế ngồi (${posScore > 0 ? '+' : ''}${Math.round(posScore)})`);
+      }
+
+      // 5. Kiểm soát nhịp độ & Lợi thế bài thường
+      if (config.tempoControl > 0.2 && !containsTwo) {
+        score += leadValueRatio * AI_HEURISTIC_WEIGHTS.LEAD_TEMPO_FACTOR * config.tempoControl;
+        if (leadValueRatio > 0.35 && move.combination.highestCard.rank >= 13) {
+          score += AI_HEURISTIC_WEIGHTS.HIGH_CARD_TEMPO_BONUS * config.tempoControl;
+        }
+      }
+
+      // 6. Áp đảo trong Solo 1v1
+      if (activeOpponentsCount === 1 && !containsTwo) {
+        score += AI_HEURISTIC_WEIGHTS.SOLO_NORMAL_MOVE_AGGRESSION * config.antiLeaderAggression;
+      }
+
+      // 7. Điểm điều chỉnh từ GameRules composite strategy
+      if (compositeStrategy) {
+        const ruleScore = compositeStrategy.getCompositeRespondingScoreModifier(
+          move, 
+          hand.length, 
+          currentRoundLeadingMove, 
+          ruleContext
+        );
+        if (ruleScore !== 0) {
+          score += ruleScore;
+          reasons.push(`Luật game (${ruleScore > 0 ? '+' : ''}${Math.round(ruleScore)})`);
+        }
+      }
+
+      // 8. Đánh giá MCTS Rollouts
+      if (mctsMap) {
+        const key = move.cards.map(c => c.id).sort().join('_');
+        if (mctsMap.has(key)) {
+          const winRate = mctsMap.get(key)!;
+          const mctsDelta = (winRate - 0.25) * 40;
+          score += mctsDelta;
+          reasons.push(`MCTS Winrate ${(winRate * 100).toFixed(0)}% (${mctsDelta > 0 ? '+' : ''}${Math.round(mctsDelta)})`);
+        }
+      }
+
+      // 9. Cứu thua khẩn cấp
+      if (isEmergencyAntiLeader) {
+        score += AI_HEURISTIC_WEIGHTS.EMERGENCY_INTERCEPT_BONUS;
+        reasons.push('Khẩn cấp chặn người 1 lá');
+      }
+
+      // 10. Chi phí xé bài / bảo vệ cấu trúc bài
+      const integrityCost = evaluateComboIntegrityCost(
+        move,
+        partition,
+        hand,
+        isEmergencyAntiLeader,
+        activeOpponentsCount,
+        config,
+        context.isNextPlayerOneCard
+      );
+      if (integrityCost > 0) {
+        score -= integrityCost;
+        reasons.push(`Phá bộ/xé bài (-${Math.round(integrityCost)})`);
+      }
+
+      // 11. Ưu tiên tẩu rác
+      const isTrash = move.cards.every(c => partition.trashCards.some(tc => tc.id === c.id));
+      if (isTrash) {
+        score += AI_HEURISTIC_WEIGHTS.TRASH_MOVE_REWARD;
+        reasons.push('Tẩu rác lẻ');
+      }
+
+      // 12. Cờ tàn tăng tốc dứt điểm
+      if (hand.length <= 3 || hand.length - move.cards.length <= 2) {
+        score += AI_HEURISTIC_WEIGHTS.ENDGAME_SPRINT_BONUS;
+        reasons.push('Tăng tốc cờ tàn');
+      }
+
+      // 13. Khai thác lá bài to nhất tuyệt đối
+      if (move.cards.length === 1 && tracker.isStrongestRemainingSingle(move.cards[0])) {
+        if (hand.length <= 4 || leadValueRatio > 0.3) {
+          score += AI_HEURISTIC_WEIGHTS.STRONGEST_SINGLE_BONUS * config.tempoControl;
+          reasons.push('Cầm trịch lá to nhất bàn');
+        }
+      }
+
+      // 14. Minimum Sufficient Beat (Đè bằng lá nhỏ nhất vừa đủ, bảo toàn bài to)
+      if (targetCombo && !move.cards.some(isTwo)) {
+        const weightDiff = move.combination.highestCard.weight - targetCombo.highestCard.weight;
+        score -= weightDiff * 0.75 * config.handPartitioningOptimality;
+      }
+
+      // 15. Nhận thức chiến lược cao cấp
+      if (config.simulationLookahead >= 3) {
+        if (move.combination.type === 'STRAIGHT' || move.combination.type === 'PAIR') {
+          score += AI_HEURISTIC_WEIGHTS.TIER_LOOKAHEAD_BONUS;
+        }
+      }
+
+      // 16. Sai số ngẫu nhiên của tân thủ (Tier 1/2)
+      if (config.simulationLookahead === 0) {
+        score += (Math.random() - 0.5) * 50;
+      } else if (config.simulationLookahead === 1) {
+        score += (Math.random() - 0.5) * 20;
+      }
+
+      evaluatedCandidateList.push({
+        cards: [...move.cards],
+        combinationType: move.combination.type,
+        score: Math.round(score),
+        reasons
+      });
+
+      if (score > bestMoveScore) {
+        bestMoveScore = score;
+        bestMove = move;
+      }
+    }
+
+    const sortedCandidates = [...evaluatedCandidateList].sort((a, b) => b.score - a.score).slice(0, 5);
+
+    if (bestMove && bestMoveScore > 0) {
+      return buildBotDecision('PLAY', {
+        cards: bestMove.cards,
+        combination: bestMove.combination,
+        reason: `Đánh giá Heuristics (${Math.round(bestMoveScore)} điểm): Đánh ${bestMove.combination.type} [ ${bestMove.cards.map(c => c.code).join(' ')} ]`,
+        strategyUsed: 'HEURISTIC_EVALUATION',
+        evaluationScore: Math.round(bestMoveScore),
+        candidatesEvaluated: sortedCandidates
+      });
+    }
+
+    return buildBotDecision('PASS', {
+      reason: 'Chủ động bỏ lượt để giữ thế bài (các nước đi đều có điểm đánh giá <= 0)',
+      strategyUsed: 'HEURISTIC_EVALUATION_PASS',
+      evaluationScore: bestMoveScore > -9000 ? Math.round(bestMoveScore) : null,
+      candidatesEvaluated: sortedCandidates
+    });
+  }
+}
