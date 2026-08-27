@@ -16,7 +16,7 @@ import { ConfirmForfeitModal } from '../../web/modals/ConfirmForfeitModal';
 import { F5PenaltyNoticeModal } from '../../web/modals/F5PenaltyNoticeModal';
 import { MobileNameSetupView } from '../views/MobileNameSetupView';
 import { MobileRulesView } from '../views/MobileRulesView';
-import { EcosystemModal } from '../../web/modals/EcosystemModal';
+import { MobileEcosystemView } from '../views/MobileEcosystemView';
 import { BotProfileModal } from '../../web/modals/BotProfileModal';
 import { MatchmakingModal } from '../../web/modals/MatchmakingModal';
 import { SyncConflictModal } from '../../web/modals/SyncConflictModal';
@@ -79,6 +79,7 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
     isCampaignModalOpen,
     isNameSetupOpen,
     isRulesOpen,
+    isEcosystemOpen,
     isBotProfileOpen,
     isSyncConflictOpen,
     syncConflictData,
@@ -298,8 +299,13 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
         />
       )}
 
-      {/* 15. Trang Bảng Vàng Danh Vọng Toàn Server (Full Screen Sheet) */}
-      <EcosystemModal />
+      {/* 15. Trang Bảng Vàng Danh Vọng Toàn Server Native Mobile */}
+      {isEcosystemOpen && (
+        <MobileEcosystemView
+          isOpen={isEcosystemOpen}
+          onClose={() => closeModal('ECOSYSTEM')}
+        />
+      )}
 
       {/* 16. Trang Hồ Sơ Cao Thủ Bot */}
       {isBotProfileOpen && selectedBot && (

@@ -1,9 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 import { Modal, Card, Badge, Button, Tabs, TabOption } from '../../primitives';
-import { useEcosystemStore } from '../../../stores/useEcosystemStore';
 import { useModalStore } from '../../../stores/useModalStore';
-import { useUserStore } from '../../../stores/useUserStore';
-import { BotActivityStatus, BotEntity, getTierFromElo } from '../../../engine/ecosystem/ecosystem-types';
+import { useEcosystem, EcosystemTab, TIER_FILTERS, PAGE_SIZE } from '../../hooks/useEcosystem';
+import { getTierFilterLabel } from '../../../engine/ecosystem/ecosystem-types';
 import { 
   Trophy, 
   Flame, 
@@ -17,226 +16,30 @@ import {
   Target
 } from 'lucide-react';
 
-const PAGE_SIZE = 15;
-
-type EcosystemTab = 'LEADERBOARD' | 'NEWSFEED';
-
-interface EcosystemTableItem {
-  id: string;
-  name: string | null;
-  avatar: string | null;
-  elo: number;
-  coins: number;
-  tierNum: number;
-  tier: string;
-  rankBadge: string;
-  currentStreak: number;
-  highestStreak: number;
-  title: string;
-  personalityTags: string[] | null;
-  activityStatus: BotActivityStatus | null;
-  stats: {
-    gamesPlayed: number;
-    wins: number;
-    chopsDone: number;
-    congsGiven: number;
-    totalEarned: number;
-  };
-  headToHeadVsHuman: {
-    games: number;
-    botWins: number;
-    humanWins: number;
-    netCoinsEarnedFromHuman: number;
-  } | null;
-  winRate: number;
-  isHuman: boolean;
-  rawBot: BotEntity | null;
-}
-
-const TIER_FILTERS: (number | 'ALL')[] = ['ALL', 9, 8, 7, 6, 5, 4, 3, 2, 1];
-
 export const EcosystemModal: React.FC = () => {
-  const { isEcosystemOpen, closeModal, openModal } = useModalStore();
-  const { profile } = useUserStore();
+  const { isEcosystemOpen, closeModal } = useModalStore();
   const {
-    bots,
-    newsfeed,
+    activeTab,
+    setActiveTab,
+    currentPage,
+    setCurrentPage,
     searchQuery,
-    selectedTierFilter,
-    selectedSortField,
-    sortOrder,
     setSearchQuery,
+    selectedTierFilter,
     setSelectedTierFilter,
+    selectedSortField,
     setSelectedSortField,
+    sortOrder,
     toggleSortOrder,
-    setSelectedBot
-  } = useEcosystemStore();
-
-  const [activeTab, setActiveTab] = useState<EcosystemTab>('LEADERBOARD');
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // Tạo đối tượng đại diện cho Người Chơi để xếp hạng
-  const humanPlayerRankEntity: EcosystemTableItem = useMemo(() => {
-    const totalGames = profile.stats.gamesPlayed || 0;
-    const wins = profile.stats.wins || 0;
-    const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
-    const tierInfo = getTierFromElo(profile.elo);
-
-    return {
-      id: 'human_player',
-      name: profile.name || 'Bạn',
-      avatar: profile.avatar || '🤠',
-      elo: profile.elo,
-      coins: profile.coins,
-      tierNum: tierInfo.tierNum,
-      tier: tierInfo.tier,
-      rankBadge: tierInfo.rankBadge,
-      currentStreak: profile.stats.currentStreak || 0,
-      highestStreak: profile.stats.highestStreak || 0,
-      title: 'Đại Hiệp',
-      personalityTags: ['Kỳ Thủ', 'Chiến Thuật'],
-      activityStatus: 'IN_MATCH',
-      headToHeadVsHuman: { games: 0, botWins: 0, humanWins: 0, netCoinsEarnedFromHuman: 0 },
-      stats: {
-        gamesPlayed: totalGames,
-        wins,
-        chopsDone: profile.stats.chopsDone || 0,
-        congsGiven: profile.stats.congsGiven || 0,
-        totalEarned: profile.stats.totalEarned || 0
-      },
-      winRate,
-      isHuman: true,
-      rawBot: null
-    };
-  }, [profile]);
-
-  // Tạo BotEntity đại diện cho người chơi khi xem hồ sơ chính mình
-  const humanAsBotEntity: BotEntity = useMemo(() => ({
-    id: 'human_player',
-    name: profile.name || 'Bạn',
-    avatar: profile.avatar || '🤠',
-    tier: humanPlayerRankEntity.tier,
-    tierNum: humanPlayerRankEntity.tierNum,
-    rankBadge: humanPlayerRankEntity.rankBadge,
-    elo: profile.elo,
-    coins: profile.coins,
-    description: 'Đại hiệp giang hồ, bản lĩnh tung hoành khắp các sới bài Tiến Lên Miền Nam.',
-    personalityTags: ['Người Chơi Thật', 'Chiến Thuật', 'Quyết Đoán'],
-    title: 'Đại Hiệp',
-    status: 'ACTIVE',
-    activityStatus: 'IN_MATCH',
-    createdAt: Date.now(),
-    memoryDepth: 1.0,
-    riskAppetite: 0.7,
-    trapTendency: 0.6,
-    baitingTendency: 0.6,
-    antiLeaderAggression: 0.8,
-    tempoControl: 0.7,
-    damageControl: 0.7,
-    turnsToWinLookahead: 0.8,
-    dynamicHandSacrifice: 0.8,
-    bombInferenceRate: 0.8,
-    semiCooperativeCooperation: 0.5,
-    positionalAwareness: 0.8,
-    inMatchAdaptationRate: 0.8,
-    mctsSimulations: 50,
-    handPartitioningOptimality: 0.9,
-    simulationLookahead: 3,
-    useMinimaxEndgame: false,
-    useBayesianInference: false,
-    useNashEquilibrium: false,
-    useDynamicRepartitioning: false,
-    currentStreak: profile.stats.currentStreak || 0,
-    highestStreak: profile.stats.highestStreak || 0,
-    stats: {
-      gamesPlayed: profile.stats.gamesPlayed || 0,
-      wins: profile.stats.wins || 0,
-      chopsDone: profile.stats.chopsDone || 0,
-      congsGiven: profile.stats.congsGiven || 0,
-      totalEarned: profile.stats.totalEarned || 0
-    },
-    headToHeadVsHuman: {
-      games: 0,
-      botWins: 0,
-      humanWins: 0,
-      netCoinsEarnedFromHuman: 0
-    }
-  }), [profile, humanPlayerRankEntity]);
-
-  // Lọc và Sắp xếp danh sách (Tự động phái sinh Tier từ Elo cho mọi Bot)
-  const sortedAndFilteredList: EcosystemTableItem[] = useMemo(() => {
-    let list: EcosystemTableItem[] = bots.filter(b => b.status === 'ACTIVE').map(b => {
-      const tierInfo = getTierFromElo(b.elo);
-      return {
-        ...b,
-        tierNum: tierInfo.tierNum,
-        tier: tierInfo.tier,
-        rankBadge: tierInfo.rankBadge,
-        rawBot: b,
-        winRate: b.stats.gamesPlayed > 0 ? Math.round((b.stats.wins / b.stats.gamesPlayed) * 100) : 0,
-        isHuman: false
-      };
-    });
-
-    // Bổ sung Người Chơi vào danh sách
-    list.push(humanPlayerRankEntity);
-
-    // Lọc theo Tìm kiếm
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter(b => (b.name || '').toLowerCase().includes(q) || b.personalityTags?.some(t => t.toLowerCase().includes(q)));
-    }
-
-    // Lọc theo Tier
-    if (selectedTierFilter !== 'ALL') {
-      list = list.filter(b => b.tierNum === selectedTierFilter);
-    }
-
-    // Sắp xếp
-    list.sort((a, b) => {
-      let valA: number = 0;
-      let valB: number = 0;
-      if (selectedSortField === 'elo') {
-        valA = a.elo;
-        valB = b.elo;
-      } else if (selectedSortField === 'coins') {
-        valA = a.coins;
-        valB = b.coins;
-      } else if (selectedSortField === 'winRate') {
-        valA = a.winRate;
-        valB = b.winRate;
-      } else if (selectedSortField === 'gamesPlayed') {
-        valA = a.stats?.gamesPlayed || 0;
-        valB = b.stats?.gamesPlayed || 0;
-      }
-      return sortOrder === 'desc' ? valB - valA : valA - valB;
-    });
-
-    return list;
-  }, [bots, humanPlayerRankEntity, searchQuery, selectedTierFilter, selectedSortField, sortOrder]);
-
-  // Thứ hạng tổng của Người Chơi
-  const humanGlobalRank = useMemo(() => {
-    const idx = sortedAndFilteredList.findIndex(item => item.isHuman);
-    return idx !== -1 ? idx + 1 : 1;
-  }, [sortedAndFilteredList]);
-
-  // Phân trang
-  const totalPages = Math.ceil(sortedAndFilteredList.length / PAGE_SIZE) || 1;
-  const paginatedList = useMemo(() => {
-    const start = (currentPage - 1) * PAGE_SIZE;
-    return sortedAndFilteredList.slice(start, start + PAGE_SIZE);
-  }, [sortedAndFilteredList, currentPage]);
-
-  const handleOpenBotDetail = (bot: BotEntity) => {
-    setSelectedBot(bot);
-    openModal('BOT_PROFILE');
-  };
-
-  const handleJumpToMyRank = () => {
-    const targetPage = Math.ceil(humanGlobalRank / PAGE_SIZE) || 1;
-    setCurrentPage(targetPage);
-  };
+    newsfeed,
+    sortedAndFilteredList,
+    humanGlobalRank,
+    totalPages,
+    paginatedList,
+    handleOpenBotDetail,
+    handleJumpToMyRank,
+    humanAsBotEntity
+  } = useEcosystem();
 
   const tabOptions: TabOption<EcosystemTab>[] = [
     {
@@ -341,16 +144,7 @@ export const EcosystemModal: React.FC = () => {
                         : 'bg-[var(--bg-card)] text-[var(--text-secondary)] border-[var(--border-card)] hover:border-[var(--border-card-hover)] hover:bg-[var(--bg-card-hover)]'
                     }`}
                   >
-                    {tier === 'ALL' ? 'Tất Cả' 
-                      : tier === 9 ? '⚡ Thách Đấu' 
-                      : tier === 8 ? '🌌 Đại Cao Thủ' 
-                      : tier === 7 ? '👑 Cao Thủ' 
-                      : tier === 6 ? '🔮 Kim Cương' 
-                      : tier === 5 ? '💎 Bạch Kim' 
-                      : tier === 4 ? '🥇 Vàng' 
-                      : tier === 3 ? '🥈 Bạc' 
-                      : tier === 2 ? '🥉 Đồng' 
-                      : '⚙️ Sắt'}
+                    {getTierFilterLabel(tier)}
                   </button>
                 ))}
               </div>
@@ -533,7 +327,7 @@ export const EcosystemModal: React.FC = () => {
                     size="sm"
                     className="h-7 px-2.5 text-xs"
                     disabled={currentPage <= 1}
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     leftIcon={<ChevronLeft className="w-3.5 h-3.5" />}
                   >
                     Trước
@@ -546,7 +340,7 @@ export const EcosystemModal: React.FC = () => {
                     size="sm"
                     className="h-7 px-2.5 text-xs"
                     disabled={currentPage >= totalPages}
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                     rightIcon={<ChevronRight className="w-3.5 h-3.5" />}
                   >
                     Sau

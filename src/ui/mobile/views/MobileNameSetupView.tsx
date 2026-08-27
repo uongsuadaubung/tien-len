@@ -1,10 +1,12 @@
 import React from 'react';
 import { PlayerProfile } from '../../../engine/storage';
 import { ECONOMY_CONSTANTS } from '../../../engine/constants/economy';
-import { Sparkles, User, Check } from 'lucide-react';
+import { Sparkles, User, Check, Shuffle } from 'lucide-react';
 import { Card, Button } from '../../primitives';
 import { MobileScreenWrapper } from './MobileScreenWrapper';
 import { useNameSetup } from '../../hooks/useNameSetup';
+import { generateRandomCasinoNickname } from '../components/MobileVirtualKeyboard';
+import { MobileVirtualInput } from '../components/MobileVirtualInput';
 
 export interface MobileNameSetupViewProps {
   isOpen: boolean;
@@ -33,6 +35,12 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
   } = useNameSetup({ profile, isOpen, onClose, onUpdateProfile });
 
   if (!isOpen) return null;
+
+  const handleQuickRandom = () => {
+    const nick = generateRandomCasinoNickname();
+    setName(nick);
+    if (error) setError(null);
+  };
 
   return (
     <MobileScreenWrapper
@@ -65,13 +73,13 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
       }
       className={null}
     >
-      <form onSubmit={(e) => handleSubmit(e)} className="space-y-4 pb-6 select-none">
+      <div className="space-y-2.5 pb-6 select-none">
         {/* 1. Chọn Avatar Đại Diện */}
-        <Card variant="card" className="p-3.5 space-y-2">
+        <Card variant="card" className="p-3 space-y-1.5">
           <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
             Chọn Biểu Tượng Đại Diện:
           </label>
-          <div className="grid grid-cols-6 gap-2">
+          <div className="grid grid-cols-6 gap-1.5 sm:gap-2">
             {avatarOptions.map((av) => {
               const isSelected = avatar === av;
               return (
@@ -79,7 +87,7 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
                   type="button"
                   key={av}
                   onClick={() => setAvatar(av)}
-                  className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl text-2xl flex items-center justify-center transition-all cursor-pointer ${
+                  className={`h-10 sm:h-11 rounded-xl text-xl sm:text-2xl flex items-center justify-center transition-all cursor-pointer ${
                     isSelected
                       ? 'bg-[var(--bg-card-active)] border-2 border-[var(--color-gold)] scale-105 shadow-md'
                       : 'bg-[var(--bg-container)] border border-[var(--border-container)] hover:border-white/25 hover:scale-105'
@@ -92,41 +100,54 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
           </div>
         </Card>
 
-        {/* 2. Nhập Tên Biệt Danh */}
-        <Card variant="card" className="p-3.5 space-y-2">
-          <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
-            Biệt Danh Thần Bài:
-          </label>
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[var(--text-muted)]">
-              <User className="w-4 h-4 text-[var(--color-gold)]" />
-            </div>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                if (error) setError(null);
-              }}
-              placeholder="Ví dụ: Thần Bài Sài Gòn..."
-              maxLength={20}
-              autoFocus
-              className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-input)] border border-[var(--border-card)] rounded-xl text-sm font-bold text-[var(--text-primary)] placeholder-[var(--text-dim)] focus:outline-none focus:border-[var(--color-gold)] transition-all"
-            />
+        {/* 2. Nhập Tên Biệt Danh Dùng MobileVirtualInput */}
+        <Card variant="card" className="p-3 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
+              Biệt Danh Thần Bài:
+            </span>
+            {isFirstTime && (
+              <span className="text-[10px] text-[var(--text-muted)]">
+                Vốn: <strong className="text-[var(--color-gold)] font-bold">{ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS.toLocaleString()} Xu</strong>
+              </span>
+            )}
           </div>
-          {error && (
-            <p className="text-xs text-red-400 font-bold flex items-center gap-1">
-              <span>⚠️</span>
-              <span>{error}</span>
-            </p>
-          )}
-          {isFirstTime && (
-            <p className="text-[11px] text-[var(--text-muted)]">
-              Vốn khởi nghiệp: <strong className="text-[var(--color-gold)] font-bold">{ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS.toLocaleString()} Xu</strong>
-            </p>
-          )}
+
+          <MobileVirtualInput
+            value={name}
+            onChange={(val) => {
+              setName(val);
+              if (error) setError(null);
+            }}
+            placeholder="Chạm để nhập tên..."
+            icon={<User className="w-4 h-4 text-[var(--color-gold)]" />}
+            label={null}
+            error={error}
+            maxLength={20}
+            showRandomNameButton={true}
+            showPasteButton={false}
+            onRandomName={handleQuickRandom}
+            onPaste={null}
+            onSubmit={() => handleSubmit(null)}
+            className={null}
+            inputClassName="border-[var(--color-gold-border)]"
+            clearable={false}
+            renderExtraActions={() => (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleQuickRandom();
+                }}
+                className="p-1 sm:p-1.5 rounded-lg bg-[var(--bg-container)] border border-[var(--border-container)] text-[var(--color-gold)] hover:bg-[var(--bg-card)] active:scale-95 transition-all cursor-pointer"
+                title="Tạo tên ngẫu nhiên"
+              >
+                <Shuffle className="w-3.5 h-3.5" />
+              </button>
+            )}
+          />
         </Card>
-      </form>
+      </div>
     </MobileScreenWrapper>
   );
 };

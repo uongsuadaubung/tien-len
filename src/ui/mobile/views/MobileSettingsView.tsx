@@ -18,7 +18,8 @@ import {
   ExternalLink,
   History,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Clipboard
 } from 'lucide-react';
 import { Button } from '../../primitives';
 import { MobileScreenWrapper } from './MobileScreenWrapper';
@@ -179,6 +180,27 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                         className="w-full bg-[var(--bg-container)] border border-[var(--border-container)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--color-gold)] transition-colors placeholder:text-zinc-600"
                       />
                     </div>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          if (navigator.clipboard && navigator.clipboard.readText) {
+                            const txt = await navigator.clipboard.readText();
+                            if (txt) {
+                              setTokenInputValue(txt.trim());
+                              showNotification('Đã dán token từ bộ nhớ tạm!', 'success');
+                            }
+                          }
+                        } catch {
+                          showNotification('Không thể đọc bộ nhớ tạm. Vui lòng cấp quyền trình duyệt.', 'error');
+                        }
+                      }}
+                      className="px-2.5 py-2 rounded-xl bg-[var(--bg-container)] border border-[var(--border-container)] text-xs text-[var(--color-gold)] font-bold hover:border-[var(--color-gold)] active:scale-95 transition-all flex items-center gap-1 shrink-0 cursor-pointer"
+                      title="Dán từ Clipboard"
+                    >
+                      <Clipboard className="w-3.5 h-3.5" />
+                      <span>Dán</span>
+                    </button>
                     <Button
                       variant="gold"
                       size="sm"
