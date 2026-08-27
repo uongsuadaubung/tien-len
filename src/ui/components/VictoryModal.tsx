@@ -45,6 +45,15 @@ interface VictoryModalProps {
   allEloDeltas?: Record<string, number>;
 }
 
+export const INSTANT_WIN_TITLES: Record<string, string> = {
+  DRAGON_STRAIGHT: 'Sảnh Rồng',
+  FOUR_TWOS: 'Tứ Quý Heo',
+  SAME_COLOR_13: 'Đồng Màu 13 Lá',
+  FIVE_PAIRS_SEQUENTIAL: '5 Đôi Thông',
+  SIX_PAIRS: '6 Đôi Bất Kỳ',
+  FIRST_ROUND_FOUR_THREES: 'Tứ Quý 3 Ván Đầu'
+};
+
 export const VictoryModal: React.FC<VictoryModalProps> = ({
   isOpen,
   onNextGame,
@@ -206,9 +215,10 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   // TỚI TRẮNG (INSTANT WIN)
   if (instantWinType && !isTableDismissed) {
     modalIcon = '⚡';
+    const instantWinName = INSTANT_WIN_TITLES[instantWinType] || instantWinType;
     if (isHumanWinner) {
       modalTitle = 'TỚI TRẮNG HOÀNG GIA!';
-      modalSubtitle = `Chúc mừng bạn đã tới trắng bằng bộ bài đặc biệt: ${instantWinType}! Thưởng khủng cả làng!`;
+      modalSubtitle = `Chúc mừng bạn đã tới trắng bằng bộ bài đặc biệt: ${instantWinName}! Thưởng khủng cả làng!`;
     } else {
       modalTitle = `${winner.name.toUpperCase()} TỚI TRẮNG!`;
       modalSubtitle = `Đấu thủ ${winner.name} đã tới trắng ngay lượt chia đầu: ${instantWinType}!`;
@@ -350,14 +360,16 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
           {displayPlayers.map((p, idx) => {
             const isWinner = idx === 0;
             const rankLabel = isWinner
-              ? '🥇 VỀ NHẤT'
-              : winners.length >= allPlayers.length - 1
-                ? (idx === 1 ? '🥈 VỀ NHÌ' : idx === 2 ? '🥉 VỀ BA' : '💥 VỀ BÉT')
-                : '💥 THUA ĐẾM LÁ';
+              ? (instantWinType ? `⚡ TỚI TRẮNG (${INSTANT_WIN_TITLES[instantWinType] || instantWinType})` : '🥇 VỀ NHẤT')
+              : (instantWinType
+                ? '💥 ĐỀN TỚI TRẮNG'
+                : (winners.length >= allPlayers.length - 1
+                  ? (idx === 1 ? '🥈 VỀ NHÌ' : idx === 2 ? '🥉 VỀ BA' : '💥 VỀ BÉT')
+                  : '💥 THUA ĐẾM LÁ'));
             const netPay = payouts ? payouts[p.id] : undefined;
             const remainingCards = p.hand ? [...p.hand].sort((a, b) => a.weight - b.weight) : [];
-            const hasRottenTwo = remainingCards.some(c => c.rank === 15);
-            const isCong = remainingCards.length === 13;
+            const hasRottenTwo = !isWinner && !instantWinType && remainingCards.some(c => c.rank === 15);
+            const isCong = !isWinner && !instantWinType && remainingCards.length === 13;
 
             // Biến động Elo của từng người chơi / bot
             const pEloDelta = (allEloDeltas && (allEloDeltas[p.id] !== undefined || (p.botPersonaId && allEloDeltas[p.botPersonaId] !== undefined)))
@@ -428,8 +440,18 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                     </span>
                   )}
 
-                  {/* Huy hiệu cảnh báo đặc biệt: Thối Heo / Bị Cóng */}
+                  {/* Huy hiệu cảnh báo đặc biệt / Tới Trắng */}
                   <div className="flex items-center gap-1">
+                    {isWinner && instantWinType && (
+                      <span className="text-[9px] font-bold text-[var(--color-gold)] bg-[var(--color-gold-bg)] border border-[var(--color-gold-border)] px-1.5 py-0.5 rounded animate-pulse">
+                        ⚡ Tới Trắng ({INSTANT_WIN_TITLES[instantWinType] || instantWinType})
+                      </span>
+                    )}
+                    {!isWinner && instantWinType && (
+                      <span className="text-[9px] font-bold text-rose-300 bg-rose-500/20 border border-rose-500/40 px-1.5 py-0.5 rounded">
+                        💥 Đền Tới Trắng (26 lá)
+                      </span>
+                    )}
                     {hasRottenTwo && (
                       <span className="text-[9px] font-bold text-amber-300 bg-amber-500/20 border border-amber-400/40 px-1.5 py-0.5 rounded animate-pulse">
                         ⚠️ Thối Heo
