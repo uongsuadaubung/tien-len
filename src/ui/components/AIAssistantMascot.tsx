@@ -16,12 +16,14 @@ interface AIAssistantMascotProps {
   hint: MoveHint | null;
   isHumanTurn: boolean;
   enabled: boolean;
+  onApplyHint?: () => void;
 }
 
 export const AIAssistantMascot: React.FC<AIAssistantMascotProps> = ({
   hint,
   isHumanTurn,
-  enabled
+  enabled,
+  onApplyHint
 }) => {
   const [isOpen, setIsOpen] = useState(true);
 
@@ -149,12 +151,22 @@ export const AIAssistantMascot: React.FC<AIAssistantMascotProps> = ({
           </div>
 
           {/* Footer nhỏ */}
-          <div className="mt-1 pt-1 border-t border-white/[0.04] flex items-center justify-between text-[9px] text-zinc-500">
+          <div className="mt-1.5 pt-1.5 border-t border-white/[0.06] flex items-center justify-between text-[9px] text-zinc-500">
             <span className="flex items-center gap-1 text-amber-400/80 font-medium">
               <MessageSquareQuote className="w-3 h-3" />
-              Tư vấn AI
+              Quân Sư AI
             </span>
-            <span className="text-[8px] text-zinc-600 font-mono">Tự do quyết định</span>
+            {onApplyHint && hint.cards && hint.cards.length > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onApplyHint();
+                }}
+                className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold transition-all shadow hover:scale-105 cursor-pointer"
+              >
+                Chọn Nhanh ⚡
+              </button>
+            )}
           </div>
         </div>
       ) : (

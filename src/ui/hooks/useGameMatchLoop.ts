@@ -2,7 +2,6 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import { Card } from '../../engine/types';
 import { sortCards, isTwo } from '../../engine/card';
 import { calculateDynamicBotDelay } from '../../engine/game-speed';
-import { sortCardsSmart, getAvailableSmartVariants } from '../../engine/hand-sorter';
 import { GameEngine } from '../../engine/game';
 import { getBotConfig, generateRandomBotConfig, generateRealisticBotBankroll } from '../../ai/bot-factory';
 import { CardTracker } from '../../ai/card-tracker';
@@ -21,8 +20,10 @@ import {
   savePlayerProfile 
 } from '../../engine/storage';
 import { UI_TIMINGS } from '../constants/ui-timings';
+import { calculateRequiredDeposit } from '../../engine/constants/economy';
 import { MatchLogger } from '../../engine/match-logger';
 import { getTierFromElo } from '../../engine/ecosystem/ecosystem-types';
+import { useSmartHandSorting } from './useSmartHandSorting';
 
 import { OpponentProfiler } from '../../ai/opponent-profiler';
 
@@ -461,7 +462,7 @@ export function useGameMatchLoop() {
     // 3.1. Tính toán và Tạm giữ tiền cọc an toàn (Buy-in Deposit)
     const penaltyMultiplier = setup.rules.chopping.multiplier || setup.rules.cong.multiplier || 1;
     const tableBetAmount = setup.rules.table.betAmount || 0;
-    const requiredDeposit = 26 * tableBetAmount * penaltyMultiplier;
+    const requiredDeposit = calculateRequiredDeposit(tableBetAmount, penaltyMultiplier);
 
     if (requiredDeposit > 0) {
       if (profile.coins < requiredDeposit) {
@@ -933,38 +934,8 @@ export function useGameMatchLoop() {
     }
   }, [clearCardSelection, syncGameState]);
 
-  // Người Chơi Tự Động Xếp Bài (Xoay vòng đa phương án Gom Nhóm Bộ -> Xếp Điểm 3->2)
-  const handleAutoSort = useCallback(() => {
-    if (!engineRef.current) return;
-    const engine = engineRef.current;
-    const p0 = engine.getPlayer('p0');
-    if (p0) {
-      const variants = getAvailableSmartVariants(p0.hand);
-
-      if (handSortMode === 'NATURAL') {
-        // Chuyển từ Điểm sang Bộ Phương Án 1 (index 0)
-        setHandSortMode('SMART_GROUP');
-        setSmartVariantIndex(0);
-        p0.hand = sortCardsSmart(p0.hand, 0);
-      } else {
-        // Đang ở SMART_GROUP
-        if (smartVariantIndex < variants.length - 1) {
-          // Còn phương án bộ tiếp theo
-          const nextIdx = smartVariantIndex + 1;
-          setSmartVariantIndex(nextIdx);
-          p0.hand = sortCardsSmart(p0.hand, nextIdx);
-        } else {
-          // Đã ở phương án bộ cuối -> Quay về Xếp Điểm (NATURAL)
-          setHandSortMode('NATURAL');
-          setSmartVariantIndex(0);
-          p0.hand = sortCards(p0.hand);
-        }
-      }
-
-      setPlayers([...engine.players]);
-      soundManager.playCardDeal();
-    }
-  }, [handSortMode, smartVariantIndex, setHandSortMode, setSmartVariantIndex, setPlayers]);
+  // Quản lý Xếp Bài Thông Minh (Smart Hand Sorting)
+  const { handleAutoSort } = useSmartHandSorting(engineRef);
 
   // Người Chơi Áp Dụng Gợi Ý AI
   const handleApplyAiHint = useCallback(() => {

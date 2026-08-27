@@ -215,5 +215,18 @@ export const ECONOMY_CONSTANTS = {
     { amount: 50_000, label: 'Vực Dậy', desc: 'Vốn đánh bàn trung cấp' },
     { amount: 100_000, label: 'Đại Gia', desc: 'Vốn chiến bàn lớn' },
     { amount: 250_000, label: 'Thần Bài', desc: 'Tất tay phục thù' }
-  ]
+  ],
+
+  /** Điểm Elo bị phạt khi thoát game / F5 giữa trận */
+  F5_DISCONNECT_ELO_PENALTY: 30,
+
+  /** Hệ số số lá bài tối đa quy đổi tiền cọc an toàn (26 lá = 2 người chơi x 13 lá) */
+  DEPOSIT_CARD_MULTIPLIER: 26
 } as const;
+
+/**
+ * Tính tiền cọc an toàn yêu cầu cho bàn đấu: 26 * betAmount * choppingMultiplier
+ */
+export function calculateRequiredDeposit(betAmount: number, choppingMultiplier: number = 1): number {
+  return ECONOMY_CONSTANTS.DEPOSIT_CARD_MULTIPLIER * betAmount * (choppingMultiplier || 1);
+}

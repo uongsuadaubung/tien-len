@@ -29,6 +29,21 @@ function getOrCreateWorker(): Worker | null {
   return workerInstance;
 }
 
+function runInlineFallback(tables: TableGroup[], bots: BotEntity[]): WorkerOutputMessage {
+  const startTime = performance.now();
+  const botsMap = new Map<string, BotEntity>();
+  for (const b of bots) {
+    botsMap.set(b.id, b);
+  }
+  const { tableResults, allNews } = simulateAllTablesBatch(tables, botsMap);
+  return {
+    type: 'SIMULATION_COMPLETE',
+    tableResults,
+    highlightNews: allNews,
+    executionTimeMs: Math.round(performance.now() - startTime)
+  };
+}
+
 export async function runEcosystemSimulation(
   tables: TableGroup[],
   bots: BotEntity[]
@@ -36,30 +51,46 @@ export async function runEcosystemSimulation(
   const worker = getOrCreateWorker();
 
   if (!worker) {
-    // Inline Fallback
-    const startTime = performance.now();
-    const botsMap = new Map<string, BotEntity>();
-    for (const b of bots) {
-      botsMap.set(b.id, b);
-    }
-    const { tableResults, allNews } = simulateAllTablesBatch(tables, botsMap);
-    return {
-      type: 'SIMULATION_COMPLETE',
-      tableResults,
-      highlightNews: allNews,
-      executionTimeMs: Math.round(performance.now() - startTime)
-    };
+    return runInlineFallback(tables, bots);
   }
 
   return new Promise((resolve) => {
+    let isSettled = false;
+
+    const cleanup = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      worker.removeEventListener('message', handleMessage);
+      worker.removeEventListener('error', handleError);
+    };
+
     const handleMessage = (event: MessageEvent<WorkerOutputMessage>) => {
-      if (event.data.type === 'SIMULATION_COMPLETE') {
-        worker.removeEventListener('message', handleMessage);
+      if (isSettled) return;
+      if (event.data && event.data.type === 'SIMULATION_COMPLETE') {
+        isSettled = true;
+        cleanup();
         resolve(event.data);
       }
     };
 
+    const handleError = (error: ErrorEvent) => {
+      if (isSettled) return;
+      console.warn('Web Worker gặp sự cố, tự động kích hoạt inline fallback:', error);
+      isSettled = true;
+      cleanup();
+      resolve(runInlineFallback(tables, bots));
+    };
+
+    // Timeout phòng ngừa treo vĩnh viễn (3 giây)
+    const timeoutId = setTimeout(() => {
+      if (isSettled) return;
+      console.warn('Web Worker quá hạn phản hồi (3s timeout), kích hoạt inline fallback.');
+      isSettled = true;
+      cleanup();
+      resolve(runInlineFallback(tables, bots));
+    }, 3000);
+
     worker.addEventListener('message', handleMessage);
+    worker.addEventListener('error', handleError);
 
     const message: WorkerInputMessage = {
       type: 'RUN_SIMULATION',
@@ -67,6 +98,15 @@ export async function runEcosystemSimulation(
       bots
     };
 
-    worker.postMessage(message);
+    try {
+      worker.postMessage(message);
+    } catch (e) {
+      if (!isSettled) {
+        console.warn('Lỗi khi postMessage tới Worker, fallback:', e);
+        isSettled = true;
+        cleanup();
+        resolve(runInlineFallback(tables, bots));
+      }
+    }
   });
 }

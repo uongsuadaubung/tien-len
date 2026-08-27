@@ -10,6 +10,7 @@ import {
 import { BOT_LINEUP_PRESETS } from '../../engine/game-modes';
 import { BOT_PERSONAS, getAllBotConfigs } from '../../ai/bot-factory';
 import { BotConfig } from '../../ai/types';
+import { calculateRequiredDeposit } from '../../engine/constants/economy';
 import { 
   Play, 
   Sliders, 
@@ -96,7 +97,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
   const [activeTab, setActiveTab] = useState<TabType>('MODE_RULES');
   const [activeBotSeatIndex, setActiveBotSeatIndex] = useState<number>(0);
 
-  const depositRequired = 26 * settings.betAmount * choppingMultiplier;
+  const depositRequired = calculateRequiredDeposit(settings.betAmount, choppingMultiplier);
   const isInsufficientCoins = playerCoins < depositRequired;
 
   const handleApplyBotPreset = (presetBotIds: BotPersonaIdTuple) => {

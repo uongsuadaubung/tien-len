@@ -16,6 +16,7 @@ import {
 import { dbGetGameSettings } from '../engine/db/indexed-db';
 import { GameRulesBuilder } from '../engine/types';
 import { calculateAdaptiveQuickBet } from '../engine/economy';
+import { ECONOMY_CONSTANTS } from '../engine/constants/economy';
 import { matchBotsForPlayerTable } from '../engine/ecosystem/matchmaker';
 
 // Stores
@@ -78,9 +79,9 @@ export const App: React.FC = () => {
       if (hydrated.activeSession) {
         clearActiveMatchSession();
         const isQuickOrRanked = hydrated.activeSession.gameType === 'QUICK' || hydrated.activeSession.isRanked;
-        const eloLost = isQuickOrRanked ? 30 : 0;
+        const eloLost = isQuickOrRanked ? ECONOMY_CONSTANTS.F5_DISCONNECT_ELO_PENALTY : 0;
         const depositLost = hydrated.activeSession.depositAmount || 0;
-        const nextElo = isQuickOrRanked ? Math.max(0, currentProfile.elo - 30) : currentProfile.elo;
+        const nextElo = isQuickOrRanked ? Math.max(0, currentProfile.elo - ECONOMY_CONSTANTS.F5_DISCONNECT_ELO_PENALTY) : currentProfile.elo;
 
         const updatedProfile = {
           ...currentProfile,

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { GameSettlementRule } from '../../engine/types';
 import { calculateAdaptiveQuickBet } from '../../engine/economy';
+import { calculateRequiredDeposit } from '../../engine/constants/economy';
 import { Play, Sliders } from 'lucide-react';
 import { TableRulesConfigPanel, TableConfigState } from './TableRulesConfigPanel';
 import { Modal, Button } from '../primitives';
@@ -44,7 +45,7 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
   });
 
   const currentMultiplier = config.choppingMultiplier || 1;
-  const depositRequired = 26 * config.betAmount * currentMultiplier;
+  const depositRequired = calculateRequiredDeposit(config.betAmount, currentMultiplier);
   const isInsufficientCoins = playerCoins < depositRequired;
 
   const handleConfigChange = (updated: Partial<TableConfigState>) => {

@@ -17,7 +17,6 @@ interface PlayerHandViewProps {
   onPlaySelectedCards: () => void;
   onPassTurn: () => void;
   onAutoSort: () => void;
-  onGetAiHint?: () => void;
   onQuickSelect?: () => void;
   canQuickSelect?: boolean;
   quickSelectCandidatesCount?: number;
@@ -27,7 +26,6 @@ interface PlayerHandViewProps {
   isLeader: boolean;
   isDealing?: boolean;
   dealtCardsCount?: number;
-  aiHintEnabled?: boolean;
   isFirstMoveOfGame?: boolean;
   sortMode?: HandSortMode;
   variantIndex?: number;
@@ -41,7 +39,6 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
   onPlaySelectedCards,
   onPassTurn,
   onAutoSort,
-  onGetAiHint: _onGetAiHint,
   onQuickSelect,
   canQuickSelect = true,
   quickSelectCandidatesCount = 0,
@@ -51,7 +48,6 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
   isLeader,
   isDealing = false,
   dealtCardsCount,
-  aiHintEnabled: _aiHintEnabled = false,
   isFirstMoveOfGame = false,
   sortMode = 'NATURAL',
   variantIndex = 0
