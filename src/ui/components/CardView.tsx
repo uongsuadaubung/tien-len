@@ -46,21 +46,21 @@ export const CardView: React.FC<CardViewProps> = ({
   }[size];
 
   const rankTextSizes = {
-    xs: 'text-[8px] sm:text-[9px] font-bold leading-none tracking-tighter',
-    sm: 'text-xs font-bold tracking-tight',
-    table: 'text-xs sm:text-sm font-bold leading-tight tracking-tight',
-    mobile: 'text-sm sm:text-base font-bold leading-tight tracking-tight',
-    md: 'text-sm sm:text-base font-bold tracking-tight',
-    lg: 'text-lg font-bold tracking-tight'
+    xs: 'text-[8px] sm:text-[9px] font-bold leading-none',
+    sm: 'text-xs font-bold',
+    table: 'text-xs sm:text-sm font-bold leading-tight',
+    mobile: 'text-sm sm:text-base font-bold leading-tight',
+    md: 'text-sm sm:text-base font-bold',
+    lg: 'text-lg font-bold'
   }[size];
 
   const miniSuitSizes = {
-    xs: 'text-[6px] sm:text-[7px] leading-none',
-    sm: 'text-[8px] sm:text-[9px]',
-    table: 'text-[8px] sm:text-[9px]',
-    mobile: 'text-[9px] sm:text-[10px]',
-    md: 'text-xs',
-    lg: 'text-sm'
+    xs: 'text-[6px] sm:text-[7px] font-normal leading-none',
+    sm: 'text-[8px] sm:text-[9px] font-normal',
+    table: 'text-[8px] sm:text-[9px] font-normal',
+    mobile: 'text-[9px] sm:text-[10px] font-normal',
+    md: 'text-xs font-normal',
+    lg: 'text-sm font-normal'
   }[size];
 
   const colorClass = isRed ? 'text-red-600' : 'text-slate-900';
@@ -86,7 +86,7 @@ export const CardView: React.FC<CardViewProps> = ({
       {/* 2. CHÍNH GIỮA LÁ BÀI: BIỂU TƯỢNG CHẤT TO RÕ SẮC NÉT */}
       <div className="card-center-suit">
         <span
-          className={`${centerIconSizes} font-bold ${colorClass} filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.1)]`}
+          className={`${centerIconSizes} font-normal ${colorClass} filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.1)]`}
         >
           {suitSym}
         </span>
@@ -126,18 +126,18 @@ export const MiniCardView: React.FC<{ card: Card; className?: string }> = ({ car
       {/* Góc trên */}
       <div className={`flex items-center gap-0.5 leading-none ${colorClass}`}>
         <span className="text-[9px] font-bold">{rankStr}</span>
-        <span className="text-[7px]">{suitSym}</span>
+        <span className="text-[7px] font-normal">{suitSym}</span>
       </div>
 
       {/* Biểu tượng chất chính giữa */}
-      <div className={`self-center text-xs font-bold leading-none ${colorClass} opacity-90`}>
+      <div className={`self-center text-xs font-normal leading-none ${colorClass} opacity-90`}>
         {suitSym}
       </div>
 
       {/* Góc dưới đảo ngược */}
       <div className={`flex items-center gap-0.5 leading-none self-end rotate-180 ${colorClass}`}>
         <span className="text-[9px] font-bold">{rankStr}</span>
-        <span className="text-[7px]">{suitSym}</span>
+        <span className="text-[7px] font-normal">{suitSym}</span>
       </div>
     </div>
   );

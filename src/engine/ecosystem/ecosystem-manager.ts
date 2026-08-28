@@ -17,6 +17,7 @@ import {
   findUnderfilledTier,
   draftBotForTier
 } from './bot-generator';
+import { sanitizeAvatar, isValidAvatar } from '../../ai/bot-factory';
 import { 
   matchBotsForPlayerTable, 
   matchSimulatedTables 
@@ -72,7 +73,12 @@ class EcosystemManager {
         const activeBots = storedBots.filter(b => b.status === 'ACTIVE' && b.coins >= ECOSYSTEM_CONSTANTS.BANKRUPTCY_THRESHOLD);
         
         this.activeBotsMap.clear();
+        let hasChanges = false;
         for (const b of activeBots) {
+          if (!isValidAvatar(b.avatar)) {
+            b.avatar = sanitizeAvatar(b.avatar, b.elo);
+            hasChanges = true;
+          }
           this.activeBotsMap.set(b.id, b);
         }
 
@@ -81,8 +87,6 @@ class EcosystemManager {
             .map(b => b.name)
             .filter((n): n is string => Boolean(n))
         );
-
-        let hasChanges = false;
 
         // Bù đắp cho đủ 200 Bot theo thứ tự ưu tiên từ Tier 9 Boss xuống Tier 1
         while (this.activeBotsMap.size < ECOSYSTEM_CONSTANTS.MAX_BOT_COUNT) {

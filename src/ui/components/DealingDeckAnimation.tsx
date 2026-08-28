@@ -258,20 +258,20 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
       </div>
 
       {/* Nút Bỏ qua Chia Bài (Skip Deal) */}
-      <div className="absolute -bottom-8 pointer-events-auto z-50">
+      <div className="absolute -bottom-9 left-1/2 -translate-x-1/2 pointer-events-auto z-50 whitespace-nowrap">
         <button
           onClick={handleSkip}
-          className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[#182030] hover:bg-[#222c42] text-[#f3e5ab] border border-[#d4af37]/50 text-xs font-black shadow-xl transition-all duration-150 hover:scale-105 cursor-pointer"
+          className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1 rounded-full bg-[#101726]/90 hover:bg-[#1a233a] active:scale-95 text-[#f3e5ab] border border-[#d4af37]/45 hover:border-[#d4af37] text-[11px] font-bold shadow-lg shadow-black/40 transition-all duration-150 cursor-pointer backdrop-blur-md"
         >
-          <FastForward className="w-4 h-4 text-[#d4af37]" />
-          <span>Bỏ qua ⏭</span>
+          <FastForward className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
+          <span className="leading-none select-none">Bỏ qua</span>
         </button>
       </div>
 
       {/* Trạng thái chia bài */}
-      <div className="absolute -top-8 bg-[#121724] px-4 py-1 rounded-full border border-[#d4af37]/40 text-[#f3e5ab] text-xs font-extrabold flex items-center gap-1.5 shadow-md">
-        <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
-        <span>{isShuffling ? 'Đang xào bài...' : `Đang chia bài ${actualPlayerCount} người...`}</span>
+      <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#101726]/90 px-3.5 py-1 rounded-full border border-[#d4af37]/35 text-[#f3e5ab] text-[11px] font-bold flex items-center gap-1.5 shadow-lg backdrop-blur-md">
+        <Sparkles className="w-3 h-3 text-[#d4af37] shrink-0" />
+        <span className="leading-none select-none">{isShuffling ? 'Đang xào bài...' : `Đang chia bài ${actualPlayerCount} người...`}</span>
       </div>
     </div>
   );

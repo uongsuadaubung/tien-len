@@ -13,7 +13,7 @@ import {
   calculateTraditionalSettlement 
 } from '../economy';
 import { calculateEloDelta, matchmakeRankedOpponents } from '../elo';
-import { generateRandomBotConfig, getBotConfig, getRandomBotConfigsForTable, generateRealisticBotBankroll } from '../../ai/bot-factory';
+import { generateRandomBotConfig, getBotConfig, getRandomBotConfigsForTable, generateRealisticBotBankroll, sanitizeAvatar } from '../../ai/bot-factory';
 import { BotConfig } from '../../ai/types';
 import { CampaignChapter } from '../campaign';
 import { PlayerProfile } from '../storage';
@@ -111,15 +111,19 @@ function buildInitialPlayers(
       botAvatar = botAvatar || dyn.avatar;
     }
 
+    botAvatar = sanitizeAvatar(botAvatar, i + 1);
+    config.name = botName;
+    config.avatar = botAvatar;
+
     usedNames.push(botName || `Bot ${i + 1}`);
-    usedAvatars.push(botAvatar || '🤖');
+    usedAvatars.push(botAvatar);
 
     const botInitialBankroll = generateRealisticBotBankroll(config, betAmount);
 
     players.push(
       createBotPlayer(`p${i + 1}`, personaId || null, {
         name: botName || `Bot ${i + 1}`,
-        avatar: botAvatar || '🤖',
+        avatar: botAvatar,
         score: botInitialBankroll
       })
     );

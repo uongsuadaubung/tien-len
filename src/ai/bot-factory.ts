@@ -542,19 +542,70 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   }
 };
 
+export const GLOBAL_AVATARS_BY_TIER: Record<number, string[]> = {
+  1: ['🤠', '👶', '🧒', '🧢', '🎣', '🎯'],
+  2: ['🧔', '👨', '👩', '👧', '🧓', '🥋'],
+  3: ['😎', '🧐', '🕵️‍♂️', '🏹', '💼', '🎲'],
+  4: ['🥷', '🧙‍♂️', '🦁', '🐺', '🦊', '⚡'],
+  5: ['🤴', '👸', '👑', '🦅', '🦈', '🔥'],
+  6: ['💎', '🏆', '🐉', '🐯', '🦍', '🌪️'],
+  7: ['🦹‍♂️', '🤺', '🦄', '🐍', '🪙', '💰'],
+  8: ['🃏', '💥', '✨', '🌟', '🛡️', '⚔️'],
+  9: ['🤖', '🧠', '👽', '🔮', '🪐', '💫']
+};
+
+export const GLOBAL_AVATARS: readonly string[] = [
+  '🤠', '🤴', '👸', '🥷', '🧙‍♂️', '😎', '🧐', '🤑', '👨‍💼', '👩‍💼',
+  '🦹‍♂️', '🕵️‍♂️', '🐉', '🐯', '🦁', '🐺', '🦊', '🦅', '🐼', '🦍',
+  '🦈', '🐍', '🐗', '🦄', '💎', '👑', '🎩', '🃏', '🎲', '🏆',
+  '🔥', '⚡', '🍀', '🪙', '💰', '🎯', '🤖', '🧠', '🛡️', '⚔️'
+];
+
+/**
+ * Kiểm tra xem một avatar có hợp lệ hay không (không bị rỗng hoặc vỡ ký tự Unicode surrogate)
+ */
+export function isValidAvatar(avatar: unknown): avatar is string {
+  if (typeof avatar !== 'string') return false;
+  const trimmed = avatar.trim();
+  if (trimmed === '') return false;
+  // Kiểm tra nếu chỉ chứa 1 lone surrogate character (0xD800 - 0xDFFF)
+  if (trimmed.length === 1) {
+    const code = trimmed.charCodeAt(0);
+    if (code >= 0xd800 && code <= 0xdfff) return false;
+  }
+  return true;
+}
+
+/**
+ * Chuẩn hóa avatar, nếu rỗng hoặc lỗi surrogate thì gán avatar ngẫu nhiên hợp lệ
+ */
+export function sanitizeAvatar(avatar: unknown, fallbackSeed: number = 0): string {
+  if (isValidAvatar(avatar)) {
+    return avatar;
+  }
+  const safeIdx = Math.abs(fallbackSeed) % GLOBAL_AVATARS.length;
+  return GLOBAL_AVATARS[safeIdx] || '🤖';
+}
+
 export const BOT_PERSONAS: Record<string, BotConfig> = Object.fromEntries(
-  Object.entries(RAW_BOT_PERSONAS).map(([k, v]) => [
-    k,
-    {
-      name: null,
-      avatar: null,
-      useMinimaxEndgame: false,
-      useBayesianInference: false,
-      useNashEquilibrium: false,
-      useDynamicRepartitioning: false,
-      ...v
-    }
-  ])
+  Object.entries(RAW_BOT_PERSONAS).map(([k, v]) => {
+    const tierNum = getTierFromElo(v.elo || 1000).tierNum;
+    const tierPool = GLOBAL_AVATARS_BY_TIER[tierNum] || GLOBAL_AVATARS;
+    const defaultAvatar = tierPool[0] || '🤖';
+
+    return [
+      k,
+      {
+        name: null,
+        avatar: defaultAvatar,
+        useMinimaxEndgame: false,
+        useBayesianInference: false,
+        useNashEquilibrium: false,
+        useDynamicRepartitioning: false,
+        ...v
+      }
+    ];
+  })
 );
 
 export function getBotConfig(id: string, customOverrides?: Partial<BotConfig>): BotConfig {
@@ -657,12 +708,6 @@ export const GLOBAL_NICKNAMES_BY_TIER: Record<number, string[]> = {
   8: ['Mythic Legend', 'Endgame King', 'Nash Master', 'Apex Predator', 'Immortal'],
   9: ['Supreme AI', 'Alpha Mind', 'Zero Defeat', 'God of Cards', 'Singularity']
 };
-
-export const GLOBAL_AVATARS = [
-  '🤠', '🧔', '👨', '👩', '👧', '🧒', '👶', '👴', '👵', '🧓', 
-  '🕶️', '🎩', '👑', '🧠', '💼', '🏹', '🎣', '🤖', '🎭', '🥋', 
-  '🎲', '⚡', '🌪️', '🔥', '🛡️', '⚔️', '💎', '👓'
-];
 
 export const TIER_BASE_PERSONAS: Record<number, (keyof typeof BOT_PERSONAS)[]> = {
   1: ['BOT_ELO_700', 'BOT_ELO_750'],

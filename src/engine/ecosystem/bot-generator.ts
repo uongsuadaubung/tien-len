@@ -3,6 +3,8 @@ import {
   GLOBAL_BOT_NAMES, 
   GLOBAL_NICKNAMES_BY_TIER, 
   GLOBAL_AVATARS,
+  GLOBAL_AVATARS_BY_TIER,
+  sanitizeAvatar,
   TIER_BASE_PERSONAS 
 } from '../../ai/bot-factory';
 import { BotConfig } from '../../ai/types';
@@ -100,8 +102,9 @@ export function createBotEntityFromDNA(
   const nickname = nicknames[index % nicknames.length];
   const name = `${rawName} (${nickname})`;
 
-  const avatars = GLOBAL_AVATARS[tierNum] || GLOBAL_AVATARS[2];
-  const avatar = avatars[index % avatars.length];
+  const avatarPool = GLOBAL_AVATARS_BY_TIER[tierNum] || GLOBAL_AVATARS;
+  const rawAvatar = avatarPool[index % avatarPool.length] || GLOBAL_AVATARS[index % GLOBAL_AVATARS.length] || '🤖';
+  const avatar = sanitizeAvatar(rawAvatar, index + tierNum);
 
   // 2. Tính Elo với Jitter
   let minElo = 600;

@@ -250,7 +250,7 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
                         </div>
 
                         <div className="w-9 h-9 rounded-xl bg-[var(--bg-input)] border border-[var(--border-container)] flex items-center justify-center text-xl shrink-0">
-                          {item.avatar || '🤖'}
+                          <span className="emoji-avatar">{item.avatar || '🤖'}</span>
                         </div>
 
                         <div className="min-w-0">
@@ -359,7 +359,7 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
                     }`}
                   >
                     <div className="w-10 h-10 rounded-xl bg-[var(--bg-input)] border border-[var(--border-container)] flex items-center justify-center text-xl shrink-0 shadow-inner">
-                      {news.avatar || (isBankruptcy ? '🚨' : isStreak ? '🔥' : isBigWin ? '💰' : '🎉')}
+                      <span className="emoji-avatar">{news.avatar || (isBankruptcy ? '🚨' : isStreak ? '🔥' : isBigWin ? '💰' : '🎉')}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold leading-relaxed text-[var(--text-primary)]">{news.message}</p>
