@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { GameEngine } from '../../../engine/game';
 import { isValidMove } from '../../../engine/validator';
 import { getBotConfig } from '../../../ai/bot-factory';
@@ -9,6 +9,7 @@ import { PlayerHandView } from '../../components/PlayerHandView';
 import { BotReasoningHUD } from '../../web/components/BotReasoningHUD';
 import { MobileMatchHUDDrawer } from '../components/MobileMatchHUDDrawer';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { lockToLandscape } from '../../utils/fullscreen';
 import { getSortedQuickSelectCandidates, getNextQuickSelectCards } from '../../../engine/quick-response-finder';
 import { soundManager } from '../../audio/sound-manager';
 
@@ -153,6 +154,11 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
     }
   }, [isP0Turn, p0, selectedCardIds, setSelectedCardIds]);
 
+  // Tự động yêu cầu xoay ngang & toàn màn hình khi vào bàn đấu
+  useEffect(() => {
+    lockToLandscape();
+  }, []);
+
   // Phân bổ ghế đối thủ
   const isSolo1v1 = playerCount === 2;
   const topBot = isSolo1v1 ? p1 : (playerCount >= 3 ? p2 : null);
@@ -165,26 +171,39 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[radial-gradient(ellipse_at_center,#141926_0%,#090c12_100%)] flex flex-col justify-between select-none">
       
-      {/* OVERLAY NHẮC XOAY NGANG MÀN HÌNH NẾU ĐANG CẦM DỌC TRÊN MOBILE */}
+      {/* OVERLAY BẮT BUỘC XOAY NGANG MÀN HÌNH NẾU ĐANG CẦM DỌC TRÊN MOBILE */}
       {isPortrait && (
-        <div className="fixed inset-0 z-50 bg-[#0a0d14]/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center text-white animate-fade-in select-none">
-          <div className="w-20 h-20 rounded-3xl bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-amber-400 mb-5 shadow-2xl animate-pulse">
-            <RotateCw className="w-10 h-10" />
+        <div className="fixed inset-0 z-[9999] bg-[#070a10] flex flex-col items-center justify-center p-6 text-center text-white animate-fade-in select-none">
+          <div className="w-24 h-24 rounded-3xl bg-amber-500/15 border-2 border-[var(--color-gold)] flex items-center justify-center text-[var(--color-gold)] mb-5 shadow-2xl animate-pulse">
+            <RotateCw className="w-12 h-12 animate-spin duration-3000" />
           </div>
-          <h2 className="text-xl font-black text-[var(--color-gold)] mb-2 uppercase tracking-wide">
-            Xoay Ngang Thiết Bị
+          <h2 className="text-xl sm:text-2xl font-black text-[var(--color-gold)] mb-2 uppercase tracking-wider">
+            Bắt Buộc Xoay Ngang Thiết Bị
           </h2>
-          <p className="text-xs sm:text-sm text-zinc-300 max-w-xs leading-relaxed mb-6">
-            Bàn đấu Tiến Lên Miền Nam được tối ưu hoàn hảo nhất ở chế độ màn hình ngang (Landscape). Vui lòng xoay ngang điện thoại để có trải nghiệm đánh bài tốt nhất!
+          <p className="text-xs sm:text-sm text-zinc-300 max-w-sm leading-relaxed mb-6">
+            Bàn đấu Tiến Lên Miền Nam yêu cầu góc nhìn màn hình ngang (Landscape) để hiển thị trọn vẹn 4 người chơi và tay bài. Vui lòng xoay ngang điện thoại để mở khóa bàn chơi!
           </p>
-          <button
-            onClick={() => {
-              useGameStore.setState({ currentScreen: 'LOBBY' });
-            }}
-            className="px-5 py-2.5 rounded-xl bg-white/10 border border-white/20 text-xs font-bold text-zinc-300 hover:text-white"
-          >
-            Quay Về Sảnh
-          </button>
+          
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full max-w-xs">
+            <button
+              onClick={async () => {
+                await lockToLandscape();
+              }}
+              className="w-full py-3 px-5 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-black font-black text-xs uppercase tracking-wider shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>📱</span>
+              <span>Xoay Ngang & Toàn Màn Hình</span>
+            </button>
+
+            <button
+              onClick={() => {
+                useGameStore.setState({ currentScreen: 'LOBBY' });
+              }}
+              className="w-full py-2.5 px-4 rounded-xl bg-white/5 border border-white/15 text-xs font-semibold text-zinc-400 hover:text-white active:scale-95 transition-colors cursor-pointer"
+            >
+              Quay Về Sảnh
+            </button>
+          </div>
         </div>
       )}
 

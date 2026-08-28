@@ -17,6 +17,13 @@ declare global {
     mozRequestFullScreen?: () => Promise<void>;
     msRequestFullscreen?: () => Promise<void>;
   }
+  interface Screen {
+    mozOrientation?: string;
+    msOrientation?: string;
+  }
+  interface ScreenOrientation {
+    lock?: (orientation: 'landscape' | 'portrait' | 'landscape-primary' | 'landscape-secondary' | 'portrait-primary' | 'portrait-secondary' | 'any') => Promise<void>;
+  }
 }
 
 /**
@@ -103,4 +110,27 @@ export async function toggleFullScreen(): Promise<boolean> {
 export function isTouchDevice(): boolean {
   if (typeof window === 'undefined') return false;
   return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+}
+
+/**
+ * Khóa cứng thiết bị sang chế độ màn hình ngang (Landscape)
+ * Kết hợp Fullscreen + Screen Orientation API
+ */
+export async function lockToLandscape(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    // 1. Yêu cầu Fullscreen trước (bắt buộc đối với Screen Orientation API trên trình duyệt di động)
+    await requestFullScreen();
+
+    // 2. Khóa màn hình ngang qua Screen Orientation API
+    const orientation = window.screen?.orientation;
+    if (orientation?.lock) {
+      await orientation.lock('landscape');
+      return true;
+    }
+  } catch (err) {
+    console.warn('[Orientation] Không thể tự động khóa xoay ngang:', err);
+  }
+  return false;
 }
