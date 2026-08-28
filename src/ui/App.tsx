@@ -32,6 +32,7 @@ export const App: React.FC = () => {
   const { openModal, setF5PenaltyData } = useModalStore();
   const { profile, setProfile, hydrateProfile } = useUserStore();
   const [isHydrated, setIsHydrated] = useState(false);
+  const [hasEnteredGame, setHasEnteredGame] = useState(false);
   const { isMobile } = useIsMobile();
   const {
     currentScreen,
@@ -55,9 +56,9 @@ export const App: React.FC = () => {
     handleRequestReturnToLobby
   } = useGameMatchLoop();
 
-  // Khởi động nạp dữ liệu từ Dexie IndexedDB thuần túy (Tối thiểu 3s)
+  // Khởi động nạp dữ liệu từ Dexie IndexedDB thuần túy (Tối thiểu 2s)
   useEffect(() => {
-    const minDelay = new Promise(resolve => setTimeout(resolve, 3000));
+    const minDelay = new Promise(resolve => setTimeout(resolve, 2000));
 
     Promise.all([
       hydrateStorageFromIndexedDB(),
@@ -316,9 +317,15 @@ export const App: React.FC = () => {
     handleRequestReturnToLobby();
   };
 
-  // Màn hình Loading Gate khởi động (Tối thiểu 3s)
-  if (!isHydrated) {
-    return <SplashScreen />;
+  // Màn hình Loading Gate khởi động (Kích hoạt Xoay Ngang & Âm Thanh tại First-Touch)
+  if (!isHydrated || !hasEnteredGame) {
+    return (
+      <SplashScreen 
+        onStart={() => {
+          setHasEnteredGame(true);
+        }}
+      />
+    );
   }
 
   const appProps = {

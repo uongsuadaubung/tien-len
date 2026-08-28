@@ -22,7 +22,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Badge, Card, Button } from '../../primitives';
-import { isFullScreen, toggleFullScreen } from '../../utils/fullscreen';
+import { isFullScreen, toggleFullScreen, lockToLandscape } from '../../utils/fullscreen';
 
 export interface MobileLobbyScreenProps {
   profile: PlayerProfile;
@@ -172,14 +172,19 @@ export const MobileLobbyScreen: React.FC<MobileLobbyScreenProps> = ({
               </button>
             )}
 
-            {/* Nút Fullscreen */}
+            {/* Nút Fullscreen / Xoay Ngang */}
             <button
               onClick={async () => {
-                const fs = await toggleFullScreen();
-                setIsFullscreenState(fs);
+                if (isFullscreenState) {
+                  await toggleFullScreen();
+                  setIsFullscreenState(false);
+                } else {
+                  await lockToLandscape();
+                  setIsFullscreenState(isFullScreen());
+                }
               }}
               className="w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--text-secondary)] active:scale-95 transition-transform cursor-pointer"
-              title="Toàn màn hình"
+              title="Khóa Xoay Ngang & Toàn Màn Hình"
             >
               {isFullscreenState ? <Minimize className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--color-gold)]" /> : <Maximize className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
             </button>

@@ -1,19 +1,24 @@
 import React, { useEffect, useState } from 'react';
+import { lockToLandscape } from '../utils/fullscreen';
+import { soundManager } from '../audio/sound-manager';
 
 interface SplashScreenProps {
   message?: string;
   subMessage?: string;
+  onStart?: () => void;
 }
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({
-  message = 'Đang chuẩn bị vào bàn đấu...',
-  subMessage = 'SỚI BẠC ĐÃ SẴN SÀNG'
+  message = 'Đang nạp dữ liệu bàn đấu...',
+  subMessage = 'SỚI BẠC ĐÃ SẴN SÀNG',
+  onStart
 }) => {
-  const [progress, setProgress] = useState(5);
+  const [progress, setProgress] = useState(10);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     const startTime = Date.now();
-    const duration = 2900; // Hoàn thành 100% trong 2.9 giây
+    const duration = 2500; // Hoàn thành 100% trong 2.5 giây
 
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime;
@@ -21,15 +26,27 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
       setProgress(pct);
       if (pct >= 100) {
         clearInterval(interval);
+        setIsReady(true);
       }
-    }, 30);
+    }, 25);
 
     return () => clearInterval(interval);
   }, []);
 
+  const handleEnterGame = async () => {
+    await lockToLandscape();
+    soundManager.playCardDeal();
+    if (onStart) {
+      onStart();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[var(--bg-table-dark)] text-white select-none">
-      <div className="relative flex flex-col items-center gap-6 p-8 max-w-sm text-center">
+    <div 
+      onClick={isReady ? handleEnterGame : undefined}
+      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[var(--bg-table-dark)] text-white select-none cursor-pointer"
+    >
+      <div className="relative flex flex-col items-center gap-5 p-8 max-w-sm text-center">
         {/* Logo Icon phát sáng */}
         <div className="relative">
           <div className="absolute inset-0 rounded-3xl bg-amber-500/20 blur-xl animate-pulse" />
@@ -48,23 +65,38 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           </p>
         </div>
 
-        {/* Thanh Tiến Trình Chạy Mượt Mà 3s */}
-        <div className="w-56 flex flex-col gap-1.5 items-center">
-          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden p-0.5 border border-white/10 shadow-inner">
+        {/* Thanh Tiến Trình Chạy Mượt Mà */}
+        <div className="w-60 flex flex-col gap-1.5 items-center">
+          <div className="w-full h-2.5 bg-white/10 rounded-full overflow-hidden p-0.5 border border-white/10 shadow-inner">
             <div 
               className="h-full bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-400 rounded-full transition-all duration-75 ease-out shadow-[0_0_12px_rgba(245,158,11,0.5)]"
               style={{ width: `${progress}%` }}
             />
           </div>
           <div className="flex justify-between w-full text-[10px] text-amber-400/80 font-mono font-bold tracking-wider">
-            <span>KHỞI ĐỘNG</span>
+            <span>{isReady ? 'HOÀN TẤT' : 'KHỞI ĐỘNG'}</span>
             <span>{progress}%</span>
           </div>
         </div>
 
-        <span className="text-[10px] text-amber-400/60 font-mono tracking-widest">
-          {subMessage}
-        </span>
+        {/* Nút Chạm Để Vào Game (Kích hoạt Xoay Ngang & Audio ngay từ đầu) */}
+        {isReady ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleEnterGame();
+            }}
+            className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-400 text-black font-black text-xs sm:text-sm uppercase tracking-widest shadow-[0_0_25px_rgba(245,158,11,0.6)] animate-pulse active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer mt-1"
+          >
+            <span>♠</span>
+            <span>CHẠM ĐỂ VÀO GAME</span>
+            <span>♠</span>
+          </button>
+        ) : (
+          <span className="text-[10px] text-amber-400/60 font-mono tracking-widest">
+            {subMessage}
+          </span>
+        )}
       </div>
     </div>
   );
