@@ -15,13 +15,15 @@ interface TableCenterProps {
     chainCount?: number;
   } | null;
   isDealing?: boolean;
+  cardSize?: 'md' | 'table';
 }
 
 export const TableCenter: React.FC<TableCenterProps> = ({
   currentMove,
   isLeadMove,
   chopNotification,
-  isDealing = false
+  isDealing = false,
+  cardSize = 'md'
 }) => {
   const getSlideAnimationClass = (playerId?: string) => {
     switch (playerId) {
@@ -37,8 +39,10 @@ export const TableCenter: React.FC<TableCenterProps> = ({
     }
   };
 
+  const isMobileSize = cardSize === 'table';
+
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-[160px] w-full select-none">
+    <div className={`relative flex flex-col items-center justify-center ${isMobileSize ? 'min-h-[100px]' : 'min-h-[160px]'} w-full select-none overflow-visible`}>
       {/* Thông báo Chặt Heo / Chặt Hàng nổ bùng */}
       {chopNotification?.visible && (
         <div className={`absolute -top-12 z-50 px-6 py-2 rounded-full flex items-center gap-2 text-white font-black text-lg shadow-2xl ${
@@ -56,17 +60,17 @@ export const TableCenter: React.FC<TableCenterProps> = ({
 
       {/* Hiển thị tổ hợp bài trên bàn với hiệu ứng trượt bài */}
       {!isDealing && currentMove && currentMove.combination.cards.length > 0 ? (
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center overflow-visible">
           <div
             key={`${currentMove.playerId}-${currentMove.timestamp}-${currentMove.combination.cards.map(c => c.id).join('-')}`}
-            className={`flex items-center justify-center -space-x-8 hover:space-x-1 transition-all duration-200 ${getSlideAnimationClass(currentMove.playerId)}`}
+            className={`flex items-center justify-center ${isMobileSize ? '-space-x-5 sm:-space-x-6' : '-space-x-8 hover:space-x-1'} transition-all duration-200 overflow-visible ${getSlideAnimationClass(currentMove.playerId)}`}
           >
             {currentMove.combination.cards.map((card, idx) => (
               <CardView
                 key={card.id}
                 card={card}
                 disabled
-                size="md"
+                size={isMobileSize ? 'table' : 'md'}
                 style={{
                   transform: `rotate(${(idx - (currentMove.combination.cards.length - 1) / 2) * 4}deg)`,
                   zIndex: 10 + idx
@@ -74,8 +78,8 @@ export const TableCenter: React.FC<TableCenterProps> = ({
               />
             ))}
           </div>
-          <div className="mt-2 bg-[#121724]/95 px-3 py-1 rounded-full border border-[#d4af37]/35 text-[#f3e5ab] text-xs font-semibold flex items-center gap-1.5 shadow-md">
-            <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
+          <div className={`mt-1.5 bg-[#0e1422] px-2.5 py-0.5 rounded-full border border-amber-400/60 text-amber-300 ${isMobileSize ? 'text-[10px]' : 'text-xs'} font-bold flex items-center gap-1.5 shadow-xl`}>
+            <Sparkles className="w-3 h-3 text-amber-300" />
             <span>
               {currentMove.combination.type === 'SINGLE' && 'Lá Rác'}
               {currentMove.combination.type === 'PAIR' && 'Đôi'}
@@ -88,11 +92,11 @@ export const TableCenter: React.FC<TableCenterProps> = ({
           </div>
         </div>
       ) : !isDealing ? (
-        <div className="flex flex-col items-center justify-center text-center p-4 rounded-xl bg-[#121724]/90 border border-[#d4af37]/25 shadow-md">
-          <div className="text-[#f3e5ab] font-extrabold text-sm tracking-wider uppercase">
+        <div className={`flex flex-col items-center justify-center text-center ${isMobileSize ? 'p-2 rounded-lg' : 'p-4 rounded-xl'} bg-[#121724] border border-[#d4af37]/25 shadow-md`}>
+          <div className={`text-[#f3e5ab] font-extrabold ${isMobileSize ? 'text-xs' : 'text-sm'} tracking-wider uppercase`}>
             {isLeadMove ? 'Vòng Mới Bắt Đầu' : 'Bàn Đang Trống'}
           </div>
-          <span className="text-slate-400 text-xs mt-1">
+          <span className={`text-slate-400 ${isMobileSize ? 'text-[10px]' : 'text-xs'} mt-0.5`}>
             {isLeadMove ? 'Người cầm Cái hãy đánh bộ bài mở màn' : 'Chờ người chơi ra bài...'}
           </span>
         </div>

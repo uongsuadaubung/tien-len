@@ -10,7 +10,7 @@ interface CardViewProps {
   disabled?: boolean;
   style?: React.CSSProperties;
   className?: string;
-  size?: 'xs' | 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'mobile' | 'table';
 }
 
 export const CardView: React.FC<CardViewProps> = ({
@@ -29,28 +29,36 @@ export const CardView: React.FC<CardViewProps> = ({
 
   const sizeClasses = {
     xs: 'w-6 h-9 sm:w-7 sm:h-10 text-[8px] rounded-[4px] p-0.5',
-    sm: 'w-12 h-18 text-xs',
-    md: 'w-[74px] h-[106px] text-sm',
-    lg: 'w-24 h-34 text-base'
+    sm: 'w-12 h-18 text-xs rounded-lg',
+    table: 'w-[50px] h-[72px] sm:w-[54px] sm:h-[78px] text-xs rounded-xl',
+    mobile: 'w-[54px] h-[78px] sm:w-[58px] sm:h-[84px] text-sm rounded-xl',
+    md: 'w-[74px] h-[106px] text-sm rounded-xl',
+    lg: 'w-24 h-34 text-base rounded-2xl'
   }[size];
 
   const centerIconSizes = {
     xs: 'text-xs sm:text-sm',
-    sm: 'text-2xl',
+    sm: 'text-xl',
+    table: 'text-lg sm:text-xl',
+    mobile: 'text-xl sm:text-2xl',
     md: 'text-4xl',
     lg: 'text-5xl'
   }[size];
 
   const rankTextSizes = {
     xs: 'text-[8px] sm:text-[9px] font-black leading-none',
-    sm: 'text-xs',
-    md: 'text-sm sm:text-base',
-    lg: 'text-lg'
+    sm: 'text-xs font-black',
+    table: 'text-xs sm:text-sm font-black leading-tight',
+    mobile: 'text-sm sm:text-base font-black leading-tight',
+    md: 'text-sm sm:text-base font-black',
+    lg: 'text-lg font-black'
   }[size];
 
   const miniSuitSizes = {
     xs: 'text-[6px] sm:text-[7px] leading-none',
-    sm: 'text-[9px]',
+    sm: 'text-[8px] sm:text-[9px]',
+    table: 'text-[8px] sm:text-[9px]',
+    mobile: 'text-[9px] sm:text-[10px]',
     md: 'text-xs',
     lg: 'text-sm'
   }[size];

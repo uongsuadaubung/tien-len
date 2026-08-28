@@ -25,10 +25,8 @@ export interface WebGameTableScreenProps {
   onPlaySelectedCards: () => void;
   onPassTurn: () => void;
   onAutoSort: () => void;
-  onApplyAiHint: () => void;
   onDealCard: (playerIndex: number, currentCardCount: number) => void;
   onDealComplete: () => void;
-  onResetMatch: () => void;
   onReturnToLobby: () => void;
 }
 
@@ -37,10 +35,8 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
   onPlaySelectedCards,
   onPassTurn,
   onAutoSort,
-  onApplyAiHint,
   onDealCard,
   onDealComplete,
-  onResetMatch,
   onReturnToLobby
 }) => {
   const [isReasoningHudOpen, setIsReasoningHudOpen] = useState<boolean>(true);
@@ -195,7 +191,6 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
         onOpenRules={() => openModal('RULES')}
         onOpenSettings={() => openModal('SETTINGS')}
         onOpenXRay={() => openModal('XRAY')}
-        onResetMatch={onResetMatch}
         onReturnToLobby={onReturnToLobby}
       />
 
@@ -211,7 +206,6 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
         aiHint={activeAiHint}
         isHumanTurn={isP0Turn}
         aiHintEnabled={aiHintEnabled}
-        onApplyHint={onApplyAiHint}
         customBotConfigs={customBotConfigs}
       />
 

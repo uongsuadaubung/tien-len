@@ -362,7 +362,7 @@ export class CampaignModeStrategy implements GameModeStrategy {
       )
       .build();
 
-    const defaultBots = chapter ? chapter.bots : getRandomBotConfigsForTable([1, 2, 3], 3);
+    const defaultBots = chapter ? Array.from(chapter.bots) : getRandomBotConfigsForTable([1, 2, 3], 3);
     const campaignContext: MatchSetupContext = {
       ...context,
       customBotPersonaIds: chapter ? [chapter.bots[0].id, chapter.bots[1].id, chapter.bots[2].id] : null,

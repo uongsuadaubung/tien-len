@@ -45,11 +45,8 @@ export function convertBotConfigToEntity(botConfig: BotConfig, ecosystemBots: Bo
   const tierInfo = getTierFromElo(botConfig.elo);
   return {
     id: botConfig.id || `bot_${botConfig.elo}`,
-    name: botConfig.name || getTierFromElo(botConfig.elo).label || 'Trùm Sòng',
+    name: botConfig.name || tierInfo.label || 'Trùm Sòng',
     avatar: botConfig.avatar || '🤖',
-    tier: tierInfo.tier,
-    tierNum: tierInfo.tierNum,
-    rankBadge: tierInfo.rankBadge,
     elo: botConfig.elo,
     coins: botConfig.elo * 150,
     description: botConfig.description || `Cao Thủ Sới Bạc với mức Elo ${botConfig.elo}.`,
@@ -58,7 +55,6 @@ export function convertBotConfigToEntity(botConfig: BotConfig, ecosystemBots: Bo
       botConfig.useMinimaxEndgame ? 'Minimax AI' : 'Chiến Thuật',
       botConfig.riskAppetite > 0.7 ? 'Liều Lĩnh' : 'Chặt Chẽ'
     ],
-    playStyle: botConfig.riskAppetite > 0.7 ? 'Tấn công dồn dập' : 'Thủ thế gài bẫy',
     title: `Trùm ${tierInfo.label}`,
     status: 'ACTIVE',
     activityStatus: 'IN_MATCH',

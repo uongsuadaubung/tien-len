@@ -8,6 +8,7 @@ import { MobileLuckyWheelView } from '../views/MobileLuckyWheelView';
 import { MobileBankView } from '../views/MobileBankView';
 import { MobileCampaignMapView } from '../views/MobileCampaignMapView';
 import { MobileCustomGameView } from '../views/MobileCustomGameView';
+import { CustomGameModalConfig } from '../../hooks/useCustomGame';
 import { MobileQuickSetupSheet } from '../views/MobileQuickSetupSheet';
 import { QuickSetupConfig } from '../../hooks/useQuickSetup';
 import { MobileSettingsView } from '../views/MobileSettingsView';

@@ -8,8 +8,6 @@ import { DealingDeckAnimation } from '../../components/DealingDeckAnimation';
 import { PlayerHandView } from '../../components/PlayerHandView';
 import { BotReasoningHUD } from '../../web/components/BotReasoningHUD';
 import { MobileMatchHUDDrawer } from '../components/MobileMatchHUDDrawer';
-import { evaluateSelectionFeedback } from '../../../ai/hint-engine';
-import { CardTracker } from '../../../ai/card-tracker';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { getSortedQuickSelectCandidates, getNextQuickSelectCards } from '../../../engine/quick-response-finder';
 import { soundManager } from '../../audio/sound-manager';
@@ -25,11 +23,11 @@ import {
   Settings, 
   Volume2, 
   VolumeX, 
-  RotateCcw, 
   LogOut, 
   Bot, 
   RotateCw,
-  Sparkles
+  Sparkles,
+  BarChart3
 } from 'lucide-react';
 import { Badge } from '../../primitives';
 
@@ -38,10 +36,8 @@ export interface MobileGameTableScreenProps {
   onPlaySelectedCards: () => void;
   onPassTurn: () => void;
   onAutoSort: () => void;
-  onApplyAiHint: () => void;
   onDealCard: (playerIndex: number, currentCardCount: number) => void;
   onDealComplete: () => void;
-  onResetMatch: () => void;
   onReturnToLobby: () => void;
 }
 
@@ -50,10 +46,8 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
   onPlaySelectedCards,
   onPassTurn,
   onAutoSort,
-  onApplyAiHint,
   onDealCard,
   onDealComplete,
-  onResetMatch,
   onReturnToLobby
 }) => {
   const [isMatchHudDrawerOpen, setIsMatchHudDrawerOpen] = useState<boolean>(false);
@@ -123,7 +117,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
     !(engineRef.current?.isFirstMoveOfGame ?? false) &&
     !(engineRef.current?.isRoundLeadMove() ?? true);
 
-  // Danh sách các phương án Chọn Nhanh
+  // Danh sách các phương án Chọn Nhanh (Bắt Bài)
   const quickSelectCandidates = useMemo(() => {
     if (!engineRef.current || !isP0Turn || !p0 || p0.hand.length === 0) return [];
     const engine = engineRef.current;
@@ -136,28 +130,6 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
       prohibitEndingWithTwo: engine.rules.gameFlow.prohibitEndingWithTwo
     });
   }, [isP0Turn, p0, currentMove]);
-
-  // Phản hồi nhận xét chiến thuật thời gian thực của Quân Sư
-  const activeAiHint = useMemo(() => {
-    if (!aiHintEnabled || !isP0Turn || !p0 || !engineRef.current) return currentHint;
-    if (selectedCards.length === 0) return currentHint;
-
-    const engine = engineRef.current;
-    const tracker = new CardTracker(p0.hand, 1.0);
-
-    const feedback = evaluateSelectionFeedback({
-      selectedCards,
-      hand: p0.hand,
-      leadingMove: engine.getLeadingMove(),
-      isFirstMoveOfGame: engine.isFirstMoveOfGame,
-      isLeadMove: engine.isRoundLeadMove(),
-      tracker,
-      optimalHint: currentHint,
-      prohibitEndingWithTwo: engine.rules.gameFlow.prohibitEndingWithTwo
-    });
-
-    return feedback || currentHint;
-  }, [aiHintEnabled, isP0Turn, p0, selectedCards, currentHint]);
 
   const canQuickSelect = isP0Turn && !isDealing && quickSelectCandidates.length > 0;
 
@@ -218,13 +190,13 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
         </div>
       )}
 
-      {/* 1. HEADER BAR TINH GỌN CHO MOBILE (SAFE AREA TOP/LEFT/RIGHT) */}
-      <header className="relative z-30 w-full pl-[max(env(safe-area-inset-left),0.75rem)] pr-[max(env(safe-area-inset-right),0.75rem)] pt-[max(env(safe-area-inset-top),0.375rem)] pb-1.5 bg-[#0e131d]/90 backdrop-blur-md border-b border-white/10 flex items-center justify-between shadow-md shrink-0">
+      {/* 1. HEADER BAR TINH GỌN CHO MOBILE (SAFE AREA TOP/LEFT/RIGHT, NỀN ĐẶC #0e1422) */}
+      <header className="relative z-30 w-full pl-[max(env(safe-area-inset-left),1rem)] pr-[max(env(safe-area-inset-right),1rem)] pt-[max(env(safe-area-inset-top),0.375rem)] pb-1.5 bg-[#0e1422] border-b border-[#222c3d] flex items-center justify-between shadow-md shrink-0">
         {/* Nhóm trái: Ván đấu & Tiền cược */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2 sm:gap-2.5">
           <button
             onClick={() => setIsMatchHudDrawerOpen(true)}
-            className="flex items-center gap-1 bg-amber-500/20 border border-amber-400/50 text-amber-300 px-2 py-1 rounded-lg text-xs font-black shadow-sm active:scale-95 transition-transform"
+            className="flex items-center gap-1.5 bg-[#281e08] border border-amber-500/50 text-amber-300 px-2.5 py-1 rounded-xl text-[11px] font-black shadow-sm active:scale-95 transition-transform"
           >
             <Trophy className="w-3.5 h-3.5" />
             <span>#{gameNumber}</span>
@@ -235,23 +207,24 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
           </Badge>
         </div>
 
-        {/* Nhóm giữa: Nút mở nhanh Bảng Điểm & Quân Sư */}
-        <div className="flex items-center gap-1">
+        {/* Nhóm giữa: Nút mở nhanh Chỉ Số (Match HUD) */}
+        <div className="flex items-center gap-2 sm:gap-2.5">
           <button
             onClick={() => setIsMatchHudDrawerOpen(true)}
-            className="flex items-center gap-1 bg-[var(--bg-card)] border border-[var(--border-card)] px-2.5 py-1 rounded-lg text-[11px] font-bold text-[var(--color-gold)] active:scale-95 transition-transform"
+            className="flex items-center gap-1.5 bg-[#141b2b] border border-[#2a3449] px-3 py-1 rounded-xl text-[10px] sm:text-[11px] font-bold text-zinc-200 hover:text-[var(--color-gold)] active:scale-95 transition-transform shadow-sm"
+            title="Mở Bảng Chỉ Số & Điểm Trận Đấu"
           >
-            <Bot className="w-3.5 h-3.5" />
-            <span>Quân Sư</span>
+            <BarChart3 className="w-3.5 h-3.5 text-amber-400" />
+            <span>Chỉ Số</span>
           </button>
 
           {botReasoningLogEnabled && (
             <button
               onClick={() => setIsReasoningHudOpen(prev => !prev)}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-[10px] sm:text-[11px] font-bold border transition-all ${
                 isReasoningHudOpen
-                  ? 'bg-purple-600/30 border-purple-400 text-purple-300'
-                  : 'bg-[var(--bg-card)] border-[var(--border-card)] text-zinc-300'
+                  ? 'bg-purple-950 border-purple-400 text-purple-300'
+                  : 'bg-[#141b2b] border-[#2a3449] text-zinc-300'
               }`}
             >
               <span>AI Bot</span>
@@ -260,10 +233,10 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
         </div>
 
         {/* Nhóm phải: Nút Âm Thanh, Cài Đặt, Thoát */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2 sm:gap-2.5">
           <button
             onClick={toggleSound}
-            className="w-7 h-7 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--text-secondary)] active:scale-95"
+            className="w-7 h-7 rounded-xl bg-[#141b2b] border border-[#2a3449] flex items-center justify-center text-[var(--text-secondary)] active:scale-95 shadow-sm"
             title="Bật/Tắt Âm Thanh"
           >
             {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-[var(--color-gold)]" /> : <VolumeX className="w-3.5 h-3.5" />}
@@ -271,23 +244,15 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
 
           <button
             onClick={() => openModal('SETTINGS')}
-            className="w-7 h-7 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--text-secondary)] active:scale-95"
+            className="w-7 h-7 rounded-xl bg-[#141b2b] border border-[#2a3449] flex items-center justify-center text-[var(--text-secondary)] active:scale-95 shadow-sm"
             title="Cài Đặt"
           >
             <Settings className="w-3.5 h-3.5" />
           </button>
 
           <button
-            onClick={onResetMatch}
-            className="w-7 h-7 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--text-secondary)] active:scale-95"
-            title="Chia Lại Ván"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-          </button>
-
-          <button
             onClick={onReturnToLobby}
-            className="w-7 h-7 rounded-lg bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400 active:scale-95"
+            className="w-7 h-7 rounded-xl bg-[#3b1219] border border-rose-500/40 flex items-center justify-center text-rose-300 active:scale-95 shadow-sm"
             title="Thoát Về Sảnh"
           >
             <LogOut className="w-3.5 h-3.5" />
@@ -295,12 +260,12 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
         </div>
       </header>
 
-      {/* 2. SÀN ĐẤU TIẾN LÊN MOBILE (LANDSCAPE CASINO FELT SAFE AREAS) */}
-      <main className="flex-1 flex flex-col items-center justify-between pl-[max(env(safe-area-inset-left),0.5rem)] pr-[max(env(safe-area-inset-right),0.5rem)] pb-[max(env(safe-area-inset-bottom),0.25rem)] pt-0.5 max-w-7xl mx-auto w-full min-h-0 overflow-hidden relative">
+      {/* 2. SÀN ĐẤU TIẾN LÊN MOBILE (LANDSCAPE CASINO FELT SAFE AREAS, NỀN ĐẶC) */}
+      <main className="flex-1 flex flex-col items-center justify-between pl-[max(env(safe-area-inset-left),0.5rem)] pr-[max(env(safe-area-inset-right),0.5rem)] pb-[max(env(safe-area-inset-bottom),0.25rem)] pt-0.5 max-w-7xl mx-auto w-full min-h-0 overflow-visible relative">
         
         {/* Banner thông báo nhiệm vụ */}
         {questToast && (
-          <div className="absolute top-1 z-50 bg-[var(--bg-container)]/95 text-[var(--text-primary)] px-3 py-1.5 rounded-xl border border-[var(--color-gold)] shadow-xl animate-fade-in flex items-center gap-2 backdrop-blur-md">
+          <div className="absolute top-1 z-50 bg-[#121826] text-[var(--text-primary)] px-3 py-1.5 rounded-xl border border-[var(--color-gold)] shadow-2xl animate-fade-in flex items-center gap-2">
             <span className="text-base">{questToast.icon}</span>
             <div className="flex flex-col">
               <span className="text-[9px] font-extrabold uppercase text-[var(--color-gold)]">🎯 Hoàn Thành!</span>
@@ -311,37 +276,34 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
 
         {/* Banner thông báo người đi đầu */}
         {dealBanner && (
-          <div className="absolute top-3 z-50 bg-[#121724]/95 text-[#f3e5ab] font-black px-4 py-1 rounded-full border border-[#d4af37] shadow-xl animate-bounce text-xs flex items-center gap-1.5">
+          <div className="absolute top-2 z-50 bg-[#121724] text-[#f3e5ab] font-black px-3.5 py-0.5 rounded-full border border-[#d4af37] shadow-xl animate-bounce text-[11px] flex items-center gap-1.5">
             <span>{dealBanner}</span>
           </div>
         )}
 
-        {/* BONG BÓNG THOẠI QUÂN SƯ NỔI KHI ĐẾN LƯỢT NGƯỜI CHƠI */}
-        {aiHintEnabled && isP0Turn && activeAiHint && dismissedHintTitle !== activeAiHint.title && (
+        {/* BONG BÓNG CHAT TRỢ LÝ AI NỔI TRÊN SÀN ĐẤU (CHỈ NHẮC NHỞ CHIẾN THUẬT KHI BẬT TÍNH NĂNG & ĐẾN LƯỢT) */}
+        {aiHintEnabled && isP0Turn && !isDealing && currentHint && dismissedHintTitle !== currentHint.title && (
           <div 
-            onClick={() => setIsMatchHudDrawerOpen(true)}
-            className="absolute top-1 left-2 z-40 max-w-[240px] bg-[#0d121d]/95 backdrop-blur-md border border-amber-400/50 rounded-xl p-2 shadow-2xl animate-fade-in flex items-start gap-1.5 cursor-pointer active:scale-95 transition-transform"
+            className="absolute top-2 left-2 z-40 max-w-[270px] sm:max-w-[300px] bg-[#0e1424] border-2 border-amber-400/60 rounded-2xl p-2.5 shadow-2xl animate-fade-in flex items-start gap-2.5 select-none"
           >
-            <div className="w-6 h-6 rounded-lg bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400 shrink-0">
-              <Sparkles className="w-3.5 h-3.5" />
+            <div className="w-7 h-7 rounded-xl bg-[#281e08] border border-amber-400/50 flex items-center justify-center text-amber-400 shrink-0 text-sm shadow-inner">
+              🧙‍♂️
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black uppercase text-[var(--color-gold)] truncate">
-                  {activeAiHint.title}
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[10px] sm:text-[11px] font-black uppercase text-amber-300 truncate">
+                  Trợ Lý AI: {currentHint.title}
                 </span>
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDismissedHintTitle(activeAiHint.title);
-                  }}
-                  className="text-zinc-400 text-[10px] hover:text-white px-1"
+                  onClick={() => setDismissedHintTitle(currentHint.title)}
+                  className="text-zinc-400 text-xs hover:text-white px-1 -mr-1"
+                  title="Đóng bóng chat"
                 >
                   ✕
                 </button>
               </div>
-              <p className="text-[10px] text-zinc-200 line-clamp-2 leading-tight mt-0.5">
-                {activeAiHint.message}
+              <p className="text-[10px] sm:text-[11px] text-zinc-100 font-medium leading-tight mt-0.5">
+                {currentHint.message}
               </p>
             </div>
           </div>
@@ -359,14 +321,15 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
               isDealing={isDealing}
               displayCardCount={dealtCounts[topBot.id]}
               thoughtText={botThinkingThought?.botId === topBot.id ? botThinkingThought.text : null}
+              size="compact"
             />
           )}
         </div>
 
-        {/* HÀNG GIỮA: BOT TRÁI | BÀN TRÒN NỈ | BOT PHẢI */}
-        <div className="flex items-center justify-center gap-3 sm:gap-6 w-full px-1 z-20 my-auto">
+        {/* HÀNG GIỮA: BOT TRÁI | BÀN TRÒN NỈ CỔ ĐIỂN | BOT PHẢI */}
+        <div className="flex items-center justify-between w-full px-2 z-20 my-auto overflow-visible">
           {/* Ghế Trái: Bot 1 */}
-          <div className="flex justify-center shrink-0 min-w-[80px]">
+          <div className="flex justify-center shrink-0 min-w-[70px]">
             {leftBot ? (
               <BotSeat
                 player={leftBot}
@@ -377,20 +340,19 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
                 isDealing={isDealing}
                 displayCardCount={dealtCounts[leftBot.id]}
                 thoughtText={botThinkingThought?.botId === leftBot.id ? botThinkingThought.text : null}
+                size="compact"
               />
             ) : (
-              <div className="w-16" />
+              <div className="w-14" />
             )}
           </div>
 
-          {/* BÀN TRÒN NỈ TRUNG TÂM */}
-          <div className="round-table relative flex items-center justify-center p-2 shadow-2xl scale-90 sm:scale-100">
-            <div className="table-inner-felt">
-              <div className="table-center-emblem">
-                <span className="text-[#d4af37]/25 font-black text-[10px] uppercase tracking-[0.25em] select-none text-center">
-                  TIẾN LÊN MIỀN NAM
-                </span>
-              </div>
+          {/* BÀN TRÒN NỈ TRUNG TÂM (ROUND TABLE, OVERFLOW VISIBLE CHO BÀI ĐÁNH TRÀN BÀN) */}
+          <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#0c2e24] border-2 border-amber-500/40 shadow-[inset_0_0_20px_rgba(0,0,0,0.9),0_0_25px_rgba(0,0,0,0.7)] flex items-center justify-center overflow-visible z-10">
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+              <span className="text-[#d4af37] font-black text-[6px] sm:text-[7px] uppercase tracking-[0.2em] text-center">
+                TIẾN LÊN
+              </span>
             </div>
 
             {/* Hiệu ứng chia bài */}
@@ -405,18 +367,19 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
             )}
 
             {/* Bài đã đánh & Thông báo chặt đẹp */}
-            <div className="relative z-10 w-full flex justify-center">
+            <div className="relative z-20 w-full flex justify-center overflow-visible">
               <TableCenter
                 currentMove={currentMove}
                 isLeadMove={engineRef.current?.isRoundLeadMove() ?? true}
                 chopNotification={chopNotification}
                 isDealing={isDealing}
+                cardSize="table"
               />
             </div>
           </div>
 
           {/* Ghế Phải: Bot 3 */}
-          <div className="flex justify-center shrink-0 min-w-[80px]">
+          <div className="flex justify-center shrink-0 min-w-[70px]">
             {rightBot ? (
               <BotSeat
                 player={rightBot}
@@ -427,15 +390,16 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
                 isDealing={isDealing}
                 displayCardCount={dealtCounts[rightBot.id]}
                 thoughtText={botThinkingThought?.botId === rightBot.id ? botThinkingThought.text : null}
+                size="compact"
               />
             ) : (
-              <div className="w-16" />
+              <div className="w-14" />
             )}
           </div>
         </div>
 
-        {/* GHẾ DƯỚI: TAY BÀI VÀ CÁC NÚT ĐIỀU KHIỂN CỦA NGƯỜI CHƠI (P0) */}
-        <div className="w-full flex justify-center z-30 mb-0.5">
+        {/* GHẾ DƯỚI: TAY BÀI VÀ CÁC NÚT ĐIỀU KHIỂN CỦA NGƯỜI CHƠI (P0, FULL THÂN BÀI 100%) */}
+        <div className="w-full flex justify-center z-30 mb-0.5 overflow-visible">
           {p0 && (
             <PlayerHandView
               player={p0}
@@ -457,12 +421,13 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
               isFirstMoveOfGame={engineRef.current?.isFirstMoveOfGame ?? false}
               sortMode={handSortMode}
               variantIndex={smartVariantIndex}
+              cardSize="mobile"
             />
           )}
         </div>
       </main>
 
-      {/* BOTTOM SHEET DRAWER: BẢNG ĐIỂM & QUÂN SƯ */}
+      {/* BOTTOM SHEET DRAWER: BẢNG CHỈ SỐ */}
       <MobileMatchHUDDrawer
         isOpen={isMatchHudDrawerOpen}
         onClose={() => setIsMatchHudDrawerOpen(false)}
@@ -473,10 +438,6 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
         betAmount={gameSettings.betAmount}
         isDealing={isDealing}
         dealtCounts={dealtCounts}
-        aiHint={activeAiHint}
-        isHumanTurn={isP0Turn}
-        aiHintEnabled={aiHintEnabled}
-        onApplyHint={onApplyAiHint}
         customBotConfigs={customBotConfigs}
       />
 

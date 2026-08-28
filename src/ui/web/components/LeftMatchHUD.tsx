@@ -21,7 +21,6 @@ interface LeftMatchHUDProps {
   aiHint: MoveHint | null;
   isHumanTurn: boolean;
   aiHintEnabled: boolean;
-  onApplyHint: (() => void) | null;
   customBotConfigs: [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>] | null;
 }
 
@@ -36,7 +35,6 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
   aiHint,
   isHumanTurn = false,
   aiHintEnabled = true,
-  onApplyHint,
   customBotConfigs
 }) => {
   const [isOpen] = useState<boolean>(true);
@@ -170,13 +168,12 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
         </div>
       </div>
 
-      {/* QUÂN SƯ THẦN BÀI (NGAY BÊN DƯỚI BẢNG HUD) */}
+      {/* TRỢ LÝ AI (NGAY BÊN DƯỚI BẢNG HUD) */}
       {aiHintEnabled && (
         <AIAssistantMascot
           hint={aiHint || null}
           isHumanTurn={isHumanTurn}
           enabled={aiHintEnabled}
-          onApplyHint={onApplyHint}
         />
       )}
     </div>

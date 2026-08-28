@@ -13,7 +13,7 @@ export interface CampaignChapter {
   betAmount: number;
   rewardCoins: number;
   rewardTitle: string | null;
-  bots: readonly [BotConfig, BotConfig, BotConfig];
+  bots: readonly BotConfig[];
   specialRuleDescription: string | null;
 }
 

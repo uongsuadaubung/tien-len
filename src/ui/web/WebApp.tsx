@@ -97,10 +97,8 @@ export const WebApp: React.FC<WebAppProps> = ({
           onPlaySelectedCards={handlePlaySelectedCards}
           onPassTurn={handlePassTurn}
           onAutoSort={handleAutoSort}
-          onApplyAiHint={handleApplyAiHint}
           onDealCard={handleDealCard}
           onDealComplete={handleDealComplete}
-          onResetMatch={() => startNewGame(1, { playerCount })}
           onReturnToLobby={handleRequestReturnToLobby}
         />
       )}

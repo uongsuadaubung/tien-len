@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GameMode } from '../../engine/types';
-import { Settings, Eye, Volume2, VolumeX, RotateCcw, Home, BookOpen, Maximize, Minimize } from 'lucide-react';
+import { Settings, Eye, Volume2, VolumeX, Home, BookOpen, Maximize, Minimize } from 'lucide-react';
 import { getRankTierByElo } from '../../engine/elo';
 import { Button, Badge } from '../primitives';
 import { isFullScreen, toggleFullScreen } from '../utils/fullscreen';
@@ -20,7 +20,6 @@ interface HeaderBarProps {
   onOpenRules: () => void;
   onOpenSettings: () => void;
   onOpenXRay: () => void;
-  onResetMatch: () => void;
   onReturnToLobby: () => void;
   xrayEnabled: boolean;
 }
@@ -36,7 +35,6 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   onOpenRules,
   onOpenSettings,
   onOpenXRay,
-  onResetMatch,
   onReturnToLobby,
   xrayEnabled = false
 }) => {
@@ -106,7 +104,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
       </div>
 
       {/* THÔNG TIN NGƯỜI CHƠI & CÔNG CỤ */}
-      <div className="flex items-center gap-2 sm:gap-2.5">
+      <div className="flex items-center gap-2.5 sm:gap-3">
         {/* Số Dư Tiền */}
         <Badge variant="neutral" size="md">
           🪙 {playerCoins.toLocaleString()}
@@ -149,16 +147,6 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           title="Luật Chơi & Bảng Khắc Chế Bài"
         >
           <BookOpen className="w-4 h-4 text-[var(--color-gold)]" />
-        </Button>
-
-        {/* Nút Chia Lại Ván Bài */}
-        <Button
-          variant="surface"
-          size="icon"
-          onClick={onResetMatch}
-          title="Chia Lại Ván Bài Mới"
-        >
-          <RotateCcw className="w-4 h-4 text-[var(--text-secondary)]" />
         </Button>
 
         {/* Nút Toàn Màn Hình (Full Screen) */}
