@@ -559,9 +559,9 @@ export const BOT_PERSONAS: Record<string, BotConfig> = Object.fromEntries(
 
 export function getBotConfig(id: string, customOverrides?: Partial<BotConfig>): BotConfig {
   let baseKey = id;
-  if (id && id.startsWith('dyn_')) {
+  if (id) {
     const match = id.match(/BOT_ELO_\d+/);
-    if (match) {
+    if (match && BOT_PERSONAS[match[0]]) {
       baseKey = match[0];
     }
   }
@@ -577,9 +577,9 @@ export function createCustomBotConfig(
   overrides: Partial<BotConfig>
 ): BotConfig {
   let baseKey = baseId;
-  if (baseId && baseId.startsWith('dyn_')) {
+  if (baseId) {
     const match = baseId.match(/BOT_ELO_\d+/);
-    if (match) {
+    if (match && BOT_PERSONAS[match[0]]) {
       baseKey = match[0];
     }
   }

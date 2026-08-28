@@ -6,7 +6,7 @@ import { useGameStore } from '../../../stores/useGameStore';
 import { MobileQuestsView } from '../views/MobileQuestsView';
 import { MobileLuckyWheelView } from '../views/MobileLuckyWheelView';
 import { MobileBankView } from '../views/MobileBankView';
-import { CampaignMapModal } from '../../web/modals/CampaignMapModal';
+import { MobileCampaignMapView } from '../views/MobileCampaignMapView';
 import { CustomGameModal, CustomGameModalConfig } from '../../web/modals/CustomGameModal';
 import { QuickSetupModal, QuickSetupConfig } from '../../web/modals/QuickSetupModal';
 import { MobileSettingsView } from '../views/MobileSettingsView';
@@ -264,9 +264,9 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
         />
       )}
 
-      {/* 10. Trang Bản Đồ Chiến Dịch Cốt Truyện (Full Screen Sheet) */}
+      {/* 10. Trang Bản Đồ Chiến Dịch Cốt Truyện Native Mobile */}
       {isCampaignModalOpen && (
-        <CampaignMapModal
+        <MobileCampaignMapView
           isOpen={isCampaignModalOpen}
           profile={profile}
           onClose={() => closeModal('CAMPAIGN')}

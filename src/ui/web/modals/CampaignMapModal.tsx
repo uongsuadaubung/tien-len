@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { PlayerProfile } from '../../../engine/storage';
-import { CAMPAIGN_CHAPTERS, CampaignChapter } from '../../../engine/campaign';
+import { CampaignChapter } from '../../../engine/campaign';
 import { getTierFromElo } from '../../../engine/ecosystem/ecosystem-types';
-import { Lock, CheckCircle2, Award, Swords, MapPin } from 'lucide-react';
+import { Lock, CheckCircle2, Award, Swords, MapPin, Eye } from 'lucide-react';
 import { Modal, Card, Badge, Button } from '../../primitives';
+import { useCampaign } from '../../hooks/useCampaign';
 
 interface CampaignMapModalProps {
   isOpen: boolean;
@@ -18,13 +19,22 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
   onClose,
   onSelectChapter
 }) => {
-  const [selectedChapterId, setSelectedChapterId] = useState<number>(profile.campaignUnlockedChapter || 1);
+  const {
+    selectedChapterId,
+    setSelectedChapterId,
+    currentChapter,
+    chapters,
+    unlockedChapterCount,
+    totalChaptersCount,
+    isUnlocked,
+    chapterWins,
+    isCompleted,
+    getChapterStatus,
+    handleOpenBossProfile,
+    handleStartChapter
+  } = useCampaign({ profile, onSelectChapter });
 
   if (!isOpen) return null;
-
-  const currentChapter = CAMPAIGN_CHAPTERS.find(c => c.id === selectedChapterId) || CAMPAIGN_CHAPTERS[0];
-  const isUnlocked = selectedChapterId <= profile.campaignUnlockedChapter;
-  const chapterWins = profile.campaignChapterWins[selectedChapterId] || 0;
 
   return (
     <Modal
@@ -37,7 +47,7 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
       height="h-[92vh] sm:h-[680px]"
       headerRight={
         <Badge variant="gold" size="md">
-          Tiến Độ: {profile.campaignUnlockedChapter}/{CAMPAIGN_CHAPTERS.length} Chương
+          Tiến Độ: {unlockedChapterCount}/{totalChaptersCount} Chương
         </Badge>
       }
       footer={
@@ -54,10 +64,10 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
               variant={isUnlocked ? 'gold' : 'surface'}
               size="md"
               disabled={!isUnlocked}
-              onClick={() => isUnlocked && onSelectChapter(currentChapter)}
+              onClick={() => handleStartChapter(currentChapter)}
               leftIcon={<Swords className="w-4 h-4" />}
             >
-              <span>{isUnlocked ? 'Khiêu Chiến Ngay' : 'Chưa Mở Khóa'}</span>
+              <span>{isCompleted ? 'Đấu Lại Sới Này' : isUnlocked ? 'Khiêu Chiến Ngay' : 'Chưa Mở Khóa'}</span>
             </Button>
           </div>
         </div>
@@ -65,20 +75,17 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
     >
       {/* BẢN ĐỒ 9 CHƯƠNG DẠNG TRACK CUỘN NGANG HOẶC GRID */}
       <div className="flex gap-2.5 sm:gap-3 overflow-x-auto pb-3 pt-1 px-1 scrollbar-thin mb-4">
-        {CAMPAIGN_CHAPTERS.map(ch => {
-          const unlocked = ch.id <= profile.campaignUnlockedChapter;
-          const isSelected = selectedChapterId === ch.id;
-          const wins = profile.campaignChapterWins[ch.id] || 0;
-          const done = wins >= ch.requiredWins;
+        {chapters.map(ch => {
+          const status = getChapterStatus(ch.id);
 
           return (
             <button
               key={ch.id}
               onClick={() => setSelectedChapterId(ch.id)}
               className={`relative flex flex-col items-center flex-shrink-0 w-[105px] sm:w-[125px] p-2.5 sm:p-3.5 rounded-2xl border transition-all cursor-pointer select-none text-center ${
-                isSelected
+                status.isSelected
                   ? 'bg-[var(--bg-card-active)] border-2 border-[var(--color-gold)] shadow-lg scale-105 z-10'
-                  : unlocked
+                  : status.unlocked
                   ? 'bg-[var(--bg-card)] border-[var(--border-card)] hover:border-[var(--border-gold)] hover:bg-[var(--bg-card-hover)]'
                   : 'bg-[var(--bg-container)] border-white/5 opacity-40 cursor-not-allowed'
               }`}
@@ -93,13 +100,13 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
 
               {/* Huy hiệu */}
               <div className="mt-2">
-                {done ? (
+                {status.isCompleted ? (
                   <Badge variant="emerald" size="sm" icon={<CheckCircle2 className="w-3 h-3" />}>
                     Đã Vượt
                   </Badge>
-                ) : unlocked ? (
+                ) : status.unlocked ? (
                   <Badge variant="gold" size="sm">
-                    {wins}/{ch.requiredWins}
+                    {status.wins}/{status.requiredWins}
                   </Badge>
                 ) : (
                   <Badge variant="dark" size="sm" icon={<Lock className="w-3 h-3" />}>
@@ -143,20 +150,36 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
               Danh Sách 3 Đối Thủ Trong Chương:
             </span>
             <div className="grid grid-cols-3 gap-2">
-              {currentChapter.bots.map(bot => (
+              {currentChapter.bots.slice(0, 3).map((bot, idx) => (
                 <div
-                  key={bot.id}
-                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] shadow-sm"
+                  key={`ch_${currentChapter.id}_bot_${bot.id}_${idx}`}
+                  onClick={() => handleOpenBossProfile(bot)}
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--color-gold-border)] transition-all cursor-pointer shadow-sm group"
                 >
-                  <span className="text-2xl">{bot.avatar || '🤖'}</span>
-                  <div className="min-w-0">
-                    <h5 className="font-bold text-xs text-[var(--text-primary)] truncate">
-                      {bot.name || getTierFromElo(bot.elo).label || 'Bot'}
-                    </h5>
-                    <span className="text-[10px] text-[var(--color-gold)] font-bold block">
-                      Elo {bot.elo}
-                    </span>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-2xl shrink-0">{bot.avatar || '🤖'}</span>
+                    <div className="min-w-0">
+                      <h5 className="font-bold text-xs text-[var(--text-primary)] truncate">
+                        {bot.name || getTierFromElo(bot.elo).label || 'Bot'}
+                      </h5>
+                      <span className="text-[10px] text-[var(--color-gold)] font-bold block">
+                        Elo {bot.elo}
+                      </span>
+                    </div>
                   </div>
+
+                  <Button
+                    variant="surface"
+                    size="sm"
+                    className="h-6 px-1.5 text-[10px] shrink-0 opacity-80 group-hover:opacity-100"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenBossProfile(bot);
+                    }}
+                    leftIcon={<Eye className="w-3 h-3 text-[var(--color-gold)]" />}
+                  >
+                    Hồ Sơ
+                  </Button>
                 </div>
               ))}
             </div>
