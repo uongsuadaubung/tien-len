@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { GameEngine } from '../../../engine/game';
 import { isValidMove } from '../../../engine/validator';
 import { getBotConfig } from '../../../ai/bot-factory';
@@ -153,11 +153,6 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
       soundManager.playCardDeal();
     }
   }, [isP0Turn, p0, selectedCardIds, setSelectedCardIds]);
-
-  // Tự động yêu cầu xoay ngang & toàn màn hình khi vào bàn đấu
-  useEffect(() => {
-    lockToLandscape();
-  }, []);
 
   // Phân bổ ghế đối thủ
   const isSolo1v1 = playerCount === 2;

@@ -18,7 +18,6 @@ import { GameRulesBuilder } from '../engine/types';
 import { ECONOMY_CONSTANTS } from '../engine/constants/economy';
 import { matchBotsForPlayerTable } from '../engine/ecosystem/matchmaker';
 import { smartSync } from '../engine/sync/sync-service';
-import { lockToLandscape } from './utils/fullscreen';
 
 // Stores
 import { useModalStore } from '../stores/useModalStore';
@@ -264,7 +263,6 @@ export const App: React.FC = () => {
 
   const handleExecuteMatch = () => {
     if (!pendingMatch) return;
-    lockToLandscape();
     useModalStore.getState().closeModal('MATCHMAKING');
     setActiveGameType('QUICK');
     setCurrentScreen('GAME_TABLE');
@@ -287,7 +285,6 @@ export const App: React.FC = () => {
       return;
     }
 
-    lockToLandscape();
     handleStartQuickGame({
       playerCount: 4,
       betAmount: defaultBet,
@@ -302,7 +299,6 @@ export const App: React.FC = () => {
   };
 
   const handleStartCampaignChapter = (chapter: CampaignChapter) => {
-    lockToLandscape();
     setCurrentCampaignChapter(chapter);
     setActiveGameType('CAMPAIGN');
     useModalStore.getState().closeModal('CAMPAIGN');
