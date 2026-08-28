@@ -19,7 +19,7 @@ import { useGameStore } from '../../../stores/useGameStore';
 
 // Icons
 import { 
-  Trophy, 
+  Trophy,
   Settings, 
   Volume2, 
   VolumeX, 
@@ -192,24 +192,21 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
       <header className="relative z-30 w-full pl-[max(env(safe-area-inset-left),1rem)] pr-[max(env(safe-area-inset-right),1rem)] pt-[max(env(safe-area-inset-top),0.375rem)] pb-1.5 bg-[#0e1422] border-b border-[#222c3d] flex items-center justify-between shadow-md shrink-0">
         {/* Nhóm trái: Ván đấu & Tiền cược */}
         <div className="flex items-center gap-2 sm:gap-2.5">
-          <button
-            onClick={() => setIsMatchHudDrawerOpen(true)}
-            className="flex items-center gap-1.5 bg-[#281e08] border border-amber-500/50 text-amber-300 px-2.5 py-1 rounded-xl text-[11px] font-black shadow-sm active:scale-95 transition-transform"
-          >
+          <div className="flex items-center gap-1.5 bg-[#281e08] border border-amber-500/50 text-amber-300 px-2.5 py-1 rounded-xl text-[11px] font-black shadow-sm">
             <Trophy className="w-3.5 h-3.5" />
             <span>#{gameNumber}</span>
-          </button>
+          </div>
 
           <Badge variant="gold" size="sm">
             💰 {gameSettings.betAmount.toLocaleString()} Xu
           </Badge>
         </div>
 
-        {/* Nhóm giữa: Nút mở nhanh Chỉ Số (Match HUD) */}
+        {/* Nhóm giữa: Nút mở Bảng Chỉ Số (Modal/Drawer) & AI Bot */}
         <div className="flex items-center gap-2 sm:gap-2.5">
           <button
             onClick={() => setIsMatchHudDrawerOpen(true)}
-            className="flex items-center gap-1.5 bg-[#141b2b] border border-[#2a3449] px-3 py-1 rounded-xl text-[10px] sm:text-[11px] font-bold text-zinc-200 hover:text-[var(--color-gold)] active:scale-95 transition-transform shadow-sm"
+            className="flex items-center gap-1.5 bg-[#141b2b] hover:bg-[#1f293d] border border-[#2a3449] hover:border-amber-500/50 px-3 py-1 rounded-xl text-[10px] sm:text-[11px] font-bold text-zinc-200 hover:text-[var(--color-gold)] active:scale-95 transition-all shadow-sm cursor-pointer"
             title="Mở Bảng Chỉ Số & Điểm Trận Đấu"
           >
             <BarChart3 className="w-3.5 h-3.5 text-amber-400" />

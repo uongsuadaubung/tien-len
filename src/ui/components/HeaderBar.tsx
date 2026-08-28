@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GameMode } from '../../engine/types';
 import { Settings, Eye, Volume2, VolumeX, Home, BookOpen, Maximize, Minimize } from 'lucide-react';
-import { getRankTierByElo } from '../../engine/elo';
 import { Button, Badge } from '../primitives';
 import { isFullScreen, toggleFullScreen } from '../utils/fullscreen';
 
@@ -25,11 +24,8 @@ interface HeaderBarProps {
 }
 
 export const HeaderBar: React.FC<HeaderBarProps> = ({
-  gameNumber,
-  betAmount,
   activeGameType,
   playerCoins,
-  playerElo,
   soundEnabled,
   onToggleSound,
   onOpenRules,
@@ -38,7 +34,6 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   onReturnToLobby,
   xrayEnabled = false
 }) => {
-  const currentRank = getRankTierByElo(playerElo);
   const [isFullscreenState, setIsFullscreenState] = useState(isFullScreen());
 
   useEffect(() => {
@@ -88,17 +83,6 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             <Badge variant="gold" size="sm">
               {modeBadgeText}
             </Badge>
-          </div>
-          <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
-            <span>Ván #{gameNumber}</span>
-            <span>•</span>
-            <span>Cược: <strong className="text-[var(--text-primary)]">{betAmount.toLocaleString()} Xu</strong></span>
-            {activeGameType === 'QUICK' && (
-              <>
-                <span>•</span>
-                <span className="text-[var(--color-gold)] font-semibold">{currentRank.badge} {currentRank.name}</span>
-              </>
-            )}
           </div>
         </div>
       </div>
