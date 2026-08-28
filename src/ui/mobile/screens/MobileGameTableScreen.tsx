@@ -308,7 +308,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
         )}
 
         {/* GHẾ TRÊN: BOT 2 (HOẶC ĐỐI THỦ DUY NHẤT TRONG SOLO 1V1) */}
-        <div className="flex justify-center w-full z-20">
+        <div className="flex justify-center w-full z-20 shrink-0 pt-0.5">
           {topBot && (
             <BotSeat
               player={topBot}
@@ -325,9 +325,9 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
         </div>
 
         {/* HÀNG GIỮA: BOT TRÁI | BÀN TRÒN NỈ CỔ ĐIỂN | BOT PHẢI */}
-        <div className="flex items-center justify-between w-full px-2 z-20 my-auto overflow-visible">
+        <div className="flex items-center justify-between w-full px-2 z-20 my-0.5 overflow-visible">
           {/* Ghế Trái: Bot 1 */}
-          <div className="flex justify-center shrink-0 min-w-[70px]">
+          <div className="flex justify-center shrink-0">
             {leftBot ? (
               <BotSeat
                 player={leftBot}
@@ -341,12 +341,12 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
                 size="compact"
               />
             ) : (
-              <div className="w-14" />
+              <div className="w-10" />
             )}
           </div>
 
           {/* BÀN TRÒN NỈ TRUNG TÂM (ROUND TABLE, OVERFLOW VISIBLE CHO BÀI ĐÁNH TRÀN BÀN) */}
-          <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-[#0c2e24] border-2 border-amber-500/40 shadow-[inset_0_0_20px_rgba(0,0,0,0.9),0_0_25px_rgba(0,0,0,0.7)] flex items-center justify-center overflow-visible z-10">
+          <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#0c2e24] border-2 border-amber-500/40 shadow-[inset_0_0_16px_rgba(0,0,0,0.9),0_0_20px_rgba(0,0,0,0.7)] flex items-center justify-center overflow-visible z-10">
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
               <span className="text-[#d4af37] font-black text-[6px] sm:text-[7px] uppercase tracking-[0.2em] text-center">
                 TIẾN LÊN
@@ -377,7 +377,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
           </div>
 
           {/* Ghế Phải: Bot 3 */}
-          <div className="flex justify-center shrink-0 min-w-[70px]">
+          <div className="flex justify-center shrink-0">
             {rightBot ? (
               <BotSeat
                 player={rightBot}
@@ -391,13 +391,13 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
                 size="compact"
               />
             ) : (
-              <div className="w-14" />
+              <div className="w-10" />
             )}
           </div>
         </div>
 
         {/* GHẾ DƯỚI: TAY BÀI VÀ CÁC NÚT ĐIỀU KHIỂN CỦA NGƯỜI CHƠI (P0, FULL THÂN BÀI 100%) */}
-        <div className="w-full flex justify-center z-30 mb-0.5 overflow-visible">
+        <div className="w-full flex justify-center z-30 mb-0 overflow-visible shrink-0">
           {p0 && (
             <PlayerHandView
               player={p0}

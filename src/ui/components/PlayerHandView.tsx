@@ -129,12 +129,12 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
       {/* Bảng nút điều khiển hành động (Action Controls) - Z-Index 40, Tự động trượt lên khi chọn bài */}
       {!isDealing && (isCurrentTurn || hasSelectedCards) && (
         <div
-          className={`flex items-center justify-center gap-2 sm:gap-3 mb-1 z-40 transition-transform duration-200 ${
-            hasSelectedCards ? '-translate-y-5 sm:-translate-y-6' : 'translate-y-0'
+          className={`flex items-center justify-center gap-1.5 sm:gap-2 mb-1 z-40 transition-transform duration-200 ${
+            hasSelectedCards ? '-translate-y-3.5 sm:-translate-y-4' : 'translate-y-0'
           }`}
         >
           {/* Nhóm nút thao tác chính (Đánh bài, Bắt bài, Hạ bài, Xếp bài) */}
-          <div className="flex items-center gap-1.5 sm:gap-2 bg-[#0d1322] px-3 sm:px-4 py-1 sm:py-1.5 rounded-2xl border-2 border-amber-500/60 shadow-2xl">
+          <div className={`flex items-center ${isMobileSize ? 'gap-1 px-1.5 py-0.5 rounded-xl border border-amber-500/50' : 'gap-1.5 sm:gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-2xl border-2 border-amber-500/60'} bg-[#0d1322] shadow-xl`}>
             {/* Các nút hành động khi đến lượt đi */}
             {isCurrentTurn && (
               <>
@@ -143,14 +143,14 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
                   onClick={onPlaySelectedCards}
                   disabled={!canPlay}
                   className={`
-                    flex items-center gap-1.5 px-3.5 sm:px-5 py-1 sm:py-1.5 rounded-xl font-black text-xs sm:text-sm uppercase tracking-wider transition-all duration-150 shadow-md
+                    flex items-center gap-1 ${isMobileSize ? 'px-2.5 py-0.5 rounded-lg text-[10px] sm:text-[11px]' : 'px-3.5 sm:px-5 py-1 sm:py-1.5 rounded-xl text-xs sm:text-sm'} font-black uppercase tracking-wider transition-all duration-150 shadow-md
                     ${canPlay
                       ? 'bg-gradient-to-r from-[#f0cb64] via-[#d4af37] to-[#b08c23] hover:brightness-110 text-black hover:scale-105 shadow-[#d4af37]/40 cursor-pointer border border-amber-200'
                       : 'bg-[#182030] text-slate-500 cursor-not-allowed border border-white/5'
                     }
                   `}
                 >
-                  <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
+                  <Play className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5 sm:w-4 sm:h-4'} fill-current`} />
                   <span>Đánh Bài</span>
                 </button>
 
@@ -160,7 +160,7 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
                     onClick={onQuickSelect}
                     disabled={!canQuickSelect}
                     className={`
-                      flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-bold text-xs transition-all duration-150 shadow
+                      flex items-center gap-1 ${isMobileSize ? 'px-1.5 sm:px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px]' : 'px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-xs'} font-bold transition-all duration-150 shadow
                       ${canQuickSelect
                         ? 'bg-[#2e1808] hover:bg-[#40220a] text-amber-300 border border-amber-500/60 hover:border-amber-400 hover:scale-105 cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.2)]'
                         : 'bg-[#182030] text-slate-500 cursor-not-allowed border border-white/5 opacity-50'
@@ -172,7 +172,7 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
                         : 'Không có bài chặn được'
                     }
                   >
-                    <Crosshair className="w-3.5 h-3.5 text-amber-300" />
+                    <Crosshair className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-amber-300`} />
                     <span>Bắt Bài</span>
                   </button>
                 )}
@@ -183,10 +183,10 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
             {hasSelectedCards && onClearCardSelection && (
               <button
                 onClick={onClearCardSelection}
-                className="flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-[#1c2438] hover:bg-[#283450] text-[#f3e5ab] border border-amber-400/40 hover:scale-105 cursor-pointer font-bold text-xs shadow transition-all duration-150"
+                className={`flex items-center gap-1 ${isMobileSize ? 'px-1.5 sm:px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px]' : 'px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-xs'} bg-[#1c2438] hover:bg-[#283450] text-[#f3e5ab] border border-amber-400/40 hover:scale-105 cursor-pointer font-bold shadow transition-all duration-150`}
                 title="Hạ toàn bộ các lá bài đang chọn xuống"
               >
-                <ArrowDownToLine className="w-3.5 h-3.5 text-[#d4af37]" />
+                <ArrowDownToLine className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-[#d4af37]`} />
                 <span>Hạ Bài {selectedCardIds.size > 1 ? `(${selectedCardIds.size})` : ''}</span>
               </button>
             )}
@@ -194,17 +194,17 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
             {/* Nút Xếp Bài: Xoay vòng đa phương án Xếp Bộ và Xếp Điểm */}
             <button
               onClick={onAutoSort}
-              className="flex items-center gap-1 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-[#1c2438] hover:bg-[#283450] text-slate-300 border border-white/10 hover:scale-105 cursor-pointer font-bold text-xs transition-all duration-150"
+              className={`flex items-center gap-1 ${isMobileSize ? 'px-1.5 sm:px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px]' : 'px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-xs'} bg-[#1c2438] hover:bg-[#283450] text-slate-300 border border-white/10 hover:scale-105 cursor-pointer font-bold transition-all duration-150`}
               title={sortButtonTitle}
             >
               {isNextSortNatural ? (
                 <>
-                  <ArrowUpDown className="w-3.5 h-3.5 text-[#d4af37]" />
+                  <ArrowUpDown className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-[#d4af37]`} />
                   <span>{sortButtonLabel}</span>
                 </>
               ) : (
                 <>
-                  <Layers className="w-3.5 h-3.5 text-[#d4af37]" />
+                  <Layers className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-[#d4af37]`} />
                   <span>{sortButtonLabel}</span>
                 </>
               )}
@@ -213,12 +213,12 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
 
           {/* Nhóm nút Bỏ lượt riêng biệt - Nền đặc đỏ thẫm */}
           {isCurrentTurn && (
-            <div className="bg-[#0d1322] px-1.5 py-1 sm:py-1.5 rounded-2xl border-2 border-red-500/50 shadow-2xl flex items-center">
+            <div className={`bg-[#0d1322] ${isMobileSize ? 'px-1 py-0.5 rounded-xl border border-red-500/50' : 'px-1.5 py-1 sm:py-1.5 rounded-2xl border-2 border-red-500/50'} shadow-2xl flex items-center`}>
               <button
                 onClick={onPassTurn}
                 disabled={!canPass}
                 className={`
-                  flex items-center gap-1 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-xl font-bold text-xs transition-all duration-150
+                  flex items-center gap-1 ${isMobileSize ? 'px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px]' : 'px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-xl text-xs'} font-bold transition-all duration-150
                   ${canPass
                     ? 'bg-[#3b1219] hover:bg-[#521822] text-red-200 hover:text-white border border-red-500/70 hover:border-red-400 hover:scale-105 cursor-pointer shadow-[0_0_12px_rgba(239,68,68,0.25)]'
                     : 'bg-[#182030]/60 text-slate-600 cursor-not-allowed border border-white/5 opacity-50'
@@ -226,7 +226,7 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
                 `}
                 title={canPass ? 'Bỏ lượt không đánh vòng này' : 'Không thể bỏ lượt khi đang cầm cái / ván đầu'}
               >
-                <SkipForward className="w-3.5 h-3.5 text-red-400" />
+                <SkipForward className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-red-400`} />
                 <span>Bỏ Lượt</span>
               </button>
             </div>
@@ -331,24 +331,24 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
       )}
 
       {/* Thông tin người chơi (Bản thân) - Nền đặc phẳng lì */}
-      <div className={`flex items-center gap-2 mt-0.5 bg-[#121826] ${isMobileSize ? 'px-3 py-0.5' : 'px-4 py-1.5'} rounded-full border border-[#d4af37]/35 shadow-lg`}>
-        <div className={`${isMobileSize ? 'w-5 h-5 text-xs' : 'w-7 h-7 text-sm'} rounded-full bg-[#182030] border border-[#d4af37]/50 flex items-center justify-center shadow-inner`}>
+      <div className={`flex items-center gap-1.5 ${isMobileSize ? 'mt-0 px-2 py-0.2 rounded-full border border-[#d4af37]/30 text-[10px]' : 'mt-0.5 px-4 py-1.5 rounded-full border border-[#d4af37]/35'} bg-[#121826] shadow-lg`}>
+        <div className={`${isMobileSize ? 'w-4 h-4 text-[10px]' : 'w-7 h-7 text-sm'} rounded-full bg-[#182030] border border-[#d4af37]/50 flex items-center justify-center shadow-inner`}>
           {player.avatar}
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className={`font-extrabold text-[#f3e5ab] ${isMobileSize ? 'text-xs' : 'text-sm'}`}>
+        <div className="flex items-center gap-1">
+          <span className={`font-extrabold text-[#f3e5ab] ${isMobileSize ? 'text-[10px]' : 'text-sm'}`}>
             {player.name}
           </span>
-          <span className={`${isMobileSize ? 'text-[10px]' : 'text-xs'} text-slate-300 font-bold`}>
+          <span className={`${isMobileSize ? 'text-[9px]' : 'text-xs'} text-slate-300 font-bold`}>
             {player.score.toLocaleString()} 🪙
           </span>
           {isLeader && (
-            <span className="bg-[#d4af37] text-[#0a0d14] text-[9px] font-black px-1.5 py-0.2 rounded-sm shadow">
+            <span className="bg-[#d4af37] text-[#0a0d14] text-[8px] font-black px-1 rounded-sm shadow">
               CÁI
             </span>
           )}
           {player.isPassedCurrentRound && (
-            <span className="bg-neutral-800 text-red-400 text-[9px] font-bold px-1.5 py-0.2 rounded-sm border border-red-500/40">
+            <span className="bg-neutral-800 text-red-400 text-[8px] font-bold px-1 rounded-sm border border-red-500/40">
               ĐÃ BỎ LƯỢT
             </span>
           )}
