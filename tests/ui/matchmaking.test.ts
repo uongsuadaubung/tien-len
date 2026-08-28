@@ -25,6 +25,7 @@ describe('Kiểm Thử Giả Lập Ghép Trận Online (Matchmaking Simulation T
       {
         ...getBotConfig('BOT_ELO_1450'),
         id: 'BOT_1',
+        dnaTier: 3,
         name: 'Hải Đồ Tể',
         avatar: '🔪',
         elo: 1450,
@@ -42,6 +43,7 @@ describe('Kiểm Thử Giả Lập Ghép Trận Online (Matchmaking Simulation T
       {
         ...getBotConfig('BOT_ELO_850'),
         id: 'BOT_2',
+        dnaTier: 1,
         name: 'Bé Bông',
         avatar: '🌸',
         elo: 850,
@@ -59,6 +61,7 @@ describe('Kiểm Thử Giả Lập Ghép Trận Online (Matchmaking Simulation T
       {
         ...getBotConfig('BOT_ELO_1150'),
         id: 'BOT_3',
+        dnaTier: 2,
         name: 'Chú Bảy',
         avatar: '☕',
         elo: 1100,
@@ -92,6 +95,7 @@ describe('Kiểm Thử Giả Lập Ghép Trận Online (Matchmaking Simulation T
       {
         ...getBotConfig('BOT_ELO_1450'),
         id: 'BOT_1',
+        dnaTier: 3,
         name: 'Hải Đồ Tể',
         avatar: '🔪',
         elo: 1450,
@@ -109,6 +113,7 @@ describe('Kiểm Thử Giả Lập Ghép Trận Online (Matchmaking Simulation T
       {
         ...getBotConfig('BOT_ELO_850'),
         id: 'BOT_2',
+        dnaTier: 1,
         name: 'Bé Bông',
         avatar: '🌸',
         elo: 850,
@@ -126,6 +131,7 @@ describe('Kiểm Thử Giả Lập Ghép Trận Online (Matchmaking Simulation T
       {
         ...getBotConfig('BOT_ELO_1150'),
         id: 'BOT_3',
+        dnaTier: 2,
         name: 'Chú Bảy',
         avatar: '☕',
         elo: 1100,

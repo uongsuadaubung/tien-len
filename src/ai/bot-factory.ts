@@ -755,14 +755,14 @@ export function generateRandomBotConfig(
     }
   }
   if (!generatedName) {
-    generatedName = `Player #${Math.floor(Math.random() * 9000 + 1000)}`;
+    generatedName = `Tay Chơi #${Math.floor(Math.random() * 9000 + 1000)}`;
   }
 
   // Chọn Avatar phù hợp không trùng tại bàn
   const availableAvatars = GLOBAL_AVATARS.filter(a => !excludeAvatars.includes(a));
   const chosenAvatar = availableAvatars.length > 0
     ? availableAvatars[Math.floor(Math.random() * availableAvatars.length)]
-    : (baseConfig.avatar || '🤖');
+    : (baseConfig.avatar || '👤');
 
   return {
     ...baseConfig,

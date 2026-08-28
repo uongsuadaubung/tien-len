@@ -77,11 +77,11 @@ export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
       <button
         onClick={onToggle}
         className="flex flex-col items-center justify-center py-3 px-1.5 bg-[var(--bg-container)] border border-[var(--border-container)] rounded-l-xl shadow-2xl hover:bg-[var(--bg-card-active)] transition-all cursor-pointer select-none text-[var(--color-gold)] group z-50 mr-[-1px]"
-        title={isOpen ? 'Thu gọn Bảng Suy Luận' : 'Mở Bảng Suy Luận Bot AI'}
+        title={isOpen ? 'Thu gọn Bảng Phân Tích' : 'Mở Bảng Phân Tích Thế Trận'}
       >
         <BrainCircuit className="w-5 h-5 group-hover:scale-110 transition-transform text-[var(--color-gold)] animate-pulse" />
         <span className="text-[9px] font-extrabold uppercase mt-1 [writing-mode:vertical-lr] tracking-widest text-[var(--text-primary)]">
-          {isOpen ? 'ĐÓNG' : 'SUY LUẬN AI'}
+          {isOpen ? 'ĐÓNG' : 'PHÂN TÍCH'}
         </span>
         {turns.length > 0 && (
           <span className="mt-1.5 px-1 py-0.5 rounded-full bg-[var(--color-gold)] text-[#0a0c0e] text-[8px] font-black">

@@ -156,6 +156,7 @@ export function createBotEntityFromDNA(
 
   return {
     id: `bot_eco_t${tierNum}_${index}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    dnaTier: tierNum,
     name,
     avatar,
     description: basePersona.description || 'Cao thủ sới bạc',
@@ -223,9 +224,40 @@ export function generateInitial200Bots(): BotEntity[] {
 }
 
 /**
+ * Trích xuất chuẩn xác Bậc DNA (1..9) của Bot Entity:
+ * 1. Đọc từ tiền tố ID chuẩn: bot_eco_t{tierNum}_...
+ * 2. Đọc từ các cờ năng lực AI đặc thù (Nash, Bayesian, Minimax, Dynamic Repartitioning)
+ * 3. Fallback theo điểm Elo nếu không có metadata ID
+ */
+export function getBotDnaTier(bot: BotEntity): number {
+  if (typeof bot.dnaTier === 'number' && bot.dnaTier >= 1 && bot.dnaTier <= 9) {
+    return bot.dnaTier;
+  }
+
+  if (bot.id) {
+    const match = bot.id.match(/^bot_eco_t(\d+)_/);
+    if (match) {
+      const tier = parseInt(match[1], 10);
+      if (tier >= 1 && tier <= 9) {
+        return tier;
+      }
+    }
+  }
+
+  if (bot.useNashEquilibrium) return 9;
+  if (bot.useBayesianInference) return 8;
+  if (bot.useMinimaxEndgame) return 7;
+  if (bot.useDynamicRepartitioning) return 6;
+
+  return getTierFromElo(bot.elo).tierNum;
+}
+
+/**
  * Tìm Bậc Rank (AI DNA) đang bị thiếu hụt số lượng Bot so với định mức TIER_DISTRIBUTION.
- * Duyệt từ Tier CAO (Tier 9 Boss) xuống Tier THẤP (Tier 1 Tân Thủ).
- * Xác định trình độ AI cần được triệu hồi để sới bạc luôn có đủ mầm mống cao thủ tự leo tháp.
+ * Quét toàn bộ bot hiện có trong hệ sinh thái, phân loại chính xác DNA của từng bot.
+ * Duyệt từ Tier CAO (Tier 9 Boss) xuống Tier THẤP (Tier 1 Tân Thủ):
+ * - Nếu Bậc nào chưa đủ số lượng quota theo kim tự tháp, trả về ngay Bậc đó để sinh bot mới mang DNA tương ứng.
+ * - Khi Bậc đó đã đủ số lượng, tự động chuyển xuống bậc tiếp theo.
  */
 export function findUnderfilledTier(activeBots: BotEntity[]): number {
   const currentCounts: Record<number, number> = {
@@ -234,25 +266,12 @@ export function findUnderfilledTier(activeBots: BotEntity[]): number {
 
   for (const bot of activeBots) {
     if (bot.status === 'ACTIVE') {
-      // Ước lượng Tier DNA của bot dựa trên các khả năng AI đặc thù hoặc điểm Elo
-      let dnaTier = 1;
-      if (bot.useNashEquilibrium) {
-        dnaTier = 9;
-      } else if (bot.useBayesianInference) {
-        dnaTier = 8;
-      } else if (bot.useMinimaxEndgame) {
-        dnaTier = 7;
-      } else if (bot.useDynamicRepartitioning) {
-        dnaTier = 6;
-      } else {
-        dnaTier = getTierFromElo(bot.elo).tierNum;
-      }
-
+      const dnaTier = getBotDnaTier(bot);
       currentCounts[dnaTier] = (currentCounts[dnaTier] || 0) + 1;
     }
   }
 
-  // Duyệt từ Tier 9 xuống Tier 1 để tìm vị trí thiếu hụt cao nhất
+  // Duyệt từ đỉnh tháp (Tier 9) xuống đáy tháp (Tier 1) để tìm vị trí thiếu hụt cao nhất
   for (let tier = 9; tier >= 1; tier--) {
     const quota = ECOSYSTEM_CONSTANTS.TIER_DISTRIBUTION[tier] || 0;
     const current = currentCounts[tier] || 0;
@@ -288,20 +307,9 @@ export function draftBotForTier(
   // 3. Cấp vốn xuất phát điểm 50.000 Xu (như người chơi mới nhận gói tân thủ)
   bot.coins = ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS;
 
-  // 4. Danh hiệu & mô tả phản ánh phong thái của cao thủ ẩn danh
-  if (tier >= 8) {
-    bot.title = 'Thần Đồng Ẩn Danh';
-    bot.description = 'Thiên tài bài bạc mang tư duy tính toán siêu việt, khởi đầu từ 1.000 Elo với 50.000 Xu để tự leo lên ngôi vương.';
-  } else if (tier >= 6) {
-    bot.title = 'Cao Thủ Ẩn Dật';
-    bot.description = 'Cao thủ mang lối đánh nhạy bén, bắt đầu từ mốc 1.000 Elo để xây dựng lại cơ đồ bằng thực lực.';
-  } else if (tier >= 4) {
-    bot.title = 'Ẩn Sĩ Giang Hồ';
-    bot.description = 'Tay chơi già dơ vừa lập tài khoản mới, sẵn sàng chinh phục các bàn đấu.';
-  } else {
-    bot.title = 'Tân Binh';
-    bot.description = 'Đấu thủ mới gia nhập sới bạc với 50.000 Xu, sẵn sàng thử thách.';
-  }
+  // 4. Danh hiệu & mô tả tự nhiên của đấu thủ mới gia nhập, không để lộ bậc ngầm
+  bot.title = 'Tân Binh Giang Hồ';
+  bot.description = 'Đấu thủ mới gia nhập sới bạc với 50.000 Xu, sẵn sàng thử sức tại các bàn đấu.';
 
   return bot;
 }

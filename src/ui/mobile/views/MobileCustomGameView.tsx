@@ -82,7 +82,7 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       title="Xưởng Tùy Biến Trận Đấu (Custom Sandbox)"
-      subtitle="Toàn quyền tùy chỉnh luật bàn đấu, số người chơi, xếp đội hình Bot và tinh chỉnh AI."
+      subtitle="Toàn quyền tùy chỉnh luật bàn đấu, số người chơi, lựa chọn đối thủ và phong cách thi đấu."
       icon={<Sliders className="w-5 h-5 text-[var(--color-gold)]" />}
       headerRight={
         <Badge variant="neutral" size="md">
@@ -132,7 +132,7 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
               setActiveTab(id);
             }
           }}
-          className="mb-2"
+          className="mb-4"
         />
 
         {/* TAB 1: LUẬT BÀN ĐẤU */}
@@ -151,7 +151,7 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
           />
         )}
 
-        {/* TAB 2: ĐỘI HÌNH BOT */}
+        {/* TAB 2: ĐỘI HÌNH ĐỐI THỦ */}
         {activeTab === 'BOT_ROSTER' && (
           <div className="space-y-4 animate-fade-in">
             {/* PRESETS NHANH */}
@@ -175,10 +175,10 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {([
-                  { id: 'NEWBIE_TABLE', name: 'Nhập Môn Xóm Nhỏ', description: 'Elo 700 - 850 (Tí Chuột, Tèo, Bác Ba)', botIds: ['BOT_ELO_700', 'BOT_ELO_750', 'BOT_ELO_850'] as const },
-                  { id: 'CASUAL_STREET', name: 'Quán Trà Bến Xe', description: 'Elo 950 - 1150 (Bảy Xe Lôi, Xích Lô, Ba Gác)', botIds: ['BOT_ELO_950', 'BOT_ELO_1000', 'BOT_ELO_1150'] as const },
-                  { id: 'MID_TIER_PRO', name: 'Cao Thủ Sài Thành', description: 'Elo 1500 - 1800 (Elena, Ken, Sophia)', botIds: ['BOT_ELO_1500', 'BOT_ELO_1750', 'BOT_ELO_1800'] as const },
-                  { id: 'ELITE_CLUB', name: 'Đấu Trường Monaco', description: 'Elo 2000 - 2500 (Ruby, Nova, Apex)', botIds: ['BOT_ELO_2000', 'BOT_ELO_2300', 'BOT_ELO_2500'] as const }
+                  { id: 'NEWBIE_TABLE', name: 'Nhập Môn Xóm Nhỏ', description: 'Tí Chuột, Tèo, Bác Ba', botIds: ['BOT_ELO_700', 'BOT_ELO_750', 'BOT_ELO_850'] as const },
+                  { id: 'CASUAL_STREET', name: 'Quán Trà Bến Xe', description: 'Bảy Xe Lôi, Xích Lô, Ba Gác', botIds: ['BOT_ELO_950', 'BOT_ELO_1000', 'BOT_ELO_1150'] as const },
+                  { id: 'MID_TIER_PRO', name: 'Cao Thủ Sài Thành', description: 'Elena, Ken, Sophia', botIds: ['BOT_ELO_1500', 'BOT_ELO_1750', 'BOT_ELO_1800'] as const },
+                  { id: 'ELITE_CLUB', name: 'Đấu Trường Monaco', description: 'Ruby, Nova, Apex', botIds: ['BOT_ELO_2000', 'BOT_ELO_2300', 'BOT_ELO_2500'] as const }
                 ] as const).map((preset) => (
                   <button
                     key={preset.id}
@@ -194,23 +194,23 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
                   </button>
                 ))}
                 
-                {/* Preset Thần Bài & Siêu Trí Tuệ */}
+                {/* Preset Thần Bài & Trùm Sòng */}
                 <button
                   onClick={handleApplyGodModeAll}
                   className="p-2.5 rounded-xl bg-[var(--color-ruby-bg)] hover:brightness-110 border border-[var(--color-ruby-border)] text-left transition-all cursor-pointer col-span-2 sm:col-span-4 flex items-center gap-2 shadow-sm"
                 >
                   <Crown className="w-4 h-4 text-[var(--color-gold)] flex-shrink-0" />
                   <span className="text-xs font-bold text-red-200">
-                    Thách Thức Tam Đại Boss & Thần Bài (God Mode 2750-3200 Elo + Minimax + Nash)
+                    Thách Thức Tam Đại Trùm Sòng & Thần Bài (Cao Thủ Thượng Thừa)
                   </span>
                 </button>
               </div>
             </Card>
 
-            {/* CHỌN BOT TỪNG GHẾ */}
+            {/* CHỌN ĐỐI THỦ TỪNG GHẾ */}
             <div className="space-y-2">
               <div className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
-                Chỉ Định Bot Cho Từng Ghế ({activeBotCount} Ghế Khả Dụng)
+                Chỉ Định Đối Thủ Cho Từng Ghế ({activeBotCount} Ghế Khả Dụng)
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -226,7 +226,7 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
                       className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
                         isSelectedSeat
                           ? 'bg-[var(--bg-card-active)] border-2 border-[var(--color-gold)] shadow-md'
-                          : 'bg-[var(--bg-card)] border-[var(--border-card)] hover:border-white/30'
+                        : 'bg-[var(--bg-card)] border-[var(--border-card)] hover:border-white/30'
                       }`}
                     >
                       <div className="flex items-center justify-between text-xs text-[var(--text-muted)] mb-2">
@@ -238,10 +238,10 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
 
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-[var(--bg-container)] border border-[var(--border-container)] flex items-center justify-center text-2xl shadow-inner">
-                          {persona?.avatar || '🤖'}
+                          {persona?.avatar || '👤'}
                         </div>
                         <div>
-                          <div className="text-xs font-bold text-[var(--text-primary)]">{persona?.name || 'Bot'}</div>
+                          <div className="text-xs font-bold text-[var(--text-primary)]">{persona?.name || 'Đối thủ'}</div>
                           <div className="text-[11px] text-[var(--color-gold)] font-bold">{persona?.elo || 1150} Elo</div>
                           <div className="text-[10px] text-[var(--text-muted)] line-clamp-1">{persona?.description}</div>
                         </div>
@@ -252,13 +252,13 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
               </div>
             </div>
 
-            {/* KHO BOT SẴN CÓ */}
+            {/* DANH SÁCH ĐỐI THỦ KHẢ DỤNG */}
             <Card variant="surface" className="p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
-                  Kho Bot Sẵn Có (Gán vào {seatLabels[activeBotSeatIndex]})
+                  Danh Sách Đối Thủ Khả Dụng (Gán vào {seatLabels[activeBotSeatIndex]})
                 </span>
-                <span className="text-xs text-[var(--text-muted)]">{allPersonas.length} Nhân Vật Bot</span>
+                <span className="text-xs text-[var(--text-muted)]">{allPersonas.length} Nhân Vật</span>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 max-h-56 overflow-y-auto pr-1">
@@ -274,7 +274,7 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
                           : 'bg-[var(--bg-card)] border-[var(--border-card)] text-[var(--text-muted)] hover:border-white/30 hover:text-[var(--text-secondary)]'
                       }`}
                     >
-                      <div className="text-2xl mb-1">{bot.avatar || '🤖'}</div>
+                      <div className="text-2xl mb-1">{bot.avatar || '👤'}</div>
                       <div className="text-xs font-bold truncate">{bot.name}</div>
                       <div className="text-[10px] text-[var(--color-gold)] font-bold">{bot.elo} Elo</div>
                     </button>
@@ -285,7 +285,7 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
           </div>
         )}
 
-        {/* TAB 3: TINH CHỈNH CHỈ SỐ AI */}
+        {/* TAB 3: TINH CHỈNH CHIẾN THUẬT */}
         {activeTab === 'ADVANCED_AI' && (
           <div className="space-y-4 animate-fade-in">
             <Card variant="surface" className="p-3.5 flex items-center justify-between flex-wrap gap-3">
@@ -294,7 +294,7 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
                   Đang Tinh Chỉnh: {seatLabels[activeBotSeatIndex]}
                 </div>
                 <div className="text-xs text-[var(--text-muted)] mt-0.5">
-                  Nhân vật: <strong className="text-[var(--color-gold)]">{currentConfig.name || 'Bot'}</strong> ({currentConfig.elo} Elo)
+                  Nhân vật: <strong className="text-[var(--color-gold)]">{currentConfig.name || 'Đối thủ'}</strong> ({currentConfig.elo} Elo)
                 </div>
               </div>
 
@@ -307,7 +307,7 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
                     size="sm"
                     onClick={() => setActiveBotSeatIndex(i)}
                   >
-                    Bot {i + 1}
+                    Đối thủ {i + 1}
                   </Button>
                 ))}
               </div>
@@ -315,11 +315,11 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
 
             {/* SLIDER THÔNG SỐ */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* 1. MCTS Simulations */}
+              {/* 1. Simulations Lookahead */}
               <Card variant="nested" className="p-3.5 space-y-2">
                 <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-[var(--text-primary)]">Mô Phỏng MCTS:</span>
-                  <span className="font-mono text-[var(--color-gold)] font-bold">{currentConfig.mctsSimulations || 0} ván</span>
+                  <span className="font-semibold text-[var(--text-primary)]">Độ Sâu Tính Nước:</span>
+                  <span className="font-mono text-[var(--color-gold)] font-bold">{currentConfig.mctsSimulations || 0} lượt</span>
                 </div>
                 <input
                   type="range"
@@ -330,13 +330,13 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
                   onChange={(e) => handleConfigChange('mctsSimulations', parseInt(e.target.value, 10))}
                   className="w-full accent-[var(--color-gold)] cursor-pointer"
                 />
-                <div className="text-[10px] text-[var(--text-muted)]">Mô phỏng trước các nhánh rẽ tương lai để tìm nước tối ưu</div>
+                <div className="text-[10px] text-[var(--text-muted)]">Tính toán trước các nước bài khả dĩ để ra đòn chính xác</div>
               </Card>
 
               {/* 2. Memory Depth */}
               <Card variant="nested" className="p-3.5 space-y-2">
                 <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-[var(--text-primary)]">Nhớ Bài (Memory Depth):</span>
+                  <span className="font-semibold text-[var(--text-primary)]">Khả Năng Nhớ Bài:</span>
                   <span className="font-mono text-[var(--color-gold)] font-bold">{Math.round((currentConfig.memoryDepth || 0) * 100)}%</span>
                 </div>
                 <input
@@ -348,13 +348,13 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
                   onChange={(e) => handleConfigChange('memoryDepth', parseFloat(e.target.value))}
                   className="w-full accent-[var(--color-gold)] cursor-pointer"
                 />
-                <div className="text-[10px] text-[var(--text-muted)]">Tỷ lệ nhớ các lá bài đã đánh, Heo và Hàng trên bàn</div>
+                <div className="text-[10px] text-[var(--text-muted)]">Mức độ ghi nhớ các lá bài lẻ, Heo và Hàng đã xuất hiện</div>
               </Card>
 
               {/* 3. Tempo Control */}
               <Card variant="nested" className="p-3.5 space-y-2">
                 <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-[var(--text-primary)]">Nhịp Độ (Tempo Control):</span>
+                  <span className="font-semibold text-[var(--text-primary)]">Kiểm Soát Nhịp Độ:</span>
                   <span className="font-mono text-[var(--color-gold)] font-bold">{Math.round((currentConfig.tempoControl || 0) * 100)}%</span>
                 </div>
                 <input
@@ -366,13 +366,13 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
                   onChange={(e) => handleConfigChange('tempoControl', parseFloat(e.target.value))}
                   className="w-full accent-[var(--color-gold)] cursor-pointer"
                 />
-                <div className="text-[10px] text-[var(--text-muted)]">Quyết định xả rác nhanh hay ém bài chém Heo</div>
+                <div className="text-[10px] text-[var(--text-muted)]">Chủ động điều tiết nhịp trận đấu, xả rác hoặc ém bài rình rập</div>
               </Card>
 
               {/* 4. Baiting Tendency */}
               <Card variant="nested" className="p-3.5 space-y-2">
                 <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-[var(--text-primary)]">Nhử Mồi (Baiting Tendency):</span>
+                  <span className="font-semibold text-[var(--text-primary)]">Nghệ Thuật Nhử Mồi:</span>
                   <span className="font-mono text-[var(--color-gold)] font-bold">{Math.round((currentConfig.baitingTendency || 0) * 100)}%</span>
                 </div>
                 <input
@@ -384,13 +384,13 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
                   onChange={(e) => handleConfigChange('baitingTendency', parseFloat(e.target.value))}
                   className="w-full accent-[var(--color-gold)] cursor-pointer"
                 />
-                <div className="text-[10px] text-[var(--text-muted)]">Đánh bài lẻ cao để lừa đối phương chém Heo vào bẫy Hàng</div>
+                <div className="text-[10px] text-[var(--text-muted)]">Tung bài mồi dẫn dụ đối phương chém Heo vào thế trận giăng sẵn</div>
               </Card>
 
               {/* 5. Damage Control */}
               <Card variant="nested" className="p-3.5 space-y-2">
                 <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-[var(--text-primary)]">Hạn Chế Thiệt Hại (Damage Control):</span>
+                  <span className="font-semibold text-[var(--text-primary)]">Kỹ Năng Cắt Lỗ:</span>
                   <span className="font-mono text-[var(--color-gold)] font-bold">{Math.round((currentConfig.damageControl || 0) * 100)}%</span>
                 </div>
                 <input
@@ -402,13 +402,13 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
                   onChange={(e) => handleConfigChange('damageControl', parseFloat(e.target.value))}
                   className="w-full accent-[var(--color-gold)] cursor-pointer"
                 />
-                <div className="text-[10px] text-[var(--text-muted)]">Tẩu thoát bài sớm để giảm số lá phạt khi khó tranh Nhất</div>
+                <div className="text-[10px] text-[var(--text-muted)]">Chủ động tẩu thoát bài sớm để giảm thiểu tiền phạt khi bài xấu</div>
               </Card>
 
               {/* 6. Anti-Leader */}
               <Card variant="nested" className="p-3.5 space-y-2">
                 <div className="flex justify-between text-xs">
-                  <span className="font-semibold text-[var(--text-primary)]">Chặn Người Sắp Thắng (Anti-Leader):</span>
+                  <span className="font-semibold text-[var(--text-primary)]">Khả Năng Đì Bài:</span>
                   <span className="font-mono text-[var(--color-gold)] font-bold">{Math.round((currentConfig.antiLeaderAggression || 0) * 100)}%</span>
                 </div>
                 <input
@@ -420,20 +420,20 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
                   onChange={(e) => handleConfigChange('antiLeaderAggression', parseFloat(e.target.value))}
                   className="w-full accent-[var(--color-gold)] cursor-pointer"
                 />
-                <div className="text-[10px] text-[var(--text-muted)]">Quyết liệt chặn đối thủ còn ít bài để giữ thế trận</div>
+                <div className="text-[10px] text-[var(--text-muted)]">Quyết liệt chặn đứng đối thủ sắp hết bài để giành lại thế trận</div>
               </Card>
 
-              {/* 7. Bộ Thuật Toán AI Solvers Cao Cấp */}
+              {/* 7. Tuyệt Kỹ & Chiến Thuật Đặc Biệt */}
               <Card variant="nested" className="p-3.5 sm:col-span-2 space-y-3">
                 <div className="text-xs font-bold text-[var(--color-gold)] uppercase tracking-wider flex items-center gap-1.5">
-                  <BrainCircuit className="w-4 h-4" /> Bộ Thuật Toán AI Solvers Cao Cấp (Tier 7 - 9)
+                  <BrainCircuit className="w-4 h-4" /> Tuyệt Kỹ & Chiến Thuật Đặc Biệt
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {/* Minimax Alpha-Beta Endgame */}
+                  {/* Endgame solver */}
                   <label className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] cursor-pointer hover:border-[var(--border-gold)] transition-colors">
                     <div>
-                      <div className="text-xs font-bold text-[var(--text-primary)]">Minimax Alpha-Beta (Tier 8+)</div>
-                      <div className="text-[10px] text-[var(--text-muted)]">Vét cạn độ sâu 10-12 plies tìm thế Forced-Win</div>
+                      <div className="text-xs font-bold text-[var(--text-primary)]">Tính Toán Tàn Cuộc Tuyệt Đối</div>
+                      <div className="text-[10px] text-[var(--text-muted)]">Tính trước toàn bộ nước bài cuối ván để tìm đường về Nhất chắc thắng</div>
                     </div>
                     <input
                       type="checkbox"
@@ -443,11 +443,11 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
                     />
                   </label>
 
-                  {/* Bayesian Probability Tracker */}
+                  {/* Card tracker / Inference */}
                   <label className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] cursor-pointer hover:border-[var(--border-gold)] transition-colors">
                     <div>
-                      <div className="text-xs font-bold text-[var(--text-primary)]">Suy Luận Xác Suất Bayes (Tier 8+)</div>
-                      <div className="text-[10px] text-[var(--text-muted)]">Đoán xác suất bài ẩn dựa vào nhịp bỏ lượt</div>
+                      <div className="text-xs font-bold text-[var(--text-primary)]">Đoán Bài Ẩn Qua Nhịp Bỏ Lượt</div>
+                      <div className="text-[10px] text-[var(--text-muted)]">Phán đoán bài trên tay đối thủ dựa vào các lượt bỏ bài</div>
                     </div>
                     <input
                       type="checkbox"
@@ -457,11 +457,11 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
                     />
                   </label>
 
-                  {/* Nash Equilibrium Solver */}
+                  {/* Unpredictable play */}
                   <label className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] cursor-pointer hover:border-[var(--border-gold)] transition-colors">
                     <div>
-                      <div className="text-xs font-bold text-[var(--text-primary)]">Cân Bằng Nash Hỗn Hợp (Tier 9 Boss)</div>
-                      <div className="text-[10px] text-[var(--text-muted)]">Chiến lược ngẫu hóa chống bị đối thủ bắt bài</div>
+                      <div className="text-xs font-bold text-[var(--text-primary)]">Lối Đánh Biến Ảo Khó Lường</div>
+                      <div className="text-[10px] text-[var(--text-muted)]">Chiến thuật đánh biến hóa ngẫu nhiên chống bị bắt bài</div>
                     </div>
                     <input
                       type="checkbox"
@@ -474,8 +474,8 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
                   {/* Dynamic Repartitioning */}
                   <label className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] cursor-pointer hover:border-[var(--border-gold)] transition-colors">
                     <div>
-                      <div className="text-xs font-bold text-[var(--text-primary)]">Tái Cấu Trúc Nhánh Bài Động (Tier 6+)</div>
-                      <div className="text-[10px] text-[var(--text-muted)]">Xé phỏm bẻ sảnh Branch & Bound cứu Cóng</div>
+                      <div className="text-xs font-bold text-[var(--text-primary)]">Tái Cấu Trúc Bộ Bài Linh Hoạt</div>
+                      <div className="text-[10px] text-[var(--text-muted)]">Linh hoạt phá sảnh, xé đôi để thoát bài cứu Cóng</div>
                     </div>
                     <input
                       type="checkbox"

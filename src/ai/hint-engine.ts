@@ -164,7 +164,7 @@ const DIALOGUES = {
     `💥 Đòn phản công sấm sét! Đập (${cards}) đè bẹp hàng của đối phương và giành quyền làm chủ cuộc chơi!`
   ],
   HEO_BLACK_TACTIC: (cards: string) => [
-    `♟️ Thả Heo Đen (${cards}) thăm dò là nước cờ cao tay, vừa ép đối thủ lộ Heo Đỏ vừa an toàn cho tay bài!`,
+    `🃏 Thả Heo Đen (${cards}) thăm dò là nước bài cao tay, vừa ép đối thủ lộ Heo Đỏ vừa an toàn cho tay bài!`,
     `👍 Dùng Heo Đen (${cards}) ép bài rất khôn ngoan, nhử đối phương bung hàng lớn để mình đón đầu!`
   ],
   HEO_RED_TACTIC: (cards: string) => [

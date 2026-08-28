@@ -49,7 +49,7 @@ export const BotProfileModal: React.FC<BotProfileModalProps> = ({
       height="auto"
       title={bot.name}
       subtitle={bot.title || 'Cao Thủ Sới Bạc'}
-      icon={<span className="emoji-avatar text-xl">{bot.avatar || '🤖'}</span>}
+      icon={<span className="emoji-avatar text-xl">{bot.avatar || '👤'}</span>}
       headerRight={
         <Badge variant={tierInfo.tierNum >= 4 ? 'gold' : 'neutral'} size="md">
           {tierInfo.rankBadge} {tierInfo.tier}

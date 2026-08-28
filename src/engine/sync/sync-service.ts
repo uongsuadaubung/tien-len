@@ -6,13 +6,11 @@ import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { ecosystemManager } from '../ecosystem/ecosystem-manager';
 import { ECONOMY_CONSTANTS } from '../constants/economy';
 import { sanitizeAndValidateProfile } from '../storage';
-import {
-  dbGetAllBots,
-  dbSaveBotsBatch,
-  dbGetNewsfeed,
+import { 
+  dbGetAllBots, 
+  dbSaveBotsBatch, 
+  dbGetNewsfeed, 
   dbAddNewsBatch,
-  dbGetMatchHistory,
-  dbSaveMatchHistory,
   dbGetHumanBehavior,
   dbSaveHumanBehavior,
   dbGetRecentMatchLogs,
@@ -117,10 +115,9 @@ export async function getLocalSaveData(): Promise<TienLenSaveData> {
     autoSyncOnStartup: settingsState.autoSyncOnStartup
   };
 
-  const [bots, newsfeed, matchHistory, humanBehavior, matchLogs] = await Promise.all([
+  const [bots, newsfeed, humanBehavior, matchLogs] = await Promise.all([
     dbGetAllBots().catch(() => []),
     dbGetNewsfeed(50).catch(() => []),
-    dbGetMatchHistory(50).catch(() => []),
     dbGetHumanBehavior().catch(() => null),
     dbGetRecentMatchLogs(20).catch(() => [])
   ]);
@@ -132,7 +129,6 @@ export async function getLocalSaveData(): Promise<TienLenSaveData> {
     settings,
     bots: bots.length > 0 ? bots : undefined,
     newsfeed: newsfeed.length > 0 ? newsfeed : undefined,
-    matchHistory: matchHistory.length > 0 ? matchHistory : undefined,
     humanBehavior: humanBehavior || undefined,
     matchLogs: matchLogs.length > 0 ? matchLogs : undefined
   };
@@ -170,12 +166,7 @@ export async function applyRemoteSaveData(remote: TienLenSaveData): Promise<void
     await useEcosystemStore.getState().refreshEcosystem().catch(() => {});
   }
 
-  // 5. Lịch Sử Bàn Đấu (Match History)
-  if (remote.matchHistory && remote.matchHistory.length > 0) {
-    await dbSaveMatchHistory(remote.matchHistory).catch(() => {});
-  }
-
-  // 6. Hồ Sơ Hành Vi Người Chơi (Human Behavior)
+  // 5. Hồ Sơ Hành Vi Người Chơi (Human Behavior)
   if (remote.humanBehavior !== undefined && remote.humanBehavior !== null) {
     await dbSaveHumanBehavior(remote.humanBehavior).catch(() => {});
   }

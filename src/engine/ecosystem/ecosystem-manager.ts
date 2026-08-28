@@ -9,13 +9,13 @@ import {
 import { 
   BotEntity, 
   EcosystemNewsItem, 
-  SimulatedTableResult,
-  getTierFromElo
+  SimulatedTableResult
 } from './ecosystem-types';
 import { 
   generateInitial200Bots, 
   findUnderfilledTier,
-  draftBotForTier
+  draftBotForTier,
+  getBotDnaTier
 } from './bot-generator';
 import { sanitizeAvatar, isValidAvatar } from '../../ai/bot-factory';
 import { 
@@ -77,6 +77,11 @@ class EcosystemManager {
         for (const b of activeBots) {
           if (!isValidAvatar(b.avatar)) {
             b.avatar = sanitizeAvatar(b.avatar, b.elo);
+            hasChanges = true;
+          }
+          // Migration: Khôi phục & chuẩn hóa trường dnaTier nếu dữ liệu cũ từ IndexedDB chưa có
+          if (typeof b.dnaTier !== 'number' || b.dnaTier < 1 || b.dnaTier > 9) {
+            b.dnaTier = getBotDnaTier(b);
             hasChanges = true;
           }
           this.activeBotsMap.set(b.id, b);
@@ -342,12 +347,11 @@ class EcosystemManager {
         }
 
         // Ghi nhận sự kiện phá sản & nhân tố mới gia nhập sới bạc
-        const tierName = getTierFromElo(replacementBot.elo).label;
         newEvents.push({
           id: `news_bankrupt_${bot.id}_${Date.now()}`,
           timestamp: Date.now(),
           type: 'BANKRUPTCY',
-          message: `🚨 ${bot.name} đã cháy túi và chính thức VỠ NỢ! Tay chơi mới ${replacementBot.name} (${tierName}) vừa gia nhập sới bạc!`,
+          message: `🚨 ${bot.name} đã cháy túi và chính thức VỠ NỢ! Tay chơi mới ${replacementBot.name} vừa gia nhập sới bạc!`,
           botId: bot.id,
           botName: bot.name,
           avatar: bot.avatar,

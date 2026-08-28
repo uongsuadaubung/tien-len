@@ -338,8 +338,12 @@ export function useGameMatchLoop() {
     const winnerToPreserve = preserveWinnerId || (effectiveGameNumber > 1 ? lastWinnerIdRef.current || undefined : undefined);
     const startResult = engine.startNewGame(effectiveGameNumber, winnerToPreserve);
 
+    const initialDealtCounts: Record<string, number> = {};
+    for (const p of engine.players) {
+      initialDealtCounts[p.id] = 0;
+    }
     setIsDealing(true);
-    setDealtCounts({});
+    setDealtCounts(initialDealtCounts);
     setDealBanner(null);
 
     syncGameState();

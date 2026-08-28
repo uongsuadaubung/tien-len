@@ -236,7 +236,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
                   : 'bg-[#141b2b] border-[#2a3449] text-zinc-300'
               }`}
             >
-              <span>AI Bot</span>
+              <span>Phân Tích</span>
             </button>
           )}
         </div>

@@ -314,7 +314,6 @@ Tọa lạc tại [`src/engine/db/indexed-db.ts`](../src/engine/db/indexed-db.ts
 export class TienLenDexieDB extends Dexie {
   bots!: Table<BotEntity, string>;
   newsfeed!: Table<EcosystemNewsItem, string>;
-  match_history!: Table<MatchHistoryRecord, string>;
   player_profile!: Table<PlayerProfile, string>;
   game_settings!: Table<GameSettings, string>;
   active_session!: Table<ActiveMatchSession, string>;
@@ -324,14 +323,13 @@ export class TienLenDexieDB extends Dexie {
 
 // Cấu hình Index Schema:
 db.version(1).stores({
-  bots: 'id, elo, coins, status',
+  bots: 'id, elo, coins, status, dnaTier',
   newsfeed: 'id, timestamp, type',
-  match_history: 'id, timestamp, gameType, mode',
-  player_profile: 'id',
-  game_settings: 'id',
-  active_session: 'id, gameId, startedAt',
-  human_behavior: 'id, updatedAt',
-  match_logs: 'id, matchId, timestamp'
+  player_profile: 'key',
+  game_settings: 'key',
+  active_session: 'key',
+  human_behavior: 'key',
+  match_logs: 'matchId, startedAt, gameMode'
 });
 ```
 

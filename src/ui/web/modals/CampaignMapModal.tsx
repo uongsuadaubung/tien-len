@@ -156,10 +156,10 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
                   className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--color-gold-border)] transition-all cursor-pointer shadow-sm group"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-2xl shrink-0">{bot.avatar || '🤖'}</span>
+                    <span className="text-2xl shrink-0">{bot.avatar || '👤'}</span>
                     <div className="min-w-0">
                       <h5 className="font-bold text-xs text-[var(--text-primary)] truncate">
-                        {bot.name || getTierFromElo(bot.elo).label || 'Bot'}
+                        {bot.name || getTierFromElo(bot.elo).label || 'Cao Thủ'}
                       </h5>
                       <span className="text-[10px] text-[var(--color-gold)] font-bold block">
                         Elo {bot.elo}

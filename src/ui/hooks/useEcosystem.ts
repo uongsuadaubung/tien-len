@@ -104,7 +104,7 @@ export function useEcosystem(): UseEcosystemResult {
       currentStreak: profile.stats.currentStreak || 0,
       highestStreak: profile.stats.highestStreak || 0,
       title: 'Đại Hiệp',
-      personalityTags: ['Kỳ Thủ', 'Chiến Thuật'],
+      personalityTags: ['Tay Chơi', 'Chiến Thuật'],
       activityStatus: 'IN_MATCH',
       headToHeadVsHuman: { games: 0, botWins: 0, humanWins: 0, netCoinsEarnedFromHuman: 0 },
       stats: {
@@ -123,6 +123,7 @@ export function useEcosystem(): UseEcosystemResult {
   // Tạo BotEntity đại diện cho người chơi khi xem hồ sơ chính mình
   const humanAsBotEntity: BotEntity = useMemo(() => ({
     id: 'human_player',
+    dnaTier: humanPlayerRankEntity.tierNum,
     name: profile.name || 'Bạn',
     avatar: profile.avatar || '🤠',
     tier: humanPlayerRankEntity.tier,

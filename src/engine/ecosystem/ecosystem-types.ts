@@ -68,6 +68,7 @@ export interface BotStats {
 }
 
 export interface BotEntity extends BotConfig {
+  dnaTier: number; // Tier gốc của bộ não AI (1 -> 9)
   coins: number;
   currentStreak: number; // Dương = thắng liên tiếp, Âm = thua liên tiếp
   highestStreak: number;
@@ -119,7 +120,9 @@ export interface BotMatchResult {
 }
 
 export interface SimulatedTableResult {
+  id?: string;
   tableId: string;
+  timestamp?: number;
   betAmount: number;
   botResults: BotMatchResult[];
   highlightNews: EcosystemNewsItem[] | null;

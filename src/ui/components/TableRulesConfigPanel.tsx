@@ -30,9 +30,9 @@ export interface TableConfigState {
 }
 
 const PLAYER_COUNT_OPTIONS: readonly { count: PlayerCount; label: string; desc: string }[] = [
-  { count: 2, label: 'Solo 1v1 (2 Người)', desc: '1 Bạn vs 1 Bot' },
-  { count: 3, label: 'Bàn 3 Người', desc: '1 Bạn vs 2 Bot' },
-  { count: 4, label: 'Bàn 4 Người (Chuẩn)', desc: '1 Bạn vs 3 Bot' }
+  { count: 2, label: 'Solo 1v1 (2 Người)', desc: '1 Bạn vs 1 Đối thủ' },
+  { count: 3, label: 'Bàn 3 Người', desc: '1 Bạn vs 2 Đối thủ' },
+  { count: 4, label: 'Bàn 4 Người (Chuẩn)', desc: '1 Bạn vs 3 Đối thủ' }
 ];
 
 const GAME_MODE_TABS: readonly { mode: GameMode; label: string }[] = [
@@ -197,7 +197,7 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
             <span>Số Lượng Người Chơi</span>
           </label>
           <span className="text-[11px] text-[var(--text-muted)]">
-            (1 Bạn + {activeBotCount} Bot AI)
+            (1 Bạn + {activeBotCount} Đối thủ)
           </span>
         </div>
         <div className="grid grid-cols-3 gap-2">

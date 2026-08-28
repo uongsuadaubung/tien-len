@@ -1,6 +1,6 @@
 import type { PlayerProfile } from '../storage';
 import type { SavedSettings } from '../../stores/useSettingsStore';
-import type { BotEntity, EcosystemNewsItem, SimulatedTableResult } from '../ecosystem/ecosystem-types';
+import type { BotEntity, EcosystemNewsItem } from '../ecosystem/ecosystem-types';
 import type { MatchLogReport } from '../match-logger';
 
 export interface GithubUser {
@@ -39,7 +39,6 @@ export interface TienLenSaveData {
   settings: Partial<SavedSettings>;
   bots?: BotEntity[];
   newsfeed?: EcosystemNewsItem[];
-  matchHistory?: SimulatedTableResult[];
   humanBehavior?: unknown;
   matchLogs?: MatchLogReport[];
 }

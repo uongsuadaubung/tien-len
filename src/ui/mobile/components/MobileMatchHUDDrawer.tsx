@@ -83,7 +83,7 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
               {players.map(p => {
                 const isTurn = !isDealing && currentTurnPlayerId === p.id;
                 const isLeader = leadPlayerId === p.id;
-                const cardCount = isDealing && dealtCounts[p.id] !== undefined ? dealtCounts[p.id] : p.hand.length;
+                const cardCount = isDealing ? (dealtCounts[p.id] ?? 0) : p.hand.length;
                 const isOneCardLeft = !isDealing && cardCount === 1 && !p.rankPosition;
                 const isHuman = p.id === 'p0';
                 const botIdx = parseInt(p.id.replace('p', '')) - 1;

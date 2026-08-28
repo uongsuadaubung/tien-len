@@ -67,7 +67,7 @@ export const CAMPAIGN_CHAPTERS: readonly CampaignChapter[] = Object.freeze([
     requiredWins: 3,
     betAmount: 1500,
     rewardCoins: 35000,
-    rewardTitle: 'Kỳ Thủ Quán Trà',
+    rewardTitle: 'Tay Chơi Quán Trà',
     bots: Object.freeze([
       Object.freeze({ ...BOT_PERSONAS.BOT_ELO_1250, id: 'BOT_ELO_1250_CHU_TU_CO', name: 'Chú Tư Cờ', avatar: '🍵', elo: 1250 }),
       Object.freeze({ ...BOT_PERSONAS.BOT_ELO_1300, id: 'BOT_ELO_1300_REX_BUI_DOI', name: 'Rex Bụi Đời', avatar: '🤠', elo: 1300 }),

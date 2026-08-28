@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie';
-import { BotEntity, EcosystemNewsItem, SimulatedTableResult } from '../ecosystem/ecosystem-types';
+import { BotEntity, EcosystemNewsItem } from '../ecosystem/ecosystem-types';
 import type { PlayerProfile, ActiveMatchSession } from '../storage';
 import type { MatchLogReport } from '../match-logger';
 import { ECOSYSTEM_CONSTANTS } from '../constants/ecosystem';
@@ -20,7 +20,6 @@ export interface KeyValueRecord<T> {
 export class TienLenDatabase extends Dexie {
   bots!: Table<BotEntity, string>;
   newsfeed!: Table<EcosystemNewsItem, string>;
-  match_history!: Table<SimulatedTableResult, string>;
   player_profile!: Table<KeyValueRecord<PlayerProfile>, string>;
   game_settings!: Table<KeyValueRecord<Record<string, unknown>>, string>;
   active_session!: Table<KeyValueRecord<ActiveMatchSession>, string>;
@@ -30,9 +29,8 @@ export class TienLenDatabase extends Dexie {
   constructor() {
     super(ECOSYSTEM_CONSTANTS.DB_NAME);
     this.version(1).stores({
-      bots: 'id, elo, coins, status',
+      bots: 'id, elo, coins, status, dnaTier',
       newsfeed: 'id, timestamp, type',
-      match_history: 'id, timestamp',
       player_profile: 'key',
       game_settings: 'key',
       active_session: 'key',
@@ -46,7 +44,6 @@ export class TienLenDatabase extends Dexie {
 export const memoryStore: {
   bots: Map<string, BotEntity>;
   newsfeed: EcosystemNewsItem[];
-  match_history: SimulatedTableResult[];
   player_profile: PlayerProfile | null;
   game_settings: Record<string, unknown> | null;
   active_session: ActiveMatchSession | null;
@@ -55,7 +52,6 @@ export const memoryStore: {
 } = {
   bots: new Map(),
   newsfeed: [],
-  match_history: [],
   player_profile: null,
   game_settings: null,
   active_session: null,
@@ -171,31 +167,6 @@ export async function dbAddNewsBatch(items: EcosystemNewsItem[]): Promise<void> 
 }
 
 // ============================================================================
-// MATCH HISTORY OPERATIONS
-// ============================================================================
-
-export async function dbSaveMatchHistory(results: SimulatedTableResult[]): Promise<void> {
-  memoryStore.match_history.unshift(...results);
-  try {
-    const db = getGameDB();
-    await db.match_history.bulkPut(results);
-  } catch {}
-}
-
-export async function dbGetMatchHistory(limit: number = 50): Promise<SimulatedTableResult[]> {
-  try {
-    const db = getGameDB();
-    const items = await db.match_history.orderBy('timestamp').reverse().limit(limit).toArray();
-    if (items.length > 0) {
-      memoryStore.match_history = items;
-      return items;
-    }
-    return memoryStore.match_history.slice(0, limit);
-  } catch {
-    return memoryStore.match_history.slice(0, limit);
-  }
-}
-
 // ============================================================================
 // RESET / CLEAR ALL ECOSYSTEM DATA
 // ============================================================================
@@ -203,14 +174,12 @@ export async function dbGetMatchHistory(limit: number = 50): Promise<SimulatedTa
 export async function dbResetEcosystem(): Promise<void> {
   memoryStore.bots.clear();
   memoryStore.newsfeed = [];
-  memoryStore.match_history = [];
 
   try {
     const db = getGameDB();
     await Promise.all([
       db.bots.clear(),
-      db.newsfeed.clear(),
-      db.match_history.clear()
+      db.newsfeed.clear()
     ]);
   } catch {}
 }

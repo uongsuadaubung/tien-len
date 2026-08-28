@@ -3,7 +3,8 @@ import {
   generateInitial200Bots, 
   draftRookieBot,
   findUnderfilledTier,
-  draftBotForTier
+  draftBotForTier,
+  getBotDnaTier
 } from '../../src/engine/ecosystem/bot-generator';
 import { matchBotsForPlayerTable, matchSimulatedTables } from '../../src/engine/ecosystem/matchmaker';
 import { simulateSingleTableMatch } from '../../src/engine/ecosystem/headless-sim';
@@ -18,8 +19,8 @@ describe('Thế Giới Sới Bạc 200 Bot (Living Bot Ecosystem Tests)', () => 
       expect(bots.length).toBe(ECOSYSTEM_CONSTANTS.MAX_BOT_COUNT);
 
       for (let tier = 1; tier <= 9; tier++) {
-        const count = bots.filter(b => getTierFromElo(b.elo).tierNum === tier).length;
-        expect(count).toBeGreaterThan(0);
+        const count = bots.filter(b => b.dnaTier === tier).length;
+        expect(count).toBe(ECOSYSTEM_CONSTANTS.TIER_DISTRIBUTION[tier]);
       }
     });
 
@@ -51,13 +52,55 @@ describe('Thế Giới Sới Bạc 200 Bot (Living Bot Ecosystem Tests)', () => 
     it('findUnderfilledTier: Duyệt từ Tier CAO (Tier 9) xuống Tier THẤP (Tier 1) tìm đúng bậc bị thiếu', () => {
       const bots = generateInitial200Bots();
       // Giả lập sới bạc bị mất 1 Boss Tier 9
-      const tier9BotIndex = bots.findIndex(b => getTierFromElo(b.elo).tierNum === 9);
+      const tier9BotIndex = bots.findIndex(b => getBotDnaTier(b) === 9);
       expect(tier9BotIndex).toBeGreaterThanOrEqual(0);
       bots.splice(tier9BotIndex, 1);
 
       // findUnderfilledTier phải phát hiện ngay Tier 9 bị thiếu đầu tiên
       const missingTier = findUnderfilledTier(bots);
       expect(missingTier).toBe(9);
+    });
+
+    it('Khôi phục từ đỉnh tháp xuống đáy tháp mượt mà khi khuyết nhiều bậc (Tier 9 -> Tier 5 -> Tier 1)', () => {
+      const bots = generateInitial200Bots();
+      const existingNames = new Set<string>(bots.map(b => b.name).filter((n): n is string => Boolean(n)));
+
+      // Xóa 1 bot Tier 9, 1 bot Tier 5, 1 bot Tier 1
+      const idx9 = bots.findIndex(b => getBotDnaTier(b) === 9);
+      bots.splice(idx9, 1);
+      const idx5 = bots.findIndex(b => getBotDnaTier(b) === 5);
+      bots.splice(idx5, 1);
+      const idx1 = bots.findIndex(b => getBotDnaTier(b) === 1);
+      bots.splice(idx1, 1);
+
+      expect(bots.length).toBe(197);
+
+      // Bước 1: Phải phát hiện và bù đắp Tier 9 đầu tiên
+      const tierStep1 = findUnderfilledTier(bots);
+      expect(tierStep1).toBe(9);
+      const rookie9 = draftBotForTier(existingNames, tierStep1);
+      expect(getBotDnaTier(rookie9)).toBe(9);
+      bots.push(rookie9);
+      if (rookie9.name) existingNames.add(rookie9.name);
+
+      // Bước 2: Tier 9 đã đủ, chuyển xuống phát hiện và bù đắp Tier 5 (dù tân binh có Elo 1000)
+      const tierStep2 = findUnderfilledTier(bots);
+      expect(tierStep2).toBe(5);
+      const rookie5 = draftBotForTier(existingNames, tierStep2);
+      expect(rookie5.elo).toBeLessThan(1100); // Tân binh xuất phát 1000 Elo
+      expect(getBotDnaTier(rookie5)).toBe(5); // Nhưng DNA vẫn chuẩn xác là Tier 5
+      bots.push(rookie5);
+      if (rookie5.name) existingNames.add(rookie5.name);
+
+      // Bước 3: Tier 5 đã đủ, chuyển tiếp xuống phát hiện và bù đắp Tier 1
+      const tierStep3 = findUnderfilledTier(bots);
+      expect(tierStep3).toBe(1);
+      const rookie1 = draftBotForTier(existingNames, tierStep3);
+      expect(getBotDnaTier(rookie1)).toBe(1);
+      bots.push(rookie1);
+
+      // Kết quả: Đủ trọn vẹn 200 bot với phân bổ chuẩn
+      expect(bots.length).toBe(200);
     });
 
     it('draftBotForTier sinh ra Tân Binh xuất phát từ 1.000 Elo & 50.000 Xu nhưng mang trọn vẹn AI DNA của Tier tương ứng', () => {
@@ -72,7 +115,7 @@ describe('Thế Giới Sới Bạc 200 Bot (Living Bot Ecosystem Tests)', () => 
       expect(newBossSmurf.useMinimaxEndgame).toBe(true);
       expect(newBossSmurf.useBayesianInference).toBe(true);
       expect(newBossSmurf.useNashEquilibrium).toBe(true);
-      expect(newBossSmurf.title).toBe('Thần Đồng Ẩn Danh');
+      expect(newBossSmurf.title).toBe('Tân Binh Giang Hồ');
       expect(existingNames.has(newBossSmurf.name || '')).toBe(false);
 
       // Bù đắp cho Tier 8 (Thần Bài)
@@ -82,7 +125,7 @@ describe('Thế Giới Sới Bạc 200 Bot (Living Bot Ecosystem Tests)', () => 
       expect(newGrandmasterSmurf.coins).toBe(50000);
       expect(newGrandmasterSmurf.useMinimaxEndgame).toBe(true);
       expect(newGrandmasterSmurf.useBayesianInference).toBe(true);
-      expect(newGrandmasterSmurf.title).toBe('Thần Đồng Ẩn Danh');
+      expect(newGrandmasterSmurf.title).toBe('Tân Binh Giang Hồ');
     });
   });
 
@@ -177,8 +220,17 @@ describe('Thế Giới Sới Bạc 200 Bot (Living Bot Ecosystem Tests)', () => 
 
       // Đảm bảo các tier cao nhất (Tier 9, Tier 8, Tier 7) luôn luôn có mặt đầy đủ
       for (let t = 7; t <= 9; t++) {
-        const count = allBotsAfter.filter(b => getTierFromElo(b.elo).tierNum === t).length;
+        const count = allBotsAfter.filter(b => b.dnaTier === t).length;
         expect(count).toBeGreaterThan(0);
+      }
+    });
+
+    it('Tự động migrate và chuẩn hóa dnaTier khi khởi động hệ sinh thái từ dữ liệu cũ', async () => {
+      const bots = await ecosystemManager.getAllBots();
+      for (const bot of bots) {
+        expect(typeof bot.dnaTier).toBe('number');
+        expect(bot.dnaTier).toBeGreaterThanOrEqual(1);
+        expect(bot.dnaTier).toBeLessThanOrEqual(9);
       }
     });
   });

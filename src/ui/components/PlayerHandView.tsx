@@ -58,7 +58,7 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
   if (!player) return null;
 
   const isMobileSize = cardSize === 'mobile';
-  const visibleCardCount = isDealing && dealtCardsCount !== null && dealtCardsCount !== undefined ? dealtCardsCount : (player.hand?.length || 0);
+  const visibleCardCount = isDealing ? (dealtCardsCount ?? 0) : (player.hand?.length || 0);
   const hand = (player.hand || []).slice(0, visibleCardCount);
   const has3S = hand.some(c => c.rank === 3 && c.suit === 'SPADES');
   const isSelectedWith3S = Array.from(selectedCardIds).some(id => {

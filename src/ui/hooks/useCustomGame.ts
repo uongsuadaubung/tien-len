@@ -65,9 +65,9 @@ export interface UseCustomGameReturn {
 }
 
 const SEAT_LABELS = [
-  'Ghế Trái (Bot 1)',
-  'Ghế Trên (Bot 2)',
-  'Ghế Phải (Bot 3)'
+  'Ghế Trái (Đối thủ 1)',
+  'Ghế Trên (Đối thủ 2)',
+  'Ghế Phải (Đối thủ 3)'
 ] as const;
 
 /**

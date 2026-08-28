@@ -574,8 +574,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <div className="p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">Thời Gian Suy Nghĩ Của Bot</div>
-                <div className="text-[11px] text-[var(--text-muted)] mt-0.5">Tùy chỉnh nhịp độ suy nghĩ và độ trễ ra bài của Bot AI</div>
+                <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">Tốc Độ Ra Bài Của Đối Thủ</div>
+                <div className="text-[11px] text-[var(--text-muted)] mt-0.5">Tùy chỉnh tốc độ suy nghĩ và nhịp độ ra bài tại bàn đấu</div>
               </div>
             </div>
 
@@ -739,8 +739,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   <BrainCircuit className="w-4 h-4 shrink-0" />
                 </div>
                 <div>
-                  <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">Nhật Ký Suy Luận Bot AI</div>
-                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">Xem chi tiết chuỗi suy nghĩ, lý do ra bài và điểm heuristics</div>
+                  <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">Bảng Phân Tích Thế Trận (Nâng Cao)</div>
+                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">Hiển thị góc nhìn phân tích và suy đoán bài của từng ghế ngồi</div>
                 </div>
               </div>
 

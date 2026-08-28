@@ -134,15 +134,14 @@ Sử dụng **Zustand** cho kiến trúc State mỏng, hiệu năng cao:
 
 ### 6.1. Kiến Trúc Lưu Trữ 100% Dexie IndexedDB (`TIEN_LEN_DEXIE_DB_V1`)
 - Loại bỏ hoàn toàn `localStorage` để giải phóng giới hạn 5MB và tránh nghẽn I/O đồng bộ trên Main Thread.
-- Quản lý 8 bảng dữ liệu quan hệ có index tối ưu:
-  * `bots: 'id, elo, coins, status'`
+- Quản lý 7 bảng dữ liệu quan hệ có index tối ưu:
+  * `bots: 'id, elo, coins, status, dnaTier'`
   * `newsfeed: 'id, timestamp, type'`
-  * `match_history: 'id, timestamp, gameType, mode'`
-  * `player_profile: 'id'`
-  * `game_settings: 'id'`
-  * `active_session: 'id, gameId, startedAt'`
-  * `human_behavior: 'id, updatedAt'`
-  * `match_logs: 'id, matchId, timestamp'`
+  * `player_profile: 'key'`
+  * `game_settings: 'key'`
+  * `active_session: 'key'`
+  * `human_behavior: 'key'`
+  * `match_logs: 'matchId, startedAt, gameMode'`
 - **Write-Through RAM Cache (0ms Reads)**: Dữ liệu được nạp vào bộ nhớ RAM khi ứng dụng khởi động. Mọi thao tác đọc đều tức thì $0\text{ms}$; thao tác ghi được cập nhật đồng thời vào RAM và ghi bất đồng bộ non-blocking xuống IndexedDB.
 
 ### 6.2. Single Source of Truth & Pure Derived State (Rank & Badges)

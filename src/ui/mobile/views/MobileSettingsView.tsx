@@ -16,8 +16,7 @@ import {
   ExternalLink,
   History,
   CheckCircle2,
-  AlertTriangle,
-  Clipboard
+  AlertTriangle
 } from 'lucide-react';
 import { Button } from '../../primitives';
 import { MobileScreenWrapper } from './MobileScreenWrapper';
@@ -579,8 +578,8 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
           <div className="p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">Thời Gian Suy Nghĩ Của Bot</div>
-                <div className="text-[11px] text-[var(--text-muted)] mt-0.5">Tùy chỉnh nhịp độ suy nghĩ và độ trễ ra bài của Bot AI</div>
+                <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">Tốc Độ Ra Bài Của Đối Thủ</div>
+                <div className="text-[11px] text-[var(--text-muted)] mt-0.5">Tùy chỉnh tốc độ suy nghĩ và nhịp độ ra bài tại bàn đấu</div>
               </div>
             </div>
 

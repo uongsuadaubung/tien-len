@@ -45,14 +45,15 @@ export function convertBotConfigToEntity(botConfig: BotConfig, ecosystemBots: Bo
   const tierInfo = getTierFromElo(botConfig.elo);
   return {
     id: botConfig.id || `bot_${botConfig.elo}`,
+    dnaTier: tierInfo.tierNum,
     name: botConfig.name || tierInfo.label || 'Trùm Sòng',
-    avatar: botConfig.avatar || '🤖',
+    avatar: botConfig.avatar || '👤',
     elo: botConfig.elo,
     coins: botConfig.elo * 150,
     description: botConfig.description || `Cao Thủ Sới Bạc với mức Elo ${botConfig.elo}.`,
     personalityTags: [
       tierInfo.label,
-      botConfig.useMinimaxEndgame ? 'Minimax AI' : 'Chiến Thuật',
+      botConfig.useMinimaxEndgame ? 'Già Rơ' : 'Chiến Thuật',
       botConfig.riskAppetite > 0.7 ? 'Liều Lĩnh' : 'Chặt Chẽ'
     ],
     title: `Trùm ${tierInfo.label}`,
