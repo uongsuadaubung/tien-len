@@ -24,9 +24,7 @@ import {
   Volume2, 
   VolumeX, 
   LogOut, 
-  Bot, 
   RotateCw,
-  Sparkles,
   BarChart3
 } from 'lucide-react';
 import { Badge } from '../../primitives';

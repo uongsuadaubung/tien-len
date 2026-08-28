@@ -20,7 +20,6 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
   onSelectChapter
 }) => {
   const {
-    selectedChapterId,
     setSelectedChapterId,
     currentChapter,
     chapters,

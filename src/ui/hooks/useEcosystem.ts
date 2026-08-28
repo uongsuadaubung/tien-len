@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { useModalStore } from '../../stores/useModalStore';
 import { useUserStore } from '../../stores/useUserStore';
-import { BotActivityStatus, BotEntity, getTierFromElo } from '../../engine/ecosystem/ecosystem-types';
+import { BotActivityStatus, BotEntity, EcosystemNewsItem, getTierFromElo } from '../../engine/ecosystem/ecosystem-types';
 
 export const PAGE_SIZE = 15;
 
@@ -55,7 +55,7 @@ export interface UseEcosystemResult {
   setSelectedSortField: (field: 'elo' | 'coins' | 'winRate' | 'gamesPlayed') => void;
   sortOrder: 'asc' | 'desc';
   toggleSortOrder: () => void;
-  newsfeed: readonly any[];
+  newsfeed: readonly EcosystemNewsItem[];
   sortedAndFilteredList: readonly EcosystemTableItem[];
   humanGlobalRank: number;
   totalPages: number;

@@ -58,7 +58,6 @@ export const MobileApp: React.FC<MobileAppProps> = ({
   handlePlaySelectedCards,
   handlePassTurn,
   handleAutoSort,
-  handleApplyAiHint,
   handleDealCard,
   handleDealComplete,
   handleForfeitMatch,
@@ -72,7 +71,7 @@ export const MobileApp: React.FC<MobileAppProps> = ({
   handleExecuteMatch
 }) => {
   const { openModal, closeModal } = useModalStore();
-  const { currentScreen, activeGameType, gameNumber, playerCount, gameSettings } = useGameStore();
+  const { currentScreen, activeGameType, gameNumber, gameSettings } = useGameStore();
 
   return (
     <>

@@ -82,10 +82,6 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
   onToggleAiHint,
   quickResponseAssistEnabled,
   onToggleQuickResponseAssist,
-  xrayEnabled,
-  onToggleXRay,
-  botReasoningLogEnabled,
-  onToggleBotReasoningLog,
   gameSpeed,
   onSetGameSpeed
 }) => {
@@ -95,6 +91,8 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
     lastSync,
     autoBackupOnMatchEnd,
     toggleAutoBackupOnMatchEnd,
+    autoBackupInterval,
+    setAutoBackupInterval,
     autoSyncOnStartup,
     toggleAutoSyncOnStartup,
     clearGithubAuth
@@ -344,24 +342,51 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                 </div>
 
                 {/* Tùy chọn Tự Động Sao Lưu Sau Mỗi Ván */}
-                <div
-                  onClick={toggleAutoBackupOnMatchEnd}
-                  className="pt-2.5 border-t border-[var(--border-card)] flex items-center justify-between cursor-pointer select-none group"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] text-sky-400 shrink-0 flex items-center justify-center">
-                      <CloudUpload className="w-3.5 h-3.5 shrink-0" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-semibold text-[var(--text-primary)] leading-tight group-hover:text-[var(--color-gold)] transition-colors">
-                        Tự Động Sao Lưu Sau Mỗi Ván
+                <div className="pt-2.5 border-t border-[var(--border-card)] space-y-2">
+                  <div
+                    onClick={toggleAutoBackupOnMatchEnd}
+                    className="flex items-center justify-between cursor-pointer select-none group"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-1.5 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] text-sky-400 shrink-0 flex items-center justify-center">
+                        <CloudUpload className="w-3.5 h-3.5 shrink-0" />
                       </div>
-                      <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
-                        Tự động tải bản lưu mới nhất lên Gist ngay khi kết thúc ván đấu
+                      <div>
+                        <div className="text-xs font-semibold text-[var(--text-primary)] leading-tight group-hover:text-[var(--color-gold)] transition-colors">
+                          Tự Động Sao Lưu Đám Mây
+                        </div>
+                        <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                          Tự động tải bản lưu mới nhất lên Gist theo chu kỳ ván đấu
+                        </div>
                       </div>
                     </div>
+                    <ToggleSwitch checked={autoBackupOnMatchEnd} />
                   </div>
-                  <ToggleSwitch checked={autoBackupOnMatchEnd} />
+
+                  {/* Lựa chọn chu kỳ sao lưu */}
+                  {autoBackupOnMatchEnd && (
+                    <div className="pl-8 flex items-center justify-between gap-2 pt-1">
+                      <span className="text-[11px] text-[var(--text-muted)] font-medium">
+                        Chu kỳ sao lưu:
+                      </span>
+                      <div className="flex items-center gap-1">
+                        {[1, 3, 5, 10].map((num) => (
+                          <button
+                            key={num}
+                            type="button"
+                            onClick={() => setAutoBackupInterval(num)}
+                            className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-all active:scale-95 ${
+                              (autoBackupInterval || 5) === num
+                                ? 'bg-[var(--color-gold)] text-black shadow-sm'
+                                : 'bg-[var(--bg-container)] border border-[var(--border-container)] text-zinc-400 hover:text-zinc-200'
+                            }`}
+                          >
+                            {num === 1 ? 'Mỗi ván' : `${num} ván`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

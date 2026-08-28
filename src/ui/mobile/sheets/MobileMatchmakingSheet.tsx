@@ -4,7 +4,7 @@ import { BotConfig } from '../../../ai/types';
 import { getRankTierByElo } from '../../../engine/elo';
 import { soundManager } from '../../audio/sound-manager';
 import { Swords, Check, X, Loader2, Sparkles, ArrowLeft } from 'lucide-react';
-import { Badge, Card } from '../../primitives';
+import { Badge } from '../../primitives';
 
 export interface MobileMatchmakingSheetProps {
   isOpen: boolean;

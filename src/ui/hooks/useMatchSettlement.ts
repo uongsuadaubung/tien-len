@@ -304,9 +304,12 @@ export function useMatchSettlement(
       setAllEloDeltas({});
     }
 
-    // Tự động sao lưu lên GitHub Gist nếu đã kết nối token và bật tự động sao lưu
+    // Tự động sao lưu lên GitHub Gist theo chu kỳ cấu hình (mặc định cứ mỗi 5 ván)
     const settings = useSettingsStore.getState();
-    if (settings.githubToken && settings.autoBackupOnMatchEnd) {
+    const backupInterval = Math.max(1, settings.autoBackupInterval || 5);
+    const shouldAutoBackup = updatedProfile.stats.gamesPlayed > 0 && updatedProfile.stats.gamesPlayed % backupInterval === 0;
+
+    if (settings.githubToken && settings.autoBackupOnMatchEnd && shouldAutoBackup) {
       forceUploadToCloud().catch((err: unknown) => {
         console.warn('[AutoBackup] Tự động sao lưu gặp lỗi:', err);
       });

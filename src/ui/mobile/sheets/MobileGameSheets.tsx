@@ -13,7 +13,7 @@ import { MobileQuickSetupSheet } from '../views/MobileQuickSetupSheet';
 import { QuickSetupConfig } from '../../hooks/useQuickSetup';
 import { MobileSettingsView } from '../views/MobileSettingsView';
 import { XRayInspector } from '../../web/modals/XRayInspector';
-import { VictoryModal } from '../../web/modals/VictoryModal';
+import { MobileVictoryView } from '../views/MobileVictoryView';
 import { ConfirmForfeitModal } from '../../web/modals/ConfirmForfeitModal';
 import { F5PenaltyNoticeModal } from '../../web/modals/F5PenaltyNoticeModal';
 import { MobileNameSetupView } from '../views/MobileNameSetupView';
@@ -21,7 +21,7 @@ import { MobileRulesView } from '../views/MobileRulesView';
 import { MobileEcosystemView } from '../views/MobileEcosystemView';
 import { BotProfileModal } from '../../web/modals/BotProfileModal';
 import { MobileMatchmakingSheet } from './MobileMatchmakingSheet';
-import { SyncConflictModal } from '../../web/modals/SyncConflictModal';
+import { MobileSyncConflictView } from '../views/MobileSyncConflictView';
 import { useEcosystemStore } from '../../../stores/useEcosystemStore';
 import { CardTracker } from '../../../ai/card-tracker';
 import { CampaignChapter } from '../../../engine/campaign';
@@ -209,9 +209,9 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
         />
       )}
 
-      {/* 6. Trang Tổng Kết Ván Đấu & Trao Thưởng */}
+      {/* 6. Trang Tổng Kết Ván Đấu & Trao Thưởng (Native Mobile) */}
       {isVictoryOpen && (
-        <VictoryModal
+        <MobileVictoryView
           isOpen={isVictoryOpen}
           onNextGame={onNextGame}
           onReturnToLobby={onReturnToLobby}
@@ -318,9 +318,9 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
         />
       )}
 
-      {/* 17. Trang Xử Lý Xung Đột Dữ Liệu Đồng Bộ Đám Mây */}
+      {/* 17. Trang Xử Lý Xung Đột Dữ Liệu Đồng Bộ Đám Mây (Native Mobile - Bắt buộc chọn) */}
       {isSyncConflictOpen && syncConflictData && (
-        <SyncConflictModal
+        <MobileSyncConflictView
           isOpen={isSyncConflictOpen}
           conflictData={syncConflictData || null}
           onClose={() => closeModal('SYNC_CONFLICT')}

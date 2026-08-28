@@ -113,6 +113,7 @@ export async function getLocalSaveData(): Promise<TienLenSaveData> {
     lastSyncedHash: settingsState.lastSyncedHash,
     cachedGithubUser: settingsState.cachedGithubUser,
     autoBackupOnMatchEnd: settingsState.autoBackupOnMatchEnd,
+    autoBackupInterval: settingsState.autoBackupInterval || 5,
     autoSyncOnStartup: settingsState.autoSyncOnStartup
   };
 

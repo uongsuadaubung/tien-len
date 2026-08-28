@@ -73,10 +73,12 @@ export const SyncConflictModal: React.FC<SyncConflictModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
+      preventClose={true}
+      showCloseButton={false}
       maxWidth="2xl"
       height="h-auto"
       title="Phát Hiện Xung Đột Dữ Liệu Đồng Bộ"
-      subtitle="Cả máy này và GitHub Gist đều có dữ liệu mới. Vui lòng chọn bản bạn muốn giữ lại."
+      subtitle="Cả máy này và GitHub Gist đều có dữ liệu mới. Bắt buộc chọn bản bạn muốn giữ lại."
       icon={<AlertTriangle className="w-5 h-5 text-amber-400" />}
     >
       <div className="space-y-4">

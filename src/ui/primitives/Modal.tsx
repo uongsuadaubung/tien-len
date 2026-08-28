@@ -4,7 +4,7 @@ import { Button } from './Button';
 
 export interface ModalProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose?: () => void;
   title: React.ReactNode;
   subtitle?: string | null;
   icon?: React.ReactNode | null;
@@ -14,6 +14,8 @@ export interface ModalProps {
   footer?: React.ReactNode | null;
   children: React.ReactNode;
   className?: string | null;
+  preventClose?: boolean;
+  showCloseButton?: boolean;
 }
 
 const maxWidthClasses = {
@@ -37,17 +39,20 @@ export const Modal: React.FC<ModalProps> = ({
   headerRight,
   footer,
   children,
-  className = ''
+  className = '',
+  preventClose = false,
+  showCloseButton = true
 }) => {
   useEffect(() => {
+    if (preventClose) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape' && isOpen && onClose) {
         onClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, preventClose]);
 
   if (!isOpen) return null;
 
@@ -85,14 +90,16 @@ export const Modal: React.FC<ModalProps> = ({
 
           <div className="flex items-center gap-2 shrink-0">
             {headerRight}
-            <Button
-              variant="surface"
-              size="icon"
-              onClick={onClose}
-              title="Đóng cửa sổ (ESC)"
-            >
-              <X className="w-5 h-5 text-[var(--text-secondary)]" />
-            </Button>
+            {!preventClose && showCloseButton && onClose && (
+              <Button
+                variant="surface"
+                size="icon"
+                onClick={onClose}
+                title="Đóng cửa sổ (ESC)"
+              >
+                <X className="w-5 h-5 text-[var(--text-secondary)]" />
+              </Button>
+            )}
           </div>
         </div>
 

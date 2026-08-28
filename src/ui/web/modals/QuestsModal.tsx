@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
-import { PlayerProfile, savePlayerProfile } from '../../../engine/storage';
-import { DAILY_MILESTONES, DailyMilestoneReward } from '../../../engine/quests';
+import React from 'react';
+import { PlayerProfile } from '../../../engine/storage';
+import { DAILY_MILESTONES } from '../../../engine/quests';
 import { Target, Award, Sparkles, Clock, CheckCircle, Gift, Layers, Flame, Trophy, Coins, Star } from 'lucide-react';
-import { soundManager } from '../../audio/sound-manager';
-import confetti from 'canvas-confetti';
 import { Modal, Tabs, Card, Badge, Button } from '../../primitives';
 import { useQuests, QuestTabType, AchievementCategoryFilter } from '../../hooks/useQuests';
 

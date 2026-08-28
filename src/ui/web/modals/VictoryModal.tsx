@@ -471,7 +471,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
           {githubToken && autoBackupOnMatchEnd ? (
             <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-lg">
               <Cloud className="w-3.5 h-3.5 shrink-0" />
-              <span>Đã tự động sao lưu Gist</span>
+              <span>Tự động sao lưu (Mỗi 5 ván)</span>
             </span>
           ) : (
             <div />

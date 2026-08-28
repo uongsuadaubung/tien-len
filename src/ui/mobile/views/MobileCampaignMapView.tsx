@@ -21,7 +21,6 @@ export const MobileCampaignMapView: React.FC<MobileCampaignMapViewProps> = ({
   onSelectChapter
 }) => {
   const {
-    selectedChapterId,
     setSelectedChapterId,
     currentChapter,
     chapters,

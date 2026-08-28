@@ -174,15 +174,15 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  { id: 'NEWBIE_TABLE', name: 'Nhập Môn Xóm Nhỏ', description: 'Elo 700 - 850 (Tí Chuột, Tèo, Bác Ba)', botIds: ['BOT_ELO_700', 'BOT_ELO_750', 'BOT_ELO_850'] },
-                  { id: 'CASUAL_STREET', name: 'Quán Trà Bến Xe', description: 'Elo 950 - 1150 (Bảy Xe Lôi, Xích Lô, Ba Gác)', botIds: ['BOT_ELO_950', 'BOT_ELO_1000', 'BOT_ELO_1150'] },
-                  { id: 'MID_TIER_PRO', name: 'Cao Thủ Sài Thành', description: 'Elo 1500 - 1800 (Elena, Ken, Sophia)', botIds: ['BOT_ELO_1500', 'BOT_ELO_1750', 'BOT_ELO_1800'] },
-                  { id: 'ELITE_CLUB', name: 'Đấu Trường Monaco', description: 'Elo 2000 - 2500 (Ruby, Nova, Apex)', botIds: ['BOT_ELO_2000', 'BOT_ELO_2300', 'BOT_ELO_2500'] }
-                ].map((preset) => (
+                {([
+                  { id: 'NEWBIE_TABLE', name: 'Nhập Môn Xóm Nhỏ', description: 'Elo 700 - 850 (Tí Chuột, Tèo, Bác Ba)', botIds: ['BOT_ELO_700', 'BOT_ELO_750', 'BOT_ELO_850'] as const },
+                  { id: 'CASUAL_STREET', name: 'Quán Trà Bến Xe', description: 'Elo 950 - 1150 (Bảy Xe Lôi, Xích Lô, Ba Gác)', botIds: ['BOT_ELO_950', 'BOT_ELO_1000', 'BOT_ELO_1150'] as const },
+                  { id: 'MID_TIER_PRO', name: 'Cao Thủ Sài Thành', description: 'Elo 1500 - 1800 (Elena, Ken, Sophia)', botIds: ['BOT_ELO_1500', 'BOT_ELO_1750', 'BOT_ELO_1800'] as const },
+                  { id: 'ELITE_CLUB', name: 'Đấu Trường Monaco', description: 'Elo 2000 - 2500 (Ruby, Nova, Apex)', botIds: ['BOT_ELO_2000', 'BOT_ELO_2300', 'BOT_ELO_2500'] as const }
+                ] as const).map((preset) => (
                   <button
                     key={preset.id}
-                    onClick={() => handleApplyBotPreset(preset.botIds as [string, string, string])}
+                    onClick={() => handleApplyBotPreset([preset.botIds[0], preset.botIds[1], preset.botIds[2]])}
                     className="p-2.5 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-card)] hover:border-[var(--border-gold)] text-left transition-all group cursor-pointer shadow-sm"
                   >
                     <div className="text-xs font-bold text-[var(--text-primary)] group-hover:text-[var(--color-gold)]">

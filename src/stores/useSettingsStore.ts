@@ -18,6 +18,7 @@ export interface SavedSettings extends Record<string, unknown> {
   lastSyncedHash: string;
   cachedGithubUser: GithubUser | null;
   autoBackupOnMatchEnd: boolean;
+  autoBackupInterval: number;
   autoSyncOnStartup: boolean;
 }
 
@@ -35,6 +36,7 @@ const DEFAULT_SETTINGS: SavedSettings = {
   lastSyncedHash: '',
   cachedGithubUser: null,
   autoBackupOnMatchEnd: true,
+  autoBackupInterval: 5,
   autoSyncOnStartup: true
 };
 
@@ -53,6 +55,7 @@ function persistSettings(state: SettingsState): void {
     lastSyncedHash: state.lastSyncedHash,
     cachedGithubUser: state.cachedGithubUser,
     autoBackupOnMatchEnd: state.autoBackupOnMatchEnd,
+    autoBackupInterval: state.autoBackupInterval,
     autoSyncOnStartup: state.autoSyncOnStartup
   };
 
@@ -73,6 +76,7 @@ interface SettingsState {
   lastSyncedHash: string;
   cachedGithubUser: GithubUser | null;
   autoBackupOnMatchEnd: boolean;
+  autoBackupInterval: number;
   autoSyncOnStartup: boolean;
 
   // Actions
@@ -91,6 +95,7 @@ interface SettingsState {
   setXRayEnabled: (enabled: boolean) => void;
   setBotReasoningLogEnabled: (enabled: boolean) => void;
   setAutoBackupOnMatchEnd: (enabled: boolean) => void;
+  setAutoBackupInterval: (interval: number) => void;
   setAutoSyncOnStartup: (enabled: boolean) => void;
   setGameSpeed: (speed: GameSpeedMode) => void;
   setGithubToken: (token: string) => void;
@@ -117,6 +122,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   lastSyncedHash: initial.lastSyncedHash,
   cachedGithubUser: initial.cachedGithubUser,
   autoBackupOnMatchEnd: initial.autoBackupOnMatchEnd,
+  autoBackupInterval: initial.autoBackupInterval || 5,
   autoSyncOnStartup: initial.autoSyncOnStartup,
 
   hydrateSettings: (settings) => set((state) => ({ ...state, ...settings })),
@@ -163,6 +169,11 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   }),
   setAutoBackupOnMatchEnd: (autoBackupOnMatchEnd) => set((state) => {
     const next = { ...state, autoBackupOnMatchEnd };
+    persistSettings(next);
+    return next;
+  }),
+  setAutoBackupInterval: (autoBackupInterval) => set((state) => {
+    const next = { ...state, autoBackupInterval };
     persistSettings(next);
     return next;
   }),

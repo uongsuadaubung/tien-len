@@ -7,7 +7,6 @@ import {
   CustomBotConfigTuple,
   updateTupleAt
 } from '../../engine/types';
-import { BOT_LINEUP_PRESETS } from '../../engine/game-modes';
 import { BOT_PERSONAS, getAllBotConfigs } from '../../ai/bot-factory';
 import { BotConfig } from '../../ai/types';
 import { ECONOMY_CONSTANTS, calculateRequiredDeposit } from '../../engine/constants/economy';
