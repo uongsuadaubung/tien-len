@@ -313,10 +313,12 @@ export const App: React.FC = () => {
     handleRequestReturnToLobby();
   };
 
-  // Màn hình Loading Gate khởi động (Kích hoạt Xoay Ngang & Âm Thanh tại First-Touch)
+  // Màn hình Loading Gate khởi động (Kích hoạt Xoay Ngang & Âm Thanh tại First-Touch trên Mobile, tự động vào trên Web)
   if (!isHydrated || !hasEnteredGame) {
     return (
       <SplashScreen 
+        isMobile={isMobile}
+        isHydrated={isHydrated}
         onStart={() => {
           setHasEnteredGame(true);
         }}

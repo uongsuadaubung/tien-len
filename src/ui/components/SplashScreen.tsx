@@ -1,24 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { lockToLandscape } from '../utils/fullscreen';
 import { soundManager } from '../audio/sound-manager';
+import { useIsMobile } from '../hooks/useIsMobile';
 
-interface SplashScreenProps {
+export interface SplashScreenProps {
   message?: string;
   subMessage?: string;
+  isMobile?: boolean;
+  isHydrated?: boolean;
   onStart?: () => void;
 }
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({
   message = 'Đang nạp dữ liệu bàn đấu...',
   subMessage = 'SỚI BẠC ĐÃ SẴN SÀNG',
+  isMobile: isMobileProp,
+  isHydrated = true,
   onStart
 }) => {
+  const deviceInfo = useIsMobile();
+  const isMobile = isMobileProp !== undefined ? isMobileProp : deviceInfo.isMobile;
   const [progress, setProgress] = useState(10);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     const startTime = Date.now();
-    const duration = 2500; // Hoàn thành 100% trong 2.5 giây
+    const duration = isMobile ? 2500 : 2000; // Hoàn thành 100%
 
     const interval = setInterval(() => {
       const elapsed = Date.now() - startTime;
@@ -31,20 +38,29 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     }, 25);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isMobile]);
 
   const handleEnterGame = async () => {
-    await lockToLandscape();
+    if (isMobile) {
+      await lockToLandscape();
+    }
     soundManager.playCardDeal();
     if (onStart) {
       onStart();
     }
   };
 
+  // Trên Web / Desktop: Tự động vào game khi nạp xong dữ liệu & thanh tiến trình hoàn tất
+  useEffect(() => {
+    if (!isMobile && isReady && isHydrated) {
+      handleEnterGame();
+    }
+  }, [isMobile, isReady, isHydrated]);
+
   return (
     <div 
-      onClick={isReady ? handleEnterGame : undefined}
-      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[var(--bg-table-dark)] text-white select-none cursor-pointer"
+      onClick={isMobile && isReady ? handleEnterGame : undefined}
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[var(--bg-table-dark)] text-white select-none ${isMobile && isReady ? 'cursor-pointer' : ''}`}
     >
       <div className="relative flex flex-col items-center gap-5 p-8 max-w-sm text-center">
         {/* Logo Icon phát sáng */}
@@ -79,8 +95,8 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           </div>
         </div>
 
-        {/* Nút Chạm Để Vào Game (Kích hoạt Xoay Ngang & Audio ngay từ đầu) */}
-        {isReady ? (
+        {/* Nút Vào Game trên Mobile (Kích hoạt Xoay Ngang & Âm Thanh) */}
+        {isMobile && isReady ? (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -89,7 +105,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-400 text-black font-black text-xs sm:text-sm uppercase tracking-widest shadow-[0_0_25px_rgba(245,158,11,0.6)] animate-pulse active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer mt-1"
           >
             <span>♠</span>
-            <span>CHẠM ĐỂ VÀO GAME</span>
+            <span>VÀO GAME</span>
             <span>♠</span>
           </button>
         ) : (

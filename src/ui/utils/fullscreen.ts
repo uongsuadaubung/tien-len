@@ -120,14 +120,23 @@ export async function lockToLandscape(): Promise<boolean> {
   if (typeof window === 'undefined') return false;
 
   try {
-    // 1. Yêu cầu Fullscreen trước (bắt buộc đối với Screen Orientation API trên trình duyệt di động)
+    // 1. Thử yêu cầu Fullscreen trước (bắt buộc đối với Screen Orientation API trên trình duyệt di động)
     await requestFullScreen();
 
     // 2. Khóa màn hình ngang qua Screen Orientation API
     const orientation = window.screen?.orientation;
     if (orientation?.lock) {
-      await orientation.lock('landscape');
-      return true;
+      try {
+        await orientation.lock('landscape');
+        return true;
+      } catch {
+        try {
+          await orientation.lock('landscape-primary');
+          return true;
+        } catch {
+          // Bỏ qua nếu trình duyệt không cho phép lock (như iOS Safari)
+        }
+      }
     }
   } catch (err) {
     console.warn('[Orientation] Không thể tự động khóa xoay ngang:', err);
