@@ -1,16 +1,4 @@
-import React, { useState } from 'react';
-import { 
-  GameSettings, 
-  PlayerCount, 
-  normalizePlayerCount,
-  BotPersonaIdTuple,
-  CustomBotConfigTuple,
-  updateTupleAt
-} from '../../../engine/types';
-import { BOT_LINEUP_PRESETS } from '../../../engine/game-modes';
-import { BOT_PERSONAS, getAllBotConfigs } from '../../../ai/bot-factory';
-import { BotConfig } from '../../../ai/types';
-import { ECONOMY_CONSTANTS, calculateRequiredDeposit } from '../../../engine/constants/economy';
+import React from 'react';
 import { 
   Play, 
   Sliders, 
@@ -21,16 +9,15 @@ import {
   Zap, 
   BrainCircuit
 } from 'lucide-react';
-import { TableRulesConfigPanel, TableConfigState } from '../../components/TableRulesConfigPanel';
+import { TableRulesConfigPanel } from '../../components/TableRulesConfigPanel';
 import { Modal, Tabs, Card, Badge, Button } from '../../primitives';
+import { 
+  useCustomGame, 
+  CustomGameModalConfig, 
+  CustomGameTabType 
+} from '../../hooks/useCustomGame';
 
-export interface CustomGameModalConfig {
-  selectedModeId: string;
-  settings: GameSettings;
-  botPersonaIds: BotPersonaIdTuple;
-  customBotConfigs: CustomBotConfigTuple<BotConfig>;
-  playerCount: PlayerCount;
-}
+export type { CustomGameModalConfig };
 
 interface CustomGameModalProps {
   isOpen: boolean;
@@ -40,10 +27,8 @@ interface CustomGameModalProps {
   onStartCustomGame: (config: CustomGameModalConfig) => void;
 }
 
-type TabType = 'MODE_RULES' | 'BOT_ROSTER' | 'ADVANCED_AI';
-
 interface CustomTab {
-  id: TabType;
+  id: CustomGameTabType;
   label: string;
   icon: React.ReactNode;
 }
@@ -61,129 +46,37 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
   playerCoins,
   onStartCustomGame
 }) => {
-  const allPersonas = getAllBotConfigs();
-
-  const initialBet = Math.min(
-    initialConfig?.settings?.betAmount || ECONOMY_CONSTANTS.DEFAULT_QUICK_BET,
-    Math.max(1, playerCoins)
-  );
-
-  const [playerCount, setPlayerCount] = useState<PlayerCount>(
-    normalizePlayerCount(initialConfig?.playerCount)
-  );
-  const [settings, setSettings] = useState<GameSettings>({
-    mode: initialConfig?.settings?.mode || 'COUNT_CARDS',
-    betAmount: initialBet,
-    playerCount: normalizePlayerCount(initialConfig?.playerCount),
-    allowFourPairsCutAnytime: initialConfig?.settings?.allowFourPairsCutAnytime ?? true,
-    instantWinEnabled: initialConfig?.settings?.instantWinEnabled ?? true,
-    soundEnabled: initialConfig?.settings?.soundEnabled ?? true,
-    prohibitEndingWithTwo: initialConfig?.settings?.prohibitEndingWithTwo ?? true,
-    threeSpadesEndingBonus: initialConfig?.settings?.threeSpadesEndingBonus ?? true,
-    cascadeChopEnabled: initialConfig?.settings?.cascadeChopEnabled ?? true
+  const {
+    playerCount,
+    settings,
+    botPersonaIds,
+    choppingMultiplier,
+    congEnabled,
+    activeTab,
+    setActiveTab,
+    activeBotSeatIndex,
+    setActiveBotSeatIndex,
+    actualDeposit,
+    isInsufficientCoins,
+    seatLabels,
+    activeBotCount,
+    currentConfig,
+    allPersonas,
+    handleApplyBotPreset,
+    handleApplyGodModeAll,
+    handleRandomizeBots,
+    handleUpdateBotPersona,
+    handleConfigChange,
+    handleTableConfigChange,
+    handleStartGame
+  } = useCustomGame({
+    playerCoins,
+    initialConfig,
+    onStartCustomGame,
+    onClose
   });
 
-  const [botPersonaIds, setBotPersonaIds] = useState<BotPersonaIdTuple>(
-    initialConfig?.botPersonaIds || ['BOT_ELO_850', 'BOT_ELO_1150', 'BOT_ELO_1750']
-  );
-
-  const [customBotConfigs, setCustomBotConfigs] = useState<CustomBotConfigTuple<BotConfig>>(
-    initialConfig?.customBotConfigs || [{}, {}, {}]
-  );
-
-  const [choppingMultiplier, setChoppingMultiplier] = useState<number>(1);
-  const [congEnabled, setCongEnabled] = useState<boolean>(true);
-
-  const [activeTab, setActiveTab] = useState<TabType>('MODE_RULES');
-  const [activeBotSeatIndex, setActiveBotSeatIndex] = useState<number>(0);
-
-  const depositRequired = calculateRequiredDeposit(settings.betAmount, choppingMultiplier);
-  const isInsufficientCoins = playerCoins < settings.betAmount;
-  const actualDeposit = Math.min(playerCoins, depositRequired);
-
-  const handleApplyBotPreset = (presetBotIds: BotPersonaIdTuple) => {
-    setBotPersonaIds([presetBotIds[0], presetBotIds[1], presetBotIds[2]]);
-  };
-
-  const handleApplyGodModeAll = () => {
-    setBotPersonaIds(['BOT_ELO_3200', 'BOT_ELO_2750', 'BOT_ELO_2500']);
-    setCustomBotConfigs([
-      { mctsSimulations: 50, memoryDepth: 1.0, tempoControl: 1.0, damageControl: 1.0, antiLeaderAggression: 1.0, baitingTendency: 1.0, useMinimaxEndgame: true, useBayesianInference: true, useNashEquilibrium: true },
-      { mctsSimulations: 30, memoryDepth: 1.0, tempoControl: 1.0, damageControl: 1.0, antiLeaderAggression: 1.0, baitingTendency: 0.95, useMinimaxEndgame: true, useBayesianInference: true },
-      { mctsSimulations: 20, memoryDepth: 1.0, tempoControl: 0.98, damageControl: 0.98, antiLeaderAggression: 1.0, baitingTendency: 0.90, useMinimaxEndgame: true }
-    ]);
-  };
-
-  const handleRandomizeBots = () => {
-    const personaKeys = Object.keys(BOT_PERSONAS);
-    const shuffled = [...personaKeys].sort(() => 0.5 - Math.random());
-    setBotPersonaIds([shuffled[0] || 'BOT_ELO_850', shuffled[1] || 'BOT_ELO_1150', shuffled[2] || 'BOT_ELO_1450']);
-  };
-
-  const handleUpdateBotPersona = (seatIndex: number, personaId: string) => {
-    setBotPersonaIds(updateTupleAt(botPersonaIds, seatIndex, personaId));
-  };
-
-  const handleConfigChange = <K extends keyof BotConfig>(field: K, value: BotConfig[K]) => {
-    setCustomBotConfigs(prev => {
-      const current = prev[activeBotSeatIndex] || {};
-      const updated = { ...current, [field]: value };
-      return updateTupleAt(prev, activeBotSeatIndex, updated);
-    });
-  };
-
-  const handleTableConfigChange = (updated: Partial<TableConfigState>) => {
-    if (updated.playerCount !== undefined) {
-      setPlayerCount(updated.playerCount);
-    }
-    if (updated.choppingMultiplier !== undefined) {
-      setChoppingMultiplier(updated.choppingMultiplier);
-    }
-    if (updated.congEnabled !== undefined) {
-      setCongEnabled(updated.congEnabled);
-    }
-    setSettings(prev => ({
-      ...prev,
-      ...updated
-    }));
-  };
-
-  const handleStartGame = () => {
-    if (settings.betAmount <= 0) {
-      alert('Mức cược phải lớn hơn 0 Xu!');
-      return;
-    }
-    if (isInsufficientCoins) {
-      alert(`Số dư hiện tại (${playerCoins.toLocaleString()} Xu) không đủ mức cược tối thiểu của bàn (${settings.betAmount.toLocaleString()} Xu)!`);
-      return;
-    }
-
-    onStartCustomGame({
-      selectedModeId: settings.mode,
-      settings: {
-        ...settings,
-        playerCount
-      },
-      botPersonaIds,
-      customBotConfigs,
-      playerCount
-    });
-    onClose();
-  };
-
-  const seatLabels = [
-    'Ghế Trái (Bot 1)',
-    'Ghế Trên (Bot 2)',
-    'Ghế Phải (Bot 3)'
-  ];
-
-  const activeBotCount = playerCount - 1;
-  const currentActivePersona = BOT_PERSONAS[botPersonaIds[activeBotSeatIndex]] || BOT_PERSONAS.BOT_ELO_1150;
-  const currentActiveCustom = customBotConfigs[activeBotSeatIndex] || {};
-  const currentConfig: BotConfig = {
-    ...currentActivePersona,
-    ...currentActiveCustom
-  };
+  if (!isOpen) return null;
 
   return (
     <Modal
@@ -279,10 +172,15 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {BOT_LINEUP_PRESETS.map((preset) => (
+              {[
+                { id: 'NEWBIE_TABLE', name: 'Nhập Môn Xóm Nhỏ', description: 'Elo 700 - 850 (Tí Chuột, Tèo, Bác Ba)', botIds: ['BOT_ELO_700', 'BOT_ELO_750', 'BOT_ELO_850'] },
+                { id: 'CASUAL_STREET', name: 'Quán Trà Bến Xe', description: 'Elo 950 - 1150 (Bảy Xe Lôi, Xích Lô, Ba Gác)', botIds: ['BOT_ELO_950', 'BOT_ELO_1000', 'BOT_ELO_1150'] },
+                { id: 'MID_TIER_PRO', name: 'Cao Thủ Sài Thành', description: 'Elo 1500 - 1800 (Elena, Ken, Sophia)', botIds: ['BOT_ELO_1500', 'BOT_ELO_1750', 'BOT_ELO_1800'] },
+                { id: 'ELITE_CLUB', name: 'Đấu Trường Monaco', description: 'Elo 2000 - 2500 (Ruby, Nova, Apex)', botIds: ['BOT_ELO_2000', 'BOT_ELO_2300', 'BOT_ELO_2500'] }
+              ].map((preset) => (
                 <button
                   key={preset.id}
-                  onClick={() => handleApplyBotPreset(preset.botIds)}
+                  onClick={() => handleApplyBotPreset(preset.botIds as [string, string, string])}
                   className="p-2.5 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-card)] hover:border-[var(--border-gold)] text-left transition-all group cursor-pointer shadow-sm"
                 >
                   <div className="text-xs font-bold text-[var(--text-primary)] group-hover:text-[var(--color-gold)]">
@@ -316,7 +214,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {seatLabels.slice(0, activeBotCount).map((label, idx) => {
                 const botId = botPersonaIds[idx];
-                const persona = BOT_PERSONAS[botId] || BOT_PERSONAS.BOT_ELO_1150;
+                const persona = allPersonas.find(p => p.id === botId) || allPersonas[0];
                 const isSelectedSeat = activeBotSeatIndex === idx;
 
                 return (
@@ -338,12 +236,12 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
 
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-[var(--bg-container)] border border-[var(--border-container)] flex items-center justify-center text-2xl shadow-inner">
-                        {persona.avatar}
+                        {persona?.avatar || '🤖'}
                       </div>
                       <div>
-                        <div className="text-xs font-bold text-[var(--text-primary)]">{persona.name}</div>
-                        <div className="text-[11px] text-[var(--color-gold)] font-bold">{persona.elo} Elo</div>
-                        <div className="text-[10px] text-[var(--text-muted)] line-clamp-1">{persona.description}</div>
+                        <div className="text-xs font-bold text-[var(--text-primary)]">{persona?.name || 'Bot'}</div>
+                        <div className="text-[11px] text-[var(--color-gold)] font-bold">{persona?.elo || 1150} Elo</div>
+                        <div className="text-[10px] text-[var(--text-muted)] line-clamp-1">{persona?.description}</div>
                       </div>
                     </div>
                   </div>
@@ -358,7 +256,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
               <span className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
                 Kho Bot Sẵn Có (Gán vào {seatLabels[activeBotSeatIndex]})
               </span>
-              <span className="text-xs text-[var(--text-muted)]">18 Nhân Vật Bot</span>
+              <span className="text-xs text-[var(--text-muted)]">{allPersonas.length} Nhân Vật Bot</span>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 max-h-56 overflow-y-auto pr-1">
@@ -374,7 +272,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
                         : 'bg-[var(--bg-card)] border-[var(--border-card)] text-[var(--text-muted)] hover:border-white/30 hover:text-[var(--text-secondary)]'
                     }`}
                   >
-                    <div className="text-2xl mb-1">{bot.avatar}</div>
+                    <div className="text-2xl mb-1">{bot.avatar || '🤖'}</div>
                     <div className="text-xs font-bold truncate">{bot.name}</div>
                     <div className="text-[10px] text-[var(--color-gold)] font-bold">{bot.elo} Elo</div>
                   </button>
@@ -394,7 +292,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
                 Đang Tinh Chỉnh: {seatLabels[activeBotSeatIndex]}
               </div>
               <div className="text-xs text-[var(--text-muted)] mt-0.5">
-                Nhân vật: <strong className="text-[var(--color-gold)]">{currentConfig.name}</strong> ({currentConfig.elo} Elo)
+                Nhân vật: <strong className="text-[var(--color-gold)]">{currentConfig.name || 'Bot'}</strong> ({currentConfig.elo} Elo)
               </div>
             </div>
 

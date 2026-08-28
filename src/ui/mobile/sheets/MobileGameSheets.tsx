@@ -7,7 +7,8 @@ import { MobileQuestsView } from '../views/MobileQuestsView';
 import { MobileLuckyWheelView } from '../views/MobileLuckyWheelView';
 import { MobileBankView } from '../views/MobileBankView';
 import { MobileCampaignMapView } from '../views/MobileCampaignMapView';
-import { CustomGameModal, CustomGameModalConfig } from '../../web/modals/CustomGameModal';
+import { MobileCustomGameView } from '../views/MobileCustomGameView';
+import { CustomGameModalConfig } from '../../hooks/useCustomGame';
 import { QuickSetupModal, QuickSetupConfig } from '../../web/modals/QuickSetupModal';
 import { MobileSettingsView } from '../views/MobileSettingsView';
 import { XRayInspector } from '../../web/modals/XRayInspector';
@@ -155,9 +156,9 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
         />
       )}
 
-      {/* 2. Trang Tùy Chỉnh Nâng Cao Sandbox (Full Screen Sheet) */}
+      {/* 2. Trang Tùy Chỉnh Nâng Cao Sandbox (Native Mobile View) */}
       {isCustomGameModalOpen && (
-        <CustomGameModal
+        <MobileCustomGameView
           isOpen={isCustomGameModalOpen}
           onClose={() => closeModal('CUSTOM_GAME')}
           playerCoins={profile.coins}
