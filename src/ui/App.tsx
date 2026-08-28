@@ -26,6 +26,7 @@ import { useGameStore } from '../stores/useGameStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useEcosystemStore } from '../stores/useEcosystemStore';
 import { useMatchmakingStore } from '../stores/useMatchmakingStore';
+import { useOnlineStore } from '../stores/useOnlineStore';
 import { BotConfig } from '../ai/types';
 
 export const App: React.FC = () => {
@@ -132,6 +133,19 @@ export const App: React.FC = () => {
       openModal('NAME_SETUP');
     }
   }, [isHydrated, profile.name, openModal]);
+
+  // Tự động nhận diện và gia nhập phòng khi người chơi mở Link mời (#room=TL-xxxx)
+  useEffect(() => {
+    if (!isHydrated) return;
+    const hash = window.location.hash;
+    if (hash.startsWith('#room=')) {
+      const code = hash.replace('#room=', '').toUpperCase().trim();
+      if (code) {
+        useOnlineStore.getState().joinRoom(profile, code);
+        openModal('ONLINE_ROOM');
+      }
+    }
+  }, [isHydrated, profile, openModal]);
 
   // Khởi tạo game khi vào bàn (nếu chưa có engine)
   useEffect(() => {

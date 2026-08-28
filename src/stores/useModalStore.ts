@@ -18,7 +18,8 @@ export type ModalType =
   | 'RULES'
   | 'ECOSYSTEM'
   | 'BOT_PROFILE'
-  | 'SYNC_CONFLICT';
+  | 'SYNC_CONFLICT'
+  | 'ONLINE_ROOM';
 
 interface ModalState {
   isSettingsOpen: boolean;
@@ -38,6 +39,7 @@ interface ModalState {
   isEcosystemOpen: boolean;
   isBotProfileOpen: boolean;
   isSyncConflictOpen: boolean;
+  isOnlineRoomOpen: boolean;
 
   forfeitData?: { depositAmount: number; eloPenalty: number; isRanked: boolean; };
   f5PenaltyData?: { depositLost: number; eloLost: number; isRanked: boolean; };
@@ -89,6 +91,7 @@ export const useModalStore = create<ModalState>((set) => ({
   isEcosystemOpen: false,
   isBotProfileOpen: false,
   isSyncConflictOpen: false,
+  isOnlineRoomOpen: false,
   forfeitData: undefined,
   f5PenaltyData: undefined,
   syncConflictData: null,
@@ -112,6 +115,7 @@ export const useModalStore = create<ModalState>((set) => ({
       case 'ECOSYSTEM': set({ isEcosystemOpen: true }); break;
       case 'BOT_PROFILE': set({ isBotProfileOpen: true }); break;
       case 'SYNC_CONFLICT': set({ isSyncConflictOpen: true }); break;
+      case 'ONLINE_ROOM': set({ isOnlineRoomOpen: true }); break;
     }
   },
 
@@ -134,6 +138,7 @@ export const useModalStore = create<ModalState>((set) => ({
       case 'ECOSYSTEM': set({ isEcosystemOpen: false }); break;
       case 'BOT_PROFILE': set({ isBotProfileOpen: false }); break;
       case 'SYNC_CONFLICT': set({ isSyncConflictOpen: false }); break;
+      case 'ONLINE_ROOM': set({ isOnlineRoomOpen: false }); break;
     }
   },
 
@@ -154,7 +159,8 @@ export const useModalStore = create<ModalState>((set) => ({
     isRulesOpen: false,
     isEcosystemOpen: false,
     isBotProfileOpen: false,
-    isSyncConflictOpen: false
+    isSyncConflictOpen: false,
+    isOnlineRoomOpen: false
   }),
 
   setIsSettingsOpen: (open) => set({ isSettingsOpen: open }),

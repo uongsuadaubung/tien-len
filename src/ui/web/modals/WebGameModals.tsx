@@ -20,6 +20,7 @@ import { EcosystemModal } from './EcosystemModal';
 import { BotProfileModal } from './BotProfileModal';
 import { MatchmakingModal } from './MatchmakingModal';
 import { SyncConflictModal } from './SyncConflictModal';
+import { OnlineRoomModal } from './OnlineRoomModal';
 import { useEcosystemStore } from '../../../stores/useEcosystemStore';
 import { CardTracker } from '../../../ai/card-tracker';
 import { CampaignChapter } from '../../../engine/campaign';
@@ -292,6 +293,9 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
         conflictData={syncConflictData || null}
         onClose={() => closeModal('SYNC_CONFLICT')}
       />
+
+      {/* 17. Online P2P Multiplayer Room Modal */}
+      <OnlineRoomModal />
     </>
   );
 };

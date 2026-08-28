@@ -22,6 +22,7 @@ import { MobileEcosystemView } from '../views/MobileEcosystemView';
 import { BotProfileModal } from '../../web/modals/BotProfileModal';
 import { MobileMatchmakingSheet } from './MobileMatchmakingSheet';
 import { MobileSyncConflictView } from '../views/MobileSyncConflictView';
+import { MobileOnlineRoomSheet } from './MobileOnlineRoomSheet';
 import { useEcosystemStore } from '../../../stores/useEcosystemStore';
 import { CardTracker } from '../../../ai/card-tracker';
 import { CampaignChapter } from '../../../engine/campaign';
@@ -328,6 +329,9 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
           onClose={() => closeModal('SYNC_CONFLICT')}
         />
       )}
+
+      {/* 18. Sheet Chơi Online P2P Bạn Bè */}
+      <MobileOnlineRoomSheet />
     </>
   );
 };

@@ -21,7 +21,8 @@ import {
   ArrowRight,
   Newspaper,
   Maximize,
-  Minimize
+  Minimize,
+  Wifi
 } from 'lucide-react';
 import { Button, Badge, Card, SectionHeader } from '../../primitives';
 import { isFullScreen, toggleFullScreen } from '../../utils/fullscreen';
@@ -391,9 +392,45 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
             className={null}
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-3.5">
             
-            {/* 1. CHIẾN DỊCH CỐT TRUYỆN */}
+            {/* 1. CHƠI ONLINE P2P BẠN BÈ */}
+            <Card 
+              variant="container"
+              hoverable
+              clickable
+              onClick={() => openModal('ONLINE_ROOM')}
+              className="group p-3.5 sm:p-4 flex flex-col justify-between border-amber-500/30 hover:border-amber-500/60"
+            >
+              <div className="flex items-start justify-between">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-amber-500/20 to-yellow-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 shadow-sm group-hover:border-amber-400 transition-colors">
+                  <Wifi className="w-5 h-5 animate-pulse" />
+                </div>
+                <Badge variant="gold" size="sm">Mới • P2P WebRTC</Badge>
+              </div>
+
+              <div className="my-2 sm:my-2.5">
+                <h3 className="text-base sm:text-lg font-bold text-amber-200 group-hover:text-yellow-300 transition-colors">
+                  Chơi Online Bạn Bè
+                </h3>
+                <p className="text-xs text-[var(--text-muted)] mt-1 leading-relaxed line-clamp-2">
+                  Tạo phòng riêng hoặc nhập mã PIN để cùng chơi với bạn bè qua mạng P2P trực tiếp. 100% miễn phí 0đ server.
+                </p>
+              </div>
+
+              <div className="pt-2.5 border-t border-[var(--border-container)] flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-amber-300/80">Tạo Bàn Hoặc Nhập PIN</span>
+                <Button
+                  variant="gold"
+                  size="sm"
+                  rightIcon={<ArrowRight className="w-3 h-3 text-slate-950" />}
+                >
+                  Vào Phòng
+                </Button>
+              </div>
+            </Card>
+
+            {/* 2. CHIẾN DỊCH CỐT TRUYỆN */}
             <Card 
               variant="container"
               hoverable
@@ -429,7 +466,7 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
               </div>
             </Card>
 
-            {/* 2. TÙY CHỈNH NÂNG CAO (SANDBOX) */}
+            {/* 3. TÙY CHỈNH NÂNG CAO (SANDBOX) */}
             <Card 
               variant="container"
               hoverable

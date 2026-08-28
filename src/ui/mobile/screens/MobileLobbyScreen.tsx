@@ -20,7 +20,8 @@ import {
   Newspaper, 
   Maximize, 
   Minimize,
-  AlertCircle
+  AlertCircle,
+  Wifi
 } from 'lucide-react';
 import { Badge, Card, Button } from '../../primitives';
 import { isFullScreen, toggleFullScreen, lockToLandscape } from '../../utils/fullscreen';
@@ -300,10 +301,59 @@ export const MobileLobbyScreen: React.FC<MobileLobbyScreenProps> = ({
           </div>
         </Card>
 
-        {/* CONTAINER CHO PHẦN 2 VÀ 3 (CHUẨN WEB TIER 1 CONTAINER) */}
+        {/* CONTAINER CHO PHẦN 2, 3, 4 (CHUẨN WEB TIER 1 CONTAINER) */}
         <div className="contents landscape:contents">
           {/* ========================================================================= */}
-          {/* PHẦN 2: CHIẾN DỊCH CỐT TRUYỆN (CONTAINER TIER 1 CHUẨN WEB) */}
+          {/* PHẦN 2: CHƠI ONLINE P2P BẠN BÈ */}
+          {/* ========================================================================= */}
+          <Card
+            variant="container"
+            hoverable
+            clickable
+            onClick={() => openModal('ONLINE_ROOM')}
+            className="p-3 rounded-2xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-950/20 to-slate-900 shadow-sm active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between landscape:h-full"
+          >
+            <div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-amber-500/20 to-yellow-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 shadow-sm shrink-0">
+                  <Wifi className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-amber-200 leading-tight flex items-center gap-1.5">
+                    Chơi Online Bạn Bè
+                    <Badge variant="gold" size="sm">Mới</Badge>
+                  </h4>
+                  <p className="text-[10px] sm:text-[11px] text-[var(--text-muted)] mt-0.5">
+                    Tạo phòng riêng hoặc nhập mã PIN • 0đ Server
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-1 mt-2 pt-2 border-t border-[var(--border-container)]">
+                <span className="text-[10px] font-semibold text-amber-300/80">
+                  Mã PIN 6 số hoặc Link mời trực tiếp
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-2 mt-2 border-t border-[var(--border-container)]">
+              <Button
+                variant="gold"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openModal('ONLINE_ROOM');
+                }}
+                rightIcon={<ArrowRight className="w-3.5 h-3.5 text-slate-950" />}
+                className="w-full text-xs font-bold py-1.5 justify-center"
+              >
+                Vào Phòng
+              </Button>
+            </div>
+          </Card>
+
+          {/* ========================================================================= */}
+          {/* PHẦN 3: CHIẾN DỊCH CỐT TRUYỆN (CONTAINER TIER 1 CHUẨN WEB) */}
           {/* ========================================================================= */}
           <Card
             variant="container"
