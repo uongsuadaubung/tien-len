@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../../primitives';
 import { MobileScreenWrapper } from './MobileScreenWrapper';
+import { MobileVirtualInput } from '../components/MobileVirtualInput';
 import { GameSpeedMode } from '../../../engine/game-speed';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useSettingsSync } from '../../hooks/useSettingsSync';
@@ -161,53 +162,47 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[11px] font-semibold text-[var(--text-muted)] inline-flex items-center gap-1.5">
-                    <Key className="w-3.5 h-3.5 text-[var(--color-gold)] shrink-0" />
-                    <span>GitHub Personal Access Token (Gist Token)</span>
-                  </label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <input
-                        type="password"
-                        value={tokenInputValue}
-                        onChange={(e) => setTokenInputValue(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleConnectToken()}
-                        placeholder="ghp_xxxxxxxxxxxx hoặc github_pat_xxxx"
-                        className="w-full bg-[var(--bg-container)] border border-[var(--border-container)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--color-gold)] transition-colors placeholder:text-zinc-600"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        try {
-                          if (navigator.clipboard && navigator.clipboard.readText) {
-                            const txt = await navigator.clipboard.readText();
-                            if (txt) {
-                              setTokenInputValue(txt.trim());
-                              showNotification('Đã dán token từ bộ nhớ tạm!', 'success');
-                            }
+                  <MobileVirtualInput
+                    value={tokenInputValue}
+                    onChange={setTokenInputValue}
+                    placeholder="ghp_xxxxxxxxxxxx hoặc github_pat_xxxx"
+                    icon={<Key className="w-4 h-4 text-[var(--color-gold)]" />}
+                    label="GitHub Personal Access Token (Gist Token)"
+                    error={null}
+                    maxLength={100}
+                    showRandomNameButton={false}
+                    showPasteButton={true}
+                    onRandomName={null}
+                    onPaste={async () => {
+                      try {
+                        if (navigator.clipboard && navigator.clipboard.readText) {
+                          const txt = await navigator.clipboard.readText();
+                          if (txt) {
+                            setTokenInputValue(txt.trim());
+                            showNotification('Đã dán token từ bộ nhớ tạm!', 'success');
                           }
-                        } catch {
-                          showNotification('Không thể đọc bộ nhớ tạm. Vui lòng cấp quyền trình duyệt.', 'error');
                         }
-                      }}
-                      className="px-2.5 py-2 rounded-xl bg-[var(--bg-container)] border border-[var(--border-container)] text-xs text-[var(--color-gold)] font-bold hover:border-[var(--color-gold)] active:scale-95 transition-all flex items-center gap-1 shrink-0 cursor-pointer"
-                      title="Dán từ Clipboard"
-                    >
-                      <Clipboard className="w-3.5 h-3.5" />
-                      <span>Dán</span>
-                    </button>
-                    <Button
-                      variant="gold"
-                      size="sm"
-                      onClick={handleConnectToken}
-                      disabled={isValidatingToken || !tokenInputValue.trim()}
-                      leftIcon={isValidatingToken ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : undefined}
-                      className="px-4 text-xs font-semibold whitespace-nowrap"
-                    >
-                      {isValidatingToken ? 'Đang kết nối...' : 'Kết Nối'}
-                    </Button>
-                  </div>
+                      } catch {
+                        showNotification('Không thể đọc bộ nhớ tạm. Vui lòng cấp quyền trình duyệt.', 'error');
+                      }
+                    }}
+                    onSubmit={handleConnectToken}
+                    className={null}
+                    inputClassName="border-[var(--border-container)]"
+                    clearable={true}
+                    renderExtraActions={() => (
+                      <Button
+                        variant="gold"
+                        size="sm"
+                        onClick={handleConnectToken}
+                        disabled={isValidatingToken || !tokenInputValue.trim()}
+                        leftIcon={isValidatingToken ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : undefined}
+                        className="px-3 text-xs font-semibold whitespace-nowrap"
+                      >
+                        {isValidatingToken ? 'Đang kết nối...' : 'Kết Nối'}
+                      </Button>
+                    )}
+                  />
                 </div>
 
                 {/* Hướng dẫn tạo token */}

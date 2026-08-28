@@ -79,7 +79,7 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
           <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
             Chọn Biểu Tượng Đại Diện:
           </label>
-          <div className="grid grid-cols-6 gap-1.5 sm:gap-2">
+          <div className="grid grid-cols-6 gap-2 sm:gap-2.5">
             {avatarOptions.map((av) => {
               const isSelected = avatar === av;
               return (
@@ -87,7 +87,7 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
                   type="button"
                   key={av}
                   onClick={() => setAvatar(av)}
-                  className={`h-10 sm:h-11 rounded-xl text-xl sm:text-2xl flex items-center justify-center transition-all cursor-pointer ${
+                  className={`h-11 sm:h-12 rounded-xl text-2xl sm:text-3xl flex items-center justify-center transition-all cursor-pointer ${
                     isSelected
                       ? 'bg-[var(--bg-card-active)] border-2 border-[var(--color-gold)] scale-105 shadow-md'
                       : 'bg-[var(--bg-container)] border border-[var(--border-container)] hover:border-white/25 hover:scale-105'

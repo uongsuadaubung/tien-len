@@ -13,6 +13,8 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { Card, Badge } from '../primitives';
+import { useIsMobile } from '../hooks/useIsMobile';
+import { MobileVirtualInput } from '../mobile/components/MobileVirtualInput';
 
 export interface TableConfigState {
   playerCount: PlayerCount;
@@ -59,6 +61,7 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
   const [isCustomBet, setIsCustomBet] = useState<boolean>(() => !PRESET_BETS.includes(config.betAmount));
   const [customBetInput, setCustomBetInput] = useState<string>(config.betAmount.toString());
   const [betError, setBetError] = useState<string | null>(null);
+  const { isMobile } = useIsMobile();
 
   useEffect(() => {
     setCustomBetInput(config.betAmount.toString());
@@ -396,25 +399,50 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
               </span>
             </div>
 
-            {/* Ô Nhập Số Tiền */}
-            <div className="relative">
-              <input
-                type="text"
-                inputMode="numeric"
-                autoFocus
+            {/* Ô Nhập Số Tiền: Mobile dùng MobileVirtualInput, Desktop dùng input thường */}
+            {isMobile ? (
+              <MobileVirtualInput
                 value={customBetInput}
-                onChange={(e) => handleCustomBetChange(e.target.value)}
+                onChange={handleCustomBetChange}
                 placeholder="Nhập mức cược mong muốn..."
-                className={`w-full bg-[var(--bg-card)] border rounded-xl px-3.5 py-2 text-sm font-mono font-bold text-[var(--text-primary)] focus:outline-none transition-all pr-12 ${
-                  betError 
-                    ? 'border-red-500 focus:border-red-400' 
-                    : 'border-[var(--border-card)] focus:border-[var(--color-gold)]'
-                }`}
+                icon={null}
+                label={null}
+                error={null}
+                maxLength={10}
+                showRandomNameButton={false}
+                showPasteButton={false}
+                onRandomName={null}
+                onPaste={null}
+                onSubmit={null}
+                className={null}
+                inputClassName="font-mono font-bold"
+                clearable={true}
+                renderExtraActions={() => (
+                  <span className="text-xs text-[var(--color-gold)] font-bold px-1">
+                    Xu
+                  </span>
+                )}
               />
-              <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-[var(--color-gold)] font-bold pointer-events-none">
-                Xu
-              </span>
-            </div>
+            ) : (
+              <div className="relative">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoFocus
+                  value={customBetInput}
+                  onChange={(e) => handleCustomBetChange(e.target.value)}
+                  placeholder="Nhập mức cược mong muốn..."
+                  className={`w-full bg-[var(--bg-card)] border rounded-xl px-3.5 py-2 text-sm font-mono font-bold text-[var(--text-primary)] focus:outline-none transition-all pr-12 ${
+                    betError 
+                      ? 'border-red-500 focus:border-red-400' 
+                      : 'border-[var(--border-card)] focus:border-[var(--color-gold)]'
+                  }`}
+                />
+                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-[var(--color-gold)] font-bold pointer-events-none">
+                  Xu
+                </span>
+              </div>
+            )}
 
             {/* Lưới 4 Nút % */}
             <div className="grid grid-cols-4 gap-1.5">

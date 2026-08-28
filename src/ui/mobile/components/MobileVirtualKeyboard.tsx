@@ -119,18 +119,18 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
   const currentAlphaRows = isUppercase ? ALPHA_ROWS_UPPER : ALPHA_ROWS_LOWER;
 
   return (
-    <div className={`w-full bg-[var(--bg-container)]/98 border border-[var(--border-container)] rounded-2xl p-1.5 sm:p-2 shadow-2xl backdrop-blur-md select-none animate-in fade-in slide-in-from-bottom-3 duration-200 ${className || ''}`}>
+    <div className={`w-full bg-[var(--bg-container)]/98 border border-[var(--border-container)] rounded-2xl p-2 sm:p-3 shadow-2xl backdrop-blur-md select-none animate-in fade-in slide-in-from-bottom-3 duration-200 ${className || ''}`}>
       
-      {/* 1. THANH CÔNG CỤ COMPACT & NÚT ĐÓNG BÀN PHÍM */}
-      <div className="flex items-center justify-between gap-1 pb-1.5 mb-1 border-b border-[var(--border-container)] text-xs">
-        <div className="flex items-center gap-1.5">
+      {/* 1. THANH CÔNG CỤ & NÚT ĐÓNG BÀN PHÍM */}
+      <div className="flex items-center justify-between gap-1.5 pb-2 mb-1.5 border-b border-[var(--border-container)] text-xs">
+        <div className="flex items-center gap-2">
           {showRandomNameButton && (
             <button
               type="button"
               onClick={handleRandomize}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-[var(--color-gold)]/15 border border-[var(--color-gold)]/30 text-[var(--color-gold)] text-[10px] font-bold active:scale-95 transition-transform cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--color-gold)]/15 border border-[var(--color-gold)]/30 text-[var(--color-gold)] text-xs font-bold active:scale-95 transition-transform cursor-pointer"
             >
-              <Shuffle className="w-3 h-3" />
+              <Shuffle className="w-3.5 h-3.5" />
               <span>🎲 Tên Nhanh</span>
             </button>
           )}
@@ -139,9 +139,9 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
             <button
               type="button"
               onClick={handlePasteClipboard}
-              className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-500/15 border border-sky-500/30 text-sky-300 text-[10px] font-bold active:scale-95 transition-transform cursor-pointer"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-300 text-xs font-bold active:scale-95 transition-transform cursor-pointer"
             >
-              <Clipboard className="w-3 h-3" />
+              <Clipboard className="w-3.5 h-3.5" />
               <span>📋 Dán</span>
             </button>
           )}
@@ -150,7 +150,7 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
             <button
               type="button"
               onClick={handleClear}
-              className="text-[10px] text-[#f87171] hover:underline px-1 cursor-pointer"
+              className="text-xs text-[#f87171] hover:underline px-1.5 py-0.5 cursor-pointer font-semibold"
             >
               Xóa hết
             </button>
@@ -158,48 +158,48 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
         </div>
 
         {/* NÚT ĐÓNG / THU GỌN BÀN PHÍM */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-[var(--text-muted)] font-mono">{value.length}/{maxLength}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-[var(--text-muted)] font-mono font-semibold">{value.length}/{maxLength}</span>
           
           {onClose && (
             <button
               type="button"
               onClick={onClose}
-              className="flex items-center gap-0.5 px-2 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white text-[10px] font-bold active:scale-95 transition-all cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white text-xs font-bold active:scale-95 transition-all cursor-pointer"
               title="Ẩn bàn phím"
             >
-              <ChevronDown className="w-3 h-3 text-[var(--color-gold)]" />
+              <ChevronDown className="w-3.5 h-3.5 text-[var(--color-gold)]" />
               <span>Đóng</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* 2. DÃY PHÍM SỐ COMPACT */}
-      <div className="flex items-center justify-center gap-0.5 sm:gap-1 mb-1">
+      {/* 2. DÃY PHÍM SỐ (KÍCH THƯỚC LỚN HƠN, BẤM ÊM TAY) */}
+      <div className="flex items-center justify-center gap-1 sm:gap-1.5 mb-1.5">
         {NUMERIC_ROW.map((num) => (
           <button
             type="button"
             key={`num-${num}`}
             onClick={() => handleKeyPress(num)}
-            className="flex-1 h-7 sm:h-7.5 rounded-md bg-[var(--bg-card)] border border-[var(--border-card)] text-[11px] font-bold text-[var(--text-primary)] active:bg-[var(--color-gold)] active:text-black active:scale-95 transition-all flex items-center justify-center shadow-sm cursor-pointer"
+            className="flex-1 h-9 sm:h-10 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] text-sm sm:text-base font-extrabold text-[var(--text-primary)] active:bg-[var(--color-gold)] active:text-black active:scale-95 transition-all flex items-center justify-center shadow-sm cursor-pointer"
           >
             {num}
           </button>
         ))}
       </div>
 
-      {/* 3. CÁC HÀNG PHÍM CHỮ CÁI QWERTY COMPACT */}
+      {/* 3. CÁC HÀNG PHÍM CHỮ CÁI QWERTY (RỘNG RÃI, DỄ CHẠM TRÚNG) */}
       {layoutMode === 'ALPHA' ? (
-        <div className="space-y-1">
+        <div className="space-y-1.5">
           {/* Hàng 1: Q - P */}
-          <div className="flex items-center justify-center gap-0.5 sm:gap-1">
+          <div className="flex items-center justify-center gap-1 sm:gap-1.5">
             {currentAlphaRows[0].map((char) => (
               <button
                 type="button"
                 key={char}
                 onClick={() => handleKeyPress(char)}
-                className="flex-1 h-7.5 sm:h-8 rounded-md bg-[var(--bg-card)] border border-[var(--border-card)] text-xs font-bold text-[var(--text-primary)] active:bg-[var(--color-gold)] active:text-black active:scale-95 transition-all flex items-center justify-center shadow-sm cursor-pointer"
+                className="flex-1 h-10 sm:h-11 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] text-sm sm:text-base font-extrabold text-[var(--text-primary)] active:bg-[var(--color-gold)] active:text-black active:scale-95 transition-all flex items-center justify-center shadow-sm cursor-pointer"
               >
                 {char}
               </button>
@@ -207,13 +207,13 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
           </div>
 
           {/* Hàng 2: A - L */}
-          <div className="flex items-center justify-center gap-0.5 sm:gap-1 px-1.5 sm:px-2">
+          <div className="flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3">
             {currentAlphaRows[1].map((char) => (
               <button
                 type="button"
                 key={char}
                 onClick={() => handleKeyPress(char)}
-                className="flex-1 h-7.5 sm:h-8 rounded-md bg-[var(--bg-card)] border border-[var(--border-card)] text-xs font-bold text-[var(--text-primary)] active:bg-[var(--color-gold)] active:text-black active:scale-95 transition-all flex items-center justify-center shadow-sm cursor-pointer"
+                className="flex-1 h-10 sm:h-11 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] text-sm sm:text-base font-extrabold text-[var(--text-primary)] active:bg-[var(--color-gold)] active:text-black active:scale-95 transition-all flex items-center justify-center shadow-sm cursor-pointer"
               >
                 {char}
               </button>
@@ -221,14 +221,14 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
           </div>
 
           {/* Hàng 3: SHIFT + Z - M + BACKSPACE */}
-          <div className="flex items-center justify-center gap-0.5 sm:gap-1">
+          <div className="flex items-center justify-center gap-1 sm:gap-1.5">
             {/* Phím SHIFT */}
             <button
               type="button"
               onClick={() => setIsUppercase(!isUppercase)}
-              className={`w-9 sm:w-11 h-7.5 sm:h-8 rounded-md border text-[11px] font-bold transition-all flex items-center justify-center shadow-sm cursor-pointer ${
+              className={`w-11 sm:w-14 h-10 sm:h-11 rounded-lg border text-sm font-extrabold transition-all flex items-center justify-center shadow-sm cursor-pointer shrink-0 ${
                 isUppercase
-                  ? 'bg-[var(--color-gold)] text-black border-[var(--color-gold)]'
+                  ? 'bg-[var(--color-gold)] text-black border-[var(--color-gold)] font-black'
                   : 'bg-[var(--bg-card)] border-[var(--border-card)] text-[var(--text-secondary)]'
               }`}
             >
@@ -240,7 +240,7 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
                 type="button"
                 key={char}
                 onClick={() => handleKeyPress(char)}
-                className="flex-1 h-7.5 sm:h-8 rounded-md bg-[var(--bg-card)] border border-[var(--border-card)] text-xs font-bold text-[var(--text-primary)] active:bg-[var(--color-gold)] active:text-black active:scale-95 transition-all flex items-center justify-center shadow-sm cursor-pointer"
+                className="flex-1 h-10 sm:h-11 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] text-sm sm:text-base font-extrabold text-[var(--text-primary)] active:bg-[var(--color-gold)] active:text-black active:scale-95 transition-all flex items-center justify-center shadow-sm cursor-pointer"
               >
                 {char}
               </button>
@@ -250,22 +250,22 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
             <button
               type="button"
               onClick={handleDelete}
-              className="w-9 sm:w-11 h-7.5 sm:h-8 rounded-md bg-[#2a1717] border border-rose-900/40 text-rose-300 active:bg-rose-600 active:text-white active:scale-95 transition-all flex items-center justify-center shadow-sm cursor-pointer"
+              className="w-11 sm:w-14 h-10 sm:h-11 rounded-lg bg-[#2a1717] border border-rose-900/40 text-rose-300 active:bg-rose-600 active:text-white active:scale-95 transition-all flex items-center justify-center shadow-sm cursor-pointer shrink-0"
               title="Xóa ký tự"
             >
-              <Delete className="w-3.5 h-3.5" />
+              <Delete className="w-4 h-4" />
             </button>
           </div>
         </div>
       ) : (
-        /* CHẾ ĐỘ KÝ TỰ MỞ RỘNG COMPACT */
-        <div className="grid grid-cols-5 gap-1 py-0.5">
+        /* CHẾ ĐỘ KÝ TỰ MỞ RỘNG */
+        <div className="grid grid-cols-5 gap-1.5 py-1">
           {['-', '_', '.', '@', '#', '$', '%', '&', '*', '+', '=', '(', ')', '/', ':'].map((sym) => (
             <button
               type="button"
               key={sym}
               onClick={() => handleKeyPress(sym)}
-              className="h-7.5 rounded-md bg-[var(--bg-card)] border border-[var(--border-card)] text-xs font-bold text-[var(--text-primary)] active:bg-[var(--color-gold)] active:text-black active:scale-95 transition-all flex items-center justify-center cursor-pointer"
+              className="h-10 sm:h-11 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] text-sm sm:text-base font-bold text-[var(--text-primary)] active:bg-[var(--color-gold)] active:text-black active:scale-95 transition-all flex items-center justify-center cursor-pointer shadow-sm"
             >
               {sym}
             </button>
@@ -273,12 +273,12 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
         </div>
       )}
 
-      {/* 4. HÀNG ĐÁY COMPACT: TAB 123 + DẤU CÁCH + XONG */}
-      <div className="flex items-center justify-center gap-1 mt-1">
+      {/* 4. HÀNG ĐÁY: TAB 123 + DẤU CÁCH + XONG */}
+      <div className="flex items-center justify-center gap-1.5 mt-1.5">
         <button
           type="button"
           onClick={() => setLayoutMode(layoutMode === 'ALPHA' ? 'NUMERIC' : 'ALPHA')}
-          className="w-11 sm:w-12 h-7.5 sm:h-8 rounded-md bg-[var(--bg-card)] border border-[var(--border-card)] text-[10px] font-bold text-[var(--color-gold)] active:scale-95 transition-all flex items-center justify-center shadow-sm cursor-pointer"
+          className="w-14 sm:w-16 h-10 sm:h-11 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] text-xs sm:text-sm font-bold text-[var(--color-gold)] active:scale-95 transition-all flex items-center justify-center shadow-sm cursor-pointer shrink-0"
         >
           {layoutMode === 'ALPHA' ? '?123' : 'ABC'}
         </button>
@@ -287,9 +287,9 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
         <button
           type="button"
           onClick={handleSpace}
-          className="flex-1 h-7.5 sm:h-8 rounded-md bg-[var(--bg-card)] border border-[var(--border-card)] text-[11px] font-medium text-[var(--text-secondary)] active:bg-[var(--color-gold)] active:text-black active:scale-95 transition-all flex items-center justify-center gap-1 shadow-sm cursor-pointer"
+          className="flex-1 h-10 sm:h-11 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] text-xs sm:text-sm font-bold text-[var(--text-secondary)] active:bg-[var(--color-gold)] active:text-black active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
         >
-          <Space className="w-3.5 h-3.5" />
+          <Space className="w-4 h-4" />
           <span>Cách</span>
         </button>
 
@@ -300,9 +300,9 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
             if (onEnter) onEnter();
             if (onClose) onClose();
           }}
-          className="px-2.5 sm:px-3 h-7.5 sm:h-8 rounded-md bg-[var(--color-gold)] border border-[var(--color-gold-border)] text-[11px] font-black text-[#0a0c0e] active:scale-95 transition-all flex items-center justify-center gap-1 shadow-md cursor-pointer"
+          className="px-3.5 sm:px-5 h-10 sm:h-11 rounded-lg bg-[var(--color-gold)] border border-[var(--color-gold-border)] text-xs sm:text-sm font-black text-[#0a0c0e] active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer shrink-0"
         >
-          <CornerDownLeft className="w-3 h-3" />
+          <CornerDownLeft className="w-3.5 h-3.5" />
           <span>Xong</span>
         </button>
       </div>
