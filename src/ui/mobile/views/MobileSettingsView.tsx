@@ -3,9 +3,7 @@ import {
   Volume2, 
   VolumeX, 
   Settings, 
-  Eye, 
   CheckCircle, 
-  BrainCircuit, 
   Timer, 
   Crosshair,
   Wand2,
@@ -682,56 +680,6 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
               </div>
 
               <ToggleSwitch checked={aiHintEnabled} />
-            </div>
-          </div>
-        </div>
-
-        {/* ========================================================================= */}
-        {/* NHÓM 5: PHÂN TÍCH & NÂNG CAO */}
-        {/* ========================================================================= */}
-        <div className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-card)] shadow-md overflow-hidden">
-          <div className="px-4 py-2.5 bg-[var(--bg-container)]/70 flex items-center gap-2">
-            <Eye className="w-4 h-4 text-[var(--color-gold)] shrink-0" />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-gold)] leading-none">
-              Phân Tích &amp; Nâng Cao
-            </span>
-          </div>
-
-          <div className="space-y-0.5">
-            {/* 1. Chế Độ Soi Bài (X-Ray) */}
-            <div
-              onClick={onToggleXRay}
-              className="px-4 py-3.5 flex items-center justify-between hover:bg-white/[0.02] cursor-pointer transition-colors select-none"
-            >
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl border transition-colors shrink-0 flex items-center justify-center ${xrayEnabled ? 'bg-[var(--bg-card-active)] border-[var(--color-gold-border)] text-[var(--color-gold)]' : 'bg-[var(--bg-container)] border-[var(--border-container)] text-[var(--text-muted)]'}`}>
-                  <Eye className="w-4 h-4 shrink-0" />
-                </div>
-                <div>
-                  <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">Chế Độ Soi Bài (X-Ray)</div>
-                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">Phân tích xác suất và quan sát toàn bộ bàn đấu</div>
-                </div>
-              </div>
-
-              <ToggleSwitch checked={xrayEnabled} />
-            </div>
-
-            {/* 2. Nhật Ký Suy Luận Bot AI (Debug Mode) */}
-            <div
-              onClick={onToggleBotReasoningLog}
-              className="px-4 py-3.5 flex items-center justify-between hover:bg-white/[0.02] cursor-pointer transition-colors select-none"
-            >
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl border transition-colors shrink-0 flex items-center justify-center ${botReasoningLogEnabled ? 'bg-[var(--bg-card-active)] border-[var(--color-gold-border)] text-[var(--color-gold)]' : 'bg-[var(--bg-container)] border-[var(--border-container)] text-[var(--text-muted)]'}`}>
-                  <BrainCircuit className="w-4 h-4 shrink-0" />
-                </div>
-                <div>
-                  <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">Nhật Ký Suy Luận Bot AI</div>
-                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">Xem chi tiết chuỗi suy nghĩ, lý do ra bài và điểm heuristics</div>
-                </div>
-              </div>
-
-              <ToggleSwitch checked={botReasoningLogEnabled} />
             </div>
           </div>
         </div>
