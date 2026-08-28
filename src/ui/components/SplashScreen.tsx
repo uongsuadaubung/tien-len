@@ -73,7 +73,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
 
         {/* Tiêu đề & Subtitle */}
         <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-200 font-serif">
+          <h1 className="text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-200 uppercase">
             TIẾN LÊN MIỀN NAM
           </h1>
           <p className="text-xs text-[var(--text-muted)] tracking-widest font-medium uppercase">

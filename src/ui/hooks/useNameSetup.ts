@@ -3,7 +3,18 @@ import { PlayerProfile, savePlayerProfile } from '../../engine/storage';
 import { soundManager } from '../audio/sound-manager';
 
 export const AVATAR_OPTIONS: readonly string[] = [
-  '🤠', '🤴', '🥷', '🎩', '🦊', '🐉', '🐯', '🦁', '👸', '😎', '🧙‍♂️', '💎'
+  // Nhóm 1: Thần Bài & Quý Tộc Sòng Bạc
+  '🤠', '🤴', '👸', '🥷', '🧙‍♂️', '😎',
+  // Nhóm 2: Nhân Vật Cá Tính & Đẳng Cấp
+  '🧐', '🤑', '👨‍💼', '👩‍💼', '🦹‍♂️', '🕵️‍♂️',
+  // Nhóm 3: Thần Thú & Linh Vật May Mắn
+  '🐉', '🐯', '🦁', '🐺', '🦊', '🦅',
+  // Nhóm 4: Động Vật Uy Lực & Dễ Thương
+  '🐼', '🦍', '🦈', '🐍', '🐗', '🦄',
+  // Nhóm 5: Vương Miện, Bài & Bảo Vật
+  '💎', '👑', '🎩', '🃏', '🎲', '🏆',
+  // Nhóm 6: Chiến Binh, Lửa & Tiền Tài
+  '🔥', '⚡', '🍀', '🪙', '💰', '🎯'
 ];
 
 export interface UseNameSetupParams {

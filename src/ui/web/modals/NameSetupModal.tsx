@@ -67,10 +67,15 @@ export const NameSetupModal: React.FC<NameSetupModalProps> = ({
       <form onSubmit={(e) => handleSubmit(e)} className="space-y-4">
         {/* 1. Chọn Avatar Đại Diện */}
         <Card variant="card" className="p-3.5 space-y-2">
-          <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
-            Chọn Biểu Tượng Đại Diện:
-          </label>
-          <div className="grid grid-cols-6 gap-2">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
+              Chọn Biểu Tượng Đại Diện ({avatarOptions.length} Mẫu):
+            </label>
+            <span className="text-xs text-[var(--color-gold)] font-bold">
+              Đã chọn: <span className="text-lg align-middle">{avatar}</span>
+            </span>
+          </div>
+          <div className="grid grid-cols-6 gap-2 max-h-52 overflow-y-auto pr-1 p-0.5">
             {avatarOptions.map((av) => {
               const isSelected = avatar === av;
               return (
@@ -84,7 +89,7 @@ export const NameSetupModal: React.FC<NameSetupModalProps> = ({
                       : 'bg-[var(--bg-container)] border border-[var(--border-container)] hover:border-white/25 hover:scale-105'
                   }`}
                 >
-                  {av}
+                  <span className="emoji-avatar">{av}</span>
                 </button>
               );
             })}

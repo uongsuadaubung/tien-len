@@ -76,10 +76,15 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
       <div className="space-y-2.5 pb-6 select-none">
         {/* 1. Chọn Avatar Đại Diện */}
         <Card variant="card" className="p-3 space-y-1.5">
-          <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
-            Chọn Biểu Tượng Đại Diện:
-          </label>
-          <div className="grid grid-cols-6 gap-2 sm:gap-2.5">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
+              Chọn Biểu Tượng Đại Diện ({avatarOptions.length} Mẫu):
+            </label>
+            <span className="text-[10px] text-[var(--color-gold)] font-bold">
+              Đã chọn: <span className="text-base align-middle">{avatar}</span>
+            </span>
+          </div>
+          <div className="grid grid-cols-6 gap-2 sm:gap-2.5 max-h-40 sm:max-h-48 overflow-y-auto pr-1 p-0.5">
             {avatarOptions.map((av) => {
               const isSelected = avatar === av;
               return (
@@ -93,7 +98,7 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
                       : 'bg-[var(--bg-container)] border border-[var(--border-container)] hover:border-white/25 hover:scale-105'
                   }`}
                 >
-                  {av}
+                  <span className="emoji-avatar">{av}</span>
                 </button>
               );
             })}
