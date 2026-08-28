@@ -20,7 +20,7 @@ import { MobileNameSetupView } from '../views/MobileNameSetupView';
 import { MobileRulesView } from '../views/MobileRulesView';
 import { MobileEcosystemView } from '../views/MobileEcosystemView';
 import { BotProfileModal } from '../../web/modals/BotProfileModal';
-import { MatchmakingModal } from '../../web/modals/MatchmakingModal';
+import { MobileMatchmakingSheet } from './MobileMatchmakingSheet';
 import { SyncConflictModal } from '../../web/modals/SyncConflictModal';
 import { useEcosystemStore } from '../../../stores/useEcosystemStore';
 import { CardTracker } from '../../../ai/card-tracker';
@@ -184,9 +184,9 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
         />
       )}
 
-      {/* 4. Ngăn Kéo Ghép Trận Đấu (Matchmaking Radar) */}
+      {/* 4. Màn Hình Ghép Trận Đấu Radar Native Mobile */}
       {isMatchmakingOpen && (
-        <MatchmakingModal
+        <MobileMatchmakingSheet
           isOpen={isMatchmakingOpen}
           onCancel={onCancelMatchmaking || (() => closeModal('MATCHMAKING'))}
           onMatchReady={onMatchReady || (() => {})}

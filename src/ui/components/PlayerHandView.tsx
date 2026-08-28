@@ -234,41 +234,68 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
         </div>
       )}
 
-      {/* Dãy bài trên tay người chơi (Giữ nguyên z-index tự nhiên từ trái sang phải: 10 + index) */}
+      {/* Dãy bài trên tay người chơi (Giữ nguyên z-index tự nhiên từ trái sang phải: 10 + index, Tự động scale vừa khít màn hình khi xếp nhiều bộ) */}
       {isSmartMode && smartGroups.length > 0 ? (
-        <div className={`relative flex items-center justify-center max-w-full overflow-x-visible px-2 py-0.5 ${isMobileSize ? 'gap-3 sm:gap-4' : 'gap-4 sm:gap-6'} flex-wrap sm:flex-nowrap`}>
-          {smartGroups.map((group, groupIdx) => (
-            <div key={group.id} className={`relative flex items-center ${isMobileSize ? '-space-x-6 sm:-space-x-6.5' : '-space-x-8'}`}>
-              {group.cards.map((card, cardIndex) => {
-                const isSelected = selectedCardIds.has(card.id);
-                const isKey3S = isFirstMoveOfGame && isCurrentTurn && card.rank === 3 && card.suit === 'SPADES';
-                const rot = (cardIndex - (group.cards.length - 1) / 2) * 2;
-                const cardStyle: HandCardStyle = {
-                  zIndex: 10 + cardIndex,
-                  '--rot-deg': `${rot}deg`,
-                  animationDelay: `${groupIdx * 40 + cardIndex * 20}ms`
-                };
-                return (
-                  <div
-                    key={card.id}
-                    className={`zingplay-card-fan relative ${isKey3S && !isSelected ? 'ring-2 ring-[#d4af37] shadow-[0_0_12px_rgba(212,175,55,0.8)] rounded-lg' : ''}`}
-                    style={cardStyle}
-                  >
-                    <CardView
-                      card={card}
-                      isSelected={isSelected}
-                      isPlayable={isCurrentTurn}
-                      onClick={() => onToggleCardSelect(card.id)}
-                      size={isMobileSize ? 'mobile' : 'md'}
-                      style={{
-                        transform: `rotate(${rot}deg)`
-                      }}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+        <div className="w-full max-w-full flex items-end justify-center px-1 overflow-visible">
+          <div 
+            className={`
+              relative flex items-center justify-center max-w-full transition-transform duration-200
+              ${isMobileSize
+                ? smartGroups.length >= 7
+                  ? 'gap-1 scale-[0.82] sm:scale-[0.88] origin-bottom'
+                  : smartGroups.length === 6
+                    ? 'gap-1 sm:gap-1.5 scale-[0.88] sm:scale-[0.93] origin-bottom'
+                    : smartGroups.length === 5
+                      ? 'gap-1.5 sm:gap-2 scale-[0.94] sm:scale-100 origin-bottom'
+                      : 'gap-2 sm:gap-3 scale-100 origin-bottom'
+                : 'gap-3 sm:gap-5 scale-100 origin-bottom'
+              }
+            `}
+          >
+            {smartGroups.map((group, groupIdx) => (
+              <div 
+                key={group.id} 
+                className={`
+                  relative flex items-center shrink-0
+                  ${isMobileSize 
+                    ? smartGroups.length >= 5 
+                      ? '-space-x-7 sm:-space-x-7.5' 
+                      : '-space-x-6.5 sm:-space-x-7' 
+                    : '-space-x-8'
+                  }
+                `}
+              >
+                {group.cards.map((card, cardIndex) => {
+                  const isSelected = selectedCardIds.has(card.id);
+                  const isKey3S = isFirstMoveOfGame && isCurrentTurn && card.rank === 3 && card.suit === 'SPADES';
+                  const rot = (cardIndex - (group.cards.length - 1) / 2) * 2;
+                  const cardStyle: HandCardStyle = {
+                    zIndex: 10 + cardIndex,
+                    '--rot-deg': `${rot}deg`,
+                    animationDelay: `${groupIdx * 40 + cardIndex * 20}ms`
+                  };
+                  return (
+                    <div
+                      key={card.id}
+                      className={`zingplay-card-fan relative ${isKey3S && !isSelected ? 'ring-2 ring-[#d4af37] shadow-[0_0_12px_rgba(212,175,55,0.8)] rounded-lg' : ''}`}
+                      style={cardStyle}
+                    >
+                      <CardView
+                        card={card}
+                        isSelected={isSelected}
+                        isPlayable={isCurrentTurn}
+                        onClick={() => onToggleCardSelect(card.id)}
+                        size={isMobileSize ? 'mobile' : 'md'}
+                        style={{
+                          transform: `rotate(${rot}deg)`
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <div className={`relative flex items-center justify-center ${isMobileSize ? '-space-x-6 sm:-space-x-6.5' : '-space-x-8'} max-w-full overflow-x-visible px-2 py-0.5`}>
