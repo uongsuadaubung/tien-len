@@ -6,7 +6,6 @@ import {
   generateDailyQuestsForDate 
 } from './quests';
 import { CAMPAIGN_CHAPTERS } from './campaign';
-import { ECONOMY_CONSTANTS } from './constants/economy';
 import {
   dbGetPlayerProfile,
   dbSavePlayerProfile,
@@ -19,55 +18,14 @@ import {
   dbClearHumanBehavior
 } from './db/indexed-db';
 
-export interface PlayerProfile {
-  name: string;
-  avatar: string;
-  coins: number;
-  elo: number;
-  campaignUnlockedChapter: number;
-  campaignChapterWins: Record<number, number>;
-  loans: number; // Tiền nợ chủ sòng
-  dailyReliefClaimedCount: number;
-  lastDailyResetTimestamp: number;
-  lastDailyResetDate: string;
-  dailyQuests: Quest[];
-  achievements: Achievement[];
-  dailyMilestonesClaimed: Record<number, boolean>;
-  stats: {
-    gamesPlayed: number;
-    wins: number;
-    chopsDone: number;
-    congsGiven: number;
-    totalEarned: number;
-    highestStreak: number;
-    currentStreak: number;
-  };
-}
+import { PlayerProfileSchema, type PlayerProfile } from './schemas/profile.schema';
+export type { PlayerProfile };
 
-export const DEFAULT_PROFILE: PlayerProfile = {
-  name: '',
-  avatar: '🤠',
-  coins: ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS,
-  elo: ECONOMY_CONSTANTS.DEFAULT_STARTING_ELO,
-  campaignUnlockedChapter: 1,
-  campaignChapterWins: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-  loans: 0,
-  dailyReliefClaimedCount: 0,
-  lastDailyResetTimestamp: Date.now(),
+export const DEFAULT_PROFILE: PlayerProfile = PlayerProfileSchema.parse({
   lastDailyResetDate: getTodayDateString(),
   dailyQuests: generateDailyQuestsForDate(getTodayDateString()),
-  achievements: INITIAL_ACHIEVEMENTS,
-  dailyMilestonesClaimed: { 1: false, 3: false, 5: false },
-  stats: {
-    gamesPlayed: 0,
-    wins: 0,
-    chopsDone: 0,
-    congsGiven: 0,
-    totalEarned: 0,
-    highestStreak: 0,
-    currentStreak: 0
-  }
-};
+  achievements: INITIAL_ACHIEVEMENTS
+});
 
 // ============================================================================
 // DEXIE STORAGE PERSISTENCE LAYER (100% PURE INDEXEDDB + RAM CACHE)

@@ -1,14 +1,7 @@
-import type { PlayerProfile } from '../storage';
-import type { SavedSettings } from '../../stores/useSettingsStore';
-import type { BotEntity, EcosystemNewsItem } from '../ecosystem/ecosystem-types';
-import type { MatchLogReport } from '../match-logger';
+import type { GithubUser } from '../schemas/settings.schema';
+import type { TienLenSaveData } from '../schemas/sync.schema';
 
-export interface GithubUser {
-  login: string;
-  name: string | null;
-  bio: string | null;
-  avatar_url: string;
-}
+export type { GithubUser, TienLenSaveData };
 
 export interface GistFile {
   content?: string;
@@ -30,17 +23,6 @@ export interface GistListItem {
   description: string | null;
   updated_at: string;
   files: Record<string, { raw_url: string; filename?: string }>;
-}
-
-export interface TienLenSaveData {
-  version: number;
-  updatedAt: number;
-  profile: PlayerProfile;
-  settings: Partial<SavedSettings>;
-  bots?: BotEntity[];
-  newsfeed?: EcosystemNewsItem[];
-  humanBehavior?: unknown;
-  matchLogs?: MatchLogReport[];
 }
 
 export type SyncResponse<T = unknown> =

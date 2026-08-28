@@ -7,8 +7,8 @@ import { createBotPlayer, createBotPlayers } from '../../src/engine/player-facto
 
 describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Biến 1000+ Ván Ngẫu Nhiên)', () => {
   const SETTLEMENT_RULES: readonly GameSettlementRule[] = [
-    'TRADITIONAL_RANK_BASED',
-    'CARD_COUNT',
+    'TRADITIONAL',
+    'COUNT_CARDS',
     'WINNER_TAKES_ALL'
   ];
 
@@ -50,7 +50,7 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
   it('2. Bất biến Bảo toàn Dòng tiền Kinh tế (Zero-Sum Invariant trong Đếm Lá & Nhất Ăn Tất)', () => {
     for (let sim = 0; sim < 50; sim++) {
       const rules = new GameRulesBuilder()
-        .withSettlement('CARD_COUNT')
+        .withSettlement('COUNT_CARDS')
         .withTable(t => t.playerCount(4).betAmount(500).soundEnabled(false))
         .withCong(c => c.enabled(true).penaltyCards(26).multiplier(1))
         .withGameFlow(g => g.prohibitEndingWithTwo(false).threeSpadesEndingBonus(false))

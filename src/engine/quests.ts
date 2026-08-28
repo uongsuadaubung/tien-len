@@ -1,27 +1,5 @@
-export interface Quest {
-  id: string;
-  title: string;
-  description: string;
-  rewardCoins: number;
-  icon: string;
-  targetCount: number;
-  currentCount: number;
-  isCompleted: boolean;
-  isClaimed: boolean;
-}
-
-export interface Achievement {
-  id: string;
-  title: string;
-  description: string;
-  rewardCoins: number;
-  icon: string;
-  targetCount: number;
-  currentCount: number;
-  isCompleted: boolean;
-  isClaimed: boolean;
-  category: 'CHOP' | 'VICTORY' | 'WEALTH' | 'SPECIAL';
-}
+import type { Quest, Achievement, AchievementCategory } from './schemas/profile.schema';
+export type { Quest, Achievement, AchievementCategory };
 
 // ============================================================================
 // 1. HÒM THƯỞNG CỘT MỐC NGÀY (DAILY MILESTONE CHESTS - CÂN BẰNG TÂN THỦ)

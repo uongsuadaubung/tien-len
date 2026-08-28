@@ -69,7 +69,7 @@ describe('Luồng Tiền Cọc & Xử Phạt Thoát Game / Bỏ Cuộc (Forfeit 
     const session: ActiveMatchSession = {
       gameId: 'match_12345',
       gameType: 'QUICK',
-      mode: 'CARD_COUNT',
+      mode: 'COUNT_CARDS',
       gameNumber: 1,
       depositAmount: 13000,
       betAmount: 500,
@@ -103,7 +103,7 @@ describe('Luồng Tiền Cọc & Xử Phạt Thoát Game / Bỏ Cuộc (Forfeit 
     saveActiveMatchSession({
       gameId: 'match_test_forfeit',
       gameType: 'QUICK',
-      mode: 'CARD_COUNT',
+      mode: 'COUNT_CARDS',
       gameNumber: 1,
       depositAmount: requiredDeposit,
       betAmount,
@@ -136,7 +136,7 @@ describe('Luồng Tiền Cọc & Xử Phạt Thoát Game / Bỏ Cuộc (Forfeit 
     saveActiveMatchSession({
       gameId: 'match_ranked_forfeit',
       gameType: 'RANKED',
-      mode: 'TRADITIONAL_RANK_BASED',
+      mode: 'TRADITIONAL',
       gameNumber: 1,
       depositAmount: 0,
       betAmount: 0,
@@ -172,7 +172,7 @@ describe('Luồng Tiền Cọc & Xử Phạt Thoát Game / Bỏ Cuộc (Forfeit 
     saveActiveMatchSession({
       gameId: 'match_interrupted_f5',
       gameType: 'QUICK',
-      mode: 'CARD_COUNT',
+      mode: 'COUNT_CARDS',
       gameNumber: 1,
       depositAmount: requiredDeposit,
       betAmount: 500,
@@ -212,7 +212,7 @@ describe('Luồng Tiền Cọc & Xử Phạt Thoát Game / Bỏ Cuộc (Forfeit 
     saveActiveMatchSession({
       gameId: 'match_normal_end',
       gameType: 'QUICK',
-      mode: 'CARD_COUNT',
+      mode: 'COUNT_CARDS',
       gameNumber: 1,
       depositAmount: requiredDeposit,
       betAmount,

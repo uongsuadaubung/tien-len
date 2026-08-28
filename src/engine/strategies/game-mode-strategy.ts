@@ -1,5 +1,4 @@
 import { 
-  GameMode, 
   GameSettings, 
   Player, 
   GameRules, 
@@ -169,12 +168,8 @@ function createMatchSetupResult(
     ];
   }
 
-  let legacyMode: GameMode = 'TRADITIONAL';
-  if (rules.settlementRule === 'CARD_COUNT') legacyMode = 'COUNT_CARDS';
-  else if (rules.settlementRule === 'WINNER_TAKES_ALL') legacyMode = 'WINNER_TAKES_ALL';
-
   const settings: GameSettings = {
-    mode: legacyMode,
+    mode: rules.settlementRule,
     betAmount: rules.table.betAmount,
     playerCount: rules.table.playerCount,
     allowFourPairsCutAnytime: rules.chopping.allowFourPairsCutAnytime,
@@ -248,7 +243,7 @@ export class TraditionalModeStrategy implements GameModeStrategy {
     const betAmount = context.customRules?.table?.betAmount ?? context.customSettings?.betAmount ?? 100;
 
     const rules = GameRulesBuilder.traditional()
-      .withSettlement(context.customRules?.settlementRule || 'TRADITIONAL_RANK_BASED')
+      .withSettlement(context.customRules?.settlementRule || 'TRADITIONAL')
       .withChopping(c => c
         .allowFourPairsCutAnytime(context.customRules?.chopping?.allowFourPairsCutAnytime ?? context.customSettings?.allowFourPairsCutAnytime ?? true)
         .multiplier(context.customRules?.chopping?.multiplier ?? 1)

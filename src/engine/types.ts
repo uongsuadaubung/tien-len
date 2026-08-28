@@ -40,37 +40,33 @@ export type InstantWinType =
   | 'SAME_COLOR_13'
   | 'FIRST_ROUND_FOUR_THREES';
 
-export type GameSettlementRule = 'TRADITIONAL_RANK_BASED' | 'CARD_COUNT' | 'WINNER_TAKES_ALL';
+import type {
+  GameMode,
+  GameSettlementRule,
+  PlayerCount,
+  ChoppingRules,
+  CongRules,
+  InstantWinRules,
+  GameFlowRules,
+  TableRules,
+  GameRules,
+  GameSettings
+} from './schemas/settings.schema';
 
-export type GameMode = 'TRADITIONAL' | 'COUNT_CARDS' | 'WINNER_TAKES_ALL' | 'CUSTOM';
+export type { GameSettlementRule };
+import { GameRulesSchema, StrictGameRulesSchema } from './schemas/settings.schema';
 
-export interface ChoppingRules {
-  allowFourPairsCutAnytime: boolean; // 4 đôi thông chặt tự do không cần vòng
-  allowThreePairsCutTwo: boolean;    // 3 đôi thông chặt 1 Heo
-  allowFourOfAKindCutPairsOfTwos: boolean; // Tứ quý chặt Đôi Heo
-  multiplier: number;                // Hệ số nhân tiền phạt chặt (1x chuẩn, 2x sòng bạc ngầm)
-  cascadeMultiplier: boolean;        // Chặt chồng tích lũy (Chuỗi chặt đè người sau đền toàn bộ cho người chót)
-}
-
-export interface CongRules {
-  enabled: boolean;                  // Có phạt Cóng khi người khác về nhất mà chưa đánh được lá nào
-  penaltyCards: number;              // Số lá bài đền khi Cóng (chuẩn: 26 lá)
-  multiplier: number;                // Hệ số nhân phạt Cóng (1x chuẩn, 2x sòng bạc ngầm)
-}
-
-export interface InstantWinRules {
-  enabled: boolean;                  // Cho phép Tới Trắng
-  payoutMultiplier: number;          // Số cược mỗi nhà đền khi Tới Trắng (chuẩn: 26x)
-}
-
-export interface GameFlowRules {
-  firstGameRequireThreeOfSpades: boolean; // Ván đầu tiên bắt buộc đánh lá 3 Bích
-  winnerLeadsNextGame: boolean;           // Người về Nhất ván trước được đi đầu ván sau
-  prohibitEndingWithTwo: boolean;         // Cấm đánh 2 cuối cùng (Cấm về Heo, kèm luật thối Heo)
-  threeSpadesEndingBonus: boolean;        // Về 3 Bích cuối cùng (từ ván 2+) được x2 tiền thưởng cả làng
-}
-
-export type PlayerCount = 2 | 3 | 4;
+export type {
+  GameMode,
+  PlayerCount,
+  ChoppingRules,
+  CongRules,
+  InstantWinRules,
+  GameFlowRules,
+  TableRules,
+  GameRules,
+  GameSettings
+};
 
 export function normalizePlayerCount(count: number | null = 4): PlayerCount {
   if (count === 2 || count === 3 || count === 4) return count;
@@ -88,31 +84,11 @@ export function updateTupleAt<T>(tuple: [T, T, T], index: number, value: T): [T,
   ];
 }
 
-export interface TableRules {
-  playerCount: PlayerCount;          // Số người chơi
-  betAmount: number;                 // Mức cược cơ bản (0 Xu với Ranked)
-  soundEnabled: boolean;
-}
-
-/**
- * TẬP LUẬT CHƠI HỢP THÀNH (MODULAR COMPOSABLE RULES)
- * Chứa toàn bộ các module quy tắc độc lập chi phối một ván bài
- */
-export interface GameRules {
-  settlementRule: GameSettlementRule; // Luật kết thúc ván & tính điểm
-  chopping: ChoppingRules;            // Luật Chặt Heo & Chặt Hàng
-  cong: CongRules;                    // Luật Cóng (Cháy bài)
-  instantWin: InstantWinRules;        // Luật Tới Trắng
-  gameFlow: GameFlowRules;            // Luật Vòng chơi & Quyền đi đầu
-  table: TableRules;                  // Cấu hình Bàn chơi
-}
-
 /**
  * Type Guard xác định một đối tượng có phải là GameRules chuẩn không
  */
 export function isGameRules(obj: unknown): obj is GameRules {
-  if (typeof obj !== 'object' || obj === null) return false;
-  return 'settlementRule' in obj && 'chopping' in obj && 'table' in obj;
+  return StrictGameRulesSchema.safeParse(obj).success;
 }
 
 export interface Player {
@@ -150,18 +126,6 @@ export interface Round {
   isFinished: boolean;
 }
 
-export interface GameSettings {
-  mode: GameMode;
-  betAmount: number;
-  allowFourPairsCutAnytime: boolean; // 4 đôi thông chặt tự do không cần vòng (chuẩn = true)
-  instantWinEnabled: boolean;
-  soundEnabled: boolean;
-  playerCount: PlayerCount;          // 2, 3 hoặc 4 người chơi
-  prohibitEndingWithTwo: boolean;    // Cấm đánh 2 cuối cùng (Cấm về Heo)
-  threeSpadesEndingBonus: boolean;   // Về 3 Bích cuối cùng x2 tiền thưởng cả làng
-  cascadeChopEnabled: boolean;       // Chặt chồng tích lũy tiền phạt
-}
-
 export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
 };
@@ -170,45 +134,44 @@ export type DeepPartial<T> = {
  * Hàm khởi tạo Tập Luật mặc định chuẩn mực cho Tiến Lên Miền Nam
  */
 export function createDefaultGameRules(partial?: DeepPartial<GameRules>): GameRules {
+  const defaults = GameRulesSchema.parse({});
+  if (!partial) return defaults;
   return {
-    settlementRule: partial?.settlementRule || 'CARD_COUNT',
-    chopping: {
-      allowFourPairsCutAnytime: partial?.chopping?.allowFourPairsCutAnytime ?? true,
-      allowThreePairsCutTwo: partial?.chopping?.allowThreePairsCutTwo ?? true,
-      allowFourOfAKindCutPairsOfTwos: partial?.chopping?.allowFourOfAKindCutPairsOfTwos ?? true,
-      multiplier: partial?.chopping?.multiplier ?? 1,
-      cascadeMultiplier: partial?.chopping?.cascadeMultiplier ?? true
-    },
-    cong: {
-      enabled: partial?.cong?.enabled ?? true,
-      penaltyCards: partial?.cong?.penaltyCards ?? 26,
-      multiplier: partial?.cong?.multiplier ?? 1
-    },
-    instantWin: {
-      enabled: partial?.instantWin?.enabled ?? true,
-      payoutMultiplier: partial?.instantWin?.payoutMultiplier ?? 26
-    },
-    gameFlow: {
-      firstGameRequireThreeOfSpades: partial?.gameFlow?.firstGameRequireThreeOfSpades ?? true,
-      winnerLeadsNextGame: partial?.gameFlow?.winnerLeadsNextGame ?? true,
-      prohibitEndingWithTwo: partial?.gameFlow?.prohibitEndingWithTwo ?? true,
-      threeSpadesEndingBonus: partial?.gameFlow?.threeSpadesEndingBonus ?? true
-    },
+    settlementRule: partial.settlementRule || defaults.settlementRule,
+    chopping: { ...defaults.chopping, ...(partial.chopping || {}) },
+    cong: { ...defaults.cong, ...(partial.cong || {}) },
+    instantWin: { ...defaults.instantWin, ...(partial.instantWin || {}) },
+    gameFlow: { ...defaults.gameFlow, ...(partial.gameFlow || {}) },
     table: {
-      playerCount: normalizePlayerCount(partial?.table?.playerCount),
-      betAmount: partial?.table?.betAmount ?? 1000,
-      soundEnabled: partial?.table?.soundEnabled ?? true
+      ...defaults.table,
+      ...(partial.table || {}),
+      playerCount: normalizePlayerCount(partial.table?.playerCount)
     }
   };
+}
+
+/**
+ * Lấy tên hiển thị tiếng Việt của luật kết toán / chế độ chơi
+ */
+export function getSettlementRuleLabel(rule?: GameSettlementRule | GameMode): string {
+  switch (rule) {
+    case 'WINNER_TAKES_ALL':
+      return 'Nhất Ăn Tất';
+    case 'TRADITIONAL':
+      return 'Truyền Thống';
+    case 'COUNT_CARDS':
+    default:
+      return 'Đếm Lá';
+  }
 }
 
 /**
  * Chuyển đổi GameSettings sang GameRules
  */
 export function convertSettingsToGameRules(settings?: Partial<GameSettings>): GameRules {
-  let settlementRule: GameSettlementRule = 'TRADITIONAL_RANK_BASED';
-  if (settings?.mode === 'COUNT_CARDS') settlementRule = 'CARD_COUNT';
-  else if (settings?.mode === 'WINNER_TAKES_ALL') settlementRule = 'WINNER_TAKES_ALL';
+  const settlementRule: GameSettlementRule = (settings?.mode && settings.mode !== 'CUSTOM')
+    ? settings.mode
+    : 'COUNT_CARDS';
 
   return createDefaultGameRules({
     settlementRule,
@@ -426,14 +389,14 @@ export class GameRulesBuilder {
 
   public static traditional(): GameRulesBuilder {
     return new GameRulesBuilder(createDefaultGameRules({
-      settlementRule: 'TRADITIONAL_RANK_BASED',
+      settlementRule: 'TRADITIONAL',
       table: { playerCount: 4, betAmount: 1000, soundEnabled: true }
     }));
   }
 
   public static countCards(): GameRulesBuilder {
     return new GameRulesBuilder(createDefaultGameRules({
-      settlementRule: 'CARD_COUNT',
+      settlementRule: 'COUNT_CARDS',
       table: { playerCount: 4, betAmount: 1000, soundEnabled: true }
     }));
   }
@@ -447,7 +410,7 @@ export class GameRulesBuilder {
 
   public static solo1v1(): GameRulesBuilder {
     return new GameRulesBuilder(createDefaultGameRules({
-      settlementRule: 'CARD_COUNT',
+      settlementRule: 'COUNT_CARDS',
       table: { playerCount: 2, betAmount: 1000, soundEnabled: true }
     }));
   }

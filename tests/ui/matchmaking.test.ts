@@ -189,4 +189,46 @@ describe('Kiểm Thử Giả Lập Ghép Trận Online (Matchmaking Simulation T
     expect(updatedBot).toBeDefined();
     expect(updatedBot!.elo).toBe(initialElo + 28);
   });
+
+  it('5. useMatchmakingStore: Khởi tạo, hủy và thực thi trận đấu độc lập', async () => {
+    const { useMatchmakingStore } = await import('../../src/stores/useMatchmakingStore');
+    let started = false;
+
+    useMatchmakingStore.getState().startMatchmaking({
+      betAmount: 2000,
+      modeName: 'Đếm Lá Siêu Tốc',
+      botConfigs: [{ id: 'BOT_1', name: 'Bot 1' }],
+      playerCount: 4,
+      onStart: () => {
+        started = true;
+      }
+    });
+
+    expect(useMatchmakingStore.getState().isSearching).toBe(true);
+    expect(useMatchmakingStore.getState().pendingMatch?.betAmount).toBe(2000);
+    expect(useModalStore.getState().isMatchmakingOpen).toBe(true);
+
+    // Test cancel
+    useMatchmakingStore.getState().cancelMatchmaking();
+    expect(useMatchmakingStore.getState().isSearching).toBe(false);
+    expect(useMatchmakingStore.getState().pendingMatch).toBeNull();
+    expect(useModalStore.getState().isMatchmakingOpen).toBe(false);
+
+    // Test execute
+    useMatchmakingStore.getState().startMatchmaking({
+      betAmount: 5000,
+      modeName: 'Nhất Ăn Tất',
+      botConfigs: [],
+      playerCount: 2,
+      onStart: () => {
+        started = true;
+      }
+    });
+
+    useMatchmakingStore.getState().executeMatch();
+    expect(started).toBe(true);
+    expect(useMatchmakingStore.getState().isSearching).toBe(false);
+    expect(useModalStore.getState().isMatchmakingOpen).toBe(false);
+  });
 });
+

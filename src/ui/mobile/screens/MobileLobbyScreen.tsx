@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { PlayerProfile } from '../../../engine/storage';
 import { getRankTierByElo, RANK_TIERS } from '../../../engine/elo';
-import { ECONOMY_CONSTANTS } from '../../../engine/constants/economy';
+import { getSettlementRuleLabel } from '../../../engine/types';
 import { useModalStore } from '../../../stores/useModalStore';
 import { useEcosystemStore } from '../../../stores/useEcosystemStore';
+import { useGameStore } from '../../../stores/useGameStore';
 import { 
   Trophy, 
   MapPin, 
@@ -53,6 +54,7 @@ export const MobileLobbyScreen: React.FC<MobileLobbyScreenProps> = ({
 }) => {
   const { openModal } = useModalStore();
   const { newsfeed, initEcosystem } = useEcosystemStore();
+  const { quickTableConfig } = useGameStore();
   const [isFullscreenState, setIsFullscreenState] = useState(isFullScreen());
 
   useEffect(() => {
@@ -252,13 +254,16 @@ export const MobileLobbyScreen: React.FC<MobileLobbyScreenProps> = ({
             {/* Dải Tags Chuẩn Web */}
             <div className="flex flex-wrap items-center gap-1.5 mt-2 pt-2 border-t border-[var(--border-container)]">
               <Badge variant="neutral" size="sm">
-                💰 Cược: {ECONOMY_CONSTANTS.DEFAULT_QUICK_BET.toLocaleString()} Xu
+                💰 Cược: {quickTableConfig.betAmount.toLocaleString()} Xu
               </Badge>
               <Badge variant="neutral" size="sm">
-                ⚡ Phạt: x1 - x5
+                ⚡ Phạt: x{quickTableConfig.choppingMultiplier}
               </Badge>
               <Badge variant="neutral" size="sm">
-                👥 4 Người
+                👥 {quickTableConfig.playerCount} Người
+              </Badge>
+              <Badge variant="neutral" size="sm">
+                📜 {getSettlementRuleLabel(quickTableConfig.settlementRule)}
               </Badge>
             </div>
           </div>

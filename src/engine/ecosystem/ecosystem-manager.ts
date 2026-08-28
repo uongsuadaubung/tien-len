@@ -11,13 +11,12 @@ import {
   EcosystemNewsItem, 
   SimulatedTableResult
 } from './ecosystem-types';
+import { BotEntitySchema } from '../schemas/ecosystem.schema';
 import { 
   generateInitial200Bots, 
   findUnderfilledTier,
-  draftBotForTier,
-  getBotDnaTier
+  draftBotForTier
 } from './bot-generator';
-import { sanitizeAvatar, isValidAvatar } from '../../ai/bot-factory';
 import { 
   matchBotsForPlayerTable, 
   matchSimulatedTables 
@@ -74,16 +73,9 @@ class EcosystemManager {
         
         this.activeBotsMap.clear();
         let hasChanges = false;
-        for (const b of activeBots) {
-          if (!isValidAvatar(b.avatar)) {
-            b.avatar = sanitizeAvatar(b.avatar, b.elo);
-            hasChanges = true;
-          }
-          // Migration: Khôi phục & chuẩn hóa trường dnaTier nếu dữ liệu cũ từ IndexedDB chưa có
-          if (typeof b.dnaTier !== 'number' || b.dnaTier < 1 || b.dnaTier > 9) {
-            b.dnaTier = getBotDnaTier(b);
-            hasChanges = true;
-          }
+        for (const rawBot of activeBots) {
+          const parseResult = BotEntitySchema.safeParse(rawBot);
+          const b = parseResult.success ? parseResult.data : rawBot;
           this.activeBotsMap.set(b.id, b);
         }
 

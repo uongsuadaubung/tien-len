@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { GameSettlementRule } from '../../engine/types';
 import { ECONOMY_CONSTANTS, calculateRequiredDeposit } from '../../engine/constants/economy';
 import { TableConfigState } from '../components/TableRulesConfigPanel';
@@ -54,6 +54,24 @@ export function useQuickSetup({
     instantWinEnabled: initialConfig?.instantWinEnabled ?? true
   });
 
+  useEffect(() => {
+    if (initialConfig) {
+      setConfig(prev => ({
+        ...prev,
+        playerCount: initialConfig.playerCount ?? prev.playerCount,
+        mode: initialConfig.mode ?? prev.mode,
+        betAmount: initialConfig.betAmount ?? prev.betAmount,
+        choppingMultiplier: initialConfig.choppingMultiplier ?? prev.choppingMultiplier,
+        congEnabled: initialConfig.congEnabled ?? prev.congEnabled,
+        prohibitEndingWithTwo: initialConfig.prohibitEndingWithTwo ?? prev.prohibitEndingWithTwo,
+        allowFourPairsCutAnytime: initialConfig.allowFourPairsCutAnytime ?? prev.allowFourPairsCutAnytime,
+        threeSpadesEndingBonus: initialConfig.threeSpadesEndingBonus ?? prev.threeSpadesEndingBonus,
+        cascadeChopEnabled: initialConfig.cascadeChopEnabled ?? prev.cascadeChopEnabled,
+        instantWinEnabled: initialConfig.instantWinEnabled ?? prev.instantWinEnabled
+      }));
+    }
+  }, [initialConfig]);
+
   const currentMultiplier = config.choppingMultiplier || 1;
   const depositRequired = calculateRequiredDeposit(config.betAmount, currentMultiplier);
   const isInsufficientCoins = playerCoins < config.betAmount;
@@ -69,14 +87,10 @@ export function useQuickSetup({
       return;
     }
 
-    let settlementRule: GameSettlementRule = 'CARD_COUNT';
-    if (config.mode === 'WINNER_TAKES_ALL') settlementRule = 'WINNER_TAKES_ALL';
-    else if (config.mode === 'TRADITIONAL') settlementRule = 'TRADITIONAL_RANK_BASED';
-
     onStartGame({
       playerCount: config.playerCount,
       betAmount: Math.max(10, config.betAmount),
-      settlementRule,
+      settlementRule: config.mode === 'CUSTOM' ? 'COUNT_CARDS' : config.mode,
       choppingMultiplier: config.choppingMultiplier ?? 1,
       congEnabled: config.congEnabled ?? true,
       prohibitEndingWithTwo: config.prohibitEndingWithTwo ?? true,

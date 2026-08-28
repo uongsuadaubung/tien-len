@@ -18,10 +18,7 @@ import {
   dbSavePlayerProfile,
   dbSaveGameSettings
 } from '../db/indexed-db';
-
-function isSaveData(val: unknown): val is TienLenSaveData {
-  return typeof val === 'object' && val !== null && 'profile' in val;
-}
+import { safeParseSaveData } from '../schemas/sync.schema';
 
 /**
  * Trích xuất các chỉ số tiến trình cốt lõi của người chơi để so sánh đồng bộ
@@ -34,14 +31,15 @@ export function getCorePlayerProgress(save: unknown): {
   wins: number;
   elo: number;
 } | null {
-  if (!isSaveData(save) || !save.profile) return null;
-  const p = save.profile;
+  const parseResult = safeParseSaveData(save);
+  if (!parseResult.success || !parseResult.data || !parseResult.data.profile) return null;
+  const p = parseResult.data.profile;
   return {
-    name: p.name?.trim() || '',
-    coins: typeof p.coins === 'number' ? p.coins : ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS,
-    gamesPlayed: typeof p.stats?.gamesPlayed === 'number' ? p.stats.gamesPlayed : 0,
-    wins: typeof p.stats?.wins === 'number' ? p.stats.wins : 0,
-    elo: typeof p.elo === 'number' ? p.elo : ECONOMY_CONSTANTS.DEFAULT_STARTING_ELO
+    name: p.name.trim(),
+    coins: p.coins,
+    gamesPlayed: p.stats.gamesPlayed,
+    wins: p.stats.wins,
+    elo: p.elo
   };
 }
 

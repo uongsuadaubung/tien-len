@@ -1,4 +1,5 @@
 import type { TienLenSaveData } from './types';
+import { safeParseSaveData } from '../schemas/sync.schema';
 
 /**
  * Nén đối tượng TienLenSaveData thành chuỗi Base64 (sử dụng gzip qua Streams API)
@@ -46,8 +47,12 @@ export async function decompressSaveData(base64: string): Promise<TienLenSaveDat
     new DecompressionStream('gzip')
   );
   const jsonString = await new Response(stream).text();
-  const raw: TienLenSaveData = JSON.parse(jsonString);
-  return raw;
+  const raw: unknown = JSON.parse(jsonString);
+  const parseResult = safeParseSaveData(raw);
+  if (!parseResult.success || !parseResult.data) {
+    throw new Error(parseResult.error || 'Dữ liệu giải nén không đúng cấu trúc.');
+  }
+  return parseResult.data;
 }
 
 /**
@@ -58,8 +63,13 @@ export async function decompressSaveData(base64: string): Promise<TienLenSaveDat
 export async function parseGistContent(content: string): Promise<TienLenSaveData> {
   const trimmed = content.trim();
   if (trimmed.startsWith('{')) {
-    const parsed: TienLenSaveData = JSON.parse(trimmed);
-    return parsed;
+    const raw: unknown = JSON.parse(trimmed);
+    const parseResult = safeParseSaveData(raw);
+    if (!parseResult.success || !parseResult.data) {
+      throw new Error(parseResult.error || 'Dữ liệu Gist JSON không đúng cấu trúc.');
+    }
+    return parseResult.data;
   }
   return await decompressSaveData(trimmed);
 }
+

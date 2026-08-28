@@ -7,7 +7,6 @@ import {
   InstantWinType, 
   Combination,
   GameRules,
-  GameMode,
   convertSettingsToGameRules,
   isGameRules
 } from './types';
@@ -72,12 +71,8 @@ export class GameEngine {
     }
 
     // Ánh xạ sang GameSettings để tương thích với các module đang đọc settings
-    let legacyMode: GameMode = 'TRADITIONAL';
-    if (this.rules.settlementRule === 'CARD_COUNT') legacyMode = 'COUNT_CARDS';
-    else if (this.rules.settlementRule === 'WINNER_TAKES_ALL') legacyMode = 'WINNER_TAKES_ALL';
-
     this.settings = {
-      mode: legacyMode,
+      mode: this.rules.settlementRule,
       betAmount: this.rules.table.betAmount,
       allowFourPairsCutAnytime: this.rules.chopping.allowFourPairsCutAnytime,
       instantWinEnabled: this.rules.instantWin.enabled,
@@ -802,7 +797,7 @@ export class GameEngine {
   }
 
   public checkGameOver(): boolean {
-    if (this.rules.settlementRule === 'CARD_COUNT' || this.rules.settlementRule === 'WINNER_TAKES_ALL') {
+    if (this.rules.settlementRule === 'COUNT_CARDS' || this.rules.settlementRule === 'WINNER_TAKES_ALL') {
       return this.winners.length >= 1;
     }
     return this.winners.length >= this.players.length - 1;
@@ -951,7 +946,7 @@ export class GameEngine {
     if (this.winners[0]) {
       this.lastWinnerId = this.winners[0].id;
     }
-    if (this.rules.settlementRule === 'CARD_COUNT') {
+    if (this.rules.settlementRule === 'COUNT_CARDS') {
       this.settleCountCardsEndGame(this.winners[0]);
     } else if (this.rules.settlementRule === 'WINNER_TAKES_ALL') {
       this.settleWinnerTakesAllEndGame(this.winners[0]);

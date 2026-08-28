@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { PlayerProfile } from '../../../engine/storage';
 import { getRankTierByElo, RANK_TIERS } from '../../../engine/elo';
-import { ECONOMY_CONSTANTS } from '../../../engine/constants/economy';
+import { getSettlementRuleLabel } from '../../../engine/types';
 import { useModalStore } from '../../../stores/useModalStore';
 import { useEcosystemStore } from '../../../stores/useEcosystemStore';
+import { useGameStore } from '../../../stores/useGameStore';
 import { 
   Trophy, 
   Flame, 
@@ -54,6 +55,7 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
 }) => {
   const { openModal } = useModalStore();
   const { newsfeed, initEcosystem } = useEcosystemStore();
+  const { quickTableConfig } = useGameStore();
   const [isFullscreenState, setIsFullscreenState] = useState(isFullScreen());
 
   useEffect(() => {
@@ -95,10 +97,10 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
     profile.achievements.filter(a => a.isCompleted && !a.isClaimed).length;
 
   return (
-    <div className="relative min-h-screen w-full flex flex-col justify-between overflow-y-auto bg-[var(--bg-canvas)] text-[var(--text-primary)] p-4 sm:p-6 select-none font-sans">
+    <div className="relative min-h-screen w-full flex flex-col justify-between overflow-y-auto bg-[var(--bg-canvas)] text-[var(--text-primary)] p-3 sm:p-4 select-none font-sans">
       
       {/* HEADER (Tier 1 Container Gọn Gàng, Không Rớt Dòng) */}
-      <Card variant="container" className="relative z-10 w-full max-w-6xl mx-auto flex items-center justify-between gap-3 p-2.5 sm:p-3 shadow-md">
+      <Card variant="container" className="relative z-10 w-full max-w-6xl mx-auto flex items-center justify-between gap-3 p-2 sm:p-2.5 shadow-md shrink-0">
         {/* Profile Người Chơi */}
         <div 
           onClick={onOpenNameSetup}
@@ -106,13 +108,13 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
           title="Bấm để đổi tên và avatar"
         >
           {/* Avatar (Tier 2 Card) */}
-          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-xl sm:text-2xl shadow-sm group-hover:border-[var(--border-gold)] transition-colors shrink-0">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-lg sm:text-xl shadow-sm group-hover:border-[var(--border-gold)] transition-colors shrink-0">
             {profile.avatar || '😎'}
           </div>
 
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <h2 className="font-bold text-sm sm:text-base text-[var(--text-primary)] tracking-wide group-hover:text-[var(--color-gold)] inline-flex items-center gap-1.5 transition-colors truncate max-w-[150px]">
+              <h2 className="font-bold text-xs sm:text-sm text-[var(--text-primary)] tracking-wide group-hover:text-[var(--color-gold)] inline-flex items-center gap-1.5 transition-colors truncate max-w-[140px]">
                 <span>{profile.name || 'Chưa Đặt Tên'}</span>
                 <Edit2 className="w-3 h-3 text-[var(--text-muted)] group-hover:text-[var(--color-gold)] shrink-0" />
               </h2>
@@ -120,18 +122,18 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
 
             {/* Elo & Bậc Rank */}
             <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="text-xs">{currentRank.badge}</span>
-              <span className="text-xs font-bold text-[var(--color-gold)] truncate">
+              <span className="text-[11px]">{currentRank.badge}</span>
+              <span className="text-[11px] font-bold text-[var(--color-gold)] truncate">
                 {currentRank.name}
               </span>
-              <span className="text-[10px] text-[var(--text-muted)] font-mono shrink-0">
+              <span className="text-[9px] text-[var(--text-muted)] font-mono shrink-0">
                 ({profile.elo} Elo)
               </span>
             </div>
 
             {/* Thanh tiến trình Elo */}
             {nextTier && (
-              <div className="w-28 sm:w-36 h-1 bg-[var(--bg-card)] rounded-full mt-1 overflow-hidden border border-[var(--border-container)]">
+              <div className="w-24 sm:w-32 h-1 bg-[var(--bg-card)] rounded-full mt-0.5 overflow-hidden border border-[var(--border-container)]">
                 <div 
                   className="h-full bg-[var(--color-gold)] rounded-full transition-all duration-500"
                   style={{ width: `${eloProgress}%` }}
@@ -146,14 +148,14 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
           {/* Số Dư Tiền Vàng */}
           <div 
             onClick={onOpenBank}
-            className="flex items-center gap-2 bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--border-gold)] px-3 py-1.5 rounded-xl cursor-pointer shadow-sm transition-colors"
+            className="flex items-center gap-1.5 bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--border-gold)] px-2.5 py-1 rounded-xl cursor-pointer shadow-sm transition-colors"
             title="Bấm để vào Ngân Hàng"
           >
-            <span className="text-base">🪙</span>
+            <span className="text-sm">🪙</span>
             <div className="flex flex-col leading-tight">
-              <span className="text-[9px] text-[var(--text-muted)] font-semibold uppercase">Tài Sản</span>
-              <span className="font-bold text-xs sm:text-sm text-[var(--color-gold)] font-mono">
-                {profile.coins.toLocaleString()} <span className="text-[10px] font-normal text-[var(--text-muted)]">Xu</span>
+              <span className="text-[8px] text-[var(--text-muted)] font-semibold uppercase">Tài Sản</span>
+              <span className="font-bold text-xs text-[var(--color-gold)] font-mono">
+                {profile.coins.toLocaleString()} <span className="text-[9px] font-normal text-[var(--text-muted)]">Xu</span>
               </span>
             </div>
           </div>
@@ -226,10 +228,10 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
             {onOpenRules && (
               <button
                 onClick={onOpenRules}
-                className="w-8 h-8 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--border-gold)] flex items-center justify-center text-[var(--color-gold)] active:scale-95 transition-all cursor-pointer shadow-sm"
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--border-gold)] flex items-center justify-center text-[var(--color-gold)] active:scale-95 transition-all cursor-pointer shadow-sm"
                 title="Hướng dẫn luật chơi & bảng khắc chế bài"
               >
-                <BookOpen className="w-4 h-4" />
+                <BookOpen className="w-3.5 h-3.5" />
               </button>
             )}
 
@@ -239,23 +241,23 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
                 const fs = await toggleFullScreen();
                 setIsFullscreenState(fs);
               }}
-              className="w-8 h-8 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--border-gold)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer shadow-sm"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--border-gold)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer shadow-sm"
               title={isFullscreenState ? 'Thoát Toàn Màn Hình' : 'Bật Toàn Màn Hình (Full Screen)'}
             >
               {isFullscreenState ? (
-                <Minimize className="w-4 h-4 text-[var(--color-gold)]" />
+                <Minimize className="w-3.5 h-3.5 text-[var(--color-gold)]" />
               ) : (
-                <Maximize className="w-4 h-4" />
+                <Maximize className="w-3.5 h-3.5" />
               )}
             </button>
 
             {/* Nút Cài Đặt */}
             <button
               onClick={onOpenSettings}
-              className="w-8 h-8 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--border-gold)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer shadow-sm"
+              className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--border-gold)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer shadow-sm"
               title="Cài đặt âm thanh và hiệu ứng"
             >
-              <Settings className="w-4 h-4" />
+              <Settings className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -265,31 +267,31 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
       {newsfeed.length > 0 && (
         <div 
           onClick={() => openModal('ECOSYSTEM')}
-          className="relative z-10 w-full max-w-6xl mx-auto mt-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-950/40 via-purple-950/30 to-amber-950/40 border border-amber-500/20 flex items-center justify-between cursor-pointer hover:border-amber-500/40 transition-all shadow-sm group"
+          className="relative z-10 w-full max-w-6xl mx-auto mt-1.5 px-3 py-1 rounded-xl bg-gradient-to-r from-amber-950/40 via-purple-950/30 to-amber-950/40 border border-amber-500/20 flex items-center justify-between cursor-pointer hover:border-amber-500/40 transition-all shadow-sm group shrink-0"
         >
           <div className="flex items-center gap-2 overflow-hidden text-xs">
-            <span className="flex items-center gap-1 text-amber-400 font-bold uppercase text-[10px] tracking-wider bg-amber-500/20 px-2 py-0.5 rounded-md border border-amber-500/30 flex-shrink-0">
-              <Newspaper className="w-3 h-3" /> Bảng Tin
+            <span className="flex items-center gap-1 text-amber-400 font-bold uppercase text-[9px] tracking-wider bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/30 flex-shrink-0">
+              <Newspaper className="w-2.5 h-2.5" /> Bảng Tin
             </span>
-            <span className="text-[var(--text-secondary)] truncate group-hover:text-[var(--text-primary)] transition-colors">
+            <span className="text-[var(--text-secondary)] text-[11px] truncate group-hover:text-[var(--text-primary)] transition-colors">
               {newsfeed[0]?.message}
             </span>
           </div>
-          <span className="text-[10px] text-amber-400 font-semibold flex-shrink-0 ml-2 flex items-center gap-0.5 group-hover:underline">
-            Xem Bảng Vàng <ArrowRight className="w-3 h-3" />
+          <span className="text-[9px] text-amber-400 font-semibold flex-shrink-0 ml-2 flex items-center gap-0.5 group-hover:underline">
+            Xem Bảng Vàng <ArrowRight className="w-2.5 h-2.5" />
           </span>
         </div>
       )}
 
       {/* BODY (Tier 0 Canvas với các Container Tier 1) */}
-      <main className="relative z-10 w-full max-w-6xl mx-auto my-auto py-4 space-y-6">
+      <main className="relative z-10 w-full max-w-6xl mx-auto my-auto py-2 sm:py-3 space-y-3 sm:space-y-3.5 flex-1 flex flex-col justify-center">
         
         {/* ========================================================================= */}
         {/* HÀNG 1: SÒNG BẠC CHƠI NHANH & ĐẤU HẠNG (HERO CONTAINER TIER 1) */}
         {/* ========================================================================= */}
-        <section className="space-y-3">
+        <section className="space-y-1.5 sm:space-y-2">
           <SectionHeader
-            icon={<Flame />}
+            icon={<Flame className="w-4 h-4" />}
             title="Sòng Bạc Chơi Nhanh & Đấu Hạng"
             subtitle="Ghép đối thủ tự động theo Bậc Rank • Thắng cược Xu & Tăng hạng Elo"
             action={null}
@@ -302,50 +304,53 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
             hoverable
             clickable
             onClick={onPlayNow || onOpenQuickSetup}
-            className="group p-6 sm:p-7 flex flex-col justify-between border-2 border-[var(--border-gold)]/60 bg-gradient-to-br from-[#1c150c]/80 via-[var(--bg-container)] to-[#0c121d]/80 shadow-2xl"
+            className="group p-4 sm:p-5 flex flex-col justify-between border-2 border-[var(--border-gold)]/60 bg-gradient-to-br from-[#1c150c]/80 via-[var(--bg-container)] to-[#0c121d]/80 shadow-xl"
           >
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex items-center gap-3.5">
                 {/* Icon Box */}
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black shadow-lg shadow-amber-500/20 group-hover:scale-105 transition-transform">
-                  <Play className="w-7 h-7 fill-current ml-0.5" />
+                <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black shadow-md shadow-amber-500/20 group-hover:scale-105 transition-transform shrink-0">
+                  <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-current ml-0.5" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] group-hover:text-white transition-colors">
+                    <h3 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] group-hover:text-white transition-colors">
                       Chơi Nhanh &amp; Đấu Hạng
                     </h3>
                     <Badge variant="gold" size="sm">Cốt Lõi</Badge>
                   </div>
-                  <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-1.5 leading-relaxed">
-                    Tự động ghép 3 đối thủ theo bậc <strong className="text-[var(--color-gold)]">{currentRank.badge} {currentRank.name} ({profile.elo} Elo)</strong>. Ăn thua tiền cược Xu và tích lũy điểm Elo leo hạng!
+                  <p className="text-xs text-[var(--text-muted)] mt-0.5 leading-relaxed">
+                    Tự động ghép {quickTableConfig.playerCount - 1} đối thủ theo bậc <strong className="text-[var(--color-gold)]">{currentRank.badge} {currentRank.name} ({profile.elo} Elo)</strong>. Ăn thua tiền cược Xu và tích lũy điểm Elo leo hạng!
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Dải Tags & CTA */}
-            <div className="pt-4 mt-4 border-t border-[var(--border-container)] flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="gold" size="md">
+            <div className="pt-2.5 mt-2.5 border-t border-[var(--border-container)] flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <Badge variant="gold" size="sm">
                   {currentRank.badge} {currentRank.name} ({profile.elo} Elo)
                 </Badge>
-                <Badge variant="neutral" size="md">
-                  💰 Cược: {ECONOMY_CONSTANTS.DEFAULT_QUICK_BET.toLocaleString()} Xu / Lá
+                <Badge variant="neutral" size="sm">
+                  💰 Cược: {quickTableConfig.betAmount.toLocaleString()} Xu / Lá
                 </Badge>
-                <Badge variant="neutral" size="md">
-                  ⚡ Phạt Chặt: x1 - x5
+                <Badge variant="neutral" size="sm">
+                  ⚡ Phạt Chặt: x{quickTableConfig.choppingMultiplier}
                 </Badge>
-                <Badge variant="neutral" size="md">
-                  👥 Bàn: 2, 3, 4 Người
+                <Badge variant="neutral" size="sm">
+                  👥 Bàn: {quickTableConfig.playerCount} Người
+                </Badge>
+                <Badge variant="neutral" size="sm">
+                  📜 {getSettlementRuleLabel(quickTableConfig.settlementRule)}
                 </Badge>
               </div>
 
               {/* Nhóm nút hành động: Cấu Hình Bàn (bên trái) + Chơi Ngay (bên phải) */}
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="surface"
-                  size="md"
+                  size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     onOpenQuickSetup();
@@ -358,14 +363,14 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
 
                 <Button
                   variant="gold"
-                  size="md"
+                  size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (onPlayNow) onPlayNow();
                     else onOpenQuickSetup();
                   }}
-                  rightIcon={<ArrowRight className="w-4 h-4" />}
-                  className="shadow-lg shadow-amber-500/20"
+                  rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
+                  className="shadow-md shadow-amber-500/20"
                 >
                   Chơi Ngay
                 </Button>
@@ -377,16 +382,16 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
         {/* ========================================================================= */}
         {/* HÀNG 2: CHẾ ĐỘ MỞ RỘNG (2 THẺ LỚN TIER 1) */}
         {/* ========================================================================= */}
-        <section className="space-y-3">
+        <section className="space-y-1.5 sm:space-y-2">
           <SectionHeader
-            icon={<Trophy />}
+            icon={<Trophy className="w-4 h-4" />}
             title="Chế Độ Mở Rộng"
             subtitle="Hành trình cốt truyện • Tùy chỉnh bàn chơi nâng cao"
             action={null}
             className={null}
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-3.5">
             
             {/* 1. CHIẾN DỊCH CỐT TRUYỆN */}
             <Card 
@@ -394,30 +399,30 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
               hoverable
               clickable
               onClick={onOpenCampaign}
-              className="group p-5 sm:p-6 flex flex-col justify-between"
+              className="group p-3.5 sm:p-4 flex flex-col justify-between"
             >
               <div className="flex items-start justify-between">
-                <div className="w-12 h-12 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--color-gold)] shadow-sm group-hover:border-[var(--border-gold)] transition-colors">
-                  <MapPin className="w-6 h-6" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--color-gold)] shadow-sm group-hover:border-[var(--border-gold)] transition-colors">
+                  <MapPin className="w-5 h-5" />
                 </div>
                 <Badge variant="neutral" size="sm">9 Chương Cốt Truyện</Badge>
               </div>
 
-              <div className="my-4">
-                <h3 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] group-hover:text-white transition-colors">
+              <div className="my-2 sm:my-2.5">
+                <h3 className="text-base sm:text-lg font-bold text-[var(--text-primary)] group-hover:text-white transition-colors">
                   Chiến Dịch Cốt Truyện
                 </h3>
-                <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-2 leading-relaxed">
+                <p className="text-xs text-[var(--text-muted)] mt-1 leading-relaxed line-clamp-2">
                   Hành trình từ Sới Bạc Xóm đến Sòng Bạc Đỉnh Cao. Chinh phục từng chương, đánh bại các Trùm Sòng để mở khóa danh hiệu độc quyền.
                 </p>
               </div>
 
-              <div className="pt-4 border-t border-[var(--border-container)] flex items-center justify-between">
-                <span className="text-xs font-semibold text-[var(--text-secondary)]">Nhận Danh Hiệu &amp; Xu Thưởng</span>
+              <div className="pt-2.5 border-t border-[var(--border-container)] flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-[var(--text-secondary)]">Nhận Danh Hiệu &amp; Xu Thưởng</span>
                 <Button
                   variant="surface"
                   size="sm"
-                  rightIcon={<ArrowRight className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
+                  rightIcon={<ArrowRight className="w-3 h-3 text-[var(--color-gold)]" />}
                 >
                   Bản Đồ Chiến Dịch
                 </Button>
@@ -430,30 +435,30 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
               hoverable
               clickable
               onClick={onOpenCustomGameModal}
-              className="group p-5 sm:p-6 flex flex-col justify-between"
+              className="group p-3.5 sm:p-4 flex flex-col justify-between"
             >
               <div className="flex items-start justify-between">
-                <div className="w-12 h-12 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--color-gold)] shadow-sm group-hover:border-[var(--border-gold)] transition-colors">
-                  <Sliders className="w-6 h-6" />
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--color-gold)] shadow-sm group-hover:border-[var(--border-gold)] transition-colors">
+                  <Sliders className="w-5 h-5" />
                 </div>
                 <Badge variant="neutral" size="sm">Sandbox</Badge>
               </div>
 
-              <div className="my-4">
-                <h3 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] group-hover:text-white transition-colors">
+              <div className="my-2 sm:my-2.5">
+                <h3 className="text-base sm:text-lg font-bold text-[var(--text-primary)] group-hover:text-white transition-colors">
                   Tùy Chỉnh Nâng Cao
                 </h3>
-                <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-2 leading-relaxed">
+                <p className="text-xs text-[var(--text-muted)] mt-1 leading-relaxed line-clamp-2">
                   Tự do chọn đối thủ, tinh chỉnh phong cách đánh, luật đếm lá, cóng, phạt chặt và mức cược.
                 </p>
               </div>
 
-              <div className="pt-4 border-t border-[var(--border-container)] flex items-center justify-between">
-                <span className="text-xs font-semibold text-[var(--text-secondary)]">Tùy Biến 100% Luật &amp; Đối Thủ</span>
+              <div className="pt-2.5 border-t border-[var(--border-container)] flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-[var(--text-secondary)]">Tùy Biến 100% Luật &amp; Đối Thủ</span>
                 <Button
                   variant="surface"
                   size="sm"
-                  rightIcon={<ArrowRight className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
+                  rightIcon={<ArrowRight className="w-3 h-3 text-[var(--color-gold)]" />}
                 >
                   Tùy Chỉnh
                 </Button>

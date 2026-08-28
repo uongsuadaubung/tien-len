@@ -522,13 +522,13 @@ export class CompositeRuleStrategy {
 
     // 1. Settlement Evaluator
     switch (rules.settlementRule) {
-      case 'CARD_COUNT':
+      case 'COUNT_CARDS':
         this.evaluators.push(new CountCardsSettlementStrategy());
         break;
       case 'WINNER_TAKES_ALL':
         this.evaluators.push(new WinnerTakesAllSettlementStrategy());
         break;
-      case 'TRADITIONAL_RANK_BASED':
+      case 'TRADITIONAL':
       default:
         this.evaluators.push(new TraditionalSettlementStrategy());
         break;
@@ -648,7 +648,7 @@ export function resolveCompositeRuleStrategy(
   switch (normalizedMode) {
     case 'COUNT_CARDS':
       defaultRules = createDefaultGameRules({
-        settlementRule: 'CARD_COUNT',
+        settlementRule: 'COUNT_CARDS',
         table: { playerCount: 4, betAmount: 500, soundEnabled: true }
       });
       break;
@@ -662,14 +662,14 @@ export function resolveCompositeRuleStrategy(
 
     case 'SOLO_1V1':
       defaultRules = createDefaultGameRules({
-        settlementRule: 'CARD_COUNT',
+        settlementRule: 'COUNT_CARDS',
         table: { playerCount: 2, betAmount: 1000, soundEnabled: true }
       });
       break;
 
     case 'CAMPAIGN':
       defaultRules = createDefaultGameRules({
-        settlementRule: 'CARD_COUNT',
+        settlementRule: 'COUNT_CARDS',
         table: { playerCount: 4, betAmount: 100, soundEnabled: true }
       });
       break;
@@ -679,7 +679,7 @@ export function resolveCompositeRuleStrategy(
     case 'QUICK':
     default:
       defaultRules = createDefaultGameRules({
-        settlementRule: 'TRADITIONAL_RANK_BASED',
+        settlementRule: 'TRADITIONAL',
         table: { playerCount: 4, betAmount: 500, soundEnabled: true }
       });
       break;

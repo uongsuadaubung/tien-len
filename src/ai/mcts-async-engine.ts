@@ -10,14 +10,7 @@ export interface ScaledMctsOptions {
   useWorkerIfAvailable?: boolean;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function isMctsWorkerResponse(data: unknown): data is { id: string; evaluations: MctsEvaluation[] } {
-  if (!isRecord(data)) return false;
-  return typeof data.id === 'string' && Array.isArray(data.evaluations);
-}
+import { MctsWorkerResponseSchema } from '../engine/schemas/worker.schema';
 
 /**
  * Scaled ISMCTS Engine - Động cơ mô phỏng Monte Carlo đa kịch bản chuyên sâu
@@ -38,11 +31,12 @@ export class ScaledMctsEngine {
           { type: 'module' }
         );
         ScaledMctsEngine.workerInstance.onmessage = (event: MessageEvent<unknown>) => {
-          if (isMctsWorkerResponse(event.data)) {
-            const callback = ScaledMctsEngine.pendingCallbacks.get(event.data.id);
+          const parseResult = MctsWorkerResponseSchema.safeParse(event.data);
+          if (parseResult.success) {
+            const callback = ScaledMctsEngine.pendingCallbacks.get(parseResult.data.id);
             if (callback) {
-              ScaledMctsEngine.pendingCallbacks.delete(event.data.id);
-              callback(event.data.evaluations);
+              ScaledMctsEngine.pendingCallbacks.delete(parseResult.data.id);
+              callback(parseResult.data.evaluations);
             }
           }
         };

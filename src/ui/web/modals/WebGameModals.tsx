@@ -24,7 +24,7 @@ import { useEcosystemStore } from '../../../stores/useEcosystemStore';
 import { CardTracker } from '../../../ai/card-tracker';
 import { CampaignChapter } from '../../../engine/campaign';
 import { normalizePlayerCount } from '../../../engine/types';
-import { BotConfig } from '../../../ai/types';
+import { useMatchmakingStore } from '../../../stores/useMatchmakingStore';
 
 export interface WebGameModalsProps {
   player0Tracker: CardTracker | null;
@@ -41,14 +41,6 @@ export interface WebGameModalsProps {
     currentWins: number;
   } | null;
   onOpenCampaignMap: (() => void) | null;
-  matchmakingData: {
-    betAmount: number;
-    modeName: string;
-    botConfigs: Partial<BotConfig>[];
-    playerCount?: number;
-  } | null;
-  onCancelMatchmaking: () => void;
-  onMatchReady: () => void;
 }
 
 export const WebGameModals: React.FC<WebGameModalsProps> = ({
@@ -60,11 +52,9 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
   onReturnToLobby,
   onConfirmForfeit,
   campaignResultMeta,
-  onOpenCampaignMap,
-  matchmakingData,
-  onCancelMatchmaking,
-  onMatchReady
+  onOpenCampaignMap
 }) => {
+  const { pendingMatch, cancelMatchmaking, executeMatch } = useMatchmakingStore();
   // Modal Store
   const {
     isSettingsOpen,
@@ -113,6 +103,7 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
   const {
     activeGameType,
     gameSettings,
+    quickTableConfig,
     currentCampaignChapter,
     playerCount,
     botPersonaIds,
@@ -169,19 +160,30 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
         isOpen={isQuickSetupOpen}
         onClose={() => closeModal('QUICK_SETUP')}
         playerCoins={profile.coins}
+        initialConfig={{
+          playerCount: quickTableConfig.playerCount,
+          mode: quickTableConfig.settlementRule,
+          betAmount: quickTableConfig.betAmount,
+          choppingMultiplier: quickTableConfig.choppingMultiplier,
+          congEnabled: quickTableConfig.congEnabled,
+          prohibitEndingWithTwo: quickTableConfig.prohibitEndingWithTwo,
+          allowFourPairsCutAnytime: quickTableConfig.allowFourPairsCutAnytime,
+          threeSpadesEndingBonus: quickTableConfig.threeSpadesEndingBonus,
+          cascadeChopEnabled: quickTableConfig.cascadeChopEnabled
+        }}
         onStartGame={onStartQuickGame}
       />
 
       {/* 5.1. Matchmaking Modal (Giả Lập Ghép Trận Online) */}
       <MatchmakingModal
         isOpen={isMatchmakingOpen}
-        onCancel={onCancelMatchmaking || (() => closeModal('MATCHMAKING'))}
-        onMatchReady={onMatchReady || (() => {})}
+        onCancel={cancelMatchmaking}
+        onMatchReady={executeMatch}
         playerProfile={profile}
-        betAmount={matchmakingData?.betAmount || 100}
-        modeName={matchmakingData?.modeName || 'Tiến Lên Miền Nam'}
-        matchedBots={matchmakingData?.botConfigs || []}
-        playerCount={matchmakingData?.playerCount || 4}
+        betAmount={pendingMatch?.betAmount || 100}
+        modeName={pendingMatch?.modeName || 'Tiến Lên Miền Nam'}
+        matchedBots={pendingMatch?.botConfigs || []}
+        playerCount={pendingMatch?.playerCount || 4}
       />
 
       {/* 6. Custom Game Config Modal */}

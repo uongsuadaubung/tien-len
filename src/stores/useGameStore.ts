@@ -11,11 +11,13 @@ import {
   updateTupleAt
 } from '../engine/types';
 import { BotConfig } from '../ai/types';
+import { GameSettingsSchema, QuickTableConfigSchema, type QuickTableConfig } from '../engine/schemas/settings.schema';
 import { CampaignChapter } from '../engine/campaign';
 import { MoveHint } from '../ai/hint-engine';
 import { ECONOMY_CONSTANTS } from '../engine/constants/economy';
 import { MatchLogReport } from '../engine/match-logger';
 import { createPlayer, createBotPlayer } from '../engine/player-factory';
+import { dbSaveQuickTableConfig } from '../engine/db/indexed-db';
 
 export type ActiveGameType = 'QUICK' | 'CAMPAIGN';
 export type ScreenType = 'LOBBY' | 'GAME_TABLE';
@@ -40,9 +42,10 @@ interface GameState {
   currentCampaignChapter: CampaignChapter | null;
   gameNumber: number;
 
-  // Single Source of Truth for Game Rules & Settings
+  // Single Source of Truth for Game Rules & Settings & Table Config
   gameRules: GameRules;
   gameSettings: GameSettings;
+  quickTableConfig: QuickTableConfig;
 
   // Dealing & Animations
   isDealing: boolean;
@@ -89,6 +92,8 @@ interface GameState {
   setGameRules: (rules: GameRules) => void;
   setGameSettings: (settings: GameSettings | ((prev: GameSettings) => GameSettings)) => void;
   updateGameSettings: (partial: Partial<GameSettings>) => void;
+  setQuickTableConfig: (config: QuickTableConfig) => void;
+  hydrateQuickTableConfig: (config: QuickTableConfig) => void;
 
   setIsDealing: (dealing: boolean) => void;
   setDealtCounts: (countsOrUpdater: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)) => void;
@@ -147,18 +152,8 @@ const DEFAULT_PLAYERS: Player[] = [
 ];
 
 const DEFAULT_GAME_RULES: GameRules = createDefaultGameRules();
-
-const DEFAULT_GAME_SETTINGS: GameSettings = {
-  mode: 'COUNT_CARDS',
-  playerCount: 4,
-  betAmount: 1000,
-  allowFourPairsCutAnytime: true,
-  instantWinEnabled: true,
-  soundEnabled: true,
-  prohibitEndingWithTwo: true,
-  threeSpadesEndingBonus: true,
-  cascadeChopEnabled: true
-};
+const DEFAULT_GAME_SETTINGS: GameSettings = GameSettingsSchema.parse({});
+export const DEFAULT_QUICK_TABLE_CONFIG: QuickTableConfig = QuickTableConfigSchema.parse({});
 
 export const useGameStore = create<GameState>((set) => ({
   currentScreen: 'LOBBY',
@@ -171,6 +166,7 @@ export const useGameStore = create<GameState>((set) => ({
 
   gameRules: DEFAULT_GAME_RULES,
   gameSettings: DEFAULT_GAME_SETTINGS,
+  quickTableConfig: DEFAULT_QUICK_TABLE_CONFIG,
 
   isDealing: false,
   dealtCounts: {},
@@ -226,6 +222,11 @@ export const useGameStore = create<GameState>((set) => ({
   updateGameSettings: (partial) => set((state) => ({
     gameSettings: { ...state.gameSettings, ...partial }
   })),
+  setQuickTableConfig: (config) => {
+    set({ quickTableConfig: config });
+    dbSaveQuickTableConfig(config).catch(() => {});
+  },
+  hydrateQuickTableConfig: (config) => set({ quickTableConfig: config }),
 
   setIsDealing: (dealing) => set({ isDealing: dealing }),
   setDealtCounts: (countsOrUpdater) => set((state) => ({

@@ -331,7 +331,7 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
 
     // Tổ hợp 1: Luật Đếm Lá + Bàn 2 Người (Solo) + Phạt Chặt x2
     const soloCustomRules = createDefaultGameRules({
-      settlementRule: 'CARD_COUNT',
+      settlementRule: 'COUNT_CARDS',
       chopping: {
         allowFourPairsCutAnytime: true,
         allowThreePairsCutTwo: true,
@@ -360,7 +360,7 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
     expect(res.success).toBe(true);
     expect(res.isGameOver).toBe(true);
     expect(soloEngine.isGameOver).toBe(true);
-    expect(soloEngine.rules.settlementRule).toBe('CARD_COUNT');
+    expect(soloEngine.rules.settlementRule).toBe('COUNT_CARDS');
     expect(soloEngine.rules.chopping.multiplier).toBe(2);
     expect(soloEngine.rules.table.playerCount).toBe(2);
 

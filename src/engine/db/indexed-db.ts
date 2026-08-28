@@ -3,6 +3,7 @@ import { BotEntity, EcosystemNewsItem } from '../ecosystem/ecosystem-types';
 import type { PlayerProfile, ActiveMatchSession } from '../storage';
 import type { MatchLogReport } from '../match-logger';
 import { ECOSYSTEM_CONSTANTS } from '../constants/ecosystem';
+import { SavedSettingsSchema, QuickTableConfigSchema, type QuickTableConfig } from '../schemas/settings.schema';
 
 /**
  * ============================================================================
@@ -21,7 +22,7 @@ export class TienLenDatabase extends Dexie {
   bots!: Table<BotEntity, string>;
   newsfeed!: Table<EcosystemNewsItem, string>;
   player_profile!: Table<KeyValueRecord<PlayerProfile>, string>;
-  game_settings!: Table<KeyValueRecord<Record<string, unknown>>, string>;
+  game_settings!: Table<KeyValueRecord<unknown>, string>;
   active_session!: Table<KeyValueRecord<ActiveMatchSession>, string>;
   human_behavior!: Table<KeyValueRecord<unknown>, string>;
   match_logs!: Table<MatchLogReport, string>;
@@ -227,8 +228,11 @@ export async function dbGetGameSettings(): Promise<Record<string, unknown> | nul
     const db = getGameDB();
     const record = await db.game_settings.get('current');
     if (record?.data) {
-      memoryStore.game_settings = record.data;
-      return record.data;
+      const parsed = SavedSettingsSchema.safeParse(record.data);
+      if (parsed.success) {
+        memoryStore.game_settings = parsed.data;
+        return parsed.data;
+      }
     }
     return memoryStore.game_settings;
   } catch {
@@ -241,6 +245,27 @@ export async function dbSaveGameSettings(settings: Record<string, unknown>): Pro
   try {
     const db = getGameDB();
     await db.game_settings.put({ key: 'current', data: settings, updatedAt: Date.now() });
+  } catch {}
+}
+
+export async function dbGetQuickTableConfig(): Promise<QuickTableConfig | null> {
+  try {
+    const db = getGameDB();
+    const record = await db.game_settings.get('quick_table_config');
+    if (record?.data) {
+      const parsed = QuickTableConfigSchema.safeParse(record.data);
+      return parsed.success ? parsed.data : null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function dbSaveQuickTableConfig(config: QuickTableConfig): Promise<void> {
+  try {
+    const db = getGameDB();
+    await db.game_settings.put({ key: 'quick_table_config', data: config, updatedAt: Date.now() });
   } catch {}
 }
 

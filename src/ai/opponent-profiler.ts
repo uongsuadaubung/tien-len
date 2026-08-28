@@ -1,4 +1,4 @@
-import { Card, Combination, CombinationType } from '../engine/types';
+import { Card, Combination } from '../engine/types';
 import { isTwo } from '../engine/card';
 import { 
   saveHumanBehaviorProfile, 
@@ -6,18 +6,12 @@ import {
   clearHumanBehaviorProfile 
 } from '../engine/storage';
 
-export interface OpponentBehaviorProfile {
-  readonly playerId: string;
-  readonly gamesObserved: number;
-  readonly totalCardsPlayed: number;
-  readonly heoGreedRate: number;              // 0.0 -> 1.0: Tỉ lệ giữ Heo đến cờ tàn (<= 3 lá)
-  readonly trashLeadRate: number;             // 0.0 -> 1.0: Tỉ lệ xả rác nhỏ khi Cầm Cái
-  readonly trapPatienceScore: number;         // 0.0 -> 1.0: Xu hướng nhịn bài gài bẫy khi có Hàng
-  readonly chopAggressionScore: number;       // 0.0 -> 1.0: Mức độ háo hức chặt Heo ngay lập tức
-  readonly antiLeaderCarefulness: number;     // 0.0 -> 1.0: Mức độ cảnh giác khi đối thủ kế tiếp báo 1 lá
-  readonly passRateByType: Record<CombinationType, number>;
-  readonly lastUpdatedTimestamp: number;
-}
+import {
+  OpponentBehaviorProfileSchema,
+  type OpponentBehaviorProfile
+} from '../engine/schemas/behavior.schema';
+
+export type { OpponentBehaviorProfile };
 
 export interface PlayerActionRecord {
   playerId: string;
@@ -30,47 +24,11 @@ export interface PlayerActionRecord {
 }
 
 export function createDefaultOpponentProfile(playerId: string): OpponentBehaviorProfile {
-  return {
-    playerId,
-    gamesObserved: 0,
-    totalCardsPlayed: 0,
-    heoGreedRate: 0.5,
-    trashLeadRate: 0.5,
-    trapPatienceScore: 0.5,
-    chopAggressionScore: 0.5,
-    antiLeaderCarefulness: 0.8,
-    passRateByType: {
-      SINGLE: 0.2,
-      PAIR: 0.3,
-      TRIPLE: 0.4,
-      STRAIGHT: 0.4,
-      THREE_PAIRS_SEQUENTIAL: 0.8,
-      FOUR_OF_A_KIND: 0.9,
-      FOUR_PAIRS_SEQUENTIAL: 0.95,
-      FIVE_PAIRS_SEQUENTIAL: 1.0,
-      SIX_PAIRS: 1.0,
-      DRAGON_STRAIGHT: 1.0,
-      SAME_COLOR_13: 1.0,
-      FOUR_TWOS: 1.0,
-      FIRST_ROUND_FOUR_THREES: 1.0
-    },
-    lastUpdatedTimestamp: Date.now()
-  };
+  return OpponentBehaviorProfileSchema.parse({ playerId });
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function isOpponentBehaviorProfile(value: unknown): value is OpponentBehaviorProfile {
-  if (!isRecord(value)) return false;
-  return (
-    typeof value.playerId === 'string' &&
-    typeof value.gamesObserved === 'number' &&
-    typeof value.heoGreedRate === 'number' &&
-    typeof value.trashLeadRate === 'number' &&
-    typeof value.antiLeaderCarefulness === 'number'
-  );
+export function isOpponentBehaviorProfile(value: unknown): value is OpponentBehaviorProfile {
+  return OpponentBehaviorProfileSchema.safeParse(value).success;
 }
 
 /**
@@ -276,10 +234,11 @@ export class OpponentProfiler {
   public importProfiles(jsonStr: string): void {
     try {
       const parsed: unknown = JSON.parse(jsonStr);
-      if (isRecord(parsed)) {
+      if (parsed && typeof parsed === 'object') {
         for (const [id, prof] of Object.entries(parsed)) {
-          if (isOpponentBehaviorProfile(prof)) {
-            this.profiles.set(id, prof);
+          const result = OpponentBehaviorProfileSchema.safeParse(prof);
+          if (result.success) {
+            this.profiles.set(id, result.data);
           }
         }
       }

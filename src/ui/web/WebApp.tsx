@@ -7,7 +7,6 @@ import { CardTracker } from '../../ai/card-tracker';
 import { QuickSetupConfig } from './modals/QuickSetupModal';
 import { CustomGameModalConfig } from './modals/CustomGameModal';
 import { CampaignChapter } from '../../engine/campaign';
-import { BotConfig } from '../../ai/types';
 import { PlayerProfile } from '../../engine/storage';
 import { useModalStore } from '../../stores/useModalStore';
 import { useGameStore } from '../../stores/useGameStore';
@@ -23,13 +22,6 @@ export interface WebAppProps {
     nextChapter: CampaignChapter | null;
     currentWins: number;
   } | null;
-  pendingMatch: {
-    betAmount: number;
-    modeName: string;
-    botConfigs: Partial<BotConfig>[];
-    playerCount: number | null;
-    onStart: () => void;
-  } | null;
   startNewGame: (nextGameNumber: number, options?: { playerCount?: number; campaignChapter?: CampaignChapter }) => void;
   handlePlaySelectedCards: () => void;
   handlePassTurn: () => void;
@@ -44,8 +36,6 @@ export interface WebAppProps {
   handleStartQuickGame: (config: QuickSetupConfig) => void;
   handleStartCustomGameWithConfig: (config: CustomGameModalConfig) => void;
   handleStartCampaignChapter: (chapter: CampaignChapter) => void;
-  handleCancelMatchmaking: () => void;
-  handleExecuteMatch: () => void;
 }
 
 export const WebApp: React.FC<WebAppProps> = ({
@@ -53,7 +43,6 @@ export const WebApp: React.FC<WebAppProps> = ({
   trackersRef,
   profile,
   campaignResultMeta,
-  pendingMatch,
   startNewGame,
   handlePlaySelectedCards,
   handlePassTurn,
@@ -66,9 +55,7 @@ export const WebApp: React.FC<WebAppProps> = ({
   handlePlayNowDefault,
   handleStartQuickGame,
   handleStartCustomGameWithConfig,
-  handleStartCampaignChapter,
-  handleCancelMatchmaking,
-  handleExecuteMatch
+  handleStartCampaignChapter
 }) => {
   const { openModal, closeModal } = useModalStore();
   const { currentScreen, activeGameType, gameNumber, gameSettings } = useGameStore();
@@ -110,18 +97,6 @@ export const WebApp: React.FC<WebAppProps> = ({
         onSelectCampaignChapter={handleStartCampaignChapter}
         onConfirmForfeit={handleForfeitMatch}
         campaignResultMeta={campaignResultMeta}
-        matchmakingData={
-          pendingMatch
-            ? {
-                betAmount: pendingMatch.betAmount,
-                modeName: pendingMatch.modeName,
-                botConfigs: pendingMatch.botConfigs,
-                playerCount: pendingMatch.playerCount || 4
-              }
-            : null
-        }
-        onCancelMatchmaking={handleCancelMatchmaking}
-        onMatchReady={handleExecuteMatch}
         onOpenCampaignMap={() => {
           closeModal('VICTORY');
           openModal('CAMPAIGN');

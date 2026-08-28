@@ -44,7 +44,7 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
       profile: mockProfile,
       playerCount: 4,
       customRules: {
-        settlementRule: 'CARD_COUNT',
+        settlementRule: 'COUNT_CARDS',
         chopping: {
           multiplier: 2,
           allowFourPairsCutAnytime: true,
@@ -73,7 +73,7 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
 
     expect(setup.playerCount).toBe(4);
     expect(setup.rules.table.betAmount).toBe(500);
-    expect(setup.rules.settlementRule).toBe('CARD_COUNT');
+    expect(setup.rules.settlementRule).toBe('COUNT_CARDS');
     expect(setup.rules.chopping.multiplier).toBe(2);
     expect(setup.rules.cong.multiplier).toBe(2);
     expect(setup.rules.gameFlow.prohibitEndingWithTwo).toBe(true);
@@ -91,7 +91,7 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
       profile: mockProfile,
       playerCount: 2,
       customRules: {
-        settlementRule: 'TRADITIONAL_RANK_BASED',
+        settlementRule: 'TRADITIONAL',
         table: {
           playerCount: 2,
           betAmount: 200,
@@ -106,7 +106,7 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
 
     expect(setup.playerCount).toBe(2);
     expect(setup.initialPlayers.length).toBe(2);
-    expect(setup.rules.settlementRule).toBe('TRADITIONAL_RANK_BASED');
+    expect(setup.rules.settlementRule).toBe('TRADITIONAL');
     expect(setup.rules.table.betAmount).toBe(200);
   });
 
@@ -140,7 +140,7 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
 
   test('4. GameEngine Vận Hành với Cấu Hình Quick Setup', () => {
     const rules = createDefaultGameRules({
-      settlementRule: 'CARD_COUNT',
+      settlementRule: 'COUNT_CARDS',
       chopping: { multiplier: 2, allowFourPairsCutAnytime: true, allowThreePairsCutTwo: true, allowFourOfAKindCutPairsOfTwos: true },
       cong: { multiplier: 2, enabled: true },
       gameFlow: { prohibitEndingWithTwo: true },
@@ -156,7 +156,7 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
     engine.startNewGame(1);
 
     expect(engine.players.length).toBe(4);
-    expect(engine.rules.settlementRule).toBe('CARD_COUNT');
+    expect(engine.rules.settlementRule).toBe('COUNT_CARDS');
     expect(engine.rules.table.betAmount).toBe(500);
     expect(engine.rules.chopping.multiplier).toBe(2);
     expect(engine.gameNumber).toBe(1);

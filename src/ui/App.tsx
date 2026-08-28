@@ -13,7 +13,7 @@ import {
   savePlayerProfile,
   hydrateStorageFromIndexedDB
 } from '../engine/storage';
-import { dbGetGameSettings } from '../engine/db/indexed-db';
+import { dbGetGameSettings, dbGetQuickTableConfig } from '../engine/db/indexed-db';
 import { GameRulesBuilder } from '../engine/types';
 import { ECONOMY_CONSTANTS } from '../engine/constants/economy';
 import { matchBotsForPlayerTable } from '../engine/ecosystem/matchmaker';
@@ -25,6 +25,7 @@ import { useUserStore } from '../stores/useUserStore';
 import { useGameStore } from '../stores/useGameStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useEcosystemStore } from '../stores/useEcosystemStore';
+import { useMatchmakingStore } from '../stores/useMatchmakingStore';
 import { BotConfig } from '../ai/types';
 
 export const App: React.FC = () => {
@@ -62,13 +63,17 @@ export const App: React.FC = () => {
     Promise.all([
       hydrateStorageFromIndexedDB(),
       dbGetGameSettings(),
+      dbGetQuickTableConfig(),
       minDelay
-    ]).then(async ([hydrated, savedSettings]) => {
+    ]).then(async ([hydrated, savedSettings, savedTableConfig]) => {
       if (hydrated.profile) {
         hydrateProfile(hydrated.profile);
       }
       if (savedSettings) {
         useSettingsStore.getState().hydrateSettings(savedSettings);
+      }
+      if (savedTableConfig) {
+        useGameStore.getState().hydrateQuickTableConfig(savedTableConfig);
       }
 
       // Tự động đồng bộ với GitHub Gist khi vào game nếu có Token và bật autoSyncOnStartup
@@ -135,14 +140,6 @@ export const App: React.FC = () => {
     }
   }, [currentScreen, startNewGame, engineRef]);
 
-  const [pendingMatch, setPendingMatch] = useState<{
-    betAmount: number;
-    modeName: string;
-    botConfigs: Partial<BotConfig>[];
-    playerCount: number | null;
-    onStart: () => void;
-  } | null>(null);
-
   // ==========================================================================
   // ĐIỀU HƯỚNG TỪ SẢNH VÀO CÁC CHẾ ĐỘ CHƠI (STRATEGY DISPATCH)
   // ==========================================================================
@@ -184,12 +181,17 @@ export const App: React.FC = () => {
       botIds = fallbacks.map(b => b.id || 'BOT_ELO_1150');
     }
 
-    setPendingMatch({
+    // Lưu cấu hình bàn chơi vĩnh viễn vào DB & Store
+    useGameStore.getState().setQuickTableConfig(config);
+
+    useMatchmakingStore.getState().startMatchmaking({
       betAmount: config.betAmount,
-      modeName: config.settlementRule === 'CARD_COUNT' ? 'Đếm Lá (Đấu Hạng)' : 'Tiến Lên Miền Nam',
+      modeName: config.settlementRule === 'COUNT_CARDS' ? 'Đếm Lá (Đấu Hạng)' : config.settlementRule === 'WINNER_TAKES_ALL' ? 'Nhất Ăn Tất (Đấu Hạng)' : 'Tiến Lên Miền Nam',
       botConfigs,
       playerCount: config.playerCount ?? 4,
       onStart: () => {
+        setActiveGameType('QUICK');
+        setCurrentScreen('GAME_TABLE');
         const customRules = new GameRulesBuilder()
           .withSettlement(config.settlementRule)
           .withChopping(c => c
@@ -220,7 +222,6 @@ export const App: React.FC = () => {
         });
       }
     });
-    openModal('MATCHMAKING');
   };
 
   const handleStartCustomGameWithConfig = async (config: CustomGameModalConfig) => {
@@ -244,12 +245,14 @@ export const App: React.FC = () => {
         ? 'Nhất Ăn Tất Tùy Chỉnh'
         : 'Truyền Thống Tùy Chỉnh';
 
-    setPendingMatch({
+    useMatchmakingStore.getState().startMatchmaking({
       betAmount: config.settings.betAmount,
       modeName: modeTitle,
       botConfigs: config.customBotConfigs,
       playerCount: config.playerCount ?? 4,
       onStart: () => {
+        setActiveGameType('QUICK');
+        setCurrentScreen('GAME_TABLE');
         startNewGame(1, {
           customSettings: config.settings,
           customBotPersonaIds: config.botPersonaIds,
@@ -258,44 +261,19 @@ export const App: React.FC = () => {
         });
       }
     });
-    openModal('MATCHMAKING');
-  };
-
-  const handleExecuteMatch = () => {
-    if (!pendingMatch) return;
-    useModalStore.getState().closeModal('MATCHMAKING');
-    setActiveGameType('QUICK');
-    setCurrentScreen('GAME_TABLE');
-    pendingMatch.onStart();
-    setPendingMatch(null);
-  };
-
-  const handleCancelMatchmaking = () => {
-    useModalStore.getState().closeModal('MATCHMAKING');
-    setPendingMatch(null);
   };
 
   const handlePlayNowDefault = () => {
     const liveCoins = useUserStore.getState().profile.coins;
-    const defaultBet = ECONOMY_CONSTANTS.DEFAULT_QUICK_BET;
+    const savedConfig = useGameStore.getState().quickTableConfig;
 
-    // Nếu không đủ mức cược tiêu chuẩn (1.000 Xu), mở Ngân Hàng / Cứu trợ
-    if (liveCoins < defaultBet) {
+    // Nếu không đủ mức cược của bàn đã lưu, mở Ngân Hàng / Cứu trợ
+    if (liveCoins < savedConfig.betAmount) {
       openModal('BANK');
       return;
     }
 
-    handleStartQuickGame({
-      playerCount: 4,
-      betAmount: defaultBet,
-      settlementRule: 'CARD_COUNT',
-      choppingMultiplier: 1,
-      congEnabled: true,
-      prohibitEndingWithTwo: true,
-      allowFourPairsCutAnytime: true,
-      threeSpadesEndingBonus: true,
-      cascadeChopEnabled: true
-    });
+    handleStartQuickGame(savedConfig);
   };
 
   const handleStartCampaignChapter = (chapter: CampaignChapter) => {
@@ -331,7 +309,6 @@ export const App: React.FC = () => {
     trackersRef,
     profile,
     campaignResultMeta,
-    pendingMatch,
     startNewGame,
     handlePlaySelectedCards,
     handlePassTurn,
@@ -345,9 +322,7 @@ export const App: React.FC = () => {
     handlePlayNowDefault,
     handleStartQuickGame,
     handleStartCustomGameWithConfig,
-    handleStartCampaignChapter,
-    handleCancelMatchmaking,
-    handleExecuteMatch
+    handleStartCampaignChapter
   };
 
   // ĐIỀU PHỐI GIAO DIỆN CHÍNH: MOBILE NATIVE-STYLE HOẶC WEB DESKTOP

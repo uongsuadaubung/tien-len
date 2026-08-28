@@ -319,7 +319,7 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
   describe('6. Composite Rule Strategy & Decision Integration (Hợp Thành Luật Tự Động)', () => {
     it('Tự động nhận diện cấu hình tùy biến (Custom Sandbox: Đếm lá + Cóng x2 + Chặt x2 + 1v1)', () => {
       const customRules = createDefaultGameRules({
-        settlementRule: 'CARD_COUNT',
+        settlementRule: 'COUNT_CARDS',
         cong: { enabled: true, penaltyCards: 26, multiplier: 2 },
         chopping: { 
           allowFourPairsCutAnytime: true, 
@@ -347,7 +347,7 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
       const tracker = new CardTracker();
 
       const customRules = createDefaultGameRules({
-        settlementRule: 'CARD_COUNT',
+        settlementRule: 'COUNT_CARDS',
         table: { playerCount: 4, betAmount: 500, soundEnabled: true }
       });
 
@@ -424,14 +424,14 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
 
     it('GameRulesBuilder xây dựng cấu hình GameRules hoàn chỉnh không có trường undefined', () => {
       const rules = new GameRulesBuilder()
-        .withSettlement('CARD_COUNT')
+        .withSettlement('COUNT_CARDS')
         .withTable(t => t.playerCount(4).betAmount(1000))
         .withChopping(c => c.cascadeMultiplier(true))
         .withGameFlow(f => f.prohibitEndingWithTwo(true).threeSpadesEndingBonus(true))
         .withCong(cg => cg.multiplier(2))
         .build();
 
-      expect(rules.settlementRule).toBe('CARD_COUNT');
+      expect(rules.settlementRule).toBe('COUNT_CARDS');
       expect(rules.table.playerCount).toBe(4);
       expect(rules.table.betAmount).toBe(1000);
       expect(rules.chopping.cascadeMultiplier).toBe(true);
@@ -440,12 +440,12 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
       expect(rules.cong.multiplier).toBe(2);
 
       const composite = new CompositeRuleStrategyBuilder(rules).build();
-      expect(composite.rules.settlementRule).toBe('CARD_COUNT');
+      expect(composite.rules.settlementRule).toBe('COUNT_CARDS');
     });
 
     it('GameRulesBuilder hỗ trợ Nested Domain Sub-Builders theo từng nhóm nghiệp vụ', () => {
       const customRules = new GameRulesBuilder()
-        .withSettlement('CARD_COUNT')
+        .withSettlement('COUNT_CARDS')
         .withChopping(c => c
           .allowFourPairsCutAnytime(true)
           .multiplier(2)
@@ -471,7 +471,7 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
         )
         .build();
 
-      expect(customRules.settlementRule).toBe('CARD_COUNT');
+      expect(customRules.settlementRule).toBe('COUNT_CARDS');
       expect(customRules.chopping.multiplier).toBe(2);
       expect(customRules.chopping.cascadeMultiplier).toBe(true);
       expect(customRules.cong.multiplier).toBe(2);
@@ -485,7 +485,7 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
         .withGameFlow(f => f.threeSpadesEndingBonus(true))
         .build();
 
-      expect(countCardsCustom.settlementRule).toBe('CARD_COUNT');
+      expect(countCardsCustom.settlementRule).toBe('COUNT_CARDS');
       expect(countCardsCustom.table.betAmount).toBe(5000);
       expect(countCardsCustom.gameFlow.threeSpadesEndingBonus).toBe(true);
 

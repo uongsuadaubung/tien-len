@@ -158,7 +158,7 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
     test('Phạt Thối Heo: Khi đối thủ về Nhất, người bị kẹt Heo bị phạt tiền và chuyển cho người về Nhất', () => {
       const players = createTestPlayers();
       const rules = createDefaultGameRules({
-        settlementRule: 'CARD_COUNT',
+        settlementRule: 'COUNT_CARDS',
         gameFlow: { firstGameRequireThreeOfSpades: false, winnerLeadsNextGame: true, prohibitEndingWithTwo: true },
         table: { betAmount: 100, playerCount: 4, soundEnabled: false }
       });

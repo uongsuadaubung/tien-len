@@ -2,43 +2,11 @@ import { create } from 'zustand';
 import { GameSpeedMode } from '../engine/game-speed';
 import { dbGetGameSettings, dbSaveGameSettings } from '../engine/db/indexed-db';
 
-import type { GithubUser } from '../engine/sync/types';
+import { SavedSettingsSchema, type GithubUser, type SavedSettings } from '../engine/schemas/settings.schema';
 
-export interface SavedSettings extends Record<string, unknown> {
-  soundEnabled: boolean;
-  autoSortEnabled: boolean;
-  aiHintEnabled: boolean;
-  quickResponseAssistEnabled: boolean;
-  xrayEnabled: boolean;
-  botReasoningLogEnabled: boolean;
-  gameSpeed: GameSpeedMode;
-  githubToken: string;
-  gistId: string;
-  lastSync: number;
-  lastSyncedHash: string;
-  cachedGithubUser: GithubUser | null;
-  autoBackupOnMatchEnd: boolean;
-  autoBackupInterval: number;
-  autoSyncOnStartup: boolean;
-}
+export type { SavedSettings };
 
-const DEFAULT_SETTINGS: SavedSettings = {
-  soundEnabled: true,
-  autoSortEnabled: true,
-  aiHintEnabled: false,
-  quickResponseAssistEnabled: false,
-  xrayEnabled: false,
-  botReasoningLogEnabled: false,
-  gameSpeed: 'REALISTIC',
-  githubToken: '',
-  gistId: '',
-  lastSync: 0,
-  lastSyncedHash: '',
-  cachedGithubUser: null,
-  autoBackupOnMatchEnd: true,
-  autoBackupInterval: 5,
-  autoSyncOnStartup: true
-};
+export const DEFAULT_SETTINGS: SavedSettings = SavedSettingsSchema.parse({});
 
 function persistSettings(state: SettingsState): void {
   const data: SavedSettings = {
