@@ -332,8 +332,8 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
 
       {/* Thông tin người chơi (Bản thân) - Nền đặc phẳng lì */}
       <div className={`flex items-center gap-1.5 ${isMobileSize ? 'mt-0 px-2 py-0.2 rounded-full border border-[#d4af37]/30 text-[10px]' : 'mt-0.5 px-4 py-1.5 rounded-full border border-[#d4af37]/35'} bg-[#121826] shadow-lg`}>
-        <div className={`${isMobileSize ? 'w-4 h-4 text-[10px]' : 'w-7 h-7 text-sm'} rounded-full bg-[#182030] border border-[#d4af37]/50 flex items-center justify-center shadow-inner`}>
-          {player.avatar}
+        <div className={`${isMobileSize ? 'w-4 h-4 text-[11px]' : 'w-7 h-7 text-sm'} rounded-full bg-[#182030] border border-[#d4af37]/50 flex items-center justify-center leading-none shadow-inner`}>
+          <span className="emoji-avatar">{player.avatar || '🤠'}</span>
         </div>
         <div className="flex items-center gap-1">
           <span className={`font-extrabold text-[#f3e5ab] ${isMobileSize ? 'text-[10px]' : 'text-sm'}`}>

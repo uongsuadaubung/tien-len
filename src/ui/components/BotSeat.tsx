@@ -75,8 +75,8 @@ export const BotSeat: React.FC<BotSeatProps> = ({
           >
             {/* Avatar nhỏ */}
             <div className="relative shrink-0">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#141b2b] border border-[#2a3449] flex items-center justify-center text-sm sm:text-base shadow-inner">
-                <span>{botConfig?.avatar || player.avatar || '🤖'}</span>
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-[#141b2b] border border-[#2a3449] flex items-center justify-center text-base sm:text-lg leading-none shadow-inner">
+                <span className="emoji-avatar">{botConfig?.avatar || player.avatar || '🤖'}</span>
               </div>
 
               {isLeader && (
@@ -176,7 +176,7 @@ export const BotSeat: React.FC<BotSeatProps> = ({
             ${player.isPassedCurrentRound ? 'opacity-50 grayscale' : ''}
           `}
         >
-          <span>{botConfig?.avatar || player.avatar || '🤖'}</span>
+          <span className="emoji-avatar">{botConfig?.avatar || player.avatar || '🤖'}</span>
         </div>
 
         {/* Huy hiệu Cái */}
