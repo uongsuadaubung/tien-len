@@ -46,12 +46,12 @@ export const CardView: React.FC<CardViewProps> = ({
   }[size];
 
   const rankTextSizes = {
-    xs: 'text-[8px] sm:text-[9px] font-black leading-none',
-    sm: 'text-xs font-black',
-    table: 'text-xs sm:text-sm font-black leading-tight',
-    mobile: 'text-sm sm:text-base font-black leading-tight',
-    md: 'text-sm sm:text-base font-black',
-    lg: 'text-lg font-black'
+    xs: 'text-[8px] sm:text-[9px] font-bold leading-none tracking-tighter',
+    sm: 'text-xs font-bold tracking-tight',
+    table: 'text-xs sm:text-sm font-bold leading-tight tracking-tight',
+    mobile: 'text-sm sm:text-base font-bold leading-tight tracking-tight',
+    md: 'text-sm sm:text-base font-bold tracking-tight',
+    lg: 'text-lg font-bold tracking-tight'
   }[size];
 
   const miniSuitSizes = {
@@ -86,7 +86,7 @@ export const CardView: React.FC<CardViewProps> = ({
       {/* 2. CHÍNH GIỮA LÁ BÀI: BIỂU TƯỢNG CHẤT TO RÕ SẮC NÉT */}
       <div className="card-center-suit">
         <span
-          className={`${centerIconSizes} font-black ${colorClass} filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.12)]`}
+          className={`${centerIconSizes} font-bold ${colorClass} filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.1)]`}
         >
           {suitSym}
         </span>
@@ -125,18 +125,18 @@ export const MiniCardView: React.FC<{ card: Card; className?: string }> = ({ car
     >
       {/* Góc trên */}
       <div className={`flex items-center gap-0.5 leading-none ${colorClass}`}>
-        <span className="text-[9px] font-black">{rankStr}</span>
+        <span className="text-[9px] font-bold">{rankStr}</span>
         <span className="text-[7px]">{suitSym}</span>
       </div>
 
       {/* Biểu tượng chất chính giữa */}
-      <div className={`self-center text-xs font-black leading-none ${colorClass} opacity-90`}>
+      <div className={`self-center text-xs font-bold leading-none ${colorClass} opacity-90`}>
         {suitSym}
       </div>
 
       {/* Góc dưới đảo ngược */}
       <div className={`flex items-center gap-0.5 leading-none self-end rotate-180 ${colorClass}`}>
-        <span className="text-[9px] font-black">{rankStr}</span>
+        <span className="text-[9px] font-bold">{rankStr}</span>
         <span className="text-[7px]">{suitSym}</span>
       </div>
     </div>

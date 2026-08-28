@@ -75,7 +75,7 @@ export const BotSeat: React.FC<BotSeatProps> = ({
           >
             {/* Avatar nhỏ */}
             <div className="relative shrink-0">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-[#141b2b] border border-[#2a3449] flex items-center justify-center text-base sm:text-lg leading-none shadow-inner">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#141b2b] border border-[#2a3449] flex items-center justify-center text-lg sm:text-xl leading-none shadow-inner">
                 <span className="emoji-avatar">{botConfig?.avatar || player.avatar || '🤖'}</span>
               </div>
 

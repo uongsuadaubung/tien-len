@@ -17,6 +17,7 @@
   transform: translateZ(0);
   backface-visibility: hidden;
   will-change: transform;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .playing-card:hover {
@@ -61,7 +62,9 @@
   flex-direction: column !important;
   align-items: center !important;
   line-height: 1 !important;
-  font-weight: 800 !important;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.04em !important;
   pointer-events: none !important;
 }
 
@@ -73,7 +76,9 @@
   flex-direction: column !important;
   align-items: center !important;
   line-height: 1 !important;
-  font-weight: 800 !important;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.04em !important;
   pointer-events: none !important;
 }
 
@@ -85,7 +90,9 @@
   flex-direction: column !important;
   align-items: center !important;
   line-height: 1 !important;
-  font-weight: 800 !important;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.04em !important;
   transform: rotate(180deg) !important;
   pointer-events: none !important;
 }
@@ -98,7 +105,9 @@
   flex-direction: column !important;
   align-items: center !important;
   line-height: 1 !important;
-  font-weight: 800 !important;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.04em !important;
   transform: rotate(180deg) !important;
   pointer-events: none !important;
 }
@@ -112,7 +121,7 @@
   align-items: center !important;
   justify-content: center !important;
   pointer-events: none !important;
-  font-weight: 900 !important;
+  font-weight: 700 !important;
   user-select: none !important;
 }
 

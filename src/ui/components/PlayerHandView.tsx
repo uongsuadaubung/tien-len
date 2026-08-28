@@ -1,6 +1,7 @@
 import React from 'react';
 import { Player } from '../../engine/types';
 import { HandSortMode } from '../../stores/useGameStore';
+import { useUserStore } from '../../stores/useUserStore';
 import { getAvailableSmartVariants } from '../../engine/hand-sorter';
 import { CardView } from './CardView';
 import { Play, SkipForward, ArrowUpDown, ArrowDownToLine, Layers, Crosshair } from 'lucide-react';
@@ -330,30 +331,38 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
         </div>
       )}
 
-      {/* Thông tin người chơi (Bản thân) - Nền đặc phẳng lì */}
-      <div className={`flex items-center gap-1.5 ${isMobileSize ? 'mt-0 px-2 py-0.2 rounded-full border border-[#d4af37]/30 text-[10px]' : 'mt-0.5 px-4 py-1.5 rounded-full border border-[#d4af37]/35'} bg-[#121826] shadow-lg`}>
-        <div className={`${isMobileSize ? 'w-4 h-4 text-[11px]' : 'w-7 h-7 text-sm'} rounded-full bg-[#182030] border border-[#d4af37]/50 flex items-center justify-center leading-none shadow-inner`}>
-          <span className="emoji-avatar">{player.avatar || '🤠'}</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <span className={`font-extrabold text-[#f3e5ab] ${isMobileSize ? 'text-[10px]' : 'text-sm'}`}>
-            {player.name}
-          </span>
-          <span className={`${isMobileSize ? 'text-[9px]' : 'text-xs'} text-slate-300 font-bold`}>
-            {player.score.toLocaleString()} 🪙
-          </span>
-          {isLeader && (
-            <span className="bg-[#d4af37] text-[#0a0d14] text-[8px] font-black px-1 rounded-sm shadow">
-              CÁI
-            </span>
-          )}
-          {player.isPassedCurrentRound && (
-            <span className="bg-neutral-800 text-red-400 text-[8px] font-bold px-1 rounded-sm border border-red-500/40">
-              ĐÃ BỎ LƯỢT
-            </span>
-          )}
-        </div>
-      </div>
+      {/* Thông tin người chơi (Bản thân) - Hiển thị Avatar & Tên Vàng Sang Trọng */}
+      {(() => {
+        const userProfile = useUserStore.getState().profile;
+        const playerAvatar = player.avatar || userProfile?.avatar || '🤠';
+
+        return (
+          <div className={`flex items-center gap-2 ${isMobileSize ? 'mt-0.5 px-2.5 py-0.5 rounded-full border border-[#d4af37]/60 text-xs' : 'mt-1 px-4 py-1 rounded-full border-2 border-[#d4af37]/60'} bg-[#121826]/95 backdrop-blur-sm shadow-xl`}>
+            {/* Avatar Vòng Tròn To Rõ Rệt */}
+            <div className={`${isMobileSize ? 'w-6 h-6 sm:w-7 sm:h-7 text-sm sm:text-base' : 'w-8 h-8 sm:w-9 sm:h-9 text-lg sm:text-xl'} rounded-full bg-[#182030] border-2 border-[#d4af37] flex items-center justify-center leading-none shadow-md shrink-0`}>
+              <span className="emoji-avatar">{playerAvatar}</span>
+            </div>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className={`font-black text-[#f3e5ab] ${isMobileSize ? 'text-[11px] sm:text-xs' : 'text-sm'} truncate max-w-[90px] sm:max-w-[120px]`}>
+                {player.name}
+              </span>
+              <span className={`${isMobileSize ? 'text-[10px] sm:text-[11px]' : 'text-xs'} text-[var(--color-gold)] font-mono font-bold shrink-0`}>
+                {player.score.toLocaleString()} 🪙
+              </span>
+              {isLeader && (
+                <span className="bg-gradient-to-r from-amber-400 to-amber-600 text-black text-[8px] font-black px-1.5 py-0.2 rounded-full shadow shrink-0">
+                  CÁI
+                </span>
+              )}
+              {player.isPassedCurrentRound && (
+                <span className="bg-rose-950 text-rose-300 text-[8px] font-bold px-1.5 py-0.2 rounded-full border border-rose-500/60 shrink-0">
+                  ĐÃ BỎ LƯỢT
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
