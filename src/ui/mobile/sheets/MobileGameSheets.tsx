@@ -8,8 +8,8 @@ import { MobileLuckyWheelView } from '../views/MobileLuckyWheelView';
 import { MobileBankView } from '../views/MobileBankView';
 import { MobileCampaignMapView } from '../views/MobileCampaignMapView';
 import { MobileCustomGameView } from '../views/MobileCustomGameView';
-import { CustomGameModalConfig } from '../../hooks/useCustomGame';
-import { QuickSetupModal, QuickSetupConfig } from '../../web/modals/QuickSetupModal';
+import { MobileQuickSetupSheet } from '../views/MobileQuickSetupSheet';
+import { QuickSetupConfig } from '../../hooks/useQuickSetup';
 import { MobileSettingsView } from '../views/MobileSettingsView';
 import { XRayInspector } from '../../web/modals/XRayInspector';
 import { VictoryModal } from '../../web/modals/VictoryModal';
@@ -173,9 +173,9 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
         />
       )}
 
-      {/* 3. Ngăn Kéo Cấu Hình Nhanh (Bottom Sheet) */}
+      {/* 3. Ngăn Kéo Cấu Hình Nhanh (Native Mobile Sheet) */}
       {isQuickSetupOpen && (
-        <QuickSetupModal
+        <MobileQuickSetupSheet
           isOpen={isQuickSetupOpen}
           onClose={() => closeModal('QUICK_SETUP')}
           playerCoins={profile.coins}
