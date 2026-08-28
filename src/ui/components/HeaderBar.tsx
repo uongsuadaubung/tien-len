@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GameMode } from '../../engine/types';
 import { Settings, Eye, Volume2, VolumeX, Home, BookOpen, Maximize, Minimize } from 'lucide-react';
+import { getRankTierByElo } from '../../engine/elo';
 import { Button, Badge } from '../primitives';
 import { isFullScreen, toggleFullScreen } from '../utils/fullscreen';
 
@@ -26,6 +27,7 @@ interface HeaderBarProps {
 export const HeaderBar: React.FC<HeaderBarProps> = ({
   activeGameType,
   playerCoins,
+  playerElo,
   soundEnabled,
   onToggleSound,
   onOpenRules,
@@ -34,6 +36,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   onReturnToLobby,
   xrayEnabled = false
 }) => {
+  const currentRank = getRankTierByElo(playerElo);
   const [isFullscreenState, setIsFullscreenState] = useState(isFullScreen());
 
   useEffect(() => {
