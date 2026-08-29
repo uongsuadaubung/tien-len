@@ -30,7 +30,10 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       settlementRule: 'COUNT_CARDS',
       choppingMultiplier: null,
       congEnabled: null,
-      prohibitEndingWithTwo: null
+      prohibitEndingWithTwo: null,
+      allowFourPairsCutAnytime: null,
+      threeSpadesEndingBonus: null,
+      cascadeChopEnabled: null
     });
 
     const state = useOnlineStore.getState();
@@ -54,7 +57,10 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       settlementRule: 'COUNT_CARDS',
       choppingMultiplier: null,
       congEnabled: null,
-      prohibitEndingWithTwo: null
+      prohibitEndingWithTwo: null,
+      allowFourPairsCutAnytime: null,
+      threeSpadesEndingBonus: null,
+      cascadeChopEnabled: null
     });
 
     useOnlineStore.getState().startMatch();
@@ -81,7 +87,10 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       settlementRule: 'COUNT_CARDS',
       choppingMultiplier: null,
       congEnabled: null,
-      prohibitEndingWithTwo: null
+      prohibitEndingWithTwo: null,
+      allowFourPairsCutAnytime: null,
+      threeSpadesEndingBonus: null,
+      cascadeChopEnabled: null
     });
 
     useOnlineStore.getState().startMatch();
@@ -162,7 +171,10 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       settlementRule: 'COUNT_CARDS',
       choppingMultiplier: null,
       congEnabled: null,
-      prohibitEndingWithTwo: null
+      prohibitEndingWithTwo: null,
+      allowFourPairsCutAnytime: null,
+      threeSpadesEndingBonus: null,
+      cascadeChopEnabled: null
     });
 
     // Ván 1 bắt đầu
@@ -205,7 +217,10 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       settlementRule: 'COUNT_CARDS',
       choppingMultiplier: null,
       congEnabled: null,
-      prohibitEndingWithTwo: null
+      prohibitEndingWithTwo: null,
+      allowFourPairsCutAnytime: null,
+      threeSpadesEndingBonus: null,
+      cascadeChopEnabled: null
     });
 
     // Thêm guest p1 vào phòng
@@ -273,7 +288,10 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       settlementRule: 'COUNT_CARDS',
       choppingMultiplier: null,
       congEnabled: null,
-      prohibitEndingWithTwo: null
+      prohibitEndingWithTwo: null,
+      allowFourPairsCutAnytime: null,
+      threeSpadesEndingBonus: null,
+      cascadeChopEnabled: null
     });
 
     const guestPlayer = {
@@ -351,7 +369,10 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       settlementRule: 'COUNT_CARDS',
       choppingMultiplier: null,
       congEnabled: null,
-      prohibitEndingWithTwo: null
+      prohibitEndingWithTwo: null,
+      allowFourPairsCutAnytime: null,
+      threeSpadesEndingBonus: null,
+      cascadeChopEnabled: null
     });
 
     const guestPlayer = {
@@ -410,7 +431,10 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       settlementRule: 'COUNT_CARDS',
       choppingMultiplier: null,
       congEnabled: null,
-      prohibitEndingWithTwo: null
+      prohibitEndingWithTwo: null,
+      allowFourPairsCutAnytime: null,
+      threeSpadesEndingBonus: null,
+      cascadeChopEnabled: null
     });
 
     const guestPlayer = {

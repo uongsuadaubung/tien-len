@@ -51,7 +51,10 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
       settlementRule: 'COUNT_CARDS',
       choppingMultiplier: null,
       congEnabled: null,
-      prohibitEndingWithTwo: null
+      prohibitEndingWithTwo: null,
+      allowFourPairsCutAnytime: null,
+      threeSpadesEndingBonus: null,
+      cascadeChopEnabled: null
     });
 
     useOnlineStore.getState().startMatch();
@@ -99,7 +102,10 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
       settlementRule: 'COUNT_CARDS',
       choppingMultiplier: null,
       congEnabled: null,
-      prohibitEndingWithTwo: null
+      prohibitEndingWithTwo: null,
+      allowFourPairsCutAnytime: null,
+      threeSpadesEndingBonus: null,
+      cascadeChopEnabled: null
     });
 
     useOnlineStore.getState().startMatch();
@@ -198,7 +204,10 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
       settlementRule: 'WINNER_TAKES_ALL',
       choppingMultiplier: null,
       congEnabled: null,
-      prohibitEndingWithTwo: null
+      prohibitEndingWithTwo: null,
+      allowFourPairsCutAnytime: null,
+      threeSpadesEndingBonus: null,
+      cascadeChopEnabled: null
     });
 
     useOnlineStore.getState().startMatch();
@@ -230,4 +239,96 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     expect(gameStore.matchPayouts['p2']).toBe(-10000);
     expect(gameStore.matchPayouts['p3']).toBe(-10000);
   });
+
+  it('5. Host từ chối yêu cầu vào phòng nếu Khách (Guest) không đủ Xu so với mức cược của phòng', () => {
+    const profile = useUserStore.getState().profile;
+    const betAmount = 5000;
+
+    useOnlineStore.getState().createRoom(profile, {
+      playerCount: 4,
+      betAmount,
+      settlementRule: 'COUNT_CARDS',
+      choppingMultiplier: null,
+      congEnabled: null,
+      prohibitEndingWithTwo: null,
+      allowFourPairsCutAnytime: null,
+      threeSpadesEndingBonus: null,
+      cascadeChopEnabled: null
+    });
+
+    const brokeGuest = {
+      peerId: 'guest_broke_1',
+      playerId: '',
+      name: 'Khách Hết Tiền',
+      avatar: '🤠',
+      elo: 1000,
+      coins: 500, // Nhỏ hơn betAmount 5000
+      isHost: false,
+      isReady: true,
+      isBot: false
+    };
+
+    // Giả lập Host nhận yêu cầu vào phòng từ khách không đủ tiền
+    const joinHandlers = (globalP2PClient as unknown as { onJoinRequestCallbacks: Array<(p: typeof brokeGuest, peer: string) => void> }).onJoinRequestCallbacks;
+    joinHandlers.forEach(h => h(brokeGuest, 'guest_broke_1'));
+
+    // Xác nhận Host KHÔNG thêm người này vào danh sách phòng
+    const roomState = useOnlineStore.getState().roomState;
+    expect(roomState?.players.length).toBe(1);
+    expect(roomState?.players[0].isHost).toBe(true);
+  });
+
+  it('6. Khách (Guest) tự động rời phòng và hiển thị thông báo KHÔNG ĐỦ TIỀN CƯỢC khi nhận roomState có cược lớn hơn số dư ví', () => {
+    const poorProfile = {
+      ...useUserStore.getState().profile,
+      coins: 800 // Chỉ có 800 Xu
+    };
+    useUserStore.getState().setProfile(poorProfile);
+
+    // Khách tham gia phòng
+    useOnlineStore.getState().joinRoom(poorProfile, 'TL-9999');
+
+    const highBetRoomState = {
+      roomCode: 'TL-9999',
+      hostPeerId: 'host_peer_1',
+      playerCount: 4 as const,
+      betAmount: 5000, // Cược 5000 Xu > 800 Xu
+      settlementRule: 'COUNT_CARDS' as const,
+      choppingMultiplier: 1,
+      congEnabled: true,
+      prohibitEndingWithTwo: true,
+      allowFourPairsCutAnytime: true,
+      threeSpadesEndingBonus: true,
+      cascadeChopEnabled: true,
+      players: [
+        {
+          peerId: 'host_peer_1',
+          playerId: 'p0',
+          name: 'Chủ Bàn',
+          avatar: '🤠',
+          elo: 1000,
+          coins: 50000,
+          isHost: true,
+          isReady: true,
+          isBot: false
+        }
+      ],
+      status: 'WAITING' as const,
+      disbandReason: null,
+      updatedAt: Date.now()
+    };
+
+    // Gọi handler nhận roomState
+    const roomHandlers = (globalP2PClient as unknown as { onRoomStateCallbacks: Array<(s: typeof highBetRoomState, peer: string) => void> }).onRoomStateCallbacks;
+    roomHandlers.forEach(h => h(highBetRoomState, 'host_peer_1'));
+
+    // Xác nhận Khách đã tự động rời phòng và có thông báo lỗi tài chính
+    const state = useOnlineStore.getState();
+    expect(state.isOnlineMatch).toBe(false);
+    expect(state.disbandNotice).not.toBeNull();
+    expect(state.disbandNotice?.title).toBe('KHÔNG ĐỦ TIỀN CƯỢC');
+    expect(state.disbandNotice?.message).toContain('800 Xu');
+    expect(state.disbandNotice?.message).toContain(`${(5000).toLocaleString()} Xu/lá`);
+  });
 });
+

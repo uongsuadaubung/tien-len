@@ -20,6 +20,7 @@ Hệ thống được thiết kế theo mô hình kiến trúc phân lớp sạc
 │                           2. STATE MANAGEMENT LAYER (Zustand Stores)                     │
 │  - useGameStore: Đồng bộ trạng thái ván bài, lượt đánh, người thắng, tiền cược           │
 │  - useUserStore: Lưu trữ Profile, Xu, Elo Rating, Nhiệm vụ ngày & Thành tựu trọn đời     │
+│  - useOnlineStore: Module hóa 3 Slices (RoomSlice, MatchSlice, ChatSlice) cho P2P Online │
 │  - useSettingsStore: Tùy chỉnh âm lượng, trợ lý gợi ý (Hint Engine), tốc độ ván đấu       │
 │  - useModalStore: Quản lý vòng đời hiển thị các Popup / Modal tương tác                  │
 └───────────────────────────────────────────┬──────────────────────────────────────────────┘

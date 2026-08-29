@@ -14,15 +14,10 @@ import {
   ClipboardPaste,
   Delete as DeleteIcon,
   X,
-  ShieldCheck,
   Plus
 } from 'lucide-react';
-import { 
-  useOnlineRoomLogic, 
-  SETTLEMENT_MODES, 
-  BET_PRESETS,
-  PLAYER_COUNTS 
-} from '../../hooks/useOnlineRoomLogic';
+import { useOnlineRoomLogic, SETTLEMENT_MODES } from '../../hooks/useOnlineRoomLogic';
+import { TableRulesConfigPanel } from '../../components/TableRulesConfigPanel';
 import { Modal, Card, Badge, Button } from '../../primitives';
 import { soundManager } from '../../audio/sound-manager';
 
@@ -36,17 +31,13 @@ export const OnlineRoomModal: React.FC = () => {
     isHost,
     tab,
     rawPinDigits,
-    playerCount,
-    betAmount,
-    settlementRule,
+    tableConfig,
     copiedLink,
     copiedPin,
     canAffordBet,
     isRoomFull,
     setTab,
-    setPlayerCount,
-    setBetAmount,
-    setSettlementRule,
+    handleTableConfigChange,
     handleCopyLink,
     handleCopyPin,
     handlePastePin,
@@ -64,7 +55,7 @@ export const OnlineRoomModal: React.FC = () => {
 
   if (!isOnlineRoomOpen) return null;
 
-  const currentSettlement = SETTLEMENT_MODES.find(m => m.id === settlementRule) || SETTLEMENT_MODES[0];
+  const currentSettlement = SETTLEMENT_MODES.find(m => m.id === tableConfig.mode) || SETTLEMENT_MODES[0];
 
   const onKeypadClick = (digit: string) => {
     soundManager.playCardDeal();
@@ -89,7 +80,7 @@ export const OnlineRoomModal: React.FC = () => {
       subtitle="Tạo phòng hoặc nhập mã PIN 4 số để kết nối cùng bạn bè"
       icon={<Wifi className="w-5 h-5 text-[var(--color-gold)] animate-pulse" />}
       maxWidth="2xl"
-      height="h-[90vh] sm:h-[680px]"
+      height="h-[90vh] sm:h-[700px]"
       headerRight={
         <Badge variant="gold" size="md">
           🪙 {profile.coins.toLocaleString()} Xu
@@ -189,118 +180,15 @@ export const OnlineRoomModal: React.FC = () => {
             </div>
 
             {tab === 'CREATE' ? (
-              /* TAB TẠO PHÒNG MỚI */
-              <div className="space-y-3.5 animate-in fade-in duration-200">
-                {/* 1. Chọn Luật Chơi */}
-                <Card variant="container" className="p-3.5 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
-                      <span>⚡</span>
-                      <span>1. Luật & Chế Độ Tính Điểm</span>
-                    </span>
-                    <Badge variant="gold" size="sm">
-                      {currentSettlement.label}
-                    </Badge>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-2">
-                    {SETTLEMENT_MODES.map(mode => {
-                      const isSelected = settlementRule === mode.id;
-                      return (
-                        <button
-                          key={mode.id}
-                          onClick={() => setSettlementRule(mode.id)}
-                          className={`p-3 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
-                            isSelected
-                              ? 'border-amber-400 bg-amber-500/15 text-amber-200 shadow-md ring-1 ring-amber-400/50'
-                              : 'border-[var(--border-card)] bg-[var(--bg-card)] text-zinc-400 hover:bg-[var(--bg-hover)]'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between w-full mb-1">
-                            <span className="text-lg">{mode.icon}</span>
-                            {isSelected && <Check className="w-4 h-4 text-amber-400" />}
-                          </div>
-                          <div>
-                            <div className={`text-xs font-bold ${isSelected ? 'text-amber-200' : 'text-zinc-200'}`}>
-                              {mode.label}
-                            </div>
-                            <div className="text-[10px] text-[var(--text-muted)] line-clamp-2 leading-tight mt-0.5">
-                              {mode.desc}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </Card>
-
-                {/* 2. Số Người Chơi & Mức Cược */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {/* Số Người Chơi */}
-                  <Card variant="container" className="p-3.5 space-y-2">
-                    <span className="text-[11px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
-                      <span>👥</span>
-                      <span>2. Số Người Chơi</span>
-                    </span>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {PLAYER_COUNTS.map(c => {
-                        const isSelected = playerCount === c;
-                        return (
-                          <button
-                            key={c}
-                            onClick={() => setPlayerCount(c)}
-                            className={`py-2.5 rounded-xl border text-xs font-black transition-all text-center cursor-pointer ${
-                              isSelected
-                                ? 'border-amber-400 bg-amber-500/20 text-amber-300 shadow-sm'
-                                : 'border-[var(--border-card)] bg-[var(--bg-card)] text-zinc-400 hover:bg-[var(--bg-hover)]'
-                            }`}
-                          >
-                            {c === 2 ? '2 (Solo)' : `${c} Người`}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </Card>
-
-                  {/* Mức Cược */}
-                  <Card variant="container" className="p-3.5 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
-                        <span>💰</span>
-                        <span>3. Mức Cược</span>
-                      </span>
-                      <span className="text-xs font-black text-amber-300">
-                        {betAmount.toLocaleString()} Xu/lá
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-5 gap-1.5">
-                      {BET_PRESETS.map(preset => {
-                        const isSelected = betAmount === preset;
-                        return (
-                          <button
-                            key={preset}
-                            onClick={() => setBetAmount(preset)}
-                            className={`py-2 rounded-xl border text-[11px] font-bold transition-all text-center cursor-pointer ${
-                              isSelected
-                                ? 'border-amber-400 bg-amber-500/20 text-amber-300 shadow-sm'
-                                : 'border-[var(--border-card)] bg-[var(--bg-card)] text-zinc-400 hover:bg-[var(--bg-hover)]'
-                            }`}
-                          >
-                            {preset >= 1000 ? `${preset / 1000}k` : preset}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </Card>
-                </div>
-
-                {/* Hướng Dẫn */}
-                <div className="p-3 rounded-2xl bg-amber-500/5 border border-amber-500/20 flex items-center gap-2.5">
-                  <ShieldCheck className="w-5 h-5 text-amber-400 shrink-0" />
-                  <p className="text-xs text-amber-200/80 leading-relaxed">
-                    Mỗi bàn có mã PIN 4 số riêng biệt. Bạn có thể gửi mã PIN hoặc sao chép liên kết mời để bạn bè tham gia nhanh.
-                  </p>
-                </div>
+              /* TAB TẠO PHÒNG: TÁI SỬ DỤNG BẢNG CẤU HÌNH BÀN CHƠI CHUẨN CỦA GAME */
+              <div className="animate-in fade-in duration-200">
+                <TableRulesConfigPanel
+                  playerCoins={profile.coins}
+                  config={tableConfig}
+                  onChange={handleTableConfigChange}
+                  showInstantWin={false}
+                  showCongOption={true}
+                />
               </div>
             ) : (
               /* TAB NHẬP MÃ VÀO PHÒNG BẰNG BÀN PHÍM ẢO NATIVE */

@@ -1,6 +1,7 @@
 import React from 'react';
-import { AlertTriangle, Home, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, Home, Landmark, ShieldAlert } from 'lucide-react';
 import { useOnlineStore } from '../../../stores/useOnlineStore';
+import { useModalStore } from '../../../stores/useModalStore';
 import { Button } from '../../primitives';
 
 export interface MobileOnlineDisbandViewProps {
@@ -13,8 +14,16 @@ export const MobileOnlineDisbandView: React.FC<MobileOnlineDisbandViewProps> = (
   onClose
 }) => {
   const { disbandNotice } = useOnlineStore();
+  const { openModal } = useModalStore();
 
   if (!isOpen || disbandNotice === null) return null;
+
+  const isInsufficientCoins = disbandNotice.title === 'KHÔNG ĐỦ TIỀN CƯỢC';
+
+  const handleOpenBank = () => {
+    onClose();
+    openModal('BANK');
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-lg animate-in fade-in duration-200 select-none">
@@ -47,14 +56,26 @@ export const MobileOnlineDisbandView: React.FC<MobileOnlineDisbandViewProps> = (
           </div>
         </div>
 
-        {/* Native Mobile Bottom Action */}
-        <div className="pt-1 pb-[max(env(safe-area-inset-bottom),4px)]">
+        {/* Native Mobile Bottom Actions */}
+        <div className="pt-1 pb-[max(env(safe-area-inset-bottom),4px)] flex flex-col gap-2.5">
+          {isInsufficientCoins && (
+            <Button
+              variant="gold"
+              size="lg"
+              onClick={handleOpenBank}
+              leftIcon={<Landmark className="w-4 h-4 text-slate-950" />}
+              className="w-full font-black text-sm uppercase tracking-wider py-3.5 rounded-2xl shadow-xl shadow-amber-500/20 active:scale-95 transition-transform cursor-pointer"
+            >
+              Mở Ngân Hàng
+            </Button>
+          )}
+
           <Button
-            variant="gold"
+            variant={isInsufficientCoins ? 'surface' : 'gold'}
             size="lg"
             onClick={onClose}
-            leftIcon={<Home className="w-4 h-4 text-slate-950" />}
-            className="w-full font-black text-sm uppercase tracking-wider py-3.5 rounded-2xl shadow-xl shadow-amber-500/20 active:scale-95 transition-transform cursor-pointer"
+            leftIcon={<Home className="w-4 h-4" />}
+            className="w-full font-black text-sm uppercase tracking-wider py-3.5 rounded-2xl shadow-xl active:scale-95 transition-transform cursor-pointer"
           >
             Quay Về Sảnh Chính
           </Button>

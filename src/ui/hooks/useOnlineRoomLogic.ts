@@ -2,9 +2,10 @@ import { useState, useCallback, useMemo } from 'react';
 import { useOnlineStore } from '../../stores/useOnlineStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { useModalStore } from '../../stores/useModalStore';
-import { type GameSettlementRule } from '../../engine/types';
+import { type GameSettlementRule, type PlayerCount } from '../../engine/types';
 import { type OnlineRoomState } from '../../engine/network/network.schema';
 import { type PlayerProfile } from '../../engine/storage';
+import { type TableConfigState } from '../components/TableRulesConfigPanel';
 
 export interface SettlementModeOption {
   id: GameSettlementRule;
@@ -46,7 +47,8 @@ export interface UseOnlineRoomLogicResult {
   tab: 'CREATE' | 'JOIN';
   inputPin: string;
   rawPinDigits: string;
-  playerCount: 2 | 3 | 4;
+  tableConfig: TableConfigState;
+  playerCount: PlayerCount;
   betAmount: number;
   settlementRule: GameSettlementRule;
   copiedLink: boolean;
@@ -55,7 +57,8 @@ export interface UseOnlineRoomLogicResult {
   isRoomFull: boolean;
   setTab: (tab: 'CREATE' | 'JOIN') => void;
   setInputPin: (pin: string) => void;
-  setPlayerCount: (count: 2 | 3 | 4) => void;
+  handleTableConfigChange: (updated: Partial<TableConfigState>) => void;
+  setPlayerCount: (count: PlayerCount) => void;
   setBetAmount: (amount: number) => void;
   setSettlementRule: (rule: GameSettlementRule) => void;
   handleCopyLink: () => void;
@@ -91,18 +94,46 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
 
   const [tab, setTab] = useState<'CREATE' | 'JOIN'>('CREATE');
   const [inputPin, setInputPin] = useState<string>('');
-  const [playerCount, setPlayerCount] = useState<2 | 3 | 4>(4);
-  const [betAmount, setBetAmount] = useState<number>(1000);
-  const [settlementRule, setSettlementRule] = useState<GameSettlementRule>('COUNT_CARDS');
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [copiedPin, setCopiedPin] = useState<boolean>(false);
+
+  const [tableConfig, setTableConfig] = useState<TableConfigState>({
+    playerCount: 4,
+    mode: 'COUNT_CARDS',
+    betAmount: 1000,
+    choppingMultiplier: 1,
+    congEnabled: true,
+    prohibitEndingWithTwo: true,
+    allowFourPairsCutAnytime: true,
+    threeSpadesEndingBonus: true,
+    cascadeChopEnabled: true,
+    instantWinEnabled: true
+  });
 
   const rawPinDigits = useMemo(() => {
     return inputPin.replace(/^TL-/i, '').replace(/[^0-9A-Z]/gi, '').slice(0, 4);
   }, [inputPin]);
 
-  const canAffordBet = profile.coins >= betAmount;
+  const currentMultiplier = tableConfig.choppingMultiplier || 1;
+  const depositRequired = 26 * tableConfig.betAmount * currentMultiplier;
+  const canAffordBet = profile.coins >= depositRequired || profile.coins >= tableConfig.betAmount;
   const isRoomFull = roomState !== null ? roomState.players.length >= roomState.playerCount : false;
+
+  const handleTableConfigChange = useCallback((updated: Partial<TableConfigState>) => {
+    setTableConfig(prev => ({ ...prev, ...updated }));
+  }, []);
+
+  const setPlayerCount = useCallback((count: PlayerCount) => {
+    handleTableConfigChange({ playerCount: count });
+  }, [handleTableConfigChange]);
+
+  const setBetAmount = useCallback((amount: number) => {
+    handleTableConfigChange({ betAmount: amount });
+  }, [handleTableConfigChange]);
+
+  const setSettlementRule = useCallback((rule: GameSettlementRule) => {
+    handleTableConfigChange({ mode: rule });
+  }, [handleTableConfigChange]);
 
   const handleCopyLink = useCallback(() => {
     if (roomCode === null) return;
@@ -164,16 +195,22 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
     setInputPin('');
   }, []);
 
+  const currentSettlementRule: GameSettlementRule = 
+    tableConfig.mode === 'CUSTOM' ? 'COUNT_CARDS' : tableConfig.mode;
+
   const handleCreate = useCallback(() => {
     createRoom(profile, {
-      playerCount,
-      betAmount,
-      settlementRule,
-      choppingMultiplier: null,
-      congEnabled: null,
-      prohibitEndingWithTwo: null
+      playerCount: tableConfig.playerCount,
+      betAmount: tableConfig.betAmount,
+      settlementRule: currentSettlementRule,
+      choppingMultiplier: tableConfig.choppingMultiplier ?? 1,
+      congEnabled: tableConfig.congEnabled ?? true,
+      prohibitEndingWithTwo: tableConfig.prohibitEndingWithTwo ?? true,
+      allowFourPairsCutAnytime: tableConfig.allowFourPairsCutAnytime ?? true,
+      threeSpadesEndingBonus: tableConfig.threeSpadesEndingBonus ?? true,
+      cascadeChopEnabled: tableConfig.cascadeChopEnabled ?? true
     });
-  }, [createRoom, profile, playerCount, betAmount, settlementRule]);
+  }, [createRoom, profile, tableConfig, currentSettlementRule]);
 
   const handleJoin = useCallback(() => {
     if (inputPin.trim().length === 0) return;
@@ -213,15 +250,17 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
     tab,
     inputPin,
     rawPinDigits,
-    playerCount,
-    betAmount,
-    settlementRule,
+    tableConfig,
+    playerCount: tableConfig.playerCount,
+    betAmount: tableConfig.betAmount,
+    settlementRule: currentSettlementRule,
     copiedLink,
     copiedPin,
     canAffordBet,
     isRoomFull,
     setTab,
     setInputPin,
+    handleTableConfigChange,
     setPlayerCount,
     setBetAmount,
     setSettlementRule,

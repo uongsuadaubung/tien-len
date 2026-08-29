@@ -1,12 +1,21 @@
 import React from 'react';
-import { AlertTriangle, Home } from 'lucide-react';
+import { AlertTriangle, Home, Landmark } from 'lucide-react';
 import { useOnlineStore } from '../../stores/useOnlineStore';
+import { useModalStore } from '../../stores/useModalStore';
 import { Button } from '../primitives';
 
 export const OnlineDisbandModal: React.FC = () => {
   const { disbandNotice, clearDisbandNotice } = useOnlineStore();
+  const { openModal } = useModalStore();
 
   if (disbandNotice === null) return null;
+
+  const isInsufficientCoins = disbandNotice.title === 'KHÔNG ĐỦ TIỀN CƯỢC';
+
+  const handleOpenBank = () => {
+    clearDisbandNotice();
+    openModal('BANK');
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
@@ -26,16 +35,28 @@ export const OnlineDisbandModal: React.FC = () => {
           </p>
         </div>
 
-        {/* Action Button */}
-        <div className="pt-2">
+        {/* Action Buttons */}
+        <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+          {isInsufficientCoins && (
+            <Button
+              variant="gold"
+              size="md"
+              onClick={handleOpenBank}
+              leftIcon={<Landmark className="w-4 h-4 text-slate-950" />}
+              className="flex-1 font-black text-sm uppercase tracking-wider py-3 shadow-lg shadow-amber-500/25 cursor-pointer"
+            >
+              Mở Ngân Hàng
+            </Button>
+          )}
+
           <Button
-            variant="gold"
+            variant={isInsufficientCoins ? 'surface' : 'gold'}
             size="md"
             onClick={clearDisbandNotice}
-            leftIcon={<Home className="w-4 h-4 text-slate-950" />}
-            className="w-full font-black text-sm uppercase tracking-wider py-3 shadow-lg shadow-amber-500/25 cursor-pointer"
+            leftIcon={<Home className="w-4 h-4" />}
+            className="flex-1 font-black text-sm uppercase tracking-wider py-3 shadow-lg cursor-pointer"
           >
-            Quay Về Sảnh Chính
+            Quay Về Sảnh
           </Button>
         </div>
       </div>
