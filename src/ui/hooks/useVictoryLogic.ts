@@ -175,10 +175,10 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
   if (isOnline) {
     modalIcon = isHumanWinner ? '🏆' : '💥';
     modalTitle = isHumanWinner ? 'CHIẾN THẮNG TRẬN ĐẤU!' : 'KẾT THÚC VÁN ĐẤU';
-    modalSubtitle = isOnlineHost ? 'Chế độ Đấu Phòng P2P (Chủ Bàn)' : 'Chế độ Đấu Phòng P2P (Khách Tham Gia)';
+    modalSubtitle = isOnlineHost ? 'Chế độ Chơi Online (Chủ Bàn)' : 'Chế độ Chơi Online (Khách Tham Gia)';
 
     statBox2Title = 'CHẾ ĐỘ CHƠI';
-    statBox2Value = 'Đấu Phòng P2P';
+    statBox2Value = 'Chơi Online';
     statBox2Sub = `Mức cược: ${betAmount.toLocaleString()} Xu`;
 
     if (!isMyPlayerReady) {

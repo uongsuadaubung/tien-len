@@ -320,18 +320,18 @@ export const MobileLobbyScreen: React.FC<MobileLobbyScreenProps> = ({
                 </div>
                 <div>
                   <h4 className="text-xs sm:text-sm font-bold text-amber-200 leading-tight flex items-center gap-1.5">
-                    Chơi Online Bạn Bè
-                    <Badge variant="gold" size="sm">Mới</Badge>
+                    Chơi Online Cùng Bạn Bè
+                    <Badge variant="gold" size="sm">Online</Badge>
                   </h4>
                   <p className="text-[10px] sm:text-[11px] text-[var(--text-muted)] mt-0.5">
-                    Tạo phòng riêng hoặc nhập mã PIN • 0đ Server
+                    Tạo phòng riêng hoặc nhập mã PIN 4 số
                   </p>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-1 mt-2 pt-2 border-t border-[var(--border-container)]">
                 <span className="text-[10px] font-semibold text-amber-300/80">
-                  Mã PIN 6 số hoặc Link mời trực tiếp
+                  Mã PIN 4 số hoặc liên kết mời trực tiếp
                 </span>
               </div>
             </div>

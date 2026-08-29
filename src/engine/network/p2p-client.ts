@@ -134,6 +134,16 @@ export class P2PClient {
       this.room = null;
     }
     this.currentRoomCode = null;
+    this.onPeerJoinCallbacks = [];
+    this.onPeerLeaveCallbacks = [];
+    this.onRoomStateCallbacks = [];
+    this.onDealHandCallbacks = [];
+    this.onPlayerActionCallbacks = [];
+    this.onTableSyncCallbacks = [];
+    this.onGameEndCallbacks = [];
+    this.onChatCallbacks = [];
+    this.onJoinRequestCallbacks = [];
+    this.onRematchVoteCallbacks = [];
   }
 
   public async sendJoinRequest(player: OnlinePlayer, targetPeerId?: string): Promise<void> {

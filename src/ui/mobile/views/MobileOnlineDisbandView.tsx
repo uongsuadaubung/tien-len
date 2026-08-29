@@ -31,7 +31,7 @@ export const MobileOnlineDisbandView: React.FC<MobileOnlineDisbandViewProps> = (
 
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-[11px] font-bold text-amber-300">
             <ShieldAlert className="w-3.5 h-3.5" />
-            <span>Phòng Đấu P2P Trực Tuyến</span>
+            <span>Phòng Đấu Online Trực Tuyến</span>
           </div>
         </div>
 

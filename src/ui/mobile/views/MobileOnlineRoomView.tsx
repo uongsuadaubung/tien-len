@@ -93,8 +93,8 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
     <MobileScreenWrapper
       isOpen={isOpen}
       onClose={handleClose}
-      title="Chơi Online P2P (Bạn Bè)"
-      subtitle="Kết nối trực tiếp qua WebRTC • Không độ trễ • Miễn phí vĩnh viễn"
+      title="Chơi Online Cùng Bạn Bè"
+      subtitle="Tạo bàn hoặc nhập mã PIN 4 số để kết nối cùng bạn bè"
       icon={<Wifi className="w-5 h-5 text-[var(--color-gold)] animate-pulse" />}
       headerRight={
         <Badge variant="gold" size="md">
@@ -137,7 +137,7 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                 leftIcon={<Sparkles className="w-4 h-4 text-black" />}
                 className="w-full font-black text-sm uppercase tracking-wider py-3 shadow-lg shadow-amber-500/25"
               >
-                {canAffordBet ? 'Tạo Phòng Bạn Bè Ngay' : 'Không Đủ Xu Để Tạo Bàn'}
+                {canAffordBet ? 'Tạo Phòng Ngay' : 'Không Đủ Xu Để Tạo Phòng'}
               </Button>
             </div>
           ) : (
@@ -150,7 +150,7 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                 leftIcon={<Users className="w-4 h-4 text-black" />}
                 className="w-full font-black text-sm uppercase tracking-wider py-3 shadow-lg shadow-emerald-500/25"
               >
-                {rawPinDigits.length === 4 ? 'Tham Gia Bàn Chơi' : 'Nhập Đủ 4 Số Để Vào Bàn'}
+                {rawPinDigits.length === 4 ? 'Vào Phòng Ngay' : 'Nhập Đủ 4 Số Để Vào Phòng'}
               </Button>
             </div>
           )
@@ -174,7 +174,7 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
               }`}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Tạo Bàn Mới</span>
+              <span>Tạo Phòng</span>
             </button>
             <button
               onClick={() => setTab('JOIN')}
@@ -185,7 +185,7 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
               }`}
             >
               <Users className="w-3.5 h-3.5" />
-              <span>Nhập Mã Vào Bàn</span>
+              <span>Vào Phòng</span>
             </button>
           </div>
 
@@ -295,11 +295,11 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                 </Card>
               </div>
 
-              {/* Thông tin bảo mật P2P WebRTC */}
+              {/* Thông tin phòng bàn đấu */}
               <div className="p-2.5 rounded-2xl bg-amber-500/5 border border-amber-500/20 flex items-center gap-2.5">
                 <ShieldCheck className="w-5 h-5 text-amber-400 shrink-0" />
                 <p className="text-[10px] text-amber-200/80 leading-relaxed">
-                  Trận đấu được truyền tải mã hóa Peer-to-Peer trực tiếp giữa thiết bị người chơi. Không lưu trữ thông tin trên máy chủ trung gian.
+                  Mỗi bàn có mã PIN 4 số riêng biệt. Bạn có thể gửi mã PIN hoặc sao chép liên kết mời để bạn bè tham gia nhanh.
                 </p>
               </div>
             </div>

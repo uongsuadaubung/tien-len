@@ -22,7 +22,12 @@ import {
 import { P2PClient } from './p2p-client';
 import { useGameStore } from '../../stores/useGameStore';
 import { useModalStore } from '../../stores/useModalStore';
+import { useUserStore } from '../../stores/useUserStore';
 import { soundManager } from '../../ui/audio/sound-manager';
+import { resolveStrategyForMatch } from '../strategies/game-mode-strategy';
+import { savePlayerProfile, type PlayerProfile } from '../storage';
+import { GameEventBus, type MatchCompletedEvent } from '../events/game-event-bus';
+import { evaluateDailyQuests, evaluateAchievements } from '../evaluators/progress-evaluators';
 
 export interface HostEngineDriverCallbacks {
   onRoomStateChange: ((updatedRoomState: OnlineRoomState) => void) | null;
@@ -298,13 +303,40 @@ export class HostEngineDriver {
   private handleGameOver(): void {
     if (!this.engine) return;
 
-    const payouts: Record<string, number> = {};
-    const eloDeltas: Record<string, number> = {};
-    const allPlayerHands: Record<string, NetworkCard[]> = {};
+    const strategy = resolveStrategyForMatch('ONLINE', this.roomState.settlementRule);
+    const settlement = strategy.settleMatch({
+      players: this.engine.players,
+      winners: this.engine.winners,
+      betAmount: this.roomState.betAmount,
+      playerElo: null,
+      isBankLoanActive: false,
+      campaignReward: null,
+      penaltyMultiplier: this.roomState.choppingMultiplier,
+      isThreeSpadesWin: this.engine.isThreeSpadesWin
+    });
 
+    const totalPlayers = this.engine.players.length;
+    const winnerId = this.engine.winners[0]?.id || 'p0';
+    const eloDeltas: Record<string, number> = {};
     this.engine.players.forEach(p => {
-      payouts[p.id] = 0;
-      eloDeltas[p.id] = 0;
+      const rank = this.engine?.winners.findIndex(w => w.id === p.id) ?? -1;
+      const effectiveRank = rank !== -1 ? rank + 1 : totalPlayers;
+      let delta = 0;
+      if (totalPlayers === 2) {
+        delta = effectiveRank === 1 ? 25 : -25;
+      } else if (totalPlayers === 3) {
+        delta = effectiveRank === 1 ? 25 : (effectiveRank === 2 ? 0 : -25);
+      } else {
+        if (effectiveRank === 1) delta = 25;
+        else if (effectiveRank === 2) delta = 10;
+        else if (effectiveRank === 3) delta = -10;
+        else delta = -25;
+      }
+      eloDeltas[p.id] = delta;
+    });
+
+    const allPlayerHands: Record<string, NetworkCard[]> = {};
+    this.engine.players.forEach(p => {
       allPlayerHands[p.id] = p.hand.map(c => ({ rank: c.rank, suit: c.suit, id: c.id }));
     });
 
@@ -312,18 +344,74 @@ export class HostEngineDriver {
       this.lastWinnerId = this.engine.winners[0].id;
     }
 
-    const packet: GameEndPacket = {
-      winners: this.engine.winners.map(w => w.id),
-      payouts,
-      eloDeltas,
-      allPlayerHands
+    const hostPayout = settlement.payouts['p0'] || 0;
+    const hostEloDelta = eloDeltas['p0'] || 0;
+    const isHostWinner = winnerId === 'p0';
+
+    // Cập nhật Profile cho Host
+    const userStore = useUserStore.getState();
+    const currentProfile = userStore.profile;
+    const nextCoins = Math.max(0, currentProfile.coins + hostPayout);
+    const nextElo = Math.max(0, currentProfile.elo + hostEloDelta);
+    const nextWins = isHostWinner ? currentProfile.stats.wins + 1 : currentProfile.stats.wins;
+    const nextCurrentStreak = isHostWinner ? currentProfile.stats.currentStreak + 1 : 0;
+    const nextHighestStreak = Math.max(currentProfile.stats.highestStreak, nextCurrentStreak);
+    const nextTotalEarned = hostPayout > 0 ? currentProfile.stats.totalEarned + hostPayout : currentProfile.stats.totalEarned;
+
+    const updatedProfile: PlayerProfile = {
+      ...currentProfile,
+      coins: nextCoins,
+      elo: nextElo,
+      stats: {
+        ...currentProfile.stats,
+        gamesPlayed: currentProfile.stats.gamesPlayed + 1,
+        wins: nextWins,
+        currentStreak: nextCurrentStreak,
+        highestStreak: nextHighestStreak,
+        totalEarned: nextTotalEarned
+      }
     };
 
-    // Đặt lại isReady: false cho tất cả người chơi thật (Host & Guest), Bot tự động isReady: true
-    const resetPlayers = this.roomState.players.map(p => ({
-      ...p,
-      isReady: p.isBot ? true : false
-    }));
+    const congsGivenCount = isHostWinner ? this.engine.players.filter(p => p.id !== 'p0' && p.hand.length === 13).length : 0;
+    const matchCompletedEvent: MatchCompletedEvent = {
+      type: 'MATCH_COMPLETED',
+      activeGameType: 'ONLINE',
+      winnerPlayerId: winnerId,
+      isHumanWinner: isHostWinner,
+      winners: this.engine.winners,
+      allPlayers: this.engine.players,
+      payouts: settlement.payouts,
+      humanNetCoins: hostPayout,
+      totalHumanCoins: nextCoins,
+      betAmount: this.roomState.betAmount,
+      isThreeSpadesWin: this.engine.isThreeSpadesWin,
+      playerCount: this.engine.players.length,
+      congsGivenCount,
+      cascadeChopCount: 0,
+      loanDeduction: 0,
+      instantWinType: null
+    };
+
+    const finalQuests = evaluateDailyQuests([matchCompletedEvent], updatedProfile.dailyQuests, updatedProfile);
+    const finalAchievements = evaluateAchievements([matchCompletedEvent], updatedProfile.achievements, updatedProfile);
+    updatedProfile.dailyQuests = finalQuests;
+    updatedProfile.achievements = finalAchievements;
+
+    userStore.setProfile(updatedProfile);
+    savePlayerProfile(updatedProfile);
+    GameEventBus.getInstance().publish(matchCompletedEvent);
+
+    // Cập nhật số dư Xu và Elo mới cho từng người chơi trong phòng (Host, Bot, Guest)
+    const resetPlayers = this.roomState.players.map(p => {
+      const net = settlement.payouts[p.playerId] || 0;
+      const eloD = eloDeltas[p.playerId] || 0;
+      return {
+        ...p,
+        coins: Math.max(0, p.coins + net),
+        elo: Math.max(0, p.elo + eloD),
+        isReady: p.isBot ? true : false
+      };
+    });
 
     const updatedRoom: OnlineRoomState = {
       ...this.roomState,
@@ -339,10 +427,19 @@ export class HostEngineDriver {
     void this.p2pClient.broadcastRoomState(updatedRoom);
 
     const gameStore = useGameStore.getState();
+    gameStore.setMatchPayouts(settlement.payouts);
+    gameStore.setLastEloDelta(hostEloDelta);
+    gameStore.setAllEloDeltas(eloDeltas);
     gameStore.setIsGameOver(true);
     gameStore.setWinners([...this.engine.winners]);
     useModalStore.getState().openModal('VICTORY');
 
+    const packet: GameEndPacket = {
+      winners: this.engine.winners.map(w => w.id),
+      payouts: settlement.payouts,
+      eloDeltas,
+      allPlayerHands
+    };
     void this.p2pClient.broadcastGameEnd(packet);
   }
 

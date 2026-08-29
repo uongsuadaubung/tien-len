@@ -14,6 +14,7 @@ import { identifyCombination } from '../engine/combinations';
 import { soundManager } from '../ui/audio/sound-manager';
 import { useGameStore } from './useGameStore';
 import { useModalStore } from './useModalStore';
+import { useUserStore } from './useUserStore';
 import { 
   type GameSettlementRule, 
   type Player, 
@@ -23,8 +24,10 @@ import {
   type GameFlowRulesBuilder,
   type TableRulesBuilder 
 } from '../engine/types';
-import { type PlayerProfile } from '../engine/storage';
+import { type PlayerProfile, savePlayerProfile } from '../engine/storage';
 import { createPlayer, createBotPlayer } from '../engine/player-factory';
+import { GameEventBus, type MatchCompletedEvent } from '../engine/events/game-event-bus';
+import { evaluateDailyQuests, evaluateAchievements } from '../engine/evaluators/progress-evaluators';
 
 export interface CreateRoomOptions {
   betAmount: number;
@@ -448,11 +451,91 @@ export const useOnlineStore = create<OnlineStoreState>((set, get) => ({
     globalP2PClient.onGameEnd((endPacket: GameEndPacket) => {
       set({ gameEndSummary: endPacket });
       const gameStore = useGameStore.getState();
+      const myId = get().myPlayerId;
+      const myPayout = endPacket.payouts[myId] || 0;
+      const myEloDelta = endPacket.eloDeltas[myId] || 0;
+      const isMyWin = endPacket.winners.length > 0 && endPacket.winners[0] === myId;
+
+      gameStore.setMatchPayouts(endPacket.payouts);
+      gameStore.setLastEloDelta(myEloDelta);
+      gameStore.setAllEloDeltas(endPacket.eloDeltas);
       gameStore.setIsGameOver(true);
       if (endPacket.winners.length > 0) {
         const winningPlayers = gameStore.players.filter(p => endPacket.winners.includes(p.id));
         gameStore.setWinners(winningPlayers);
       }
+
+      // Tiết lộ bài tàn cuộc của tất cả người chơi để hiển thị trong VictoryModal
+      if (endPacket.allPlayerHands) {
+        const currentPlayers = gameStore.players.map(p => {
+          const remoteCards = endPacket.allPlayerHands[p.id];
+          if (remoteCards && p.id !== myId) {
+            return {
+              ...p,
+              hand: remoteCards.map(c => createCard(c.rank, c.suit))
+            };
+          }
+          return p;
+        });
+        gameStore.setPlayers(currentPlayers);
+      }
+
+      // Cập nhật Profile cho Client/Guest
+      const userStore = useUserStore.getState();
+      const currentProfile = userStore.profile;
+      const nextCoins = Math.max(0, currentProfile.coins + myPayout);
+      const nextElo = Math.max(0, currentProfile.elo + myEloDelta);
+      const nextWins = isMyWin ? currentProfile.stats.wins + 1 : currentProfile.stats.wins;
+      const nextCurrentStreak = isMyWin ? currentProfile.stats.currentStreak + 1 : 0;
+      const nextHighestStreak = Math.max(currentProfile.stats.highestStreak, nextCurrentStreak);
+      const nextTotalEarned = myPayout > 0 ? currentProfile.stats.totalEarned + myPayout : currentProfile.stats.totalEarned;
+
+      const updatedProfile: PlayerProfile = {
+        ...currentProfile,
+        coins: nextCoins,
+        elo: nextElo,
+        stats: {
+          ...currentProfile.stats,
+          gamesPlayed: currentProfile.stats.gamesPlayed + 1,
+          wins: nextWins,
+          currentStreak: nextCurrentStreak,
+          highestStreak: nextHighestStreak,
+          totalEarned: nextTotalEarned
+        }
+      };
+
+      const congsGivenCount = isMyWin
+        ? gameStore.players.filter(p => p.id !== myId && (gameStore.dealtCounts[p.id] === 13 || p.hand.length === 13)).length
+        : 0;
+
+      const matchCompletedEvent: MatchCompletedEvent = {
+        type: 'MATCH_COMPLETED',
+        activeGameType: 'ONLINE',
+        winnerPlayerId: endPacket.winners[0] || myId,
+        isHumanWinner: isMyWin,
+        winners: gameStore.winners,
+        allPlayers: gameStore.players,
+        payouts: endPacket.payouts,
+        humanNetCoins: myPayout,
+        totalHumanCoins: nextCoins,
+        betAmount: get().roomState?.betAmount || 1000,
+        isThreeSpadesWin: false,
+        playerCount: gameStore.players.length,
+        congsGivenCount,
+        cascadeChopCount: 0,
+        loanDeduction: 0,
+        instantWinType: null
+      };
+
+      const finalQuests = evaluateDailyQuests([matchCompletedEvent], updatedProfile.dailyQuests, updatedProfile);
+      const finalAchievements = evaluateAchievements([matchCompletedEvent], updatedProfile.achievements, updatedProfile);
+      updatedProfile.dailyQuests = finalQuests;
+      updatedProfile.achievements = finalAchievements;
+
+      userStore.setProfile(updatedProfile);
+      savePlayerProfile(updatedProfile);
+      GameEventBus.getInstance().publish(matchCompletedEvent);
+
       useModalStore.getState().openModal('VICTORY');
     });
 

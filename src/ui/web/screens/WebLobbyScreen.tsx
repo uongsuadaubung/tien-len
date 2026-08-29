@@ -406,20 +406,20 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
                 <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-amber-500/20 to-yellow-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 shadow-sm group-hover:border-amber-400 transition-colors">
                   <Wifi className="w-5 h-5 animate-pulse" />
                 </div>
-                <Badge variant="gold" size="sm">Mới • P2P WebRTC</Badge>
+                <Badge variant="gold" size="sm">Online</Badge>
               </div>
 
               <div className="my-2 sm:my-2.5">
                 <h3 className="text-base sm:text-lg font-bold text-amber-200 group-hover:text-yellow-300 transition-colors">
-                  Chơi Online Bạn Bè
+                  Chơi Online Cùng Bạn Bè
                 </h3>
                 <p className="text-xs text-[var(--text-muted)] mt-1 leading-relaxed line-clamp-2">
-                  Tạo phòng riêng hoặc nhập mã PIN để cùng chơi với bạn bè qua mạng P2P trực tiếp. 100% miễn phí 0đ server.
+                  Tạo phòng riêng hoặc nhập mã PIN 4 số để cùng chơi với bạn bè qua mạng. Đầy đủ các luật chơi hấp dẫn.
                 </p>
               </div>
 
               <div className="pt-2.5 border-t border-[var(--border-container)] flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-amber-300/80">Tạo Bàn Hoặc Nhập PIN</span>
+                <span className="text-[11px] font-semibold text-amber-300/80">Mã PIN 4 số • Đấu trực tiếp</span>
                 <Button
                   variant="gold"
                   size="sm"

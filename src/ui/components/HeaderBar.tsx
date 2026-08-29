@@ -58,7 +58,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   const modeBadgeText: Record<ActiveGameType, string> = {
     QUICK: 'Chơi Nhanh',
     CAMPAIGN: 'Chiến Dịch',
-    ONLINE: 'Đấu Phòng P2P'
+    ONLINE: 'Chơi Online'
   };
 
   return (
