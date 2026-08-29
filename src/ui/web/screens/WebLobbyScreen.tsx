@@ -5,6 +5,7 @@ import { getSettlementRuleLabel } from '../../../engine/types';
 import { useModalStore } from '../../../stores/useModalStore';
 import { useEcosystemStore } from '../../../stores/useEcosystemStore';
 import { useGameStore } from '../../../stores/useGameStore';
+import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { 
   Trophy, 
   Flame, 
@@ -57,6 +58,7 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
   const { openModal } = useModalStore();
   const { newsfeed, initEcosystem } = useEcosystemStore();
   const { quickTableConfig } = useGameStore();
+  const { onlineMultiplayerBetaEnabled } = useSettingsStore();
   const [isFullscreenState, setIsFullscreenState] = useState(isFullScreen());
 
   useEffect(() => {
@@ -392,43 +394,45 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
             className={null}
           />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-3.5">
+          <div className={`grid grid-cols-1 ${onlineMultiplayerBetaEnabled ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-3 sm:gap-3.5`}>
             
-            {/* 1. CHƠI ONLINE P2P BẠN BÈ */}
-            <Card 
-              variant="container"
-              hoverable
-              clickable
-              onClick={() => openModal('ONLINE_ROOM')}
-              className="group p-3.5 sm:p-4 flex flex-col justify-between border-amber-500/30 hover:border-amber-500/60"
-            >
-              <div className="flex items-start justify-between">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-amber-500/20 to-yellow-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 shadow-sm group-hover:border-amber-400 transition-colors">
-                  <Wifi className="w-5 h-5 animate-pulse" />
+            {/* 1. CHƠI ONLINE P2P BẠN BÈ (Chỉ hiện khi bật setting Giao lưu bạn hiền) */}
+            {onlineMultiplayerBetaEnabled && (
+              <Card 
+                variant="container"
+                hoverable
+                clickable
+                onClick={() => openModal('ONLINE_ROOM')}
+                className="group p-3.5 sm:p-4 flex flex-col justify-between border-amber-500/30 hover:border-amber-500/60"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-amber-500/20 to-yellow-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 shadow-sm group-hover:border-amber-400 transition-colors">
+                    <Wifi className="w-5 h-5 animate-pulse" />
+                  </div>
+                  <Badge variant="gold" size="sm">Online</Badge>
                 </div>
-                <Badge variant="gold" size="sm">Online</Badge>
-              </div>
 
-              <div className="my-2 sm:my-2.5">
-                <h3 className="text-base sm:text-lg font-bold text-amber-200 group-hover:text-yellow-300 transition-colors">
-                  Chơi Online Cùng Bạn Bè
-                </h3>
-                <p className="text-xs text-[var(--text-muted)] mt-1 leading-relaxed line-clamp-2">
-                  Tạo phòng riêng hoặc nhập mã PIN 4 số để cùng chơi với bạn bè qua mạng. Đầy đủ các luật chơi hấp dẫn.
-                </p>
-              </div>
+                <div className="my-2 sm:my-2.5">
+                  <h3 className="text-base sm:text-lg font-bold text-amber-200 group-hover:text-yellow-300 transition-colors">
+                    Chơi Online Cùng Bạn Bè
+                  </h3>
+                  <p className="text-xs text-[var(--text-muted)] mt-1 leading-relaxed line-clamp-2">
+                    Tạo phòng riêng hoặc nhập mã PIN 4 số để cùng chơi với bạn bè qua mạng. Đầy đủ các luật chơi hấp dẫn.
+                  </p>
+                </div>
 
-              <div className="pt-2.5 border-t border-[var(--border-container)] flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-amber-300/80">Mã PIN 4 số • Đấu trực tiếp</span>
-                <Button
-                  variant="gold"
-                  size="sm"
-                  rightIcon={<ArrowRight className="w-3 h-3 text-slate-950" />}
-                >
-                  Vào Phòng
-                </Button>
-              </div>
-            </Card>
+                <div className="pt-2.5 border-t border-[var(--border-container)] flex items-center justify-between">
+                  <span className="text-[11px] font-semibold text-amber-300/80">Mã PIN 4 số • Đấu trực tiếp</span>
+                  <Button
+                    variant="gold"
+                    size="sm"
+                    rightIcon={<ArrowRight className="w-3 h-3 text-slate-950" />}
+                  >
+                    Vào Phòng
+                  </Button>
+                </div>
+              </Card>
+            )}
 
             {/* 2. CHIẾN DỊCH CỐT TRUYỆN */}
             <Card 

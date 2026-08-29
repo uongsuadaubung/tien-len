@@ -143,6 +143,7 @@ export const App: React.FC = () => {
     if (hash.startsWith('#room=')) {
       const code = hash.replace('#room=', '').toUpperCase().trim();
       if (code) {
+        useSettingsStore.getState().setOnlineMultiplayerBetaEnabled(true);
         useOnlineStore.getState().joinRoom(profile, code);
         openModal('ONLINE_ROOM');
       }

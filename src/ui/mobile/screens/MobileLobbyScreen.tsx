@@ -5,6 +5,7 @@ import { getSettlementRuleLabel } from '../../../engine/types';
 import { useModalStore } from '../../../stores/useModalStore';
 import { useEcosystemStore } from '../../../stores/useEcosystemStore';
 import { useGameStore } from '../../../stores/useGameStore';
+import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { 
   Trophy, 
   MapPin, 
@@ -56,6 +57,7 @@ export const MobileLobbyScreen: React.FC<MobileLobbyScreenProps> = ({
   const { openModal } = useModalStore();
   const { newsfeed, initEcosystem } = useEcosystemStore();
   const { quickTableConfig } = useGameStore();
+  const { onlineMultiplayerBetaEnabled } = useSettingsStore();
   const [isFullscreenState, setIsFullscreenState] = useState(isFullScreen());
 
   useEffect(() => {
@@ -302,53 +304,55 @@ export const MobileLobbyScreen: React.FC<MobileLobbyScreenProps> = ({
         </Card>
 
         {/* ========================================================================= */}
-        {/* PHẦN 2: CHƠI ONLINE BẠN BÈ */}
+        {/* PHẦN 2: CHƠI ONLINE BẠN BÈ (Chỉ hiện khi bật setting Giao lưu bạn hiền) */}
         {/* ========================================================================= */}
-        <Card
-          variant="container"
-          hoverable
-          clickable
-          onClick={() => openModal('ONLINE_ROOM')}
-          className="p-3 sm:p-3.5 rounded-2xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-950/20 to-slate-900 shadow-sm active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between landscape:w-[280px] sm:landscape:w-[300px] landscape:shrink-0 landscape:snap-start landscape:h-full"
-        >
-          <div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-amber-500/20 to-yellow-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 shadow-sm shrink-0">
-                <Wifi className="w-5 h-5 animate-pulse" />
+        {onlineMultiplayerBetaEnabled && (
+          <Card
+            variant="container"
+            hoverable
+            clickable
+            onClick={() => openModal('ONLINE_ROOM')}
+            className="p-3 sm:p-3.5 rounded-2xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-950/20 to-slate-900 shadow-sm active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between landscape:w-[280px] sm:landscape:w-[300px] landscape:shrink-0 landscape:snap-start landscape:h-full"
+          >
+            <div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-amber-500/20 to-yellow-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 shadow-sm shrink-0">
+                  <Wifi className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="text-xs sm:text-sm font-bold text-amber-200 leading-tight flex items-center gap-1.5">
+                    Chơi Online Cùng Bạn Bè
+                    <Badge variant="gold" size="sm">Online</Badge>
+                  </h4>
+                  <p className="text-[10px] sm:text-[11px] text-[var(--text-muted)] mt-0.5">
+                    Tạo phòng riêng hoặc nhập mã PIN 4 số
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="text-xs sm:text-sm font-bold text-amber-200 leading-tight flex items-center gap-1.5">
-                  Chơi Online Cùng Bạn Bè
-                  <Badge variant="gold" size="sm">Online</Badge>
-                </h4>
-                <p className="text-[10px] sm:text-[11px] text-[var(--text-muted)] mt-0.5">
-                  Tạo phòng riêng hoặc nhập mã PIN 4 số
-                </p>
+
+              <div className="flex flex-wrap items-center gap-1 mt-2 pt-2 border-t border-[var(--border-container)]">
+                <span className="text-[10px] font-semibold text-amber-300/80">
+                  Mã PIN 4 số hoặc liên kết mời trực tiếp
+                </span>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-1 mt-2 pt-2 border-t border-[var(--border-container)]">
-              <span className="text-[10px] font-semibold text-amber-300/80">
-                Mã PIN 4 số hoặc liên kết mời trực tiếp
-              </span>
+            <div className="pt-2 mt-2 border-t border-[var(--border-container)]">
+              <Button
+                variant="gold"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openModal('ONLINE_ROOM');
+                }}
+                rightIcon={<ArrowRight className="w-3.5 h-3.5 text-slate-950" />}
+                className="w-full text-xs font-bold py-1.5 justify-center shadow-lg shadow-amber-500/20"
+              >
+                Vào Phòng
+              </Button>
             </div>
-          </div>
-
-          <div className="pt-2 mt-2 border-t border-[var(--border-container)]">
-            <Button
-              variant="gold"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                openModal('ONLINE_ROOM');
-              }}
-              rightIcon={<ArrowRight className="w-3.5 h-3.5 text-slate-950" />}
-              className="w-full text-xs font-bold py-1.5 justify-center shadow-lg shadow-amber-500/20"
-            >
-              Vào Phòng
-            </Button>
-          </div>
-        </Card>
+          </Card>
+        )}
 
         {/* ========================================================================= */}
         {/* PHẦN 3: CHIẾN DỊCH CỐT TRUYỆN (CONTAINER TIER 1 CHUẨN WEB) */}

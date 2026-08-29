@@ -16,6 +16,7 @@ function persistSettings(state: SettingsState): void {
     quickResponseAssistEnabled: state.quickResponseAssistEnabled,
     xrayEnabled: state.xrayEnabled,
     botReasoningLogEnabled: state.botReasoningLogEnabled,
+    onlineMultiplayerBetaEnabled: state.onlineMultiplayerBetaEnabled,
     gameSpeed: state.gameSpeed,
     githubToken: state.githubToken,
     gistId: state.gistId,
@@ -37,6 +38,7 @@ interface SettingsState {
   quickResponseAssistEnabled: boolean;
   xrayEnabled: boolean;
   botReasoningLogEnabled: boolean;
+  onlineMultiplayerBetaEnabled: boolean;
   gameSpeed: GameSpeedMode;
   githubToken: string;
   gistId: string;
@@ -54,6 +56,7 @@ interface SettingsState {
   toggleQuickResponseAssist: () => void;
   toggleXRay: () => void;
   toggleBotReasoningLog: () => void;
+  toggleOnlineMultiplayerBeta: () => void;
   toggleAutoBackupOnMatchEnd: () => void;
   toggleAutoSyncOnStartup: () => void;
   setSoundEnabled: (enabled: boolean) => void;
@@ -62,6 +65,7 @@ interface SettingsState {
   setQuickResponseAssistEnabled: (enabled: boolean) => void;
   setXRayEnabled: (enabled: boolean) => void;
   setBotReasoningLogEnabled: (enabled: boolean) => void;
+  setOnlineMultiplayerBetaEnabled: (enabled: boolean) => void;
   setAutoBackupOnMatchEnd: (enabled: boolean) => void;
   setAutoBackupInterval: (interval: number) => void;
   setAutoSyncOnStartup: (enabled: boolean) => void;
@@ -83,6 +87,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   quickResponseAssistEnabled: initial.quickResponseAssistEnabled,
   xrayEnabled: initial.xrayEnabled,
   botReasoningLogEnabled: initial.botReasoningLogEnabled,
+  onlineMultiplayerBetaEnabled: initial.onlineMultiplayerBetaEnabled ?? false,
   gameSpeed: initial.gameSpeed,
   githubToken: initial.githubToken,
   gistId: initial.gistId,
@@ -122,6 +127,16 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   }),
   toggleBotReasoningLog: () => set((state) => {
     const next = { ...state, botReasoningLogEnabled: !state.botReasoningLogEnabled };
+    persistSettings(next);
+    return next;
+  }),
+  toggleOnlineMultiplayerBeta: () => set((state) => {
+    const next = { ...state, onlineMultiplayerBetaEnabled: !state.onlineMultiplayerBetaEnabled };
+    persistSettings(next);
+    return next;
+  }),
+  setOnlineMultiplayerBetaEnabled: (enabled) => set((state) => {
+    const next = { ...state, onlineMultiplayerBetaEnabled: enabled };
     persistSettings(next);
     return next;
   }),

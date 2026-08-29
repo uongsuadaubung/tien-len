@@ -16,6 +16,7 @@ export const SavedSettingsSchema = z.object({
   quickResponseAssistEnabled: z.boolean().default(false),
   xrayEnabled: z.boolean().default(false),
   botReasoningLogEnabled: z.boolean().default(false),
+  onlineMultiplayerBetaEnabled: z.boolean().default(false),
   gameSpeed: GameSpeedModeSchema.default('REALISTIC'),
   githubToken: z.string().default(''),
   gistId: z.string().default(''),

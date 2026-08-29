@@ -28,13 +28,27 @@ import { GameEventBus, type MatchCompletedEvent } from '../../engine/events/game
 import { evaluateDailyQuests, evaluateAchievements } from '../../engine/evaluators/progress-evaluators';
 import { type RoomSlice, type OnlineSliceCreator } from './types';
 
-function generateRoomPin(): string {
-  const chars = '0123456789';
-  let pin = '';
-  for (let i = 0; i < 4; i++) {
-    pin += chars.charAt(Math.floor(Math.random() * chars.length));
+export function generateRoomPin(existingRooms: PublicRoomSummary[] = []): string {
+  const existingCodes = new Set(existingRooms.map(r => r.roomCode.toUpperCase().trim()));
+
+  for (let attempt = 0; attempt < 50; attempt++) {
+    // 1. Kết hợp thời gian mili-giây thực tế + biến thiên ngẫu nhiên
+    const now = Date.now();
+    const timeComponent = (now % 10000);
+    const randomJitter = Math.floor(Math.random() * 9000) + 1000;
+    
+    // Tạo 4 chữ số phân phối đều từ 1000 đến 9999
+    const pinNumber = ((timeComponent + randomJitter + (attempt * 137)) % 9000) + 1000;
+    const pin = `TL-${pinNumber}`;
+
+    // 2. Chặn trùng hoàn toàn với các phòng đang hoạt động trong hệ sinh thái
+    if (!existingCodes.has(pin)) {
+      return pin;
+    }
   }
-  return `TL-${pin}`;
+
+  const fallback = Math.floor(1000 + Math.random() * 9000);
+  return `TL-${fallback}`;
 }
 
 function syncLobbyBroadcast(roomState: OnlineRoomState): void {
@@ -103,7 +117,8 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
   },
 
   createRoom: (profile, options) => {
-    const roomCode = generateRoomPin();
+    const existingRooms = get().publicRooms;
+    const roomCode = generateRoomPin(existingRooms);
     const selfPeerId = globalP2PClient.selfPeerId;
     const isPublic = options.isPublic ?? true;
 

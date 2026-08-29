@@ -16,7 +16,8 @@ import {
   ExternalLink,
   History,
   CheckCircle2,
-  AlertTriangle
+  AlertTriangle,
+  Wifi
 } from 'lucide-react';
 import { Button } from '../../primitives';
 import { MobileScreenWrapper } from './MobileScreenWrapper';
@@ -95,6 +96,8 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
     setAutoBackupInterval,
     autoSyncOnStartup,
     toggleAutoSyncOnStartup,
+    onlineMultiplayerBetaEnabled,
+    toggleOnlineMultiplayerBeta,
     clearGithubAuth
   } = useSettingsStore();
 
@@ -700,6 +703,44 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
 
               <ToggleSwitch checked={aiHintEnabled} />
             </div>
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* NHÓM: TÍNH NĂNG THỬ NGHIỆM */}
+        {/* ========================================================================= */}
+        <div className="rounded-2xl bg-[var(--bg-card)] border border-amber-500/30 shadow-md overflow-hidden">
+          <div className="px-4 py-2.5 bg-amber-500/10 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Wifi className="w-4 h-4 text-[var(--color-gold)] shrink-0" />
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-gold)] leading-none">
+                Tính Năng Thử Nghiệm
+              </span>
+            </div>
+            <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">
+              BETA
+            </span>
+          </div>
+
+          <div
+            onClick={toggleOnlineMultiplayerBeta}
+            className="px-4 py-3.5 flex items-center justify-between hover:bg-white/[0.02] cursor-pointer transition-colors select-none"
+          >
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-xl border transition-colors shrink-0 flex items-center justify-center ${onlineMultiplayerBetaEnabled ? 'bg-[var(--bg-card-active)] border-[var(--color-gold-border)] text-[var(--color-gold)]' : 'bg-[var(--bg-container)] border-[var(--border-container)] text-[var(--text-muted)]'}`}>
+                <Wifi className="w-4 h-4 shrink-0" />
+              </div>
+              <div>
+                <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight flex items-center gap-1.5">
+                  <span>Giao lưu bạn hiền (beta)</span>
+                </div>
+                <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                  Mở chế độ Chơi Online P2P kết nối bàn chơi với bạn bè qua mạng
+                </div>
+              </div>
+            </div>
+
+            <ToggleSwitch checked={onlineMultiplayerBetaEnabled} />
           </div>
         </div>
       </div>

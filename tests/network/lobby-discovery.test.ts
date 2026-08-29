@@ -4,7 +4,7 @@ import { useGameStore } from '../../src/stores/useGameStore';
 import { useModalStore } from '../../src/stores/useModalStore';
 import { loadPlayerProfile } from '../../src/engine/storage';
 import { PublicRoomSummarySchema, type PublicRoomSummary } from '../../src/engine/network/network.schema';
-import { globalLobbyDiscoveryClient } from '../../src/engine/network/lobby-discovery';
+import { generateRoomPin } from '../../src/stores/online/roomSlice';
 
 describe('WebRTC P2P Public Lobby Discovery & Room Browser Tests', () => {
   beforeEach(() => {
@@ -170,5 +170,35 @@ describe('WebRTC P2P Public Lobby Discovery & Room Browser Tests', () => {
     useOnlineStore.getState().leaveRoom();
     expect(useOnlineStore.getState().isOnlineMatch).toBe(false);
     expect(useOnlineStore.getState().roomState).toBeNull();
+  });
+
+  it('7. generateRoomPin: Sinh mã 4 số chuẩn TL-XXXX và tự động né các phòng đang tồn tại', () => {
+    const existing: PublicRoomSummary[] = [
+      {
+        roomCode: 'TL-1234',
+        hostName: 'Host 1',
+        hostAvatar: '🤠',
+        hostElo: 1000,
+        playerCount: 1,
+        maxPlayers: 4,
+        betAmount: 1000,
+        settlementRule: 'COUNT_CARDS',
+        choppingMultiplier: 1,
+        congEnabled: true,
+        prohibitEndingWithTwo: true,
+        allowFourPairsCutAnytime: true,
+        threeSpadesEndingBonus: true,
+        cascadeChopEnabled: true,
+        status: 'WAITING',
+        isPublic: true,
+        updatedAt: Date.now()
+      }
+    ];
+
+    for (let i = 0; i < 20; i++) {
+      const pin = generateRoomPin(existing);
+      expect(pin).toMatch(/^TL-\d{4}$/);
+      expect(pin).not.toBe('TL-1234');
+    }
   });
 });
