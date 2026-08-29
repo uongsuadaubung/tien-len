@@ -35,8 +35,7 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
 }) => {
   const { profile } = useUserStore();
   const ecosystemBots = useEcosystemStore(state => state.bots);
-  const { myPlayerId, activeGameType } = useGameStore();
-  const isOnlineMatch = activeGameType === 'ONLINE';
+  const { myPlayerId } = useGameStore();
 
   if (!isOpen) return null;
 
@@ -85,7 +84,6 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
                 const isTurn = !isDealing && currentTurnPlayerId === p.id;
                 const isLeader = leadPlayerId === p.id;
                 const isMe = p.id === myPlayerId;
-                const isHuman = !p.isBot;
                 const cardCount = isDealing 
                   ? (dealtCounts[p.id] ?? 0) 
                   : (isMe ? p.hand.length : (dealtCounts[p.id] ?? p.hand.length));

@@ -29,7 +29,7 @@ function readLocalStorageRooms(): Map<string, { summary: PublicRoomSummary; last
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_REGISTRY_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as Record<string, { summary: PublicRoomSummary; lastSeen: number }>;
+      const parsed: Record<string, { summary: PublicRoomSummary; lastSeen: number }> = JSON.parse(raw);
       const now = Date.now();
       for (const [code, item] of Object.entries(parsed)) {
         if (item && item.summary && item.summary.isPublic && (now - item.lastSeen < ROOM_EXPIRY_TIMEOUT_MS)) {

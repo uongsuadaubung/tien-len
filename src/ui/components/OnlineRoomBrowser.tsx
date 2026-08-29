@@ -4,11 +4,9 @@ import {
   RotateCw, 
   ArrowRight, 
   PlusCircle, 
-  Zap, 
   KeyRound, 
   Clipboard,
   ShieldAlert,
-  Flame,
   Radio
 } from 'lucide-react';
 import { Card, Badge, Button } from '../primitives';
@@ -46,18 +44,9 @@ export const OnlineRoomBrowser: React.FC<OnlineRoomBrowserProps> = ({
   onOpenBank
 }) => {
   const [filter, setFilter] = useState<FilterCategory>('ALL');
-  const [searchQuery, setSearchQuery] = useState<string>('');
 
   const filteredRooms = useMemo(() => {
     return rooms.filter(room => {
-      // Tìm kiếm theo mã phòng hoặc tên chủ bàn
-      if (searchQuery.trim().length > 0) {
-        const query = searchQuery.trim().toLowerCase();
-        const matchCode = room.roomCode.toLowerCase().includes(query);
-        const matchHost = room.hostName.toLowerCase().includes(query);
-        if (!matchCode && !matchHost) return false;
-      }
-
       // Bộ lọc danh mục
       if (filter === 'COUNT_CARDS' && room.settlementRule !== 'COUNT_CARDS') return false;
       if (filter === 'TRADITIONAL' && room.settlementRule !== 'TRADITIONAL') return false;
@@ -66,7 +55,7 @@ export const OnlineRoomBrowser: React.FC<OnlineRoomBrowserProps> = ({
 
       return true;
     });
-  }, [rooms, filter, searchQuery]);
+  }, [rooms, filter]);
 
   return (
     <div className="flex flex-col gap-3 w-full">

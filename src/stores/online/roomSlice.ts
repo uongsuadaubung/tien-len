@@ -419,7 +419,8 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       });
 
       gameStore.setPlayers(currentPlayers);
-      gameStore.setPlayerCount((room?.playerCount || currentPlayers.length) as 2 | 3 | 4);
+      const validatedCount: 2 | 3 | 4 = room?.playerCount === 2 ? 2 : room?.playerCount === 3 ? 3 : 4;
+      gameStore.setPlayerCount(validatedCount);
       if (dealPacket.gameNumber) {
         gameStore.setGameNumber(dealPacket.gameNumber);
       }

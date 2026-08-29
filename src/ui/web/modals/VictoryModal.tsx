@@ -13,7 +13,6 @@ import {
   Users,
   Building2
 } from 'lucide-react';
-import { getRankTierByElo } from '../../../engine/elo';
 import { CampaignChapter } from '../../../engine/campaign';
 import { ActiveGameType, useGameStore } from '../../../stores/useGameStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
@@ -31,7 +30,7 @@ interface VictoryModalProps {
   winners: Player[];
   allPlayers: Player[];
   betAmount: number;
-  instantWinType: string | null;
+  instantWinType: InstantWinType | null;
   isThreeSpadesWin: boolean;
   payouts: Record<string, number> | null;
   loanDeduction: number;
@@ -103,7 +102,6 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   const { roomState } = useOnlineStore();
 
   const {
-    isHumanWinner,
     isCampaign,
     isOnline,
     isTableDismissed,
@@ -135,7 +133,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     winners,
     allPlayers,
     betAmount,
-    instantWinType: instantWinType as InstantWinType | null,
+    instantWinType,
     isThreeSpadesWin,
     payouts,
     loanDeduction,

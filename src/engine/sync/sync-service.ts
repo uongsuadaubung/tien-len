@@ -102,6 +102,7 @@ export async function getLocalSaveData(): Promise<TienLenSaveData> {
     quickResponseAssistEnabled: settingsState.quickResponseAssistEnabled,
     xrayEnabled: settingsState.xrayEnabled,
     botReasoningLogEnabled: settingsState.botReasoningLogEnabled,
+    onlineMultiplayerBetaEnabled: settingsState.onlineMultiplayerBetaEnabled,
     gameSpeed: settingsState.gameSpeed,
     githubToken: settingsState.githubToken,
     gistId: settingsState.gistId,

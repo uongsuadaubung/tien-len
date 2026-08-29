@@ -41,8 +41,7 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
   const [isOpen] = useState<boolean>(true);
   const { profile } = useUserStore();
   const ecosystemBots = useEcosystemStore(state => state.bots);
-  const { myPlayerId, activeGameType } = useGameStore();
-  const isOnlineMatch = activeGameType === 'ONLINE';
+  const { myPlayerId } = useGameStore();
 
   return (
     <div
@@ -84,7 +83,6 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                 const isTurn = !isDealing && currentTurnPlayerId === p.id;
                 const isLeader = leadPlayerId === p.id;
                 const isMe = p.id === myPlayerId;
-                const isHuman = !p.isBot;
                 const cardCount = isDealing 
                   ? (dealtCounts[p.id] ?? 0) 
                   : (isMe ? p.hand.length : (dealtCounts[p.id] ?? p.hand.length));

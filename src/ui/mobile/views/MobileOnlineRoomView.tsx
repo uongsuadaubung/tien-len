@@ -71,7 +71,7 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
   return (
     <MobileScreenWrapper
       isOpen={isOpen}
-      onClose={handleClose}
+      onClose={onClose || handleClose}
       title="Chơi Online Cùng Bạn Bè"
       subtitle="Tìm bàn trong sảnh chờ hoặc tạo phòng riêng với bạn bè"
       icon={<Wifi className="w-5 h-5 text-[var(--color-gold)] animate-pulse" />}

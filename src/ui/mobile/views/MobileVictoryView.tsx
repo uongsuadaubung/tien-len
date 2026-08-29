@@ -30,7 +30,7 @@ export interface MobileVictoryViewProps {
   winners: Player[];
   allPlayers: Player[];
   betAmount: number;
-  instantWinType: string | null;
+  instantWinType: InstantWinType | null;
   isThreeSpadesWin: boolean;
   payouts: Record<string, number> | null;
   loanDeduction: number;
@@ -102,9 +102,7 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
   const { roomState } = useOnlineStore();
 
   const {
-    isHumanWinner,
     isCampaign,
-    isOnline,
     isTableDismissed,
     isHumanBankrupt,
     bankruptBots,
@@ -134,7 +132,7 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
     winners,
     allPlayers,
     betAmount,
-    instantWinType: instantWinType as InstantWinType | null,
+    instantWinType,
     isThreeSpadesWin,
     payouts,
     loanDeduction,
