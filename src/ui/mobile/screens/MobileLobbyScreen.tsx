@@ -224,8 +224,8 @@ export const MobileLobbyScreen: React.FC<MobileLobbyScreenProps> = ({
         </div>
       )}
 
-      {/* 3. THÂN TRANG: 3 CHẾ ĐỘ CHƠI ĐỒNG BỘ 100% MÀU SẮC & GIAO DIỆN WEB */}
-      <main className="flex-1 min-h-0 w-full max-w-4xl mx-auto flex flex-col landscape:grid landscape:grid-cols-3 gap-2 sm:gap-2.5 my-auto justify-center overflow-hidden py-1">
+      {/* 3. THÂN TRANG: 4 CHẾ ĐỘ CHƠI (HỖ TRỢ CUỘN DỌC Ở MÀN HÌNH DỌC & CUỘN NGANG SNAP Ở MÀN HÌNH NGANG) */}
+      <main className="flex-1 min-h-0 w-full max-w-5xl mx-auto overflow-y-auto overflow-x-hidden landscape:overflow-x-auto landscape:overflow-y-hidden landscape:flex landscape:flex-row landscape:snap-x landscape:items-stretch py-1.5 px-0.5 space-y-2.5 landscape:space-y-0 landscape:gap-3 scroll-smooth touch-pan-y landscape:touch-pan-x select-none">
         
         {/* ========================================================================= */}
         {/* PHẦN 1: CHƠI NHANH & ĐẤU HẠNG (HERO CONTAINER TIER 1 CHUẨN WEB) */}
@@ -235,7 +235,7 @@ export const MobileLobbyScreen: React.FC<MobileLobbyScreenProps> = ({
           hoverable
           clickable
           onClick={onPlayNow || onOpenQuickSetup}
-          className="p-3 sm:p-3.5 rounded-2xl border-2 border-[var(--border-gold)]/60 bg-gradient-to-br from-[#1c150c]/80 via-[var(--bg-container)] to-[#0c121d]/80 shadow-2xl active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between landscape:h-full"
+          className="p-3 sm:p-3.5 rounded-2xl border-2 border-[var(--border-gold)]/60 bg-gradient-to-br from-[#1c150c]/80 via-[var(--bg-container)] to-[#0c121d]/80 shadow-2xl active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between landscape:w-[280px] sm:landscape:w-[300px] landscape:shrink-0 landscape:snap-start landscape:h-full"
         >
           <div>
             <div className="flex items-center gap-2.5">
@@ -301,153 +301,150 @@ export const MobileLobbyScreen: React.FC<MobileLobbyScreenProps> = ({
           </div>
         </Card>
 
-        {/* CONTAINER CHO PHẦN 2, 3, 4 (CHUẨN WEB TIER 1 CONTAINER) */}
-        <div className="contents landscape:contents">
-          {/* ========================================================================= */}
-          {/* PHẦN 2: CHƠI ONLINE P2P BẠN BÈ */}
-          {/* ========================================================================= */}
-          <Card
-            variant="container"
-            hoverable
-            clickable
-            onClick={() => openModal('ONLINE_ROOM')}
-            className="p-3 rounded-2xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-950/20 to-slate-900 shadow-sm active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between landscape:h-full"
-          >
-            <div>
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-amber-500/20 to-yellow-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 shadow-sm shrink-0">
-                  <Wifi className="w-5 h-5 animate-pulse" />
-                </div>
-                <div>
-                  <h4 className="text-xs sm:text-sm font-bold text-amber-200 leading-tight flex items-center gap-1.5">
-                    Chơi Online Cùng Bạn Bè
-                    <Badge variant="gold" size="sm">Online</Badge>
-                  </h4>
-                  <p className="text-[10px] sm:text-[11px] text-[var(--text-muted)] mt-0.5">
-                    Tạo phòng riêng hoặc nhập mã PIN 4 số
-                  </p>
-                </div>
+        {/* ========================================================================= */}
+        {/* PHẦN 2: CHƠI ONLINE BẠN BÈ */}
+        {/* ========================================================================= */}
+        <Card
+          variant="container"
+          hoverable
+          clickable
+          onClick={() => openModal('ONLINE_ROOM')}
+          className="p-3 sm:p-3.5 rounded-2xl border-2 border-amber-500/40 bg-gradient-to-br from-amber-950/20 to-slate-900 shadow-sm active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between landscape:w-[280px] sm:landscape:w-[300px] landscape:shrink-0 landscape:snap-start landscape:h-full"
+        >
+          <div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-amber-500/20 to-yellow-500/20 border border-amber-500/40 flex items-center justify-center text-amber-300 shadow-sm shrink-0">
+                <Wifi className="w-5 h-5 animate-pulse" />
               </div>
-
-              <div className="flex flex-wrap items-center gap-1 mt-2 pt-2 border-t border-[var(--border-container)]">
-                <span className="text-[10px] font-semibold text-amber-300/80">
-                  Mã PIN 4 số hoặc liên kết mời trực tiếp
-                </span>
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-amber-200 leading-tight flex items-center gap-1.5">
+                  Chơi Online Cùng Bạn Bè
+                  <Badge variant="gold" size="sm">Online</Badge>
+                </h4>
+                <p className="text-[10px] sm:text-[11px] text-[var(--text-muted)] mt-0.5">
+                  Tạo phòng riêng hoặc nhập mã PIN 4 số
+                </p>
               </div>
             </div>
 
-            <div className="pt-2 mt-2 border-t border-[var(--border-container)]">
-              <Button
-                variant="gold"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openModal('ONLINE_ROOM');
-                }}
-                rightIcon={<ArrowRight className="w-3.5 h-3.5 text-slate-950" />}
-                className="w-full text-xs font-bold py-1.5 justify-center"
-              >
-                Vào Phòng
-              </Button>
+            <div className="flex flex-wrap items-center gap-1 mt-2 pt-2 border-t border-[var(--border-container)]">
+              <span className="text-[10px] font-semibold text-amber-300/80">
+                Mã PIN 4 số hoặc liên kết mời trực tiếp
+              </span>
             </div>
-          </Card>
+          </div>
 
-          {/* ========================================================================= */}
-          {/* PHẦN 3: CHIẾN DỊCH CỐT TRUYỆN (CONTAINER TIER 1 CHUẨN WEB) */}
-          {/* ========================================================================= */}
-          <Card
-            variant="container"
-            hoverable
-            clickable
-            onClick={onOpenCampaign}
-            className="p-3 rounded-2xl border border-[var(--border-container)] bg-[var(--bg-container)] shadow-sm active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between landscape:h-full"
-          >
-            <div>
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--color-gold)] shadow-sm shrink-0">
-                  <MapPin className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs sm:text-sm font-bold text-[var(--text-primary)] leading-tight">
-                    Chiến Dịch Cốt Truyện
-                  </h4>
-                  <p className="text-[10px] sm:text-[11px] text-[var(--text-muted)] mt-0.5">
-                    9 Chương • Từ Sới Bạc Xóm đến Sòng Bạc Đỉnh Cao
-                  </p>
-                </div>
+          <div className="pt-2 mt-2 border-t border-[var(--border-container)]">
+            <Button
+              variant="gold"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                openModal('ONLINE_ROOM');
+              }}
+              rightIcon={<ArrowRight className="w-3.5 h-3.5 text-slate-950" />}
+              className="w-full text-xs font-bold py-1.5 justify-center shadow-lg shadow-amber-500/20"
+            >
+              Vào Phòng
+            </Button>
+          </div>
+        </Card>
+
+        {/* ========================================================================= */}
+        {/* PHẦN 3: CHIẾN DỊCH CỐT TRUYỆN (CONTAINER TIER 1 CHUẨN WEB) */}
+        {/* ========================================================================= */}
+        <Card
+          variant="container"
+          hoverable
+          clickable
+          onClick={onOpenCampaign}
+          className="p-3 sm:p-3.5 rounded-2xl border border-[var(--border-container)] bg-[var(--bg-container)] shadow-sm active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between landscape:w-[280px] sm:landscape:w-[300px] landscape:shrink-0 landscape:snap-start landscape:h-full"
+        >
+          <div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--color-gold)] shadow-sm shrink-0">
+                <MapPin className="w-5 h-5" />
               </div>
-
-              <div className="flex flex-wrap items-center gap-1 mt-2 pt-2 border-t border-[var(--border-container)]">
-                <span className="text-[10px] font-semibold text-[var(--text-secondary)]">
-                  Nhận Danh Hiệu &amp; Xu Thưởng
-                </span>
-              </div>
-            </div>
-
-            <div className="pt-2 mt-2 border-t border-[var(--border-container)]">
-              <Button
-                variant="surface"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenCampaign();
-                }}
-                rightIcon={<ArrowRight className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
-                className="w-full text-xs font-bold py-1.5 justify-center"
-              >
-                Bản Đồ Chiến Dịch
-              </Button>
-            </div>
-          </Card>
-
-          {/* ========================================================================= */}
-          {/* PHẦN 3: TÙY CHỈNH NÂNG CAO (CONTAINER TIER 1 CHUẨN WEB) */}
-          {/* ========================================================================= */}
-          <Card
-            variant="container"
-            hoverable
-            clickable
-            onClick={onOpenCustomGameModal}
-            className="p-3 rounded-2xl border border-[var(--border-container)] bg-[var(--bg-container)] shadow-sm active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between landscape:h-full"
-          >
-            <div>
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--color-gold)] shadow-sm shrink-0">
-                  <Sliders className="w-5 h-5" />
-                </div>
-                <div>
-                  <h4 className="text-xs sm:text-sm font-bold text-[var(--text-primary)] leading-tight">
-                    Tùy Chỉnh Nâng Cao
-                  </h4>
-                  <p className="text-[10px] sm:text-[11px] text-[var(--text-muted)] mt-0.5">
-                    Sandbox • Tự do chọn đối thủ Bot &amp; 100% luật chơi
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-1 mt-2 pt-2 border-t border-[var(--border-container)]">
-                <span className="text-[10px] font-semibold text-[var(--text-secondary)]">
-                  Tùy Biến 100% Luật &amp; Đối Thủ
-                </span>
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-[var(--text-primary)] leading-tight">
+                  Chiến Dịch Cốt Truyện
+                </h4>
+                <p className="text-[10px] sm:text-[11px] text-[var(--text-muted)] mt-0.5">
+                  9 Chương • Từ Sới Bạc Xóm đến Sòng Bạc Đỉnh Cao
+                </p>
               </div>
             </div>
 
-            <div className="pt-2 mt-2 border-t border-[var(--border-container)]">
-              <Button
-                variant="surface"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenCustomGameModal();
-                }}
-                rightIcon={<ArrowRight className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
-                className="w-full text-xs font-bold py-1.5 justify-center"
-              >
-                Tùy Chỉnh
-              </Button>
+            <div className="flex flex-wrap items-center gap-1 mt-2 pt-2 border-t border-[var(--border-container)]">
+              <span className="text-[10px] font-semibold text-[var(--text-secondary)]">
+                Nhận Danh Hiệu &amp; Xu Thưởng
+              </span>
             </div>
-          </Card>
-        </div>
+          </div>
+
+          <div className="pt-2 mt-2 border-t border-[var(--border-container)]">
+            <Button
+              variant="surface"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenCampaign();
+              }}
+              rightIcon={<ArrowRight className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
+              className="w-full text-xs font-bold py-1.5 justify-center"
+            >
+              Bản Đồ Chiến Dịch
+            </Button>
+          </div>
+        </Card>
+
+        {/* ========================================================================= */}
+        {/* PHẦN 4: TÙY CHỈNH NÂNG CAO (CONTAINER TIER 1 CHUẨN WEB) */}
+        {/* ========================================================================= */}
+        <Card
+          variant="container"
+          hoverable
+          clickable
+          onClick={onOpenCustomGameModal}
+          className="p-3 sm:p-3.5 rounded-2xl border border-[var(--border-container)] bg-[var(--bg-container)] shadow-sm active:scale-[0.99] transition-all cursor-pointer flex flex-col justify-between landscape:w-[280px] sm:landscape:w-[300px] landscape:shrink-0 landscape:snap-start landscape:h-full"
+        >
+          <div>
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--color-gold)] shadow-sm shrink-0">
+                <Sliders className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-[var(--text-primary)] leading-tight">
+                  Tùy Chỉnh Nâng Cao
+                </h4>
+                <p className="text-[10px] sm:text-[11px] text-[var(--text-muted)] mt-0.5">
+                  Sandbox • Tự do chọn đối thủ Bot &amp; 100% luật chơi
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1 mt-2 pt-2 border-t border-[var(--border-container)]">
+              <span className="text-[10px] font-semibold text-[var(--text-secondary)]">
+                Tùy Biến 100% Luật &amp; Đối Thủ
+              </span>
+            </div>
+          </div>
+
+          <div className="pt-2 mt-2 border-t border-[var(--border-container)]">
+            <Button
+              variant="surface"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenCustomGameModal();
+              }}
+              rightIcon={<ArrowRight className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
+              className="w-full text-xs font-bold py-1.5 justify-center"
+            >
+              Tùy Chỉnh
+            </Button>
+          </div>
+        </Card>
       </main>
 
       {/* 4. BOTTOM NAVIGATION ACTION BAR CỐ ĐỊNH DƯỚI ĐÁY (ĐỒNG BỘ DESIGN SYSTEM WEB) */}

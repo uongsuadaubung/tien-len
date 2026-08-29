@@ -49,10 +49,34 @@ export const OnlineRoomStateSchema = z.object({
   players: z.array(OnlinePlayerSchema),
   status: RoomStatusSchema.default('WAITING'),
   disbandReason: z.string().nullable().default(null),
+  isPublic: z.boolean().default(true),
   updatedAt: z.number()
 });
 
 export type OnlineRoomState = z.infer<typeof OnlineRoomStateSchema>;
+
+// Tóm tắt thông tin phòng công khai phát thanh lên sảnh chờ
+export const PublicRoomSummarySchema = z.object({
+  roomCode: z.string(),
+  hostName: z.string(),
+  hostAvatar: z.string(),
+  hostElo: z.number(),
+  playerCount: z.number(),
+  maxPlayers: z.number(),
+  betAmount: z.number(),
+  settlementRule: GameSettlementRuleSchema,
+  choppingMultiplier: z.number(),
+  congEnabled: z.boolean(),
+  prohibitEndingWithTwo: z.boolean(),
+  allowFourPairsCutAnytime: z.boolean(),
+  threeSpadesEndingBonus: z.boolean(),
+  cascadeChopEnabled: z.boolean(),
+  status: RoomStatusSchema,
+  isPublic: z.boolean().default(true),
+  updatedAt: z.number()
+});
+
+export type PublicRoomSummary = z.infer<typeof PublicRoomSummarySchema>;
 
 // Gói tin hành động đánh bài của người chơi
 export const PlayerActionPacketSchema = z.object({

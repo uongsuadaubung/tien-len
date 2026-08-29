@@ -33,7 +33,8 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       prohibitEndingWithTwo: null,
       allowFourPairsCutAnytime: null,
       threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null
+      cascadeChopEnabled: null,
+      isPublic: true
     });
 
     const state = useOnlineStore.getState();
@@ -60,7 +61,8 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       prohibitEndingWithTwo: null,
       allowFourPairsCutAnytime: null,
       threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null
+      cascadeChopEnabled: null,
+      isPublic: true
     });
 
     useOnlineStore.getState().startMatch();
@@ -90,7 +92,8 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       prohibitEndingWithTwo: null,
       allowFourPairsCutAnytime: null,
       threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null
+      cascadeChopEnabled: null,
+      isPublic: true
     });
 
     useOnlineStore.getState().startMatch();
@@ -174,7 +177,8 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       prohibitEndingWithTwo: null,
       allowFourPairsCutAnytime: null,
       threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null
+      cascadeChopEnabled: null,
+      isPublic: true
     });
 
     // Ván 1 bắt đầu
@@ -220,7 +224,8 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       prohibitEndingWithTwo: null,
       allowFourPairsCutAnytime: null,
       threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null
+      cascadeChopEnabled: null,
+      isPublic: true
     });
 
     // Thêm guest p1 vào phòng
@@ -291,7 +296,8 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       prohibitEndingWithTwo: null,
       allowFourPairsCutAnytime: null,
       threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null
+      cascadeChopEnabled: null,
+      isPublic: true
     });
 
     const guestPlayer = {
@@ -372,7 +378,8 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       prohibitEndingWithTwo: null,
       allowFourPairsCutAnytime: null,
       threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null
+      cascadeChopEnabled: null,
+      isPublic: true
     });
 
     const guestPlayer = {
@@ -434,7 +441,8 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       prohibitEndingWithTwo: null,
       allowFourPairsCutAnytime: null,
       threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null
+      cascadeChopEnabled: null,
+      isPublic: true
     });
 
     const guestPlayer = {

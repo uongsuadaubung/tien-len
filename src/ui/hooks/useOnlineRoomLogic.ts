@@ -1,9 +1,9 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useOnlineStore } from '../../stores/useOnlineStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { useModalStore } from '../../stores/useModalStore';
 import { type GameSettlementRule, type PlayerCount } from '../../engine/types';
-import { type OnlineRoomState } from '../../engine/network/network.schema';
+import { type OnlineRoomState, type PublicRoomSummary } from '../../engine/network/network.schema';
 import { type PlayerProfile } from '../../engine/storage';
 import { type TableConfigState } from '../components/TableRulesConfigPanel';
 
@@ -44,7 +44,7 @@ export interface UseOnlineRoomLogicResult {
   roomState: OnlineRoomState | null;
   roomCode: string | null;
   isHost: boolean;
-  tab: 'CREATE' | 'JOIN';
+  tab: 'LOBBY' | 'CREATE';
   inputPin: string;
   rawPinDigits: string;
   tableConfig: TableConfigState;
@@ -55,8 +55,12 @@ export interface UseOnlineRoomLogicResult {
   copiedPin: boolean;
   canAffordBet: boolean;
   isRoomFull: boolean;
-  setTab: (tab: 'CREATE' | 'JOIN') => void;
+  isPublicRoom: boolean;
+  publicRooms: PublicRoomSummary[];
+  isLobbyLoading: boolean;
+  setTab: (tab: 'LOBBY' | 'CREATE') => void;
   setInputPin: (pin: string) => void;
+  setIsPublicRoom: (isPublic: boolean) => void;
   handleTableConfigChange: (updated: Partial<TableConfigState>) => void;
   setPlayerCount: (count: PlayerCount) => void;
   setBetAmount: (amount: number) => void;
@@ -69,33 +73,43 @@ export interface UseOnlineRoomLogicResult {
   handleKeypadClear: () => void;
   handleCreate: () => void;
   handleJoin: () => void;
+  handleJoinPublicRoom: (room: PublicRoomSummary) => void;
+  handleRefreshLobby: () => void;
   handleStartGame: () => void;
   handleLeave: () => void;
   handleAddBot: (slotIndex: number) => void;
   handleRemoveSlot: (slotIndex: number) => void;
   handleClose: () => void;
+  handleOpenBank: () => void;
 }
 
 export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
-  const { closeModal } = useModalStore();
+  const { openModal, closeModal } = useModalStore();
   const profile = useUserStore(s => s.profile);
 
   const {
     roomState,
     roomCode,
     isHost,
+    publicRooms,
+    isLobbyLoading,
     createRoom,
     joinRoom,
+    joinPublicRoom,
     addBotToSlot,
     removeSlot,
     startMatch,
-    leaveRoom
+    leaveRoom,
+    startBrowsingLobby,
+    stopBrowsingLobby,
+    refreshLobbyRooms
   } = useOnlineStore();
 
-  const [tab, setTab] = useState<'CREATE' | 'JOIN'>('CREATE');
+  const [tab, setTab] = useState<'LOBBY' | 'CREATE'>('LOBBY');
   const [inputPin, setInputPin] = useState<string>('');
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [copiedPin, setCopiedPin] = useState<boolean>(false);
+  const [isPublicRoom, setIsPublicRoom] = useState<boolean>(true);
 
   const [tableConfig, setTableConfig] = useState<TableConfigState>({
     playerCount: 4,
@@ -109,6 +123,19 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
     cascadeChopEnabled: true,
     instantWinEnabled: true
   });
+
+  // Tự động lắng nghe Sảnh Phòng khi ở tab LOBBY và chưa vào phòng
+  useEffect(() => {
+    if (tab === 'LOBBY' && roomState === null) {
+      startBrowsingLobby();
+    } else {
+      stopBrowsingLobby();
+    }
+
+    return () => {
+      stopBrowsingLobby();
+    };
+  }, [tab, roomState, startBrowsingLobby, stopBrowsingLobby]);
 
   const rawPinDigits = useMemo(() => {
     return inputPin.replace(/^TL-/i, '').replace(/[^0-9A-Z]/gi, '').slice(0, 4);
@@ -155,7 +182,6 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
       const text = await navigator.clipboard.readText();
       if (text !== null && text.trim().length > 0) {
         let cleaned = text.trim().toUpperCase();
-        // Extract TL-XXXX or XXXX if present in URL or string
         const match = cleaned.match(/TL-[A-Z0-9]{4}/i) || cleaned.match(/[A-Z0-9]{4}/i);
         if (match !== null) {
           cleaned = match[0].toUpperCase();
@@ -208,15 +234,24 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
       prohibitEndingWithTwo: tableConfig.prohibitEndingWithTwo ?? true,
       allowFourPairsCutAnytime: tableConfig.allowFourPairsCutAnytime ?? true,
       threeSpadesEndingBonus: tableConfig.threeSpadesEndingBonus ?? true,
-      cascadeChopEnabled: tableConfig.cascadeChopEnabled ?? true
+      cascadeChopEnabled: tableConfig.cascadeChopEnabled ?? true,
+      isPublic: isPublicRoom
     });
-  }, [createRoom, profile, tableConfig, currentSettlementRule]);
+  }, [createRoom, profile, tableConfig, currentSettlementRule, isPublicRoom]);
 
   const handleJoin = useCallback(() => {
     if (inputPin.trim().length === 0) return;
     const code = inputPin.toUpperCase().startsWith('TL-') ? inputPin.trim() : `TL-${inputPin.trim()}`;
     joinRoom(profile, code);
   }, [inputPin, joinRoom, profile]);
+
+  const handleJoinPublicRoom = useCallback((room: PublicRoomSummary) => {
+    joinPublicRoom(profile, room);
+  }, [joinPublicRoom, profile]);
+
+  const handleRefreshLobby = useCallback(() => {
+    refreshLobbyRooms();
+  }, [refreshLobbyRooms]);
 
   const handleStartGame = useCallback(() => {
     startMatch();
@@ -239,8 +274,14 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
     if (roomCode !== null) {
       leaveRoom();
     }
+    stopBrowsingLobby();
     closeModal('ONLINE_ROOM');
-  }, [roomCode, leaveRoom, closeModal]);
+  }, [roomCode, leaveRoom, stopBrowsingLobby, closeModal]);
+
+  const handleOpenBank = useCallback(() => {
+    handleClose();
+    openModal('BANK');
+  }, [handleClose, openModal]);
 
   return {
     profile,
@@ -258,8 +299,12 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
     copiedPin,
     canAffordBet,
     isRoomFull,
+    isPublicRoom,
+    publicRooms,
+    isLobbyLoading,
     setTab,
     setInputPin,
+    setIsPublicRoom,
     handleTableConfigChange,
     setPlayerCount,
     setBetAmount,
@@ -272,10 +317,13 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
     handleKeypadClear,
     handleCreate,
     handleJoin,
+    handleJoinPublicRoom,
+    handleRefreshLobby,
     handleStartGame,
     handleLeave,
     handleAddBot,
     handleRemoveSlot,
-    handleClose
+    handleClose,
+    handleOpenBank
   };
 }

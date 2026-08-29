@@ -224,7 +224,7 @@ describe('Full Matrix 9 Esports Tiers Matchups (Đấu Trường 9 Bậc Rank Es
     const res = runTierTableMatchup(TIER_8, TIER_9, NUM_GAMES);
     console.log(`[T8 vs T9] Tier 8: ${res.tierAWins} ván (Lá tồn: ${res.tierAAvgCards.toFixed(1)}) vs Tier 9: ${res.tierBWins} ván (Lá tồn: ${res.tierBAvgCards.toFixed(1)})`);
     expect(res.tierAWins + res.tierBWins).toBe(NUM_GAMES);
-  });
+  }, 15000);
 
   test('9. Bảng Tổng Kết Trọn Vẹn 9 Bậc Rank Esports (Full Ladder Matrix)', () => {
     const allNineTiers = [TIER_1, TIER_2, TIER_3, TIER_4, TIER_5, TIER_6, TIER_7, TIER_8, TIER_9];

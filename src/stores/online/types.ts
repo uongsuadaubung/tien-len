@@ -3,11 +3,14 @@ import {
   type OnlineRoomState, 
   type TableStateSyncPacket, 
   type GameEndPacket, 
-  type ChatPacket 
+  type ChatPacket,
+  type PublicRoomSummary 
 } from '../../engine/network/network.schema';
 import { HostEngineDriver } from '../../engine/network/host-engine-driver';
 import { type GameSettlementRule } from '../../engine/types';
 import { type PlayerProfile } from '../../engine/storage';
+
+export type { PublicRoomSummary };
 
 export interface CreateRoomOptions {
   betAmount: number;
@@ -19,6 +22,7 @@ export interface CreateRoomOptions {
   allowFourPairsCutAnytime: boolean | null;
   threeSpadesEndingBonus: boolean | null;
   cascadeChopEnabled: boolean | null;
+  isPublic: boolean | null;
 }
 
 export interface OnlineDisbandNotice {
@@ -34,15 +38,22 @@ export interface RoomSliceState {
   myPlayerId: string;
   connectionStatus: 'IDLE' | 'CONNECTING' | 'CONNECTED' | 'DISCONNECTED';
   disbandNotice: OnlineDisbandNotice | null;
+  publicRooms: PublicRoomSummary[];
+  isBrowsingLobby: boolean;
+  isLobbyLoading: boolean;
 }
 
 export interface RoomSliceActions {
   createRoom: (profile: PlayerProfile, options: CreateRoomOptions) => void;
   joinRoom: (profile: PlayerProfile, roomCode: string) => void;
+  joinPublicRoom: (profile: PlayerProfile, room: PublicRoomSummary) => void;
   addBotToSlot: (slotIdx: number) => void;
   removeSlot: (slotIdx: number) => void;
   clearDisbandNotice: () => void;
   leaveRoom: () => void;
+  startBrowsingLobby: () => void;
+  stopBrowsingLobby: () => void;
+  refreshLobbyRooms: () => void;
 }
 
 export interface MatchSliceState {

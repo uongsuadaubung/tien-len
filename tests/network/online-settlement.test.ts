@@ -54,7 +54,8 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
       prohibitEndingWithTwo: null,
       allowFourPairsCutAnytime: null,
       threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null
+      cascadeChopEnabled: null,
+      isPublic: true
     });
 
     useOnlineStore.getState().startMatch();
@@ -105,7 +106,8 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
       prohibitEndingWithTwo: null,
       allowFourPairsCutAnytime: null,
       threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null
+      cascadeChopEnabled: null,
+      isPublic: true
     });
 
     useOnlineStore.getState().startMatch();
@@ -207,7 +209,8 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
       prohibitEndingWithTwo: null,
       allowFourPairsCutAnytime: null,
       threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null
+      cascadeChopEnabled: null,
+      isPublic: true
     });
 
     useOnlineStore.getState().startMatch();
@@ -253,7 +256,8 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
       prohibitEndingWithTwo: null,
       allowFourPairsCutAnytime: null,
       threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null
+      cascadeChopEnabled: null,
+      isPublic: true
     });
 
     const brokeGuest = {
@@ -330,5 +334,44 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     expect(state.disbandNotice?.message).toContain('800 Xu');
     expect(state.disbandNotice?.message).toContain(`${(5000).toLocaleString()} Xu/lá`);
   });
+
+  it('7. Khách (Guest p1) về Nhất, Host (p0) về Nhì: Đảm bảo gameStore.winners của Guest bảo toàn đúng thứ tự [p1, p0], không bị đảo ngược', () => {
+    const profile = useUserStore.getState().profile;
+    useOnlineStore.getState().joinRoom(profile, 'TL-1234');
+
+    // Khởi tạo players trong GameStore với p0 đứng trước p1
+    const p0 = createPlayer({ id: 'p0', name: 'Chủ Bàn Heo Bích', avatar: '🤠', score: 50000 });
+    const p1 = createPlayer({ id: 'p1', name: 'Khách Thắng Trận', avatar: '😎', score: 50000 });
+    useGameStore.setState({
+      players: [p0, p1],
+      myPlayerId: 'p1', // Người chơi hiện tại là Khách p1
+      winners: []
+    });
+
+    const endPacket = {
+      winners: ['p1', 'p0'], // p1 về Nhất, p0 về Nhì
+      payouts: { p1: 7000, p0: -7000 },
+      eloDeltas: { p1: 25, p0: -25 },
+      allPlayerHands: {
+        p0: [createCard(3, 'SPADES'), createCard(4, 'SPADES')],
+        p1: []
+      }
+    };
+
+    // Giả lập Guest nhận GameEndPacket
+    const gameEndHandlers = (globalP2PClient as unknown as { onGameEndCallbacks: Array<(p: typeof endPacket) => void> }).onGameEndCallbacks;
+    gameEndHandlers.forEach(h => h(endPacket));
+
+    const gameStore = useGameStore.getState();
+    expect(gameStore.isGameOver).toBe(true);
+    expect(gameStore.winners.length).toBe(2);
+    // Vị trí 0 BẮT BUỘC phải là p1 (Khách Thắng Trận)
+    expect(gameStore.winners[0].id).toBe('p1');
+    expect(gameStore.winners[0].name).toBe('Khách Thắng Trận');
+    // Vị trí 1 BẮT BUỘC phải là p0 (Chủ Bàn Heo Bích)
+    expect(gameStore.winners[1].id).toBe('p0');
+    expect(gameStore.winners[1].name).toBe('Chủ Bàn Heo Bích');
+  });
 });
+
 

@@ -1,4 +1,5 @@
 import { globalP2PClient } from '../../engine/network/p2p-client';
+import { globalLobbyDiscoveryClient } from '../../engine/network/lobby-discovery';
 import { type OnlineRoomState } from '../../engine/network/network.schema';
 import { HostEngineDriver } from '../../engine/network/host-engine-driver';
 import { useGameStore } from '../useGameStore';
@@ -20,6 +21,7 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
   gameEndSummary: null,
 
   startMatch: () => {
+    globalLobbyDiscoveryClient.stopBroadcasting();
     const current = get().roomState;
     if (!current || !get().isHost) return;
 

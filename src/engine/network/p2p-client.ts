@@ -14,7 +14,7 @@ export const APP_ID = 'tien-len-online-p2p-v1';
 
 export const PUBLIC_ICE_SERVERS: RTCIceServer[] = [
   { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' }
+  { urls: 'stun:stun.cloudflare.com:3478' }
 ];
 
 export type MessageHandler<T> = (data: T, peerId: string) => void;

@@ -1,10 +1,12 @@
 import { globalP2PClient } from '../../engine/network/p2p-client';
+import { globalLobbyDiscoveryClient } from '../../engine/network/lobby-discovery';
 import { 
   type OnlineRoomState, 
   type OnlinePlayer,
   type TableStateSyncPacket,
   type DealHandPacket,
-  type GameEndPacket
+  type GameEndPacket,
+  type PublicRoomSummary
 } from '../../engine/network/network.schema';
 import { createCard } from '../../engine/card';
 import { identifyCombination } from '../../engine/combinations';
@@ -35,6 +37,34 @@ function generateRoomPin(): string {
   return `TL-${pin}`;
 }
 
+function syncLobbyBroadcast(roomState: OnlineRoomState): void {
+  if (!roomState.isPublic || roomState.status !== 'WAITING') {
+    globalLobbyDiscoveryClient.stopBroadcasting();
+    return;
+  }
+  const host = roomState.players.find(p => p.isHost) || roomState.players[0];
+  const summary: PublicRoomSummary = {
+    roomCode: roomState.roomCode,
+    hostName: host?.name || 'Chủ Bàn',
+    hostAvatar: host?.avatar || '🤠',
+    hostElo: host?.elo || 1000,
+    playerCount: roomState.players.length,
+    maxPlayers: roomState.playerCount,
+    betAmount: roomState.betAmount,
+    settlementRule: roomState.settlementRule,
+    choppingMultiplier: roomState.choppingMultiplier,
+    congEnabled: roomState.congEnabled,
+    prohibitEndingWithTwo: roomState.prohibitEndingWithTwo,
+    allowFourPairsCutAnytime: roomState.allowFourPairsCutAnytime,
+    threeSpadesEndingBonus: roomState.threeSpadesEndingBonus,
+    cascadeChopEnabled: roomState.cascadeChopEnabled,
+    status: roomState.status,
+    isPublic: roomState.isPublic,
+    updatedAt: Date.now()
+  };
+  globalLobbyDiscoveryClient.updateBroadcast(summary);
+}
+
 export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
   isOnlineMatch: false,
   isHost: false,
@@ -43,10 +73,39 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
   myPlayerId: 'p0',
   connectionStatus: 'IDLE',
   disbandNotice: null,
+  publicRooms: [],
+  isBrowsingLobby: false,
+  isLobbyLoading: false,
+
+  startBrowsingLobby: () => {
+    set({ isBrowsingLobby: true, isLobbyLoading: true });
+    globalLobbyDiscoveryClient.startListening((rooms) => {
+      set({ publicRooms: rooms, isLobbyLoading: false });
+    });
+  },
+
+  stopBrowsingLobby: () => {
+    globalLobbyDiscoveryClient.stopListening();
+    set({ isBrowsingLobby: false, isLobbyLoading: false });
+  },
+
+  refreshLobbyRooms: () => {
+    set({ isLobbyLoading: true });
+    globalLobbyDiscoveryClient.requestRoomList();
+    setTimeout(() => {
+      set({ isLobbyLoading: false });
+    }, 400);
+  },
+
+  joinPublicRoom: (profile, room) => {
+    get().stopBrowsingLobby();
+    get().joinRoom(profile, room.roomCode);
+  },
 
   createRoom: (profile, options) => {
     const roomCode = generateRoomPin();
     const selfPeerId = globalP2PClient.selfPeerId;
+    const isPublic = options.isPublic ?? true;
 
     const hostPlayer: OnlinePlayer = {
       peerId: selfPeerId,
@@ -75,10 +134,16 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       players: [hostPlayer],
       status: 'WAITING',
       disbandReason: null,
+      isPublic,
       updatedAt: Date.now()
     };
 
     globalP2PClient.join(roomCode);
+
+    // Bắt đầu phát thanh phòng công khai
+    if (isPublic) {
+      syncLobbyBroadcast(initialRoomState);
+    }
 
     // Host lắng nghe yêu cầu tham gia của các máy khách
     globalP2PClient.onJoinRequest((incomingPlayer, peerId) => {
@@ -112,6 +177,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
 
       set({ roomState: updatedState });
       void globalP2PClient.broadcastRoomState(updatedState);
+      syncLobbyBroadcast(updatedState);
     });
 
     // Host lắng nghe người chơi thoát phòng (Peer Leave)
@@ -135,6 +201,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         };
         set({ roomState: updatedRoom });
         void globalP2PClient.broadcastRoomState(updatedRoom);
+        syncLobbyBroadcast(updatedRoom);
       }
     });
 
@@ -410,7 +477,9 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       if (sync.isGameOver) {
         gameStore.setIsGameOver(true);
         if (sync.winners.length > 0) {
-          const winningPlayers = gameStore.players.filter(p => sync.winners.includes(p.id));
+          const winningPlayers = sync.winners
+            .map(id => gameStore.players.find(p => p.id === id))
+            .filter((p): p is Player => p !== undefined && p !== null);
           gameStore.setWinners(winningPlayers);
         }
         useModalStore.getState().openModal('VICTORY');
@@ -430,14 +499,11 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       gameStore.setLastEloDelta(myEloDelta);
       gameStore.setAllEloDeltas(endPacket.eloDeltas);
       gameStore.setIsGameOver(true);
-      if (endPacket.winners.length > 0) {
-        const winningPlayers = gameStore.players.filter(p => endPacket.winners.includes(p.id));
-        gameStore.setWinners(winningPlayers);
-      }
 
       // Tiết lộ bài tàn cuộc của đối thủ
+      let updatedPlayers = gameStore.players;
       if (endPacket.allPlayerHands) {
-        const currentPlayers = gameStore.players.map(p => {
+        updatedPlayers = gameStore.players.map(p => {
           const remoteCards = endPacket.allPlayerHands[p.id];
           if (remoteCards && p.id !== myId) {
             return {
@@ -447,8 +513,17 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
           }
           return p;
         });
-        gameStore.setPlayers(currentPlayers);
+        gameStore.setPlayers(updatedPlayers);
       }
+
+      if (endPacket.winners.length > 0) {
+        const winningPlayers = endPacket.winners
+          .map(id => updatedPlayers.find(p => p.id === id))
+          .filter((p): p is Player => p !== undefined && p !== null);
+        gameStore.setWinners(winningPlayers);
+      }
+
+      useModalStore.getState().openModal('VICTORY');
 
       // Cập nhật Profile cho Client/Guest
       const userStore = useUserStore.getState();
@@ -552,6 +627,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
 
     set({ roomState: updatedState });
     void globalP2PClient.broadcastRoomState(updatedState);
+    syncLobbyBroadcast(updatedState);
   },
 
   removeSlot: (slotIdx: number) => {
@@ -567,6 +643,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
 
     set({ roomState: updatedState });
     void globalP2PClient.broadcastRoomState(updatedState);
+    syncLobbyBroadcast(updatedState);
   },
 
   clearDisbandNotice: () => {
@@ -574,6 +651,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
   },
 
   leaveRoom: () => {
+    globalLobbyDiscoveryClient.stopBroadcasting();
     const { isHost, hostDriver, roomState } = get();
     if (isHost && hostDriver && roomState && roomState.status !== 'DISBANDED') {
       hostDriver.disbandRoom('Chủ phòng đã giải tán bàn chơi.');
