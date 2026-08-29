@@ -47,11 +47,12 @@ function simulateMatchup(
     }
 
     let loopCount = 0;
-    const MAX_LOOPS = 400;
+    const MAX_LOOPS = 600;
 
     while (!game.isGameOver && loopCount < MAX_LOOPS) {
       loopCount++;
       const currentTurnPlayer = game.getCurrentPlayer();
+      if (!currentTurnPlayer) break;
       const botObj = botConfigs.find(b => b.id === currentTurnPlayer.id)!;
       const tracker = trackers[currentTurnPlayer.id];
 
@@ -73,6 +74,11 @@ function simulateMatchup(
 
     if (game.winners.length > 0) {
       winCounts[game.winners[0].id]++;
+    } else {
+      const sortedByHand = [...game.players].sort((a, b) => a.hand.length - b.hand.length);
+      if (sortedByHand.length > 0) {
+        winCounts[sortedByHand[0].id]++;
+      }
     }
 
     for (const p of game.players) {

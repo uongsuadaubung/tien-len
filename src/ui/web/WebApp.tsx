@@ -10,11 +10,10 @@ import { CampaignChapter } from '../../engine/campaign';
 import { PlayerProfile } from '../../engine/storage';
 import { useModalStore } from '../../stores/useModalStore';
 import { useGameStore } from '../../stores/useGameStore';
-import { useUserStore } from '../../stores/useUserStore';
 
 export interface WebAppProps {
-  engineRef: React.MutableRefObject<GameEngine | null>;
-  trackersRef: React.MutableRefObject<{ [playerId: string]: CardTracker }>;
+  engineRef: React.RefObject<GameEngine | null>;
+  trackersRef: React.RefObject<{ [playerId: string]: CardTracker }>;
   profile: PlayerProfile;
   campaignResultMeta: {
     isUnlockedNext: boolean;
@@ -23,6 +22,7 @@ export interface WebAppProps {
     currentWins: number;
   } | null;
   startNewGame: (nextGameNumber: number, options?: { playerCount?: number; campaignChapter?: CampaignChapter }) => void;
+  handleNextGame: () => void;
   handlePlaySelectedCards: () => void;
   handlePassTurn: () => void;
   handleAutoSort: () => void;
@@ -43,7 +43,7 @@ export const WebApp: React.FC<WebAppProps> = ({
   trackersRef,
   profile,
   campaignResultMeta,
-  startNewGame,
+  handleNextGame,
   handlePlaySelectedCards,
   handlePassTurn,
   handleAutoSort,
@@ -58,7 +58,7 @@ export const WebApp: React.FC<WebAppProps> = ({
   handleStartCampaignChapter
 }) => {
   const { openModal, closeModal } = useModalStore();
-  const { currentScreen, activeGameType, gameNumber, gameSettings } = useGameStore();
+  const { currentScreen } = useGameStore();
 
   return (
     <>
@@ -101,26 +101,7 @@ export const WebApp: React.FC<WebAppProps> = ({
           closeModal('VICTORY');
           openModal('CAMPAIGN');
         }}
-        onNextGame={() => {
-          closeModal('VICTORY');
-          const betAmount = gameSettings.betAmount || 0;
-          const liveCoins = useUserStore.getState().profile.coins;
-          if (activeGameType !== 'CAMPAIGN' && betAmount > 0 && liveCoins < betAmount) {
-            openModal('BANK');
-            return;
-          }
-
-          if (activeGameType === 'CAMPAIGN') {
-            if (campaignResultMeta?.isUnlockedNext && campaignResultMeta.nextChapter) {
-              startNewGame(1, { campaignChapter: campaignResultMeta.nextChapter });
-            } else {
-              startNewGame(gameNumber + 1);
-            }
-          } else {
-            // Ván tiếp theo trong bàn, người về Nhất ván trước được quyền đi trước
-            startNewGame(gameNumber + 1);
-          }
-        }}
+        onNextGame={handleNextGame}
         onReturnToLobby={() => {
           closeModal('VICTORY');
           handleReturnToLobby();

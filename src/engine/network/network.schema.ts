@@ -31,7 +31,7 @@ export const OnlinePlayerSchema = z.object({
 
 export type OnlinePlayer = z.infer<typeof OnlinePlayerSchema>;
 
-export const RoomStatusSchema = z.enum(['WAITING', 'STARTING', 'PLAYING', 'ENDED']);
+export const RoomStatusSchema = z.enum(['WAITING', 'STARTING', 'PLAYING', 'ENDED', 'DISBANDED']);
 export type RoomStatus = z.infer<typeof RoomStatusSchema>;
 
 export const OnlineRoomStateSchema = z.object({
@@ -48,6 +48,7 @@ export const OnlineRoomStateSchema = z.object({
   cascadeChopEnabled: z.boolean().default(true),
   players: z.array(OnlinePlayerSchema),
   status: RoomStatusSchema.default('WAITING'),
+  disbandReason: z.string().nullable().default(null),
   updatedAt: z.number()
 });
 
@@ -82,7 +83,8 @@ export const TableStateSyncPacketSchema = z.object({
   remainingCardCounts: z.record(z.string(), z.number()),
   winners: z.array(z.string()),
   isGameOver: z.boolean(),
-  lastActionMessage: z.string().optional()
+  lastActionMessage: z.string().optional(),
+  gameNumber: z.number().default(1)
 });
 
 export type TableStateSyncPacket = z.infer<typeof TableStateSyncPacketSchema>;
@@ -108,3 +110,13 @@ export const ChatPacketSchema = z.object({
 });
 
 export type ChatPacket = z.infer<typeof ChatPacketSchema>;
+
+// Gói tin bỏ phiếu sẵn sàng / chơi lại ván mới P2P
+export const RematchVotePacketSchema = z.object({
+  playerId: z.string(),
+  isReady: z.boolean(),
+  timestamp: z.number()
+});
+
+export type RematchVotePacket = z.infer<typeof RematchVotePacketSchema>;
+

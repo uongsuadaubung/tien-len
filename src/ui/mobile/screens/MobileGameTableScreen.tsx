@@ -1,6 +1,5 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState } from 'react';
 import { GameEngine } from '../../../engine/game';
-import { isValidMove } from '../../../engine/validator';
 import { getBotConfig } from '../../../ai/bot-factory';
 import { BotSeat } from '../../components/BotSeat';
 import { TableCenter } from '../../components/TableCenter';
@@ -10,8 +9,7 @@ import { BotReasoningHUD } from '../../web/components/BotReasoningHUD';
 import { MobileMatchHUDDrawer } from '../components/MobileMatchHUDDrawer';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { lockToLandscape } from '../../utils/fullscreen';
-import { getSortedQuickSelectCandidates, getNextQuickSelectCards } from '../../../engine/quick-response-finder';
-import { soundManager } from '../../audio/sound-manager';
+import { useGameTableScreenLogic } from '../../hooks/useGameTableScreenLogic';
 
 // Stores
 import { useModalStore } from '../../../stores/useModalStore';
@@ -31,7 +29,7 @@ import {
 import { Badge } from '../../primitives';
 
 export interface MobileGameTableScreenProps {
-  engineRef: React.MutableRefObject<GameEngine | null>;
+  engineRef: React.RefObject<GameEngine | null>;
   onPlaySelectedCards: () => void;
   onPassTurn: () => void;
   onAutoSort: () => void;
@@ -64,10 +62,8 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
   } = useSettingsStore();
 
   const {
+    myPlayerId,
     gameSettings,
-    playerCount,
-    botPersonaIds,
-    customBotConfigs,
     gameNumber,
     isDealing,
     dealtCounts,
@@ -79,89 +75,38 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
     leadPlayerId,
     currentMove,
     selectedCardIds,
-    currentHint,
     handSortMode,
     smartVariantIndex,
     botThinkingThought,
-    setSelectedCardIds,
     toggleCardSelect,
     clearCardSelection
   } = useGameStore();
 
-  // Phân bổ ghế người chơi
-  const p0 = players[0];
-  const p1 = players[1]; // Bot 1 (Trái hoặc Trên nếu solo 1v1)
-  const p2 = players[2]; // Bot 2 (Trên nếu bàn 3-4 người)
-  const p3 = players[3]; // Bot 3 (Phải nếu bàn 4 người)
-
-  const isP0Turn = currentTurnPlayerId === 'p0';
-  const selectedCards = p0 ? p0.hand.filter(c => selectedCardIds.has(c.id)) : [];
-  const isValidPlaySelection =
-    isP0Turn &&
-    selectedCards.length > 0 &&
-    isValidMove({
-      cards: selectedCards,
-      target: currentMove?.combination || null,
-      isFirstMoveOfGame: engineRef.current?.isFirstMoveOfGame ?? false,
-      isLeadMove: engineRef.current?.isRoundLeadMove() ?? true,
-      hasPassedRound: p0?.isPassedCurrentRound ?? false,
-      allowFourPairsCutAnytime: engineRef.current?.rules.chopping.allowFourPairsCutAnytime ?? true,
-      isFinishingMove: selectedCards.length === (p0?.hand.length ?? 0),
-      prohibitEndingWithTwo: engineRef.current?.rules.gameFlow.prohibitEndingWithTwo ?? true
-    }).valid;
-
-  const canP0Pass =
-    isP0Turn &&
-    !isDealing &&
-    !(engineRef.current?.isFirstMoveOfGame ?? false) &&
-    !(engineRef.current?.isRoundLeadMove() ?? true);
-
-  // Danh sách các phương án Chọn Nhanh (Bắt Bài)
-  const quickSelectCandidates = useMemo(() => {
-    if (!engineRef.current || !isP0Turn || !p0 || p0.hand.length === 0) return [];
-    const engine = engineRef.current;
-    return getSortedQuickSelectCandidates({
-      hand: p0.hand,
-      leadingMove: engine.getLeadingMove(),
-      isLeadMove: engine.isRoundLeadMove(),
-      isFirstMoveOfGame: engine.isFirstMoveOfGame,
-      allowFourPairsCutAnytime: engine.rules.chopping.allowFourPairsCutAnytime,
-      prohibitEndingWithTwo: engine.rules.gameFlow.prohibitEndingWithTwo
-    });
-  }, [isP0Turn, p0, currentMove]);
-
-  const canQuickSelect = isP0Turn && !isDealing && quickSelectCandidates.length > 0;
-
-  const handleQuickSelect = useCallback(() => {
-    if (!engineRef.current || !isP0Turn || !p0 || p0.hand.length === 0) return;
-    const engine = engineRef.current;
-
-    const nextCards = getNextQuickSelectCards(
-      {
-        hand: p0.hand,
-        leadingMove: engine.getLeadingMove(),
-        isLeadMove: engine.isRoundLeadMove(),
-        isFirstMoveOfGame: engine.isFirstMoveOfGame,
-        allowFourPairsCutAnytime: engine.rules.chopping.allowFourPairsCutAnytime,
-        prohibitEndingWithTwo: engine.rules.gameFlow.prohibitEndingWithTwo
-      },
-      selectedCardIds
-    );
-
-    if (nextCards && nextCards.length > 0) {
-      setSelectedCardIds(new Set(nextCards.map(c => c.id)));
-      soundManager.playCardDeal();
-    }
-  }, [isP0Turn, p0, selectedCardIds, setSelectedCardIds]);
-
-  // Phân bổ ghế đối thủ
-  const isSolo1v1 = playerCount === 2;
-  const topBot = isSolo1v1 ? p1 : (playerCount >= 3 ? p2 : null);
-  const leftBot = isSolo1v1 ? null : p1;
-  const rightBot = playerCount >= 4 ? p3 : null;
-
-  const topBotPersonaId = isSolo1v1 ? botPersonaIds[0] : botPersonaIds[1];
-  const topBotCustomConfig = isSolo1v1 ? customBotConfigs[0] : customBotConfigs[1];
+  const {
+    isOnlineMatch,
+    p0,
+    isMyTurn,
+    playerCount,
+    botPersonaIds,
+    customBotConfigs,
+    isValidPlaySelection,
+    canP0Pass,
+    topBot,
+    leftBot,
+    rightBot,
+    topBotPersonaId,
+    topBotCustomConfig,
+    quickSelectCandidates,
+    canQuickSelect,
+    currentHint,
+    handleQuickSelect,
+    handlePlayCards,
+    handlePassTurnAction
+  } = useGameTableScreenLogic({
+    engineRef,
+    onPlaySelectedCards,
+    onPassTurn
+  });
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[radial-gradient(ellipse_at_center,#141926_0%,#090c12_100%)] flex flex-col justify-between select-none">
@@ -291,7 +236,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
         )}
 
         {/* BONG BÓNG CHAT TRỢ LÝ AI NỔI TRÊN SÀN ĐẤU (CHỈ NHẮC NHỞ CHIẾN THUẬT KHI BẬT TÍNH NĂNG & ĐẾN LƯỢT) */}
-        {aiHintEnabled && isP0Turn && !isDealing && currentHint && dismissedHintTitle !== currentHint.title && (
+        {aiHintEnabled && isMyTurn && !isDealing && currentHint && dismissedHintTitle !== currentHint.title && (
           <div 
             className="absolute top-2 left-2 z-40 max-w-[270px] sm:max-w-[300px] bg-[#0e1424] border-2 border-amber-400/60 rounded-2xl p-2.5 shadow-2xl animate-fade-in flex items-start gap-2.5 select-none"
           >
@@ -323,7 +268,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
           {topBot && (
             <BotSeat
               player={topBot}
-              botConfig={getBotConfig(topBotPersonaId, topBotCustomConfig)}
+              botConfig={getBotConfig(topBotPersonaId, topBotCustomConfig || undefined)}
               isCurrentTurn={!isDealing && currentTurnPlayerId === topBot.id}
               position="top"
               isLeader={leadPlayerId === topBot.id}
@@ -342,7 +287,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
             {leftBot ? (
               <BotSeat
                 player={leftBot}
-                botConfig={getBotConfig(botPersonaIds[0], customBotConfigs[0])}
+                botConfig={getBotConfig(botPersonaIds[0], customBotConfigs[0] || undefined)}
                 isCurrentTurn={!isDealing && currentTurnPlayerId === leftBot.id}
                 position="left"
                 isLeader={leadPlayerId === leftBot.id}
@@ -375,11 +320,11 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
               />
             )}
 
-            {/* Bài đã đánh & Thông báo chặt đẹp */}
+            {/* Trung Tâm Bàn Tròn: Bài đã đánh & Thông báo chặt đẹp */}
             <div className="relative z-20 w-full flex justify-center overflow-visible">
               <TableCenter
                 currentMove={currentMove}
-                isLeadMove={engineRef.current?.isRoundLeadMove() ?? true}
+                isLeadMove={isOnlineMatch ? (currentMove === null || leadPlayerId === myPlayerId) : (engineRef.current?.isRoundLeadMove() ?? true)}
                 chopNotification={chopNotification}
                 isDealing={isDealing}
                 cardSize="table"
@@ -392,7 +337,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
             {rightBot ? (
               <BotSeat
                 player={rightBot}
-                botConfig={getBotConfig(botPersonaIds[2], customBotConfigs[2])}
+                botConfig={getBotConfig(botPersonaIds[2], customBotConfigs[2] || undefined)}
                 isCurrentTurn={!isDealing && currentTurnPlayerId === rightBot.id}
                 position="right"
                 isLeader={leadPlayerId === rightBot.id}
@@ -415,19 +360,19 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
               selectedCardIds={selectedCardIds}
               onToggleCardSelect={toggleCardSelect}
               onClearCardSelection={clearCardSelection}
-              onPlaySelectedCards={onPlaySelectedCards}
-              onPassTurn={onPassTurn}
+              onPlaySelectedCards={handlePlayCards}
+              onPassTurn={handlePassTurnAction}
               onAutoSort={onAutoSort}
               onQuickSelect={quickResponseAssistEnabled ? handleQuickSelect : null}
               canQuickSelect={quickResponseAssistEnabled ? canQuickSelect : false}
               quickSelectCandidatesCount={quickSelectCandidates.length}
-              isCurrentTurn={isP0Turn}
+              isCurrentTurn={isMyTurn}
               canPlay={isValidPlaySelection}
               canPass={canP0Pass}
-              isLeader={leadPlayerId === 'p0'}
+              isLeader={leadPlayerId === myPlayerId}
               isDealing={isDealing}
-              dealtCardsCount={dealtCounts['p0']}
-              isFirstMoveOfGame={engineRef.current?.isFirstMoveOfGame ?? false}
+              dealtCardsCount={dealtCounts[myPlayerId]}
+              isFirstMoveOfGame={isOnlineMatch ? false : (engineRef.current?.isFirstMoveOfGame ?? false)}
               sortMode={handSortMode}
               variantIndex={smartVariantIndex}
               cardSize="mobile"

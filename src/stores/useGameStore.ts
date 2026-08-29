@@ -19,7 +19,7 @@ import { MatchLogReport } from '../engine/match-logger';
 import { createPlayer, createBotPlayer } from '../engine/player-factory';
 import { dbSaveQuickTableConfig } from '../engine/db/indexed-db';
 
-export type ActiveGameType = 'QUICK' | 'CAMPAIGN';
+export type ActiveGameType = 'QUICK' | 'CAMPAIGN' | 'ONLINE';
 export type ScreenType = 'LOBBY' | 'GAME_TABLE';
 
 export type HandSortMode = 'NATURAL' | 'SMART_GROUP';
@@ -36,6 +36,7 @@ export interface ChopNotificationData {
 interface GameState {
   currentScreen: ScreenType;
   activeGameType: ActiveGameType;
+  myPlayerId: string;
   playerCount: number;
   botPersonaIds: BotPersonaIdTuple;
   customBotConfigs: CustomBotConfigTuple<BotConfig>;
@@ -81,6 +82,7 @@ interface GameState {
   // Actions
   setCurrentScreen: (screen: ScreenType) => void;
   setActiveGameType: (type: ActiveGameType) => void;
+  setMyPlayerId: (id: string) => void;
   setPlayerCount: (count: number) => void;
   setBotPersonaIds: (ids: [string, string, string]) => void;
   updateBotPersonaAt: (index: number, personaId: string) => void;
@@ -158,6 +160,7 @@ export const DEFAULT_QUICK_TABLE_CONFIG: QuickTableConfig = QuickTableConfigSche
 export const useGameStore = create<GameState>((set) => ({
   currentScreen: 'LOBBY',
   activeGameType: 'QUICK',
+  myPlayerId: 'p0',
   playerCount: 4,
   botPersonaIds: ['BOT_ELO_850', 'BOT_ELO_1150', 'BOT_ELO_1450'],
   customBotConfigs: [{}, {}, {}],
@@ -197,6 +200,7 @@ export const useGameStore = create<GameState>((set) => ({
 
   setCurrentScreen: (screen) => set({ currentScreen: screen }),
   setActiveGameType: (type) => set({ activeGameType: type }),
+  setMyPlayerId: (id) => set({ myPlayerId: id }),
   setPlayerCount: (count) => set({ playerCount: count }),
   setBotPersonaIds: (ids) => set({ botPersonaIds: ids }),
   updateBotPersonaAt: (index, personaId) => set((state) => ({
@@ -276,6 +280,11 @@ export const useGameStore = create<GameState>((set) => ({
   setAllEloDeltas: (deltas) => set({ allEloDeltas: deltas }),
   setMatchLogReport: (report) => set({ matchLogReport: report }),
   resetMatchState: () => set({
+    currentScreen: 'LOBBY',
+    activeGameType: 'QUICK',
+    myPlayerId: 'p0',
+    gameNumber: 1,
+    players: DEFAULT_PLAYERS,
     isDealing: false,
     dealtCounts: {},
     dealBanner: null,

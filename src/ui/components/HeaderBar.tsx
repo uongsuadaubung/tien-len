@@ -4,8 +4,7 @@ import { Settings, Eye, Volume2, VolumeX, Home, BookOpen, Maximize, Minimize } f
 import { getRankTierByElo } from '../../engine/elo';
 import { Button, Badge } from '../primitives';
 import { isFullScreen, toggleFullScreen } from '../utils/fullscreen';
-
-export type ActiveGameType = 'QUICK' | 'CAMPAIGN';
+import { ActiveGameType } from '../../stores/useGameStore';
 
 interface HeaderBarProps {
   gameNumber: number;
@@ -56,10 +55,11 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
     };
   }, []);
 
-  const modeBadgeText = {
+  const modeBadgeText: Record<ActiveGameType, string> = {
     QUICK: 'Chơi Nhanh',
-    CAMPAIGN: 'Chiến Dịch'
-  }[activeGameType];
+    CAMPAIGN: 'Chiến Dịch',
+    ONLINE: 'Đấu Phòng P2P'
+  };
 
   return (
     <header className="relative z-40 w-full flex items-center justify-between px-3 sm:px-6 py-2.5 bg-[var(--bg-container)] border-b border-[var(--border-container)] shadow-md">
@@ -84,7 +84,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
               TIẾN LÊN MIỀN NAM
             </h1>
             <Badge variant="gold" size="sm">
-              {modeBadgeText}
+              {modeBadgeText[activeGameType]}
             </Badge>
           </div>
         </div>

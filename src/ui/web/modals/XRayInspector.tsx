@@ -4,6 +4,7 @@ import { ALL_RANKS, ALL_SUITS, RANK_NAMES, SUIT_SYMBOLS, createCard, isRedCard }
 import { CardTracker } from '../../../ai/card-tracker';
 import { MoveHint } from '../../../ai/hint-engine';
 import { Eye, ShieldAlert, Sparkles, X, BrainCircuit, CheckCircle2 } from 'lucide-react';
+import { useGameStore } from '../../../stores/useGameStore';
 
 interface XRayInspectorProps {
   isOpen: boolean;
@@ -110,20 +111,26 @@ export const XRayInspector: React.FC<XRayInspectorProps> = ({
               <span>Bản Đồ Điểm Mù Đối Thủ (Bộ bài từng Bỏ Lượt)</span>
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {Object.entries(opponentBlindspots).map(([playerId, weaknesses]) => (
-                <div key={playerId} className="bg-neutral-900/80 p-2.5 rounded-xl border border-neutral-700 text-xs">
-                  <span className="font-bold text-yellow-300 block mb-1">
-                    {playerId === 'p0' ? 'Bạn' : playerId === 'p1' ? 'Bé Năm' : playerId === 'p2' ? 'Chú Bảy' : 'Cô Ba'}
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {weaknesses.map((w, idx) => (
-                      <span key={idx} className="bg-red-950/60 text-red-300 px-1.5 py-0.5 rounded text-[10px] border border-red-500/30">
-                        {w}
-                      </span>
-                    ))}
+              {Object.entries(opponentBlindspots).map(([playerId, weaknesses]) => {
+                const { players, myPlayerId } = useGameStore.getState();
+                const targetPlayer = players.find(p => p.id === playerId);
+                const playerName = playerId === myPlayerId ? 'Bạn' : (targetPlayer?.name || playerId);
+
+                return (
+                  <div key={playerId} className="bg-neutral-900/80 p-2.5 rounded-xl border border-neutral-700 text-xs">
+                    <span className="font-bold text-yellow-300 block mb-1">
+                      {playerName}
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {weaknesses.map((w, idx) => (
+                        <span key={idx} className="bg-red-950/60 text-red-300 px-1.5 py-0.5 rounded text-[10px] border border-red-500/30">
+                          {w}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

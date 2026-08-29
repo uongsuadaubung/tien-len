@@ -6,7 +6,8 @@ import {
   type TableStateSyncPacket,
   type GameEndPacket,
   type ChatPacket,
-  type OnlinePlayer
+  type OnlinePlayer,
+  type RematchVotePacket
 } from './network.schema';
 
 export const APP_ID = 'tien-len-online-p2p-v1';
@@ -31,6 +32,7 @@ export class P2PClient {
   private sendGameEndAction?: (data: GameEndPacket, target?: string | string[]) => Promise<void>;
   private sendChatAction?: (data: ChatPacket, target?: string | string[]) => Promise<void>;
   private sendJoinRequestAction?: (data: OnlinePlayer, target?: string | string[]) => Promise<void>;
+  private sendRematchVoteAction?: (data: RematchVotePacket, target?: string | string[]) => Promise<void>;
 
   // Callbacks
   private onPeerJoinCallbacks: Array<(peerId: string) => void> = [];
@@ -42,6 +44,7 @@ export class P2PClient {
   private onGameEndCallbacks: Array<MessageHandler<GameEndPacket>> = [];
   private onChatCallbacks: Array<MessageHandler<ChatPacket>> = [];
   private onJoinRequestCallbacks: Array<MessageHandler<OnlinePlayer>> = [];
+  private onRematchVoteCallbacks: Array<MessageHandler<RematchVotePacket>> = [];
 
   public join(roomCode: string): void {
     if (this.room) {
@@ -49,6 +52,11 @@ export class P2PClient {
     }
 
     this.currentRoomCode = roomCode.toUpperCase().trim();
+
+    if (typeof RTCPeerConnection === 'undefined') {
+      return;
+    }
+
     this.room = joinRoom(
       {
         appId: APP_ID,
@@ -110,6 +118,12 @@ export class P2PClient {
     chatAction.onMessage = (data, context) => {
       this.onChatCallbacks.forEach(cb => cb(data, context.peerId));
     };
+
+    const rematchVoteAction = this.room.makeAction<RematchVotePacket>('rematch_vote');
+    this.sendRematchVoteAction = (data, target) => rematchVoteAction.send(data, { target });
+    rematchVoteAction.onMessage = (data, context) => {
+      this.onRematchVoteCallbacks.forEach(cb => cb(data, context.peerId));
+    };
   }
 
   public leave(): void {
@@ -161,6 +175,12 @@ export class P2PClient {
   public async broadcastChat(packet: ChatPacket): Promise<void> {
     if (this.sendChatAction) {
       await this.sendChatAction(packet);
+    }
+  }
+
+  public async sendRematchVote(packet: RematchVotePacket, targetPeerId?: string): Promise<void> {
+    if (this.sendRematchVoteAction) {
+      await this.sendRematchVoteAction(packet, targetPeerId);
     }
   }
 
@@ -238,6 +258,14 @@ export class P2PClient {
       this.onChatCallbacks = this.onChatCallbacks.filter(c => c !== cb);
     };
   }
+
+  public onRematchVote(cb: MessageHandler<RematchVotePacket>): () => void {
+    this.onRematchVoteCallbacks.push(cb);
+    return () => {
+      this.onRematchVoteCallbacks = this.onRematchVoteCallbacks.filter(c => c !== cb);
+    };
+  }
 }
 
 export const globalP2PClient = new P2PClient();
+

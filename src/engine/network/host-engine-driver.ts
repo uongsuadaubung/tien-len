@@ -16,25 +16,46 @@ import {
   type TableStateSyncPacket, 
   type GameEndPacket,
   type OnlinePlayer,
-  type NetworkCard
+  type NetworkCard,
+  type RematchVotePacket
 } from './network.schema';
 import { P2PClient } from './p2p-client';
+import { useGameStore } from '../../stores/useGameStore';
+import { useModalStore } from '../../stores/useModalStore';
+import { soundManager } from '../../ui/audio/sound-manager';
+
+export interface HostEngineDriverCallbacks {
+  onRoomStateChange: ((updatedRoomState: OnlineRoomState) => void) | null;
+  onAutoStartMatch: (() => void) | null;
+}
 
 export class HostEngineDriver {
   public engine: GameEngine | null = null;
   public cardTracker: CardTracker = new CardTracker();
   private p2pClient: P2PClient;
-  private roomState: OnlineRoomState;
+  public roomState: OnlineRoomState;
   private unsubscribeActions: Array<() => void> = [];
   private botTimer: NodeJS.Timeout | null = null;
+  private onRoomStateChange: ((updatedRoomState: OnlineRoomState) => void) | null = null;
+  private onAutoStartMatch: (() => void) | null = null;
+  public gameNumber: number = 0;
+  public lastWinnerId: string | null = null;
 
-  constructor(p2pClient: P2PClient, roomState: OnlineRoomState) {
+  constructor(
+    p2pClient: P2PClient, 
+    roomState: OnlineRoomState,
+    callbacks: HostEngineDriverCallbacks | null = null
+  ) {
     this.p2pClient = p2pClient;
     this.roomState = roomState;
+    this.onRoomStateChange = callbacks !== null ? callbacks.onRoomStateChange : null;
+    this.onAutoStartMatch = callbacks !== null ? callbacks.onAutoStartMatch : null;
   }
+
 
   public startMatch(onLocalHandDealt: (cards: Card[]) => void): void {
     this.cleanup();
+    this.gameNumber += 1;
 
     // 1. Build GameRules
     const rules: GameRules = new GameRulesBuilder()
@@ -77,7 +98,7 @@ export class HostEngineDriver {
 
     // 3. Initialize Engine
     this.engine = new GameEngine(players, rules);
-    this.engine.startNewGame(1);
+    this.engine.startNewGame(this.gameNumber, this.lastWinnerId || undefined);
     this.cardTracker = new CardTracker();
 
     // 4. Fog of War: Dispatch private hands
@@ -94,7 +115,7 @@ export class HostEngineDriver {
           cards: p.hand.map(c => ({ rank: c.rank, suit: c.suit, id: c.id })),
           leadPlayerId: this.engine?.currentRound.leadPlayerId || 'p0',
           firstTurnPlayerId: this.engine?.currentRound.currentTurnPlayerId || 'p0',
-          gameNumber: 1
+          gameNumber: this.gameNumber
         };
         void this.p2pClient.sendPrivateDealHand(dealPacket, op.peerId);
       }
@@ -109,7 +130,13 @@ export class HostEngineDriver {
     });
     this.unsubscribeActions.push(unAct);
 
-    // 7. Check if first move belongs to a bot
+    // 7. Listen for Rematch Votes
+    const unVote = this.p2pClient.onRematchVote((packet: RematchVotePacket) => {
+      this.handleRematchVote(packet.playerId, packet.isReady);
+    });
+    this.unsubscribeActions.push(unVote);
+
+    // 8. Check if first move belongs to a bot
     this.checkAndExecuteBotTurn();
   }
 
@@ -126,6 +153,7 @@ export class HostEngineDriver {
     if (packet.type === 'PASS') {
       const res = this.engine.passTurn(packet.playerId);
       if (res.success) {
+        soundManager.playPass();
         this.broadcastCurrentTableState(`${player.name} bỏ lượt`);
         this.checkAndExecuteBotTurn();
       }
@@ -133,6 +161,11 @@ export class HostEngineDriver {
       const selectedCards = player.hand.filter(c => packet.cardIds?.includes(c.id));
       const res = this.engine.playMove(packet.playerId, selectedCards);
       if (res.success) {
+        if (res.isChop) {
+          soundManager.playChop();
+        } else {
+          soundManager.playCardSlap();
+        }
         if (res.playedMove) {
           this.cardTracker.recordMove(res.playedMove);
         }
@@ -195,6 +228,11 @@ export class HostEngineDriver {
       if (decision.type === 'PLAY' && decision.cards && decision.cards.length > 0) {
         const res = this.engine.playMove(botPlayer.id, decision.cards);
         if (res.success) {
+          if (res.isChop) {
+            soundManager.playChop();
+          } else {
+            soundManager.playCardSlap();
+          }
           if (res.playedMove) {
             this.cardTracker.recordMove(res.playedMove);
           }
@@ -207,6 +245,7 @@ export class HostEngineDriver {
       } else {
         const res = this.engine.passTurn(botPlayer.id);
         if (res.success) {
+          soundManager.playPass();
           this.broadcastCurrentTableState(`${botPlayer.name} bỏ lượt`);
         }
       }
@@ -238,8 +277,20 @@ export class HostEngineDriver {
       remainingCardCounts,
       winners: this.engine.winners.map(w => w.id),
       isGameOver: this.engine.isGameOver,
-      lastActionMessage: message
+      lastActionMessage: message,
+      gameNumber: this.gameNumber
     };
+
+    // Đồng bộ trực tiếp vào GameStore của Host
+    const gameStore = useGameStore.getState();
+    gameStore.setGameNumber(this.gameNumber);
+    gameStore.setPlayers(this.engine.players.map(p => ({ ...p })));
+    gameStore.setCurrentTurnPlayerId(this.engine.currentRound.currentTurnPlayerId);
+    gameStore.setLeadPlayerId(this.engine.currentRound.leadPlayerId);
+    gameStore.setCurrentMove(this.engine.getLeadingMove());
+    gameStore.setWinners([...this.engine.winners]);
+    gameStore.setIsGameOver(this.engine.isGameOver);
+    gameStore.setDealtCounts(remainingCardCounts);
 
     void this.p2pClient.broadcastTableSync(packet);
   }
@@ -257,6 +308,10 @@ export class HostEngineDriver {
       allPlayerHands[p.id] = p.hand.map(c => ({ rank: c.rank, suit: c.suit, id: c.id }));
     });
 
+    if (this.engine.winners.length > 0) {
+      this.lastWinnerId = this.engine.winners[0].id;
+    }
+
     const packet: GameEndPacket = {
       winners: this.engine.winners.map(w => w.id),
       payouts,
@@ -264,7 +319,111 @@ export class HostEngineDriver {
       allPlayerHands
     };
 
+    // Đặt lại isReady: false cho tất cả người chơi thật (Host & Guest), Bot tự động isReady: true
+    const resetPlayers = this.roomState.players.map(p => ({
+      ...p,
+      isReady: p.isBot ? true : false
+    }));
+
+    const updatedRoom: OnlineRoomState = {
+      ...this.roomState,
+      players: resetPlayers,
+      status: 'ENDED',
+      updatedAt: Date.now()
+    };
+    this.roomState = updatedRoom;
+
+    if (this.onRoomStateChange) {
+      this.onRoomStateChange(updatedRoom);
+    }
+    void this.p2pClient.broadcastRoomState(updatedRoom);
+
+    const gameStore = useGameStore.getState();
+    gameStore.setIsGameOver(true);
+    gameStore.setWinners([...this.engine.winners]);
+    useModalStore.getState().openModal('VICTORY');
+
     void this.p2pClient.broadcastGameEnd(packet);
+  }
+
+  public handleRematchVote(playerId: string, isReady: boolean): void {
+    const updatedPlayers = this.roomState.players.map(p => {
+      if (p.playerId === playerId) {
+        return { ...p, isReady };
+      }
+      return p;
+    });
+
+    const updatedRoom: OnlineRoomState = {
+      ...this.roomState,
+      players: updatedPlayers,
+      updatedAt: Date.now()
+    };
+    this.roomState = updatedRoom;
+
+    if (this.onRoomStateChange) {
+      this.onRoomStateChange(updatedRoom);
+    }
+    void this.p2pClient.broadcastRoomState(updatedRoom);
+
+    // Kiểm tra nếu tất cả người chơi trong phòng đều đã sẵn sàng (100% phiếu)
+    const allReady = updatedRoom.players.every(p => p.isReady);
+    if (allReady && updatedRoom.players.length === updatedRoom.playerCount) {
+      if (this.onAutoStartMatch) {
+        this.onAutoStartMatch();
+      }
+    }
+  }
+
+  public handlePeerLeave(peerId: string): void {
+    const leaver = this.roomState.players.find(p => p.peerId === peerId);
+    if (!leaver) return;
+
+    if (this.roomState.status === 'PLAYING') {
+      // Dừng trận đấu ngay lập tức, giải tán phòng
+      this.cleanup();
+      const updatedRoom: OnlineRoomState = {
+        ...this.roomState,
+        status: 'DISBANDED',
+        disbandReason: `Người chơi [${leaver.name}] đã rời khỏi trận đấu. Bàn chơi đã tự động giải tán.`,
+        updatedAt: Date.now()
+      };
+      this.roomState = updatedRoom;
+      if (this.onRoomStateChange) {
+        this.onRoomStateChange(updatedRoom);
+      }
+      void this.p2pClient.broadcastRoomState(updatedRoom);
+    } else {
+      // Đang ở phòng chờ (WAITING hoặc ENDED): Xóa người chơi khỏi slot
+      const updatedPlayers = this.roomState.players.filter(p => p.peerId !== peerId);
+      const updatedRoom: OnlineRoomState = {
+        ...this.roomState,
+        players: updatedPlayers,
+        status: 'WAITING',
+        disbandReason: null,
+        updatedAt: Date.now()
+      };
+      this.roomState = updatedRoom;
+      if (this.onRoomStateChange) {
+        this.onRoomStateChange(updatedRoom);
+      }
+      void this.p2pClient.broadcastRoomState(updatedRoom);
+    }
+  }
+
+  public disbandRoom(reason: string): void {
+    this.cleanup();
+    const updatedRoom: OnlineRoomState = {
+      ...this.roomState,
+      status: 'DISBANDED',
+      disbandReason: reason,
+      updatedAt: Date.now()
+    };
+    this.roomState = updatedRoom;
+    if (this.onRoomStateChange) {
+      this.onRoomStateChange(updatedRoom);
+    }
+    void this.p2pClient.broadcastRoomState(updatedRoom);
   }
 
   public cleanup(): void {
@@ -277,3 +436,4 @@ export class HostEngineDriver {
     this.engine = null;
   }
 }
+

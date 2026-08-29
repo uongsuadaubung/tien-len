@@ -1,6 +1,4 @@
-import React, { useState } from 'react';
-import { useOnlineStore } from '../../../stores/useOnlineStore';
-import { useUserStore } from '../../../stores/useUserStore';
+import React from 'react';
 import { useModalStore } from '../../../stores/useModalStore';
 import { 
   Users, 
@@ -14,71 +12,41 @@ import {
   Sparkles,
   Wifi
 } from 'lucide-react';
-import { type GameSettlementRule } from '../../../engine/types';
-
-const SETTLEMENT_MODES: Array<{ id: GameSettlementRule; label: string }> = [
-  { id: 'COUNT_CARDS', label: 'Đếm Lá' },
-  { id: 'TRADITIONAL', label: 'Truyền Thống' },
-  { id: 'WINNER_TAKES_ALL', label: 'Nhất Ăn Tất' }
-];
-
-const PLAYER_COUNTS: Array<2 | 3 | 4> = [2, 3, 4];
+import { 
+  useOnlineRoomLogic, 
+  SETTLEMENT_MODES, 
+  PLAYER_COUNTS 
+} from '../../hooks/useOnlineRoomLogic';
 
 export const OnlineRoomModal: React.FC = () => {
-  const { isOnlineRoomOpen, closeModal } = useModalStore();
-  const profile = useUserStore(s => s.profile);
+  const { isOnlineRoomOpen } = useModalStore();
   
   const {
     roomState,
     roomCode,
     isHost,
-    createRoom,
-    joinRoom,
-    addBotToSlot,
-    removeSlot,
-    startMatch,
-    leaveRoom
-  } = useOnlineStore();
-
-  const [tab, setTab] = useState<'CREATE' | 'JOIN'>('CREATE');
-  const [inputPin, setInputPin] = useState('');
-  const [playerCount, setPlayerCount] = useState<2 | 3 | 4>(4);
-  const [betAmount, setBetAmount] = useState<number>(1000);
-  const [settlementRule, setSettlementRule] = useState<GameSettlementRule>('COUNT_CARDS');
-  const [copied, setCopied] = useState(false);
+    tab,
+    inputPin,
+    playerCount,
+    betAmount,
+    settlementRule,
+    copiedLink,
+    setTab,
+    setInputPin,
+    setPlayerCount,
+    setBetAmount,
+    setSettlementRule,
+    handleCopyLink,
+    handleCreate,
+    handleJoin,
+    handleStartGame,
+    handleLeave,
+    handleAddBot,
+    handleRemoveSlot,
+    handleClose
+  } = useOnlineRoomLogic();
 
   if (!isOnlineRoomOpen) return null;
-
-  const handleCopyLink = () => {
-    if (!roomCode) return;
-    const url = `${window.location.origin}${window.location.pathname}#room=${roomCode}`;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const handleCreate = () => {
-    createRoom(profile, {
-      playerCount,
-      betAmount,
-      settlementRule
-    });
-  };
-
-  const handleJoin = () => {
-    if (!inputPin.trim()) return;
-    const code = inputPin.toUpperCase().startsWith('TL-') ? inputPin : `TL-${inputPin}`;
-    joinRoom(profile, code);
-  };
-
-  const handleStartGame = () => {
-    startMatch();
-    closeModal('ONLINE_ROOM');
-  };
-
-  const handleLeave = () => {
-    leaveRoom();
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
@@ -101,10 +69,7 @@ export const OnlineRoomModal: React.FC = () => {
               </div>
             </div>
             <button
-              onClick={() => {
-                if (roomCode) leaveRoom();
-                closeModal('ONLINE_ROOM');
-              }}
+              onClick={handleClose}
               className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors"
             >
               ✕
@@ -261,8 +226,8 @@ export const OnlineRoomModal: React.FC = () => {
                   onClick={handleCopyLink}
                   className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold transition-all shadow-md active:scale-95"
                 >
-                  {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                  {copied ? 'Đã Sao Chép Link' : 'Sao Chép Link Mời'}
+                  {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  {copiedLink ? 'Đã Sao Chép Link' : 'Sao Chép Link Mời'}
                 </button>
               </div>
 
@@ -302,7 +267,7 @@ export const OnlineRoomModal: React.FC = () => {
                           <span className="text-xs text-slate-500 font-bold">Ghế trống {idx + 1}</span>
                           {isHost && (
                             <button
-                              onClick={() => addBotToSlot(idx)}
+                              onClick={() => handleAddBot(idx)}
                               className="px-2.5 py-1 rounded-lg bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[11px] font-bold hover:bg-indigo-500/30 transition-all flex items-center gap-1"
                             >
                               <Bot className="w-3 h-3" />
@@ -314,7 +279,7 @@ export const OnlineRoomModal: React.FC = () => {
 
                       {player && !player.isHost && isHost && (
                         <button
-                          onClick={() => removeSlot(idx)}
+                          onClick={() => handleRemoveSlot(idx)}
                           className="text-slate-500 hover:text-rose-400 text-xs p-1"
                         >
                           ✕

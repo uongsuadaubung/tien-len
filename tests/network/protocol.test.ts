@@ -6,7 +6,8 @@ import {
   DealHandPacketSchema,
   TableStateSyncPacketSchema,
   GameEndPacketSchema,
-  ChatPacketSchema
+  ChatPacketSchema,
+  RematchVotePacketSchema
 } from '../../src/engine/network/network.schema';
 
 describe('WebRTC P2P Multiplayer Protocol & Zod Validation Tests', () => {
@@ -117,5 +118,19 @@ describe('WebRTC P2P Multiplayer Protocol & Zod Validation Tests', () => {
     });
 
     expect(chat.success).toBe(true);
+  });
+
+  it('7. RematchVotePacketSchema: validate gói tin bỏ phiếu sẵn sàng / chơi lại ván mới', () => {
+    const vote = RematchVotePacketSchema.safeParse({
+      playerId: 'p1',
+      isReady: true,
+      timestamp: Date.now()
+    });
+
+    expect(vote.success).toBe(true);
+    if (vote.success) {
+      expect(vote.data.playerId).toBe('p1');
+      expect(vote.data.isReady).toBe(true);
+    }
   });
 });

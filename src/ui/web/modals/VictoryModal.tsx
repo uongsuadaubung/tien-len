@@ -1,6 +1,5 @@
-import React, { useEffect } from 'react';
-import confetti from 'canvas-confetti';
-import { Player } from '../../../engine/types';
+import React from 'react';
+import { Player, InstantWinType } from '../../../engine/types';
 import { 
   Home, 
   RotateCcw, 
@@ -9,16 +8,20 @@ import {
   Play, 
   Sparkles,
   Download,
-  Cloud
+  Cloud,
+  Check,
+  Users,
+  Building2
 } from 'lucide-react';
 import { getRankTierByElo } from '../../../engine/elo';
 import { CampaignChapter } from '../../../engine/campaign';
-import { ActiveGameType } from '../../../stores/useGameStore';
+import { ActiveGameType, useGameStore } from '../../../stores/useGameStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
-import { clearActiveMatchSession } from '../../../engine/storage';
+import { useOnlineStore } from '../../../stores/useOnlineStore';
 import { MatchLogger } from '../../../engine/match-logger';
 import { Modal, Card, Button } from '../../primitives';
 import { MiniCardView } from '../../components/CardView';
+import { useVictoryLogic, PrimaryBtnIconType, SecondaryBtnIconType } from '../../hooks/useVictoryLogic';
 
 interface VictoryModalProps {
   isOpen: boolean;
@@ -41,7 +44,7 @@ interface VictoryModalProps {
   isAllCampaignCompleted: boolean;
   nextChapter: CampaignChapter | null;
   playerCoins: number;
-  allEloDeltas?: Record<string, number>;
+  allEloDeltas: Record<string, number> | null;
 }
 
 export const INSTANT_WIN_TITLES: Record<string, string> = {
@@ -52,6 +55,25 @@ export const INSTANT_WIN_TITLES: Record<string, string> = {
   SIX_PAIRS: '6 Đôi Bất Kỳ',
   FIRST_ROUND_FOUR_THREES: 'Tứ Quý 3 Ván Đầu'
 };
+
+function renderPrimaryIcon(type: PrimaryBtnIconType) {
+  switch (type) {
+    case 'PLAY': return <Play className="w-4 h-4 text-black" />;
+    case 'CHECK': return <Check className="w-4 h-4 text-black" />;
+    case 'SWORDS': return <Swords className="w-4 h-4 text-black" />;
+    case 'ROTATE_CCW': return <RotateCcw className="w-4 h-4 text-black" />;
+    case 'HOME': return <Home className="w-4 h-4 text-black" />;
+    case 'BANK': return <Building2 className="w-4 h-4 text-black" />;
+    case 'SPINNER': return <RotateCcw className="w-4 h-4 text-black animate-spin" />;
+  }
+}
+
+function renderSecondaryIcon(type: SecondaryBtnIconType) {
+  switch (type) {
+    case 'HOME': return <Home className="w-4 h-4" />;
+    case 'MAP': return <Map className="w-4 h-4" />;
+  }
+}
 
 export const VictoryModal: React.FC<VictoryModalProps> = ({
   isOpen,
@@ -77,162 +99,64 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   allEloDeltas
 }) => {
   const { githubToken, autoBackupOnMatchEnd } = useSettingsStore();
-  const isHumanWinner = winners.length > 0 && winners[0].id === 'p0';
-  const isCampaign = activeGameType === 'CAMPAIGN';
+  const { myPlayerId } = useGameStore();
+  const { roomState } = useOnlineStore();
 
-  useEffect(() => {
-    if (isOpen) {
-      clearActiveMatchSession();
-
-      if (isHumanWinner || instantWinType) {
-        confetti({
-          particleCount: 120,
-          spread: 80,
-          origin: { y: 0.6 }
-        });
-      }
-    }
-  }, [isOpen, isHumanWinner, instantWinType]);
-
-  const handleExportJson = () => {
-    const jsonStr = MatchLogger.getInstance().exportToJsonString();
-    const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `tienlen_match_log_${Date.now()}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+  const {
+    isHumanWinner,
+    isCampaign,
+    isOnline,
+    isTableDismissed,
+    isHumanBankrupt,
+    bankruptBots,
+    displayPlayers,
+    humanPayout,
+    modalTitle,
+    modalSubtitle,
+    modalIcon,
+    primaryBtnText,
+    primaryBtnIconType,
+    primaryBtnDisabled,
+    primaryBtnAction,
+    secondaryBtnText,
+    secondaryBtnIconType,
+    secondaryBtnAction,
+    statBox1Title,
+    statBox1Value,
+    statBox1Sub,
+    statBox2Title,
+    statBox2Value,
+    statBox2Sub,
+    totalOnlinePlayers,
+    readyOnlinePlayers,
+    handleExportJson
+  } = useVictoryLogic({
+    isOpen,
+    winners,
+    allPlayers,
+    betAmount,
+    instantWinType: instantWinType as InstantWinType | null,
+    isThreeSpadesWin,
+    payouts,
+    loanDeduction,
+    eloDelta,
+    playerElo,
+    activeGameType,
+    campaignChapter,
+    chapterWins,
+    isChapterUnlockedNext,
+    isAllCampaignCompleted,
+    nextChapter,
+    playerCoins,
+    allEloDeltas,
+    onNextGame,
+    onReturnToLobby,
+    onOpenCampaignMap
+  });
 
   if (!isOpen) return null;
 
   const matchReport = MatchLogger.getInstance().getLatestReport();
-  const winner = winners.length > 0 ? winners[0] : allPlayers[0];
-  const humanPayout = payouts ? (payouts['p0'] || 0) : 0;
-
-  // Sắp xếp người chơi theo kết quả
-  const displayPlayers: Player[] = [...allPlayers].sort((a, b) => {
-    const aIdx = winners.findIndex(w => w.id === a.id);
-    const bIdx = winners.findIndex(w => w.id === b.id);
-    if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
-    if (aIdx !== -1) return -1;
-    if (bIdx !== -1) return 1;
-    return (a.hand?.length || 0) - (b.hand?.length || 0);
-  });
-
-  // Kiểm tra có đối thủ nào cháy túi (vỡ nợ) không đủ tiền cược tiếp
-  const bankruptBots = !isCampaign ? allPlayers.filter(p => p.isBot && (p.score || 0) < betAmount) : [];
-  const isHumanBankrupt = !isCampaign && playerCoins < betAmount;
-  const isTableDismissed = !isCampaign && (bankruptBots.length > 0 || isHumanBankrupt);
-
-  let modalTitle = isHumanWinner ? 'CHIẾN THẮNG TRẬN ĐẤU!' : 'KẾT THÚC VÁN ĐẤU';
-  let modalSubtitle = 'Ván đấu đã kết thúc!';
-  let modalIcon = '🏆';
-  let primaryBtnText = 'Ván Mới';
-  let primaryBtnIcon = <Play className="w-4 h-4 text-black" />;
-  let secondaryBtnText = 'Về Sảnh';
-  let secondaryBtnIcon = <Home className="w-4 h-4" />;
-  let secondaryBtnAction = onReturnToLobby;
-
-  const statBox1Title = 'KẾT QUẢ CÁ NHÂN';
-  const statBox1Value = humanPayout > 0 ? `+${humanPayout.toLocaleString()} 🪙` : `${humanPayout.toLocaleString()} 🪙`;
-  const statBox1Sub = isHumanWinner ? '🥇 Bạn đã về Nhất!' : '💥 Chưa thể giành chiến thắng';
-
-  let statBox2Title = 'CHẾ ĐỘ CHƠI';
-  let statBox2Value = 'Truyền Thống';
-  let statBox2Sub = `Mức cược: ${betAmount.toLocaleString()} Xu`;
-
-  if (isCampaign) {
-    modalIcon = isHumanWinner ? '⭐' : '💀';
-    statBox2Title = 'CHƯƠNG CHIẾN DỊCH';
-    statBox2Value = campaignChapter ? `${campaignChapter.name}: ${campaignChapter.subtitle}` : 'Chiến Dịch';
-    statBox2Sub = isHumanWinner 
-      ? `Đã thắng ${chapterWins}/${campaignChapter?.requiredWins || 1} ván` 
-      : 'Thử lại để hoàn thành chương';
-
-    if (isHumanWinner) {
-      if (isChapterUnlockedNext && nextChapter) {
-        modalTitle = 'HOÀN THÀNH CHƯƠNG!';
-        modalSubtitle = `Xuất sắc! Bạn đã mở khóa ${nextChapter.name}!`;
-        primaryBtnText = 'Chương Tiếp Theo';
-        primaryBtnIcon = <Swords className="w-4 h-4 text-black" />;
-        secondaryBtnText = 'Bản Đồ Chiến Dịch';
-        secondaryBtnIcon = <Map className="w-4 h-4" />;
-        secondaryBtnAction = onOpenCampaignMap || onReturnToLobby;
-      } else if (isAllCampaignCompleted) {
-        modalTitle = 'VÔ ĐỊCH TOÀN BỘ CHIẾN DỊCH!';
-        modalSubtitle = 'Chúc mừng bạn đã chinh phục toàn bộ 5 chương Chiến Dịch Đỉnh Cao!';
-        primaryBtnText = 'Về Sảnh';
-        primaryBtnIcon = <Home className="w-4 h-4 text-black" />;
-      } else {
-        modalTitle = 'CHIẾN THẮNG TRẬN ĐẤU!';
-        modalSubtitle = `Tiến độ chương: ${chapterWins}/${campaignChapter?.requiredWins || 1} ván thắng`;
-        primaryBtnText = 'Đánh Tiếp';
-      }
-    } else {
-      modalTitle = 'THUA TRẬN CHIẾN DỊCH';
-      modalSubtitle = 'Đối thủ quá mạnh! Hãy điều chỉnh chiến thuật và thử lại!';
-      primaryBtnText = 'Thử Thách Lại';
-      primaryBtnIcon = <RotateCcw className="w-4 h-4 text-black" />;
-      secondaryBtnText = 'Bản Đồ Chiến Dịch';
-      secondaryBtnIcon = <Map className="w-4 h-4" />;
-      secondaryBtnAction = onOpenCampaignMap || onReturnToLobby;
-    }
-  } else if (isTableDismissed) {
-    // SỚI BẠC GIẢI TÁN KHI CÓ NGƯỜI CHÁY TÚI
-    modalIcon = '🚨';
-    if (isHumanBankrupt) {
-      modalTitle = 'BẠN ĐÃ CHÁY TÚI!';
-      modalSubtitle = 'Số dư của bạn không đủ tiền cược tiếp. Hãy về sảnh để nhận cứu trợ hoặc vay vốn!';
-    } else {
-      modalTitle = 'SỚI BẠC GIẢI TÁN!';
-      modalSubtitle = `Đối thủ ${bankruptBots.map(b => b.name).join(', ')} đã cháy túi! Bàn đấu dừng lại.`;
-    }
-    const rankTier = getRankTierByElo(playerElo);
-    const eloDeltaText = eloDelta > 0 ? `+${eloDelta}` : `${eloDelta}`;
-    statBox2Title = 'BẬC RANK & ELO';
-    statBox2Value = `${rankTier.badge} ${rankTier.name} (${eloDeltaText})`;
-    statBox2Sub = `Tổng điểm: ${playerElo} Elo • Cược ${betAmount.toLocaleString()} Xu`;
-  } else {
-    // Chế độ Chơi Nhanh & Đấu Hạng Tích Hợp (Còn đủ tiền tiếp tục)
-    const rankTier = getRankTierByElo(playerElo);
-    const eloDeltaText = eloDelta > 0 ? `+${eloDelta}` : `${eloDelta}`;
-    modalIcon = isHumanWinner ? '🏆' : (eloDelta < 0 ? '📉' : '💥');
-    modalTitle = isHumanWinner ? 'CHIẾN THẮNG TRẬN ĐẤU!' : 'KẾT THÚC VÁN ĐẤU';
-    modalSubtitle = `Bậc Rank: ${rankTier.badge} ${rankTier.name} (${playerElo} Elo)`;
-
-    statBox2Title = 'BẬC RANK & ELO';
-    statBox2Value = `${rankTier.badge} ${rankTier.name} (${eloDeltaText})`;
-    statBox2Sub = `Tổng điểm: ${playerElo} Elo • Cược ${betAmount.toLocaleString()} Xu`;
-  }
-
-  // TỚI TRẮNG (INSTANT WIN)
-  if (instantWinType && !isTableDismissed) {
-    modalIcon = '⚡';
-    const instantWinName = INSTANT_WIN_TITLES[instantWinType] || instantWinType;
-    if (isHumanWinner) {
-      modalTitle = 'TỚI TRẮNG HOÀNG GIA!';
-      modalSubtitle = `Chúc mừng bạn đã tới trắng bằng bộ bài đặc biệt: ${instantWinName}! Thưởng khủng cả làng!`;
-    } else {
-      modalTitle = `${winner.name.toUpperCase()} TỚI TRẮNG!`;
-      modalSubtitle = `Đấu thủ ${winner.name} đã tới trắng ngay lượt chia đầu: ${instantWinType}!`;
-    }
-  }
-
-  // VỀ 3 BÍCH HOÀNG GIA
-  if (isThreeSpadesWin && !isTableDismissed) {
-    modalIcon = '♠️';
-    if (isHumanWinner) {
-      modalTitle = 'VỀ 3 BÍCH HOÀNG GIA - THẮNG X2';
-      modalSubtitle = 'Tuyệt đỉnh thần bài! Bạn đã kết liễu ván đấu bằng lá đơn 3♠ và nhân đôi toàn bộ tiền thắng!';
-    } else {
-      modalTitle = `${winner.name.toUpperCase()} VỀ 3 BÍCH`;
-      modalSubtitle = `Đấu thủ ${winner.name} đã kết liễu bằng lá đơn 3♠ và nhận gấp đôi toàn bộ tiền thắng cả làng!`;
-    }
-  }
 
   return (
     <Modal
@@ -248,11 +172,11 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
             <Button
               variant="gold"
               size="md"
-              onClick={onReturnToLobby}
-              leftIcon={<Home className="w-4 h-4 text-black" />}
+              onClick={primaryBtnAction}
+              leftIcon={renderPrimaryIcon(primaryBtnIconType)}
               className="w-full sm:w-auto px-8"
             >
-              Về Sảnh
+              {primaryBtnText}
             </Button>
           </div>
         ) : (
@@ -261,30 +185,19 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
             <Button
               variant="surface"
               size="md"
-              onClick={onReturnToLobby}
-              leftIcon={<Home className="w-4 h-4 text-[var(--color-gold)]" />}
+              onClick={secondaryBtnAction}
+              leftIcon={renderSecondaryIcon(secondaryBtnIconType)}
             >
-              Về Sảnh
+              {secondaryBtnText}
             </Button>
-
-            {/* Nút Phụ */}
-            {secondaryBtnText !== 'Về Sảnh' && (
-              <Button
-                variant="surface"
-                size="md"
-                onClick={secondaryBtnAction}
-                leftIcon={secondaryBtnIcon}
-              >
-                {secondaryBtnText}
-              </Button>
-            )}
 
             {/* Nút Chính */}
             <Button
               variant="gold"
               size="md"
-              onClick={onNextGame}
-              leftIcon={primaryBtnIcon}
+              onClick={primaryBtnAction}
+              disabled={primaryBtnDisabled}
+              leftIcon={renderPrimaryIcon(primaryBtnIconType)}
             >
               {primaryBtnText}
             </Button>
@@ -293,6 +206,55 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
       }
     >
       <div className="space-y-3">
+        {/* BANNER BỎ PHIẾU VÁN MỚI ONLINE P2P */}
+        {isOnline && roomState !== null && (
+          <Card variant="active" className="p-3 bg-gradient-to-r from-amber-950/40 via-slate-900/60 to-amber-950/40 border-amber-500/40">
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-[var(--color-gold)]" />
+                <span className="text-xs font-bold text-[var(--color-gold)] uppercase tracking-wider">
+                  Bỏ Phiếu Ván Mới ({readyOnlinePlayers}/{totalOnlinePlayers})
+                </span>
+              </div>
+              <span className="text-[11px] font-semibold text-[var(--text-muted)]">
+                {readyOnlinePlayers === totalOnlinePlayers 
+                  ? '⚡ Đủ 100% phiếu, ván mới đang khởi tạo...' 
+                  : '⏳ Cần toàn bộ người chơi sẵn sàng'
+                }
+              </span>
+            </div>
+
+            {/* Danh sách người chơi và trạng thái Ready */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {roomState.players.map((op) => (
+                <div 
+                  key={op.playerId}
+                  className={`flex items-center gap-2 p-2 rounded-xl border transition-all ${
+                    op.isReady 
+                      ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300' 
+                      : 'bg-slate-900/60 border-white/10 text-slate-400'
+                  }`}
+                >
+                  <span className="text-lg">{op.avatar}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold truncate text-[var(--text-primary)]">
+                      {op.name} {op.playerId === myPlayerId ? '(Bạn)' : ''}
+                    </div>
+                    <div className="text-[10px] font-semibold flex items-center gap-1">
+                      {op.isReady ? (
+                        <span className="text-emerald-400 flex items-center gap-0.5">
+                          <Check className="w-3 h-3" /> Sẵn sàng
+                        </span>
+                      ) : (
+                        <span className="text-amber-400/80">⏳ Đang chờ...</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
         {/* BANNER GIẢI TÁN SỚI BẠC KHI CÓ NGƯỜI KHÔNG ĐỦ TIỀN */}
         {isTableDismissed && (
           <Card variant="active" className="p-3 bg-rose-950/40 border-rose-500/40 flex items-center justify-center gap-2 text-center">
@@ -371,7 +333,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
             // Biến động Elo của từng người chơi / bot
             const pEloDelta = (allEloDeltas && (allEloDeltas[p.id] !== undefined || (p.botPersonaId && allEloDeltas[p.botPersonaId] !== undefined)))
               ? (allEloDeltas[p.id] ?? (p.botPersonaId ? allEloDeltas[p.botPersonaId] : undefined))
-              : (p.id === 'p0' ? eloDelta : undefined);
+              : (p.id === myPlayerId ? eloDelta : undefined);
 
             return (
               <Card

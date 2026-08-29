@@ -22,8 +22,10 @@ import { MobileEcosystemView } from '../views/MobileEcosystemView';
 import { BotProfileModal } from '../../web/modals/BotProfileModal';
 import { MobileMatchmakingSheet } from './MobileMatchmakingSheet';
 import { MobileSyncConflictView } from '../views/MobileSyncConflictView';
-import { MobileOnlineRoomSheet } from './MobileOnlineRoomSheet';
+import { MobileOnlineRoomView } from '../views/MobileOnlineRoomView';
+import { MobileOnlineDisbandView } from '../views/MobileOnlineDisbandView';
 import { useEcosystemStore } from '../../../stores/useEcosystemStore';
+import { useOnlineStore } from '../../../stores/useOnlineStore';
 import { CardTracker } from '../../../ai/card-tracker';
 import { CampaignChapter } from '../../../engine/campaign';
 import { normalizePlayerCount } from '../../../engine/types';
@@ -75,12 +77,14 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
     isEcosystemOpen,
     isBotProfileOpen,
     isSyncConflictOpen,
+    isOnlineRoomOpen,
     syncConflictData,
     openModal,
     closeModal
   } = useModalStore();
 
   const { selectedBot } = useEcosystemStore();
+  const { disbandNotice, clearDisbandNotice } = useOnlineStore();
 
   // User Store
   const { profile, setProfile } = useUserStore();
@@ -120,10 +124,11 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
     matchPayouts,
     loanDeductionAmount,
     lastEloDelta,
-    allEloDeltas
+    allEloDeltas,
+    myPlayerId
   } = useGameStore();
 
-  const p0 = players.find(p => p.id === 'p0');
+  const localPlayer = players.find(p => p.id === myPlayerId) || players[0];
 
   return (
     <>
@@ -206,8 +211,8 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
         <XRayInspector
           isOpen={isXRayOpen}
           onClose={() => closeModal('XRAY')}
-          tracker={player0Tracker || new CardTracker(p0?.hand || [], 1.0)}
-          ownHand={p0?.hand || []}
+          tracker={player0Tracker || new CardTracker(localPlayer?.hand || [], 1.0)}
+          ownHand={localPlayer?.hand || []}
           currentHint={currentHint}
         />
       )}
@@ -330,8 +335,19 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
         />
       )}
 
-      {/* 18. Sheet Chơi Online P2P Bạn Bè */}
-      <MobileOnlineRoomSheet />
+      {/* 18. Trang Chơi Online P2P Bạn Bè Native Mobile */}
+      {isOnlineRoomOpen && (
+        <MobileOnlineRoomView
+          isOpen={isOnlineRoomOpen}
+          onClose={() => closeModal('ONLINE_ROOM')}
+        />
+      )}
+
+      {/* 19. Trang Thông Báo Bàn Chơi Giải Tán (Native Mobile) */}
+      <MobileOnlineDisbandView
+        isOpen={disbandNotice !== null}
+        onClose={clearDisbandNotice}
+      />
     </>
   );
 };

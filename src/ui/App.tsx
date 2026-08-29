@@ -37,6 +37,7 @@ export const App: React.FC = () => {
   const { isMobile } = useIsMobile();
   const {
     currentScreen,
+    activeGameType,
     setActiveGameType,
     setCurrentScreen,
     setCurrentCampaignChapter
@@ -47,6 +48,7 @@ export const App: React.FC = () => {
     trackersRef,
     campaignResultMeta,
     startNewGame,
+    handleNextGame,
     handlePlaySelectedCards,
     handlePassTurn,
     handleAutoSort,
@@ -147,12 +149,12 @@ export const App: React.FC = () => {
     }
   }, [isHydrated, profile, openModal]);
 
-  // Khởi tạo game khi vào bàn (nếu chưa có engine)
+  // Khởi tạo game khi vào bàn (nếu chưa có engine và không phải trận Online P2P)
   useEffect(() => {
-    if (currentScreen === 'GAME_TABLE' && !engineRef.current) {
+    if (currentScreen === 'GAME_TABLE' && !engineRef.current && activeGameType !== 'ONLINE') {
       startNewGame(1);
     }
-  }, [currentScreen, startNewGame, engineRef]);
+  }, [currentScreen, startNewGame, engineRef, activeGameType]);
 
   // ==========================================================================
   // ĐIỀU HƯỚNG TỪ SẢNH VÀO CÁC CHẾ ĐỘ CHƠI (STRATEGY DISPATCH)
@@ -324,6 +326,7 @@ export const App: React.FC = () => {
     profile,
     campaignResultMeta,
     startNewGame,
+    handleNextGame,
     handlePlaySelectedCards,
     handlePassTurn,
     handleAutoSort,

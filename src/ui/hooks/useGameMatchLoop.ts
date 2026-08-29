@@ -28,6 +28,7 @@ import { useUserStore } from '../../stores/useUserStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useGameStore } from '../../stores/useGameStore';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
+import { useOnlineStore } from '../../stores/useOnlineStore';
 
 export type { CampaignResultMeta };
 
@@ -36,7 +37,7 @@ export type { CampaignResultMeta };
  * Điều phối vòng đời trận đấu, lượt đi của Bot và thao tác của Người Chơi
  */
 export function useGameMatchLoop() {
-  const { openModal, closeAllModals, setForfeitData } = useModalStore();
+  const { openModal, closeModal, closeAllModals, setForfeitData } = useModalStore();
   const { profile, setProfile } = useUserStore();
   const {
     autoSortEnabled,
@@ -145,6 +146,7 @@ export function useGameMatchLoop() {
     if (!engineRef.current) return;
     const engine = engineRef.current;
 
+    setGameNumber(engine.gameNumber);
     setPlayers([...engine.players]);
     const currentId = engine.getCurrentPlayer()?.id || engine.currentRound.currentTurnPlayerId;
     setCurrentTurnPlayerId(currentId);
@@ -162,6 +164,7 @@ export function useGameMatchLoop() {
     setCurrentHint,
     setCurrentMove,
     setCurrentTurnPlayerId,
+    setGameNumber,
     setIsGameOver,
     setPlayers,
     setWinners,
@@ -635,6 +638,10 @@ export function useGameMatchLoop() {
 
   // Xử lý khi người chơi xác nhận bỏ cuộc (Forfeit)
   const handleForfeitMatch = useCallback(() => {
+    if (activeGameType === 'ONLINE' || useGameStore.getState().activeGameType === 'ONLINE') {
+      useOnlineStore.getState().leaveRoom();
+    }
+
     const session = getActiveMatchSession();
     clearActiveMatchSession();
 
@@ -672,10 +679,23 @@ export function useGameMatchLoop() {
     resetMatchState();
     closeAllModals();
     setCurrentScreen('LOBBY');
-  }, [profile, setProfile, setCurrentScreen, closeAllModals, resetMatchState]);
+  }, [profile, setProfile, setCurrentScreen, closeAllModals, resetMatchState, activeGameType]);
 
   // Người chơi bấm nút "Về Sảnh" trên HeaderBar
   const handleRequestReturnToLobby = useCallback(() => {
+    if (activeGameType === 'ONLINE' || useGameStore.getState().activeGameType === 'ONLINE') {
+      useOnlineStore.getState().leaveRoom();
+      clearActiveMatchSession();
+      engineRef.current = null;
+      trackersRef.current = {};
+      lastWinnerIdRef.current = null;
+      OpponentProfiler.getInstance().reset();
+      resetMatchState();
+      closeAllModals();
+      setCurrentScreen('LOBBY');
+      return;
+    }
+
     if (engineRef.current && !engineRef.current.isGameOver) {
       const session = getActiveMatchSession();
       setForfeitData({
@@ -696,11 +716,44 @@ export function useGameMatchLoop() {
     }
   }, [activeGameType, openModal, setForfeitData, setCurrentScreen, resetMatchState, closeAllModals]);
 
+  // Bắt đầu ván tiếp theo (Next Game / Rematch)
+  const handleNextGame = useCallback(() => {
+    closeModal('VICTORY');
+    const betAmount = gameSettings.betAmount || 0;
+    const liveCoins = useUserStore.getState().profile.coins;
+    const currentGameType = useGameStore.getState().activeGameType;
+
+    if (currentGameType !== 'CAMPAIGN' && currentGameType !== 'ONLINE' && betAmount > 0 && liveCoins < betAmount) {
+      openModal('BANK');
+      return;
+    }
+
+    if (currentGameType === 'ONLINE') {
+      if (useOnlineStore.getState().isHost) {
+        useOnlineStore.getState().startMatch();
+      }
+      return;
+    }
+
+    const currentNumber = useGameStore.getState().gameNumber;
+    if (currentGameType === 'CAMPAIGN') {
+      if (campaignResultMeta?.isUnlockedNext && campaignResultMeta.nextChapter) {
+        startNewGame(1, { campaignChapter: campaignResultMeta.nextChapter });
+      } else {
+        startNewGame(currentNumber + 1);
+      }
+    } else {
+      // Ván tiếp theo trong bàn, người về Nhất ván trước được quyền đi trước
+      startNewGame(currentNumber + 1);
+    }
+  }, [closeModal, gameSettings.betAmount, openModal, campaignResultMeta, startNewGame]);
+
   return {
     engineRef,
     trackersRef,
     campaignResultMeta,
     startNewGame,
+    handleNextGame,
     handlePlaySelectedCards,
     handlePassTurn,
     handleAutoSort,

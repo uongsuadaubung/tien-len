@@ -28,7 +28,7 @@ export interface CampaignResultMeta {
  * Hook quản lý kết toán ván đấu, tính Xu/Elo, kiểm tra Quest/Thành tựu và cập nhật Hệ Sinh Thái
  */
 export function useMatchSettlement(
-  lastWinnerIdRef: React.MutableRefObject<string | null>,
+  lastWinnerIdRef: React.RefObject<string | null>,
   syncGameState: () => void
 ) {
   const {

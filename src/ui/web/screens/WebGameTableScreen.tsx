@@ -1,6 +1,5 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState } from 'react';
 import { GameEngine } from '../../../engine/game';
-import { isValidMove } from '../../../engine/validator';
 import { getBotConfig } from '../../../ai/bot-factory';
 import { HeaderBar } from '../../components/HeaderBar';
 import { LeftMatchHUD } from '../components/LeftMatchHUD';
@@ -9,10 +8,7 @@ import { BotSeat } from '../../components/BotSeat';
 import { TableCenter } from '../../components/TableCenter';
 import { DealingDeckAnimation } from '../../components/DealingDeckAnimation';
 import { PlayerHandView } from '../../components/PlayerHandView';
-import { evaluateSelectionFeedback } from '../../../ai/hint-engine';
-import { CardTracker } from '../../../ai/card-tracker';
-import { getSortedQuickSelectCandidates, getNextQuickSelectCards } from '../../../engine/quick-response-finder';
-import { soundManager } from '../../audio/sound-manager';
+import { useGameTableScreenLogic } from '../../hooks/useGameTableScreenLogic';
 
 // Stores
 import { useModalStore } from '../../../stores/useModalStore';
@@ -21,7 +17,7 @@ import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useGameStore } from '../../../stores/useGameStore';
 
 export interface WebGameTableScreenProps {
-  engineRef: React.MutableRefObject<GameEngine | null>;
+  engineRef: React.RefObject<GameEngine | null>;
   onPlaySelectedCards: () => void;
   onPassTurn: () => void;
   onAutoSort: () => void;
@@ -53,10 +49,8 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
 
   const {
     activeGameType,
+    myPlayerId,
     gameSettings,
-    playerCount,
-    botPersonaIds,
-    customBotConfigs,
     gameNumber,
     isDealing,
     dealtCounts,
@@ -68,111 +62,38 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     leadPlayerId,
     currentMove,
     selectedCardIds,
-    currentHint,
     handSortMode,
     smartVariantIndex,
     botThinkingThought,
-    setSelectedCardIds,
     toggleCardSelect,
     clearCardSelection
   } = useGameStore();
 
-  // Phân bổ ghế người chơi
-  const p0 = players[0];
-  const p1 = players[1]; // Bot 1 (Trái hoặc Trên nếu solo 1v1)
-  const p2 = players[2]; // Bot 2 (Trên nếu bàn 3-4 người)
-  const p3 = players[3]; // Bot 3 (Phải nếu bàn 4 người)
-
-  const isP0Turn = currentTurnPlayerId === 'p0';
-  const selectedCards = p0 ? p0.hand.filter(c => selectedCardIds.has(c.id)) : [];
-  const isValidPlaySelection =
-    isP0Turn &&
-    selectedCards.length > 0 &&
-    isValidMove({
-      cards: selectedCards,
-      target: currentMove?.combination || null,
-      isFirstMoveOfGame: engineRef.current?.isFirstMoveOfGame ?? false,
-      isLeadMove: engineRef.current?.isRoundLeadMove() ?? true,
-      hasPassedRound: p0?.isPassedCurrentRound ?? false,
-      allowFourPairsCutAnytime: engineRef.current?.rules.chopping.allowFourPairsCutAnytime ?? true,
-      isFinishingMove: selectedCards.length === (p0?.hand.length ?? 0),
-      prohibitEndingWithTwo: engineRef.current?.rules.gameFlow.prohibitEndingWithTwo ?? true
-    }).valid;
-
-  const canP0Pass =
-    isP0Turn &&
-    !isDealing &&
-    !(engineRef.current?.isFirstMoveOfGame ?? false) &&
-    !(engineRef.current?.isRoundLeadMove() ?? true);
-
-  // Tính toán danh sách các phương án Chọn Nhanh
-  const quickSelectCandidates = useMemo(() => {
-    if (!engineRef.current || !isP0Turn || !p0 || p0.hand.length === 0) return [];
-    const engine = engineRef.current;
-    return getSortedQuickSelectCandidates({
-      hand: p0.hand,
-      leadingMove: engine.getLeadingMove(),
-      isLeadMove: engine.isRoundLeadMove(),
-      isFirstMoveOfGame: engine.isFirstMoveOfGame,
-      allowFourPairsCutAnytime: engine.rules.chopping.allowFourPairsCutAnytime,
-      prohibitEndingWithTwo: engine.rules.gameFlow.prohibitEndingWithTwo
-    });
-  }, [isP0Turn, p0, currentMove]);
-
-  // Phản hồi nhận xét chiến thuật thời gian thực của Quân Sư
-  const activeAiHint = useMemo(() => {
-    if (!aiHintEnabled || !isP0Turn || !p0 || !engineRef.current) return currentHint;
-    if (selectedCards.length === 0) return currentHint;
-
-    const engine = engineRef.current;
-    const tracker = new CardTracker(p0.hand, 1.0);
-
-    const feedback = evaluateSelectionFeedback({
-      selectedCards,
-      hand: p0.hand,
-      leadingMove: engine.getLeadingMove(),
-      isFirstMoveOfGame: engine.isFirstMoveOfGame,
-      isLeadMove: engine.isRoundLeadMove(),
-      tracker,
-      optimalHint: currentHint,
-      prohibitEndingWithTwo: engine.rules.gameFlow.prohibitEndingWithTwo
-    });
-
-    return feedback || currentHint;
-  }, [aiHintEnabled, isP0Turn, p0, selectedCards, currentHint]);
-
-  const canQuickSelect = isP0Turn && !isDealing && quickSelectCandidates.length > 0;
-
-  const handleQuickSelect = useCallback(() => {
-    if (!engineRef.current || !isP0Turn || !p0 || p0.hand.length === 0) return;
-    const engine = engineRef.current;
-
-    const nextCards = getNextQuickSelectCards(
-      {
-        hand: p0.hand,
-        leadingMove: engine.getLeadingMove(),
-        isLeadMove: engine.isRoundLeadMove(),
-        isFirstMoveOfGame: engine.isFirstMoveOfGame,
-        allowFourPairsCutAnytime: engine.rules.chopping.allowFourPairsCutAnytime,
-        prohibitEndingWithTwo: engine.rules.gameFlow.prohibitEndingWithTwo
-      },
-      selectedCardIds
-    );
-
-    if (nextCards && nextCards.length > 0) {
-      setSelectedCardIds(new Set(nextCards.map(c => c.id)));
-      soundManager.playCardDeal();
-    }
-  }, [isP0Turn, p0, selectedCardIds, setSelectedCardIds]);
-
-  // Solo 1v1: Người duy nhất đối diện p0 là p1 ở Ghế Trên
-  const isSolo1v1 = playerCount === 2;
-  const topBot = isSolo1v1 ? p1 : (playerCount >= 3 ? p2 : null);
-  const leftBot = isSolo1v1 ? null : p1;
-  const rightBot = playerCount >= 4 ? p3 : null;
-
-  const topBotPersonaId = isSolo1v1 ? botPersonaIds[0] : botPersonaIds[1];
-  const topBotCustomConfig = isSolo1v1 ? customBotConfigs[0] : customBotConfigs[1];
+  const {
+    isOnlineMatch,
+    p0,
+    isMyTurn,
+    playerCount,
+    botPersonaIds,
+    customBotConfigs,
+    isValidPlaySelection,
+    canP0Pass,
+    topBot,
+    leftBot,
+    rightBot,
+    topBotPersonaId,
+    topBotCustomConfig,
+    quickSelectCandidates,
+    canQuickSelect,
+    activeAiHint,
+    handleQuickSelect,
+    handlePlayCards,
+    handlePassTurnAction
+  } = useGameTableScreenLogic({
+    engineRef,
+    onPlaySelectedCards,
+    onPassTurn
+  });
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[radial-gradient(ellipse_at_center,#141926_0%,#090c12_100%)] flex flex-col justify-between select-none">
@@ -204,13 +125,13 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
         isDealing={isDealing}
         dealtCounts={dealtCounts}
         aiHint={activeAiHint}
-        isHumanTurn={isP0Turn}
+        isHumanTurn={isMyTurn}
         aiHintEnabled={aiHintEnabled}
         customBotConfigs={customBotConfigs}
       />
 
       {/* BẢNG SUY LUẬN BOT AI TRỰC TIẾP BÊN PHẢI (RIGHT BOT REASONING HUD) */}
-      {botReasoningLogEnabled && (
+      {botReasoningLogEnabled && !isOnlineMatch && (
         <BotReasoningHUD
           isOpen={isReasoningHudOpen}
           onToggle={() => setIsReasoningHudOpen(prev => !prev)}
@@ -220,36 +141,36 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
         />
       )}
 
-      {/* SÀN ĐẤU TIẾN LÊN: NGƯỜI CHƠI BAO QUANH BÀN TRÒN TRUNG TÂM */}
-      <main className="flex-1 flex flex-col items-center justify-between px-2 py-1 max-w-7xl mx-auto w-full min-h-0 overflow-hidden relative">
-        {/* Banner thông báo hoàn thành nhiệm vụ ngay trong trận */}
-        {questToast && (
-          <div className="absolute top-2 z-50 bg-[var(--bg-container)]/95 text-[var(--text-primary)] px-4 py-2 rounded-2xl border-2 border-[var(--color-gold)] shadow-2xl animate-fade-in flex items-center gap-2.5 backdrop-blur-md">
-            <span className="text-xl">{questToast.icon}</span>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-extrabold uppercase text-[var(--color-gold)] tracking-wider">
-                🎯 Hoàn Thành Nhiệm Vụ!
-              </span>
-              <span className="text-xs font-bold text-[var(--text-primary)]">
-                {questToast.title} <span className="text-[var(--color-gold)] font-mono">(+{questToast.rewardCoins.toLocaleString()} Xu)</span>
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Banner thông báo người đi trước mở màn ván */}
-        {dealBanner && (
-          <div className="absolute top-16 z-50 bg-[#121724]/95 text-[#f3e5ab] font-extrabold px-6 py-2 rounded-full border border-[#d4af37] shadow-2xl animate-bounce text-sm sm:text-base flex items-center gap-2">
+      {/* THÔNG BÁO BANNER MỞ MÀN / NHẤT VÁN TRƯỚC */}
+      {dealBanner && (
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-black/85 border border-[var(--border-gold)] px-6 py-2.5 rounded-2xl shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-90 duration-300">
+          <p className="text-sm font-black text-[var(--color-gold)] tracking-wide flex items-center gap-2">
+            <span>👑</span>
             <span>{dealBanner}</span>
-          </div>
-        )}
+          </p>
+        </div>
+      )}
 
-        {/* GHẾ TRÊN: BOT TRÊN (HOẶC ĐỐI THỦ DUY NHẤT TRONG SOLO 1V1) */}
-        <div className="flex justify-center w-full z-20">
+      {/* THÔNG BÁO HOÀN THÀNH NHIỆM VỤ / THÀNH TỰU (TOAST) */}
+      {questToast && (
+        <div className="absolute top-20 right-6 z-50 bg-[#121927]/95 border border-emerald-500/50 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-md animate-in slide-in-from-top duration-300 flex items-center gap-3">
+          <div className="text-2xl">{questToast.icon}</div>
+          <div>
+            <div className="text-xs font-bold text-emerald-400">Nhiệm Vụ Hoàn Thành!</div>
+            <div className="text-xs font-semibold text-white">{questToast.title}</div>
+            <div className="text-[10px] text-amber-300 font-bold">+{questToast.rewardCoins.toLocaleString()} Xu</div>
+          </div>
+        </div>
+      )}
+
+      {/* KHÔNG GIAN BÀN CHƠI CHÍNH (MAIN GAME BOARD) */}
+      <main className="relative flex-1 w-full max-w-7xl mx-auto flex flex-col justify-between items-center px-4 py-2 z-10 overflow-hidden">
+        {/* GHẾ TRÊN: BOT 2 HOẶC SOLO 1V1 (BOT 1) */}
+        <div className="flex justify-center w-full z-20 mt-1">
           {topBot && (
             <BotSeat
               player={topBot}
-              botConfig={getBotConfig(topBotPersonaId, topBotCustomConfig)}
+              botConfig={getBotConfig(topBotPersonaId, topBotCustomConfig || undefined)}
               isCurrentTurn={!isDealing && currentTurnPlayerId === topBot.id}
               position="top"
               isLeader={leadPlayerId === topBot.id}
@@ -267,7 +188,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
             {leftBot ? (
               <BotSeat
                 player={leftBot}
-                botConfig={getBotConfig(botPersonaIds[0], customBotConfigs[0])}
+                botConfig={getBotConfig(botPersonaIds[0], customBotConfigs[0] || undefined)}
                 isCurrentTurn={!isDealing && currentTurnPlayerId === leftBot.id}
                 position="left"
                 isLeader={leadPlayerId === leftBot.id}
@@ -305,7 +226,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
             <div className="relative z-10 w-full flex justify-center">
               <TableCenter
                 currentMove={currentMove}
-                isLeadMove={engineRef.current?.isRoundLeadMove() ?? true}
+                isLeadMove={isOnlineMatch ? (currentMove === null || leadPlayerId === myPlayerId) : (engineRef.current?.isRoundLeadMove() ?? true)}
                 chopNotification={chopNotification}
                 isDealing={isDealing}
               />
@@ -317,7 +238,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
             {rightBot ? (
               <BotSeat
                 player={rightBot}
-                botConfig={getBotConfig(botPersonaIds[2], customBotConfigs[2])}
+                botConfig={getBotConfig(botPersonaIds[2], customBotConfigs[2] || undefined)}
                 isCurrentTurn={!isDealing && currentTurnPlayerId === rightBot.id}
                 position="right"
                 isLeader={leadPlayerId === rightBot.id}
@@ -339,19 +260,19 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
               selectedCardIds={selectedCardIds}
               onToggleCardSelect={toggleCardSelect}
               onClearCardSelection={clearCardSelection}
-              onPlaySelectedCards={onPlaySelectedCards}
-              onPassTurn={onPassTurn}
+              onPlaySelectedCards={handlePlayCards}
+              onPassTurn={handlePassTurnAction}
               onAutoSort={onAutoSort}
               onQuickSelect={quickResponseAssistEnabled ? handleQuickSelect : null}
               canQuickSelect={quickResponseAssistEnabled ? canQuickSelect : false}
               quickSelectCandidatesCount={quickSelectCandidates.length}
-              isCurrentTurn={isP0Turn}
+              isCurrentTurn={isMyTurn}
               canPlay={isValidPlaySelection}
               canPass={canP0Pass}
-              isLeader={leadPlayerId === 'p0'}
+              isLeader={leadPlayerId === myPlayerId}
               isDealing={isDealing}
-              dealtCardsCount={dealtCounts['p0']}
-              isFirstMoveOfGame={engineRef.current?.isFirstMoveOfGame ?? false}
+              dealtCardsCount={dealtCounts[myPlayerId]}
+              isFirstMoveOfGame={isOnlineMatch ? false : (engineRef.current?.isFirstMoveOfGame ?? false)}
               sortMode={handSortMode}
               variantIndex={smartVariantIndex}
             />

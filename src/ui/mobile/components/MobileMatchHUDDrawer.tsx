@@ -6,6 +6,7 @@ import { Badge } from '../../primitives';
 import { BotConfig } from '../../../ai/types';
 import { useUserStore } from '../../../stores/useUserStore';
 import { useEcosystemStore } from '../../../stores/useEcosystemStore';
+import { useGameStore } from '../../../stores/useGameStore';
 
 export interface MobileMatchHUDDrawerProps {
   isOpen: boolean;
@@ -34,42 +35,42 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
 }) => {
   const { profile } = useUserStore();
   const ecosystemBots = useEcosystemStore(state => state.bots);
+  const { myPlayerId, activeGameType } = useGameStore();
+  const isOnlineMatch = activeGameType === 'ONLINE';
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center sm:items-end justify-center bg-black/80 animate-fade-in p-2 sm:p-3 select-none">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm animate-fade-in select-none">
       {/* Vùng bấm ra ngoài để đóng */}
       <div className="absolute inset-0" onClick={onClose} />
 
-      {/* Tấm Bottom Sheet Drawer chính - Nền đặc phẳng lì #0e1422 */}
-      <div 
-        className="relative z-10 w-full max-w-md bg-[#0e1422] border border-[#2a3449] rounded-2xl shadow-2xl p-3 text-white flex flex-col gap-2 max-h-[90vh] overflow-hidden animate-in slide-in-from-bottom-4 duration-200"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Thanh Header Drawer */}
-        <div className="flex items-center justify-between border-b border-[#2a3449] pb-1.5">
-          <div className="flex items-center gap-1.5">
-            <Trophy className="w-4 h-4 text-[var(--color-gold)]" />
+      <div className="w-full max-w-lg bg-[#0e1422] border-t-2 border-[#2a3449] rounded-t-3xl p-4 shadow-2xl flex flex-col gap-3 max-h-[85vh] overflow-y-auto z-10" onClick={e => e.stopPropagation()}>
+        {/* HEADER DRAWER */}
+        <div className="flex items-center justify-between border-b border-[#2a3449] pb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <Trophy className="w-4 h-4" />
+            </div>
             <div>
-              <h3 className="text-xs font-bold text-zinc-100 uppercase tracking-wider">
-                Bảng Chỉ Số Ván #{gameNumber}
+              <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                Ván #{gameNumber}
               </h3>
-              <span className="text-[10px] text-zinc-400">
-                Mức cược: {betAmount.toLocaleString()} Xu / lá
+              <span className="text-[10px] text-zinc-400 font-semibold">
+                Cược: {betAmount.toLocaleString()} Xu
               </span>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="w-6 h-6 rounded-full bg-[#182030] border border-[#2a3449] flex items-center justify-center text-zinc-300 hover:text-white transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-full bg-[#182030] border border-[#2a3449] flex items-center justify-center text-zinc-300 hover:text-white transition-colors cursor-pointer"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* BẢNG CHỈ SỐ NGƯỜI CHƠI (TỐI ƯU COMPACT HIỆN ĐỦ 4 NGƯỜI) */}
+        {/* BẢNG CHỈ SỐ NGƯỜI CHƠI */}
         <div className="overflow-hidden rounded-xl border border-[#2a3449] bg-[#090d16]">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -83,9 +84,12 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
               {players.map(p => {
                 const isTurn = !isDealing && currentTurnPlayerId === p.id;
                 const isLeader = leadPlayerId === p.id;
-                const cardCount = isDealing ? (dealtCounts[p.id] ?? 0) : p.hand.length;
+                const isMe = p.id === myPlayerId;
+                const isHuman = !p.isBot;
+                const cardCount = isDealing 
+                  ? (dealtCounts[p.id] ?? 0) 
+                  : (isMe ? p.hand.length : (dealtCounts[p.id] ?? p.hand.length));
                 const isOneCardLeft = !isDealing && cardCount === 1 && !p.rankPosition;
-                const isHuman = p.id === 'p0';
                 const botIdx = parseInt(p.id.replace('p', '')) - 1;
                 const botOverride =
                   customBotConfigs && botIdx >= 0 && botIdx < customBotConfigs.length
@@ -95,7 +99,7 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
                 const liveBot = p.isBot
                   ? ecosystemBots.find(b => b.id === p.botPersonaId || b.id === p.id || b.name === p.name)
                   : null;
-                const displayElo = isHuman ? profile.elo : liveBot?.elo ?? botOverride?.elo ?? cfg?.elo ?? 1000;
+                const displayElo = isMe ? profile.elo : (liveBot?.elo ?? botOverride?.elo ?? cfg?.elo ?? 1000);
 
                 return (
                   <tr
@@ -112,7 +116,7 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
                     <td className="py-1.5 px-2.5 border-r border-[#2a3449]">
                       <div className="flex items-center gap-1.5">
                         <div className="relative shrink-0 flex items-center justify-center">
-                          <span className="emoji-avatar text-sm">{p.avatar || '🤖'}</span>
+                          <span className="emoji-avatar text-sm">{p.avatar || (p.isBot ? '🤖' : '🤠')}</span>
                           {isLeader && (
                             <span className="absolute -top-1 -right-1 bg-[#d4af37] text-black text-[7px] font-black px-0.5 rounded-full shadow">
                               👑
@@ -123,10 +127,10 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
                         <div className="flex flex-col min-w-0">
                           <span
                             className={`truncate text-[11px] leading-tight ${
-                              isHuman ? 'text-[#d4af37] font-bold' : 'text-zinc-100'
+                              isMe ? 'text-[#d4af37] font-bold' : 'text-zinc-100'
                             }`}
                           >
-                            {p.name}
+                            {isMe ? `${p.name} (Bạn)` : p.name}
                           </span>
 
                           <span className="text-[9px] text-zinc-400 font-medium leading-tight">

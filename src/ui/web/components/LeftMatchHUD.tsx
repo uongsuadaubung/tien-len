@@ -9,6 +9,7 @@ import { AIAssistantMascot } from '../../components/AIAssistantMascot';
 import { BotConfig } from '../../../ai/types';
 import { useUserStore } from '../../../stores/useUserStore';
 import { useEcosystemStore } from '../../../stores/useEcosystemStore';
+import { useGameStore } from '../../../stores/useGameStore';
 
 interface LeftMatchHUDProps {
   players: Player[];
@@ -40,6 +41,8 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
   const [isOpen] = useState<boolean>(true);
   const { profile } = useUserStore();
   const ecosystemBots = useEcosystemStore(state => state.bots);
+  const { myPlayerId, activeGameType } = useGameStore();
+  const isOnlineMatch = activeGameType === 'ONLINE';
 
   return (
     <div
@@ -80,14 +83,17 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
               {players.map((p) => {
                 const isTurn = !isDealing && currentTurnPlayerId === p.id;
                 const isLeader = leadPlayerId === p.id;
-                const cardCount = isDealing ? (dealtCounts[p.id] ?? 0) : p.hand.length;
+                const isMe = p.id === myPlayerId;
+                const isHuman = !p.isBot;
+                const cardCount = isDealing 
+                  ? (dealtCounts[p.id] ?? 0) 
+                  : (isMe ? p.hand.length : (dealtCounts[p.id] ?? p.hand.length));
                 const isOneCardLeft = !isDealing && cardCount === 1 && !p.rankPosition;
-                const isHuman = p.id === 'p0';
                 const botIdx = parseInt(p.id.replace('p', '')) - 1;
                 const botOverride = customBotConfigs && botIdx >= 0 && botIdx < customBotConfigs.length ? customBotConfigs[botIdx] : undefined;
                 const cfg = p.isBot ? getBotConfig(p.botPersonaId || 'BOT_ELO_1150', botOverride) : null;
                 const liveBot = p.isBot ? ecosystemBots.find(b => b.id === p.botPersonaId || b.id === p.id || b.name === p.name) : null;
-                const displayElo = isHuman ? profile.elo : (liveBot?.elo ?? botOverride?.elo ?? cfg?.elo ?? 1000);
+                const displayElo = isMe ? profile.elo : (liveBot?.elo ?? botOverride?.elo ?? cfg?.elo ?? 1000);
 
                 return (
                   <tr
@@ -105,7 +111,7 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                       <div className="flex items-center gap-2 min-w-0">
                         {/* Avatar */}
                         <div className="relative flex-shrink-0">
-                          <span className="text-sm">{p.avatar || '🤖'}</span>
+                          <span className="text-sm">{p.avatar || (p.isBot ? '🤖' : '🤠')}</span>
                           {isLeader && (
                             <span className="absolute -top-1.5 -right-1.5 bg-[var(--color-gold)] text-[#0a0c0e] text-[7px] font-black px-0.5 rounded-full shadow">
                               👑
@@ -116,8 +122,8 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                         {/* Tên & Tag */}
                         <div className="flex flex-col min-w-0">
                           <div className="flex items-center gap-1">
-                            <span className={`truncate text-xs ${isHuman ? 'text-[var(--color-gold)] font-bold' : 'text-[var(--text-primary)]'}`}>
-                              {p.name}
+                            <span className={`truncate text-xs ${isMe ? 'text-[var(--color-gold)] font-bold' : 'text-[var(--text-primary)]'}`}>
+                              {isMe ? `${p.name} (Bạn)` : p.name}
                             </span>
                           </div>
 

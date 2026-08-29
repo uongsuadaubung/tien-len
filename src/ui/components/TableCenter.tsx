@@ -2,6 +2,7 @@ import React from 'react';
 import { PlayedMove } from '../../engine/types';
 import { CardView } from './CardView';
 import { Sparkles, Flame } from 'lucide-react';
+import { useGameStore } from '../../stores/useGameStore';
 
 interface TableCenterProps {
   currentMove: PlayedMove | null;
@@ -25,18 +26,25 @@ export const TableCenter: React.FC<TableCenterProps> = ({
   isDealing = false,
   cardSize = 'md'
 }) => {
+  const { myPlayerId, players } = useGameStore();
+
   const getSlideAnimationClass = (playerId?: string) => {
-    switch (playerId) {
-      case 'p1':
-        return 'card-slide-p1';
-      case 'p2':
-        return 'card-slide-p2';
-      case 'p3':
-        return 'card-slide-p3';
-      case 'p0':
-      default:
-        return 'card-slide-p0';
+    if (!playerId) return 'card-slide-p0';
+    const myIndex = Math.max(0, players.findIndex(p => p.id === myPlayerId));
+    const targetIndex = players.findIndex(p => p.id === playerId);
+    
+    if (targetIndex === -1 || targetIndex === myIndex) {
+      return 'card-slide-p0'; // từ dưới lên (ghế chính mình)
     }
+
+    const diff = (targetIndex - myIndex + players.length) % players.length;
+    if (players.length === 2) {
+      return 'card-slide-p2'; // từ trên xuống
+    }
+    if (diff === 1) return 'card-slide-p1'; // từ trái sang
+    if (diff === 2) return 'card-slide-p2'; // từ trên xuống
+    if (diff === 3) return 'card-slide-p3'; // từ phải sang
+    return 'card-slide-p0';
   };
 
   const isMobileSize = cardSize === 'table';

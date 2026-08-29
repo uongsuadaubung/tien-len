@@ -21,6 +21,7 @@ import { BotProfileModal } from './BotProfileModal';
 import { MatchmakingModal } from './MatchmakingModal';
 import { SyncConflictModal } from './SyncConflictModal';
 import { OnlineRoomModal } from './OnlineRoomModal';
+import { OnlineDisbandModal } from '../../components/OnlineDisbandModal';
 import { useEcosystemStore } from '../../../stores/useEcosystemStore';
 import { CardTracker } from '../../../ai/card-tracker';
 import { CampaignChapter } from '../../../engine/campaign';
@@ -117,10 +118,11 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
     matchPayouts,
     loanDeductionAmount,
     lastEloDelta,
-    allEloDeltas
+    allEloDeltas,
+    myPlayerId
   } = useGameStore();
 
-  const p0 = players.find(p => p.id === 'p0');
+  const localPlayer = players.find(p => p.id === myPlayerId) || players[0];
 
   return (
     <>
@@ -226,8 +228,8 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
       <XRayInspector
         isOpen={isXRayOpen}
         onClose={() => closeModal('XRAY')}
-        tracker={player0Tracker || new CardTracker(p0?.hand || [], 1.0)}
-        ownHand={p0?.hand || []}
+        tracker={player0Tracker || new CardTracker(localPlayer?.hand || [], 1.0)}
+        ownHand={localPlayer?.hand || []}
         currentHint={currentHint}
       />
 
@@ -296,6 +298,9 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
 
       {/* 17. Online P2P Multiplayer Room Modal */}
       <OnlineRoomModal />
+
+      {/* 18. Online Disband & Kick Notice Modal */}
+      <OnlineDisbandModal />
     </>
   );
 };
