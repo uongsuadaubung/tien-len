@@ -1,6 +1,6 @@
-import { useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useSmartHandSorting } from './useSmartHandSorting';
-import { useMatchSettlement, CampaignResultMeta } from './useMatchSettlement';
+import { useGameStore, type CampaignResultMeta } from '../../stores/useGameStore';
 import { useMatchAIHints } from './useMatchAIHints';
 import { appFlowCoordinator } from '../../services/app-flow-coordinator';
 
@@ -11,18 +11,7 @@ export type { CampaignResultMeta };
  * Cầu nối tinh gọn kết nối UI với AppFlowCoordinator và OfflineMatchDriver
  */
 export function useGameMatchLoop() {
-  // Settlement Hook
-  const { campaignResultMeta, handleGameCompletion } = useMatchSettlement();
-
-  // Đăng ký nhận sự kiện hoàn thành ván đấu từ Driver
-  useEffect(() => {
-    appFlowCoordinator.setMatchCompleteHandler((result) => {
-      handleGameCompletion(result.engine);
-    });
-    return () => {
-      appFlowCoordinator.setMatchCompleteHandler(null);
-    };
-  }, [handleGameCompletion]);
+  const { campaignResultMeta } = useGameStore();
 
   // Hook Xếp bài thông minh & Gợi ý AI
   const { handleAutoSort } = useSmartHandSorting();

@@ -26,7 +26,7 @@ import { useUserStore } from '../../stores/useUserStore';
 import { soundManager } from '../../ui/audio/sound-manager';
 import { resolveStrategyForMatch } from '../strategies/game-mode-strategy';
 import { savePlayerProfile, type PlayerProfile } from '../storage';
-import { GameEventBus, type MatchCompletedEvent } from '../events/game-event-bus';
+import { type MatchCompletedEvent } from '../events/game-event-bus';
 import { evaluateDailyQuests, evaluateAchievements } from '../evaluators/progress-evaluators';
 
 export interface HostEngineDriverCallbacks {
@@ -399,7 +399,6 @@ export class HostEngineDriver {
 
     userStore.setProfile(updatedProfile);
     savePlayerProfile(updatedProfile);
-    GameEventBus.getInstance().publish(matchCompletedEvent);
 
     // Cập nhật số dư Xu và Elo mới cho từng người chơi trong phòng (Host, Bot, Guest)
     const resetPlayers = this.roomState.players.map(p => {

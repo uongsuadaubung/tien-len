@@ -25,6 +25,13 @@ export type ScreenType = 'LOBBY' | 'GAME_TABLE';
 
 export type HandSortMode = 'NATURAL' | 'SMART_GROUP';
 
+export interface CampaignResultMeta {
+  isUnlockedNext: boolean;
+  isAllCompleted: boolean;
+  nextChapter: CampaignChapter | null;
+  currentWins: number;
+}
+
 export interface ChopNotificationData {
   visible: boolean;
   chopperName: string;
@@ -81,8 +88,10 @@ interface GameState {
   lastEloDelta: number;
   allEloDeltas: Record<string, number>;
   matchLogReport: MatchLogReport | null;
+  campaignResultMeta: CampaignResultMeta | null;
 
   // Actions
+  setCampaignResultMeta: (meta: CampaignResultMeta | null) => void;
   setCurrentScreen: (screen: ScreenType) => void;
   setActiveGameType: (type: ActiveGameType) => void;
   setMyPlayerId: (id: string) => void;
@@ -219,7 +228,9 @@ export const useGameStore = create<GameState>((set) => ({
   lastEloDelta: 0,
   allEloDeltas: {},
   matchLogReport: null,
+  campaignResultMeta: null,
 
+  setCampaignResultMeta: (meta) => set({ campaignResultMeta: meta }),
   setCurrentScreen: (screen) => {
     useViewStore.getState().setScreen(screen);
     set({ currentScreen: screen });
@@ -345,6 +356,7 @@ export const useGameStore = create<GameState>((set) => ({
     loanDeductionAmount: 0,
     lastEloDelta: 0,
     allEloDeltas: {},
-    matchLogReport: null
+    matchLogReport: null,
+    campaignResultMeta: null
   })
 }));

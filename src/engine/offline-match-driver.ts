@@ -20,7 +20,6 @@ import { resolveStrategyForMatch, type MatchSetupContext } from './strategies/ga
 import { generateRealisticBotBankroll } from '../ai/bot-factory';
 import { OpponentProfiler } from '../ai/opponent-profiler';
 import type { ChopNotificationData } from '../stores/useGameStore';
-import { GameEventBus, type ChopExecutedEvent, type CardPlayedEvent } from './events/game-event-bus';
 import type { PlayerProfile } from './storage';
 import type { CampaignChapter } from './campaign';
 import { getOptimalMoveHint, type MoveHint } from '../ai/hint-engine';
@@ -416,30 +415,10 @@ export class OfflineMatchDriver {
         moveRes.isCascadeChop || false,
         moveRes.chopChainCount || 1
       );
-
-      const chopEvent: ChopExecutedEvent = {
-        type: 'CHOP_EXECUTED',
-        chopperPlayerId: playerId,
-        victimPlayerId: moveRes.choppedPlayerId,
-        penaltyAmount: penalty,
-        choppingCards: cards,
-        isCascadeChop: Boolean(moveRes.isCascadeChop),
-        chopChainCount: moveRes.chopChainCount || 1
-      };
-      GameEventBus.getInstance().publish(chopEvent);
     }
 
     const lastMove = this.engine.getLeadingMove();
     if (lastMove) {
-      const cardPlayedEvent: CardPlayedEvent = {
-        type: 'CARD_PLAYED',
-        playerId,
-        cards,
-        combination: lastMove.combination,
-        remainingCardsCount: player.hand.length
-      };
-      GameEventBus.getInstance().publish(cardPlayedEvent);
-
       for (const t of Object.values(this.trackers)) {
         t.recordMove(lastMove);
       }

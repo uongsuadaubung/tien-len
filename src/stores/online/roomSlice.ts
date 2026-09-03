@@ -24,7 +24,7 @@ import {
 } from '../../engine/types';
 import { type PlayerProfile, savePlayerProfile } from '../../engine/storage';
 import { createPlayer, createBotPlayer } from '../../engine/player-factory';
-import { GameEventBus, type MatchCompletedEvent } from '../../engine/events/game-event-bus';
+import { type MatchCompletedEvent } from '../../engine/events/game-event-bus';
 import { evaluateDailyQuests, evaluateAchievements } from '../../engine/evaluators/progress-evaluators';
 import { type RoomSlice, type OnlineSliceCreator } from './types';
 
@@ -595,7 +595,6 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
 
       userStore.setProfile(updatedProfile);
       savePlayerProfile(updatedProfile);
-      GameEventBus.getInstance().publish(matchCompletedEvent);
 
       useViewStore.getState().openModal('VICTORY');
     });

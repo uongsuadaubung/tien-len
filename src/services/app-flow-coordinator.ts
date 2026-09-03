@@ -33,21 +33,17 @@ import type { CampaignChapter } from '../engine/campaign';
 import type { CustomGameModalConfig } from '../ui/web/modals/CustomGameModal';
 import type { BotConfig } from '../ai/types';
 import { assertValidMatchStartup } from '../engine/invariants/match-invariants';
+import { settleCompletedMatch } from './match-settlement-service';
 
 export class AppFlowCoordinator {
   private static instance: AppFlowCoordinator | null = null;
   public driver: OfflineMatchDriver | null = null;
-  private onMatchCompleteHandler: ((result: MatchCompletionResult) => void) | null = null;
 
   public static getInstance(): AppFlowCoordinator {
     if (!AppFlowCoordinator.instance) {
       AppFlowCoordinator.instance = new AppFlowCoordinator();
     }
     return AppFlowCoordinator.instance;
-  }
-
-  public setMatchCompleteHandler(handler: ((result: MatchCompletionResult) => void) | null): void {
-    this.onMatchCompleteHandler = handler;
   }
 
   // =========================================================================
@@ -270,9 +266,7 @@ export class AppFlowCoordinator {
     });
 
     driver.onComplete((result: MatchCompletionResult) => {
-      if (this.onMatchCompleteHandler) {
-        this.onMatchCompleteHandler(result);
-      }
+      settleCompletedMatch(result.engine);
     });
 
     // 2. Tính cọc và trừ cọc an toàn

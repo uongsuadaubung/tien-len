@@ -2,7 +2,7 @@ import { useState } from 'react';
 import confetti from 'canvas-confetti';
 import { PlayerProfile, savePlayerProfile } from '../../engine/storage';
 import { soundManager } from '../audio/sound-manager';
-import { GameEventBus, WheelSpunEvent } from '../../engine/events/game-event-bus';
+import { type WheelSpunEvent } from '../../engine/events/game-event-bus';
 import { evaluateDailyQuests, evaluateAchievements } from '../../engine/evaluators/progress-evaluators';
 import { 
   ECONOMY_CONSTANTS, 
@@ -107,7 +107,6 @@ export function useLuckyWheel(): UseLuckyWheelReturn {
 
       savePlayerProfile(finalProfile);
       onUpdateProfile(finalProfile);
-      GameEventBus.getInstance().publish(wheelEvent);
     }, 4600);
   };
 
