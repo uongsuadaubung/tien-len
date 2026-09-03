@@ -3,6 +3,7 @@ import { Player } from '../../engine/types';
 import { BotConfig } from '../../ai/types';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { useViewStore } from '../../stores/useViewStore';
+import { useI18n } from '../../locales';
 
 interface BotSeatProps {
   player: Player | null;
@@ -27,6 +28,7 @@ export const BotSeat: React.FC<BotSeatProps> = ({
   thoughtText,
   size = 'normal'
 }) => {
+  const { t } = useI18n();
   if (!player) return null;
 
   const isCompact = size === 'compact';
@@ -83,7 +85,7 @@ export const BotSeat: React.FC<BotSeatProps> = ({
 
               {isLeader && (
                 <div className="absolute -top-1 -right-1 bg-amber-500 text-black text-[7px] font-black px-1 rounded-full shadow">
-                  CÁI
+                  {t('bot.leader')}
                 </div>
               )}
 
@@ -101,10 +103,10 @@ export const BotSeat: React.FC<BotSeatProps> = ({
               </span>
 
               {player.isPassedCurrentRound ? (
-                <span className="text-[8px] font-black text-rose-400">BỎ LƯỢT</span>
+                <span className="text-[8px] font-black text-rose-400">{t('bot.passed')}</span>
               ) : player.rankPosition ? (
                 <span className="text-[8px] font-black text-amber-400">
-                  {player.rankPosition === 1 ? 'VỀ NHẤT' : player.rankPosition === 2 ? 'VỀ NHÌ' : player.rankPosition === 3 ? 'VỀ BA' : 'VỀ BÉT'}
+                  {player.rankPosition === 1 ? t('victory.rank1') : player.rankPosition === 2 ? t('victory.rank2') : player.rankPosition === 3 ? t('victory.rank3') : t('victory.rank4')}
                 </span>
               ) : cardCount > 0 ? (
                 <span className={`text-[8px] font-extrabold px-1 rounded text-center leading-tight mt-0.5 ${
@@ -112,7 +114,7 @@ export const BotSeat: React.FC<BotSeatProps> = ({
                     ? 'bg-rose-950 text-rose-300 border border-rose-500 animate-bounce' 
                     : 'bg-[#141b2b] text-amber-300 border border-amber-500/30'
                 }`}>
-                  {cardCount} lá
+                  {cardCount} {t('bot.cardsUnit')}
                 </span>
               ) : null}
             </div>
@@ -184,14 +186,14 @@ export const BotSeat: React.FC<BotSeatProps> = ({
         {/* Huy hiệu Cái */}
         {isLeader && (
           <div className="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-[#d4af37] to-[#aa8620] text-[#0a0d14] text-[9px] font-black px-1.5 py-0.2 rounded-full border border-white/40 shadow">
-            CÁI
+            {t('bot.leader')}
           </div>
         )}
 
         {/* Trạng thái Bỏ lượt */}
         {player.isPassedCurrentRound && (
           <div className="absolute inset-0 bg-black/80 rounded-2xl text-[10px] sm:text-xs flex items-center justify-center font-black text-red-400">
-            BỎ LƯỢT
+            {t('bot.passed')}
           </div>
         )}
 
@@ -207,12 +209,12 @@ export const BotSeat: React.FC<BotSeatProps> = ({
             `}
           >
             {player.rankPosition === 1
-              ? '🥇 NHẤT'
+              ? `🥇 ${t('victory.rank1')}`
               : player.rankPosition === 2
-              ? '🥈 NHÌ'
+              ? `🥈 ${t('victory.rank2')}`
               : player.rankPosition === 3
-              ? '🥉 BA'
-              : 'BÉT'}
+              ? `🥉 ${t('victory.rank3')}`
+              : t('victory.rank4')}
           </div>
         )}
       </div>

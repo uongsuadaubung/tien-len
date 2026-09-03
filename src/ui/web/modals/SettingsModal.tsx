@@ -19,11 +19,13 @@ import {
   History,
   CheckCircle2,
   AlertTriangle,
-  Wifi
+  Wifi,
+  Globe
 } from 'lucide-react';
 import { Modal, Button } from '../../primitives';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useSettingsSync } from '../../hooks/useSettingsSync';
+import { useI18n } from '../../../locales';
 
 export interface SettingsModalProps {
   isOpen: boolean;
@@ -61,6 +63,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
   onClose
 }) => {
+  const { t, locale, setLocale } = useI18n();
   const {
     soundEnabled,
     toggleSound: onToggleSound,
@@ -117,8 +120,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Cài Đặt Trò Chơi"
-      subtitle="Tùy chỉnh âm thanh, nhịp độ, công cụ bàn đấu và đồng bộ đám mây"
+      title={t('settings.title')}
+      subtitle={t('settings.title')}
       icon={<Settings className="w-5 h-5 text-[var(--color-gold)]" />}
       maxWidth="xl"
       height="auto"
@@ -126,12 +129,49 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         <div className="w-full flex items-center justify-between">
           <span className="text-[11px] text-[var(--text-muted)] font-medium">Tiến Lên Miền Nam</span>
           <Button variant="surface" size="sm" onClick={onClose}>
-            Đóng
+            {t('common.close')}
           </Button>
         </div>
       }
     >
       <div className="space-y-4 py-1">
+        {/* ========================================================================= */}
+        {/* NHÓM NGÔN NGỮ (LANGUAGE SELECTION) */}
+        {/* ========================================================================= */}
+        <div className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-card)] shadow-md overflow-hidden p-4 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Globe className="w-5 h-5 text-[var(--color-gold)] shrink-0" />
+            <div>
+              <div className="text-xs font-bold text-[var(--text-primary)]">{t('settings.language')}</div>
+              <div className="text-[11px] text-[var(--text-muted)]">
+                {locale === 'vi' ? 'Giao diện Tiếng Việt chuẩn' : 'Standard English Interface'}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 bg-[var(--bg-container)] p-1 rounded-xl border border-[var(--border-container)]">
+            <button
+              onClick={() => setLocale('vi')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                locale === 'vi'
+                  ? 'bg-gradient-to-r from-[#f0cb64] to-[#d4af37] text-black shadow-md'
+                  : 'text-[var(--text-secondary)] hover:text-white'
+              }`}
+            >
+              🇻🇳 Tiếng Việt
+            </button>
+            <button
+              onClick={() => setLocale('en')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                locale === 'en'
+                  ? 'bg-gradient-to-r from-[#f0cb64] to-[#d4af37] text-black shadow-md'
+                  : 'text-[var(--text-secondary)] hover:text-white'
+              }`}
+            >
+              🇬🇧 English
+            </button>
+          </div>
+        </div>
+
         {/* ========================================================================= */}
         {/* NHÓM 1: ĐỒNG BỘ ĐÁM MÂY (GITHUB GIST SYNC) */}
         {/* ========================================================================= */}

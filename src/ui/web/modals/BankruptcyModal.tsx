@@ -3,6 +3,7 @@ import { Landmark, ShieldCheck, HeartHandshake, CheckCircle2, AlertCircle } from
 import { Modal, Card, Badge, Button } from '../../primitives';
 import { useBank } from '../../hooks/useBank';
 import { useUserStore } from '../../../stores/useUserStore';
+import { useI18n } from '../../../locales';
 
 export interface BankruptcyModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
   isOpen,
   onClose
 }) => {
+  const { t } = useI18n();
   const { profile } = useUserStore();
   const {
     loanAmountToBorrow,
@@ -36,8 +38,8 @@ export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Ngân Hàng & Quỹ Cứu Trợ"
-      subtitle="Vay vốn quay vòng hoặc nhận cứu trợ khi cạn kiệt Xu"
+      title={t('bankruptcy.title')}
+      subtitle={t('bankruptcy.message')}
       icon={<Landmark className="w-5 h-5 text-[var(--color-gold)]" />}
       maxWidth="lg"
       height="h-[88vh] sm:h-[640px]"
@@ -48,7 +50,7 @@ export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
       }
       footer={
         <Button variant="surface" size="md" onClick={onClose}>
-          Đóng
+          {t('common.close')}
         </Button>
       }
     >

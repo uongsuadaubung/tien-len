@@ -3,6 +3,7 @@ import { PlayedMove } from '../../engine/types';
 import { CardView } from './CardView';
 import { Sparkles, Flame } from 'lucide-react';
 import { useGameStore } from '../../stores/useGameStore';
+import { useI18n } from '../../locales';
 
 interface TableCenterProps {
   currentMove: PlayedMove | null;
@@ -26,6 +27,7 @@ export const TableCenter: React.FC<TableCenterProps> = ({
   isDealing = false,
   cardSize = 'md'
 }) => {
+  const { t } = useI18n();
   const { myPlayerId, players } = useGameStore();
 
   const getSlideAnimationClass = (playerId?: string) => {
@@ -74,7 +76,7 @@ export const TableCenter: React.FC<TableCenterProps> = ({
             : 'chop-badge'
         }`}>
           <Flame className="w-6 h-6 text-[#f3e5ab] fill-[#d4af37]" />
-          <span>{chopNotification.isCascade ? `🔥 CHẶT ĐÈ LIÊN HOÀN (x${chopNotification.chainCount || 2})!` : 'CHẶT ĐẸP!'}</span>
+          <span>{chopNotification.isCascade ? t('table.chopCascadeTitle', { chain: chopNotification.chainCount || 2 }) : t('table.chopSingleTitle')}</span>
           <span className="text-[#f3e5ab] text-sm font-bold">
             ({chopNotification.chopperName} +{chopNotification.amount.toLocaleString()} 🪙 từ {chopNotification.targetName})
           </span>
@@ -104,23 +106,23 @@ export const TableCenter: React.FC<TableCenterProps> = ({
           <div className={`mt-1.5 bg-[#0e1422] px-2.5 py-0.5 rounded-full border border-amber-400/60 text-amber-300 ${isMobileSize ? 'text-[10px]' : 'text-xs'} font-bold flex items-center gap-1.5 shadow-xl`}>
             <Sparkles className="w-3 h-3 text-amber-300" />
             <span>
-              {currentMove.combination.type === 'SINGLE' && 'Lá Rác'}
-              {currentMove.combination.type === 'PAIR' && 'Đôi'}
-              {currentMove.combination.type === 'TRIPLE' && 'Sám Cô'}
-              {currentMove.combination.type === 'STRAIGHT' && `Sảnh ${currentMove.combination.length} Lá`}
-              {currentMove.combination.type === 'THREE_PAIRS_SEQUENTIAL' && '🔥 3 Đôi Thông'}
-              {currentMove.combination.type === 'FOUR_OF_A_KIND' && '⚡ Tứ Quý'}
-              {currentMove.combination.type === 'FOUR_PAIRS_SEQUENTIAL' && '💥 4 Đôi Thông'}
+              {currentMove.combination.type === 'SINGLE' && t('combinations.single')}
+              {currentMove.combination.type === 'PAIR' && t('combinations.pair')}
+              {currentMove.combination.type === 'TRIPLE' && t('combinations.triple')}
+              {currentMove.combination.type === 'STRAIGHT' && t('combinations.straight', { length: currentMove.combination.length })}
+              {currentMove.combination.type === 'THREE_PAIRS_SEQUENTIAL' && t('combinations.threePairs')}
+              {currentMove.combination.type === 'FOUR_OF_A_KIND' && t('combinations.fourOfAKind')}
+              {currentMove.combination.type === 'FOUR_PAIRS_SEQUENTIAL' && t('combinations.fourPairs')}
             </span>
           </div>
         </div>
       ) : !isDealing ? (
         <div className={`flex flex-col items-center justify-center text-center ${isMobileSize ? 'p-2 rounded-lg' : 'p-4 rounded-xl'} bg-[#121724] border border-[#d4af37]/25 shadow-md`}>
           <div className={`text-[#f3e5ab] font-extrabold ${isMobileSize ? 'text-xs' : 'text-sm'} tracking-wider uppercase`}>
-            {isLeadMove ? 'Vòng Mới Bắt Đầu' : 'Bàn Đang Trống'}
+            {isLeadMove ? t('table.newRoundLead') : t('table.tableEmptyTitle')}
           </div>
           <span className={`text-slate-400 ${isMobileSize ? 'text-[10px]' : 'text-xs'} mt-0.5`}>
-            {isLeadMove ? 'Người cầm Cái hãy đánh bộ bài mở màn' : 'Chờ người chơi ra bài...'}
+            {isLeadMove ? t('table.leaderPrompt') : t('table.waitingLeadPrompt')}
           </span>
         </div>
       ) : isDealing ? (

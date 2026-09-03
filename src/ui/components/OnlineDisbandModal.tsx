@@ -3,8 +3,10 @@ import { AlertTriangle, Home, Landmark } from 'lucide-react';
 import { useOnlineStore } from '../../stores/useOnlineStore';
 import { useViewStore } from '../../stores/useViewStore';
 import { Button } from '../primitives';
+import { useI18n } from '../../locales';
 
 export const OnlineDisbandModal: React.FC = () => {
+  const { t } = useI18n();
   const { disbandNotice, clearDisbandNotice } = useOnlineStore();
   const { openModal } = useViewStore();
 
@@ -45,7 +47,7 @@ export const OnlineDisbandModal: React.FC = () => {
               leftIcon={<Landmark className="w-4 h-4 text-slate-950" />}
               className="flex-1 font-black text-sm uppercase tracking-wider py-3 shadow-lg shadow-amber-500/25 cursor-pointer"
             >
-              Mở Ngân Hàng
+              {t('bankruptcy.visitBank')}
             </Button>
           )}
 
@@ -56,7 +58,7 @@ export const OnlineDisbandModal: React.FC = () => {
             leftIcon={<Home className="w-4 h-4" />}
             className="flex-1 font-black text-sm uppercase tracking-wider py-3 shadow-lg cursor-pointer"
           >
-            Quay Về Sảnh
+            {t('victory.btnBackLobby')}
           </Button>
         </div>
       </div>

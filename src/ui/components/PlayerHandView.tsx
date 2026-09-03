@@ -4,6 +4,7 @@ import { HandSortMode } from '../../stores/useGameStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { getAvailableSmartVariants } from '../../engine/hand-sorter';
 import { resolveHandSortStrategy } from '../../engine/strategies/hand-sort-strategy';
+import { useI18n } from '../../locales';
 import { CardView } from './CardView';
 import { Play, SkipForward, ArrowUpDown, ArrowDownToLine, Layers, Crosshair } from 'lucide-react';
 
@@ -31,7 +32,7 @@ interface PlayerHandViewProps {
   isFirstMoveOfGame: boolean;
   sortMode: HandSortMode;
   variantIndex: number;
-  cardSize?: 'md' | 'mobile';
+  cardSize?: 'sm' | 'md' | 'lg' | 'mobile';
 }
 
 export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
@@ -56,6 +57,7 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
   variantIndex = 0,
   cardSize = 'md'
 }) => {
+  const { t } = useI18n();
   if (!player) return null;
 
   const isMobileSize = cardSize === 'mobile';
@@ -108,12 +110,12 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
           {selectedCardIds.size > 0 && !isSelectedWith3S ? (
             <div className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-red-950 border border-red-500/70 text-red-300 text-[10px] sm:text-[11px] font-bold shadow-xl">
               <span>⚠️</span>
-              <span>Ván đầu tiên: Bắt buộc chọn tổ hợp có chứa lá 3 Bích ♠</span>
+              <span>{t('game.firstMoveWarning')}</span>
             </div>
           ) : (
             <div className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#0c3327] border border-[#d4af37]/70 text-[#f3e5ab] text-[10px] sm:text-[11px] font-bold shadow-xl">
               <span>♠</span>
-              <span>Bạn giữ 3 Bích và đi trước mở màn ván đấu!</span>
+              <span>{t('game.firstMoveInstruction')}</span>
             </div>
           )}
         </div>
@@ -144,7 +146,7 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
                   `}
                 >
                   <Play className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5 sm:w-4 sm:h-4'} fill-current`} />
-                  <span>Đánh Bài</span>
+                  <span>{t('game.playCard')}</span>
                 </button>
 
                 {/* Nút Bắt Bài (Tự động chọn nhanh tổ hợp vừa khít để đè bài trên bàn) */}
@@ -161,12 +163,12 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
                     `}
                     title={
                       canQuickSelect
-                        ? `Tự động chọn bài để ${isLeader ? 'ra trước' : 'chặn bài'}${quickSelectCandidatesCount > 1 ? ` (${quickSelectCandidatesCount} lựa chọn, nhấn tiếp để đổi)` : ''}`
-                        : 'Không có bài chặn được'
+                        ? `${t('game.quickSelectTooltipReady', { action: isLeader ? t('game.quickSelectActionLead') : t('game.quickSelectActionBeat') })}${quickSelectCandidatesCount > 1 ? ` (${quickSelectCandidatesCount})` : ''}`
+                        : t('game.quickSelectTooltipEmpty')
                     }
                   >
                     <Crosshair className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-amber-300`} />
-                    <span>Bắt Bài</span>
+                    <span>{t('game.quickSelect')}</span>
                   </button>
                 )}
               </>
@@ -177,10 +179,10 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
               <button
                 onClick={onClearCardSelection}
                 className={`flex items-center gap-1 ${isMobileSize ? 'px-1.5 sm:px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px]' : 'px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-xs'} bg-[#1c2438] hover:bg-[#283450] text-[#f3e5ab] border border-amber-400/40 hover:scale-105 cursor-pointer font-bold shadow transition-all duration-150`}
-                title="Hạ toàn bộ các lá bài đang chọn xuống"
+                title={t('game.clearSelectionTooltip')}
               >
                 <ArrowDownToLine className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-[#d4af37]`} />
-                <span>Hạ Bài {selectedCardIds.size > 1 ? `(${selectedCardIds.size})` : ''}</span>
+                <span>{t('game.clearSelection')} {selectedCardIds.size > 1 ? `(${selectedCardIds.size})` : ''}</span>
               </button>
             )}
 
@@ -217,10 +219,10 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
                     : 'bg-[#182030]/60 text-slate-600 cursor-not-allowed border border-white/5 opacity-50'
                   }
                 `}
-                title={canPass ? 'Bỏ lượt không đánh vòng này' : 'Không thể bỏ lượt khi đang cầm cái / ván đầu'}
+                title={canPass ? t('game.passTurn') : ''}
               >
                 <SkipForward className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-red-400`} />
-                <span>Bỏ Lượt</span>
+                <span>{t('game.passTurn')}</span>
               </button>
             </div>
           )}

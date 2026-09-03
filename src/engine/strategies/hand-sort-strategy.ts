@@ -1,6 +1,7 @@
 import type { Card, Suit } from '../types';
 import { sortCards, isTwo, compareCards } from '../card';
 import { partitionHand } from '../../ai/hand-partitioner';
+import { t } from '../../locales';
 
 export type HandSortMode = 'NATURAL' | 'BY_SUIT' | 'SMART_GROUP' | 'TWO_PRESERVE';
 
@@ -19,8 +20,8 @@ export interface IHandSortStrategy {
  */
 export class NaturalHandSortStrategy implements IHandSortStrategy {
   public readonly id: HandSortMode = 'NATURAL';
-  public readonly label: string = 'Giá Trị (3 -> 2)';
-  public readonly description: string = 'Sắp xếp tự nhiên theo thứ bậc sức mạnh từ 3 Bích đến 2 Cơ';
+  public get label(): string { return t('sort.naturalLabel'); }
+  public get description(): string { return t('sort.naturalDesc'); }
 
   public sort(cards: readonly Card[]): Card[] {
     return sortCards([...cards]);
@@ -39,8 +40,8 @@ const SUIT_ORDER: Record<Suit, number> = {
  */
 export class SuitHandSortStrategy implements IHandSortStrategy {
   public readonly id: HandSortMode = 'BY_SUIT';
-  public readonly label: string = 'Đồng Chất (Bích-Chuồn-Rô-Cơ)';
-  public readonly description: string = 'Gom nhóm các lá bài cùng chất lại gần nhau để dễ quan sát';
+  public get label(): string { return t('sort.bySuitLabel'); }
+  public get description(): string { return t('sort.bySuitDesc'); }
 
   public sort(cards: readonly Card[]): Card[] {
     return [...cards].sort((a, b) => {
@@ -56,8 +57,8 @@ export class SuitHandSortStrategy implements IHandSortStrategy {
  */
 export class SmartGroupHandSortStrategy implements IHandSortStrategy {
   public readonly id: HandSortMode = 'SMART_GROUP';
-  public readonly label: string = 'Bộ Bài Thông Minh';
-  public readonly description: string = 'Tự động gom Sảnh dài, Tứ Quý, Đôi và tách riêng bài rác lẻ';
+  public get label(): string { return t('sort.smartGroupLabel'); }
+  public get description(): string { return t('sort.smartGroupDesc'); }
 
   public sort(cards: readonly Card[]): Card[] {
     if (cards.length <= 1) return [...cards];
@@ -94,8 +95,8 @@ export class SmartGroupHandSortStrategy implements IHandSortStrategy {
  */
 export class TwoPreserveHandSortStrategy implements IHandSortStrategy {
   public readonly id: HandSortMode = 'TWO_PRESERVE';
-  public readonly label: string = 'Bảo Toàn Heo (2)';
-  public readonly description: string = 'Đẩy toàn bộ các lá Heo (2) về cuối tay bài để dễ tẩu rác nhỏ';
+  public get label(): string { return t('sort.twoPreserveLabel'); }
+  public get description(): string { return t('sort.twoPreserveDesc'); }
 
   public sort(cards: readonly Card[]): Card[] {
     const nonTwos = cards.filter(c => !isTwo(c));

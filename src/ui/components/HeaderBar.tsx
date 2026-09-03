@@ -5,6 +5,7 @@ import { getRankTierByElo } from '../../engine/elo';
 import { Button, Badge } from '../primitives';
 import { isFullScreen, toggleFullScreen } from '../utils/fullscreen';
 import { ActiveGameType } from '../../stores/useGameStore';
+import { useI18n } from '../../locales';
 
 interface HeaderBarProps {
   gameNumber: number;
@@ -35,6 +36,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   onReturnToLobby,
   xrayEnabled = false
 }) => {
+  const { t } = useI18n();
   const currentRank = getRankTierByElo(playerElo);
   const [isFullscreenState, setIsFullscreenState] = useState(isFullScreen());
 
@@ -56,9 +58,9 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   }, []);
 
   const modeBadgeText: Record<ActiveGameType, string> = {
-    QUICK: 'Chơi Nhanh',
-    CAMPAIGN: 'Chiến Dịch',
-    ONLINE: 'Chơi Online'
+    QUICK: t('lobby.quickPlay'),
+    CAMPAIGN: t('lobby.campaign'),
+    ONLINE: t('lobby.joinRoom')
   };
 
   return (
@@ -70,9 +72,9 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           size="sm"
           onClick={onReturnToLobby}
           leftIcon={<Home className="w-4 h-4 text-[var(--color-gold)]" />}
-          title="Quay về Sảnh Chính (Lobby Hub)"
+          title={t('header.lobby')}
         >
-          <span className="hidden sm:inline">Về Sảnh</span>
+          <span className="hidden sm:inline">{t('header.lobby')}</span>
         </Button>
 
         <div className="w-7 h-7 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--color-gold)] font-bold text-xs shadow-sm">
@@ -131,7 +133,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           variant="surface"
           size="icon"
           onClick={onOpenRules}
-          title="Luật Chơi & Bảng Khắc Chế Bài"
+          title={t('header.rules')}
         >
           <BookOpen className="w-4 h-4 text-[var(--color-gold)]" />
         </Button>
@@ -144,7 +146,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             const fs = await toggleFullScreen();
             setIsFullscreenState(fs);
           }}
-          title={isFullscreenState ? 'Thoát Toàn Màn Hình' : 'Bật Toàn Màn Hình (Full Screen)'}
+          title={isFullscreenState ? 'Thoát Toàn Màn Hình' : 'Toàn Màn Hình'}
         >
           {isFullscreenState ? (
             <Minimize className="w-4 h-4 text-[var(--color-gold)]" />
@@ -158,7 +160,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           variant="surface"
           size="icon"
           onClick={onOpenSettings}
-          title="Cài Đặt Hệ Thống"
+          title={t('header.settings')}
         >
           <Settings className="w-4 h-4 text-[var(--text-secondary)]" />
         </Button>

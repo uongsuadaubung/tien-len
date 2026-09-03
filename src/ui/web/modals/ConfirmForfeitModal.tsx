@@ -3,12 +3,14 @@ import { Skull, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { useViewStore } from '../../../stores/useViewStore';
 import { useUserStore } from '../../../stores/useUserStore';
 import { Modal, Card, Button, Badge } from '../../primitives';
+import { useI18n } from '../../../locales';
 
 interface ConfirmForfeitModalProps {
   onConfirmForfeit: () => void;
 }
 
 export const ConfirmForfeitModal: React.FC<ConfirmForfeitModalProps> = ({ onConfirmForfeit }) => {
+  const { t } = useI18n();
   const { isConfirmForfeitOpen, closeModal, forfeitData } = useViewStore();
   const { profile } = useUserStore();
 
@@ -22,8 +24,8 @@ export const ConfirmForfeitModal: React.FC<ConfirmForfeitModalProps> = ({ onConf
     <Modal
       isOpen={isConfirmForfeitOpen}
       onClose={() => closeModal('CONFIRM_FORFEIT')}
-      title="Cảnh Báo Xử Thua Bỏ Cuộc"
-      subtitle="Ván đấu đang diễn ra gay cấn! Nếu rời bàn bây giờ, bạn sẽ bị xử thua."
+      title={t('forfeit.title')}
+      subtitle={t('forfeit.message')}
       icon={<Skull className="w-5 h-5 text-[#f87171]" />}
       maxWidth="md"
       height="auto"
@@ -34,7 +36,7 @@ export const ConfirmForfeitModal: React.FC<ConfirmForfeitModalProps> = ({ onConf
             size="md"
             onClick={() => closeModal('CONFIRM_FORFEIT')}
           >
-            Tiếp Tục Đánh
+            {t('forfeit.cancel')}
           </Button>
           <Button
             variant="danger"
@@ -44,7 +46,7 @@ export const ConfirmForfeitModal: React.FC<ConfirmForfeitModalProps> = ({ onConf
               onConfirmForfeit();
             }}
           >
-            Chấp Nhận Xử Thua
+            {t('forfeit.confirm')}
           </Button>
         </div>
       }

@@ -8,6 +8,7 @@ import { ActiveGameType, useGameStore } from '../../stores/useGameStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { useOnlineStore } from '../../stores/useOnlineStore';
 import { useViewStore } from '../../stores/useViewStore';
+import { useI18n } from '../../locales';
 
 export type PrimaryBtnIconType = 'PLAY' | 'CHECK' | 'SWORDS' | 'ROTATE_CCW' | 'HOME' | 'BANK' | 'SPINNER';
 export type SecondaryBtnIconType = 'HOME' | 'MAP';
@@ -71,6 +72,7 @@ export interface VictoryLogicResult {
 }
 
 export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult {
+  const { t } = useI18n();
   const {
     isOpen,
     onNextGame,
@@ -167,18 +169,18 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
   const isHumanBankrupt = !isCampaign && playerCoins < betAmount;
   const isTableDismissed = !isCampaign && !isOnline && (bankruptBots.length > 0 || isHumanBankrupt);
 
-  let modalTitle = isHumanWinner ? 'CHIẾN THẮNG TRẬN ĐẤU!' : 'KẾT THÚC VÁN ĐẤU';
-  let modalSubtitle = 'Ván đấu đã kết thúc!';
+  let modalTitle = isHumanWinner ? t('victory.titleVictory') : t('victory.titleDefeat');
+  let modalSubtitle = isHumanWinner ? t('game.victory') : t('game.defeat');
   let modalIcon = '🏆';
-  let primaryBtnText = 'Ván Mới';
+  let primaryBtnText = t('victory.btnRematch');
   let primaryBtnIconType: PrimaryBtnIconType = 'PLAY';
   let primaryBtnDisabled = false;
   let primaryBtnAction = onNextGame;
-  let secondaryBtnText = 'Về Sảnh';
+  let secondaryBtnText = t('victory.btnBackLobby');
   let secondaryBtnIconType: SecondaryBtnIconType = 'HOME';
   let secondaryBtnAction = onReturnToLobby;
 
-  const statBox1Title = 'KẾT QUẢ CÁ NHÂN';
+  const statBox1Title = t('victory.statPayout');
   const statBox1Value = humanPayout > 0 ? `+${humanPayout.toLocaleString()} 🪙` : `${humanPayout.toLocaleString()} 🪙`;
   const statBox1Sub = isHumanWinner ? '🥇 Bạn đã về Nhất!' : '💥 Chưa thể giành chiến thắng';
 
