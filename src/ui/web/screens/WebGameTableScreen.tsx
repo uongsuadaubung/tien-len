@@ -162,11 +162,11 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
           )}
         </div>
 
-        {/* TRỤC GIỮA: GHẾ TRÁI + TRUNG TÂM BÀN TRÒN + GHẾ PHẢI */}
-        <div className="w-full flex justify-between items-center my-auto z-10 px-4">
+        {/* TRỤC GIỮA: GHẾ TRÁI + TRUNG TÂM BÀN TRÒN + GHẾ PHẢI (NGỒI SÁT CẠNH BÀN) */}
+        <div className="w-full flex justify-center items-center gap-3 sm:gap-6 md:gap-8 my-auto z-10 px-2">
           {/* Ghế Trái: Bot 1 (Nếu có) */}
-          <div className="flex justify-center flex-shrink-0 min-w-[120px]">
-            {leftBot ? (
+          <div className="flex justify-center shrink-0 w-24 sm:w-28 md:w-32">
+            {leftBot && (
               <BotSeat
                 player={leftBot}
                 botConfig={getBotConfig(botPersonaIds[0], customBotConfigs[0] || undefined)}
@@ -177,15 +177,18 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
                 displayCardCount={dealtCounts[leftBot.id]}
                 thoughtText={botThinkingThought?.botId === leftBot.id ? botThinkingThought.text : null}
               />
-            ) : (
-              <div className="w-24 hidden md:block" />
             )}
           </div>
 
-          {/* Khối Thảm Nỉ Tròn & Animation Chia Bài */}
-          <div className="relative flex-1 max-w-2xl h-64 md:h-80 mx-2 flex items-center justify-center">
-            {/* Thảm nỉ tròn xanh cổ điển */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-b from-emerald-900/60 to-emerald-950/80 border-4 border-amber-600/30 shadow-[inset_0_0_80px_rgba(0,0,0,0.8),0_10px_30px_rgba(0,0,0,0.5)] pointer-events-none" />
+          {/* BÀN TRÒN TRUNG TÂM */}
+          <div className="round-table relative z-30 flex items-center justify-center p-4 sm:p-6 shadow-2xl shrink-0">
+            <div className="table-inner-felt">
+              <div className="table-center-emblem">
+                <span className="text-[#d4af37]/25 font-black text-[11px] sm:text-[13px] uppercase tracking-[0.35em] select-none text-center">
+                  TIẾN LÊN MIỀN NAM
+                </span>
+              </div>
+            </div>
 
             {/* Animation chia bài */}
             {isDealing && (
@@ -198,19 +201,20 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
             )}
 
             {/* Trung Tâm Bàn Tròn: Bài đã đánh & Thông báo chặt đẹp */}
-            <div className="relative z-10 w-full flex justify-center">
+            <div className="relative z-30 w-full flex justify-center">
               <TableCenter
                 currentMove={currentMove}
                 isLeadMove={isOnlineMatch ? (currentMove === null || leadPlayerId === myPlayerId) : isLeadMove}
                 chopNotification={chopNotification}
                 isDealing={isDealing}
+                cardSize="table"
               />
             </div>
           </div>
 
           {/* Ghế Phải: Bot 3 (Nếu có) */}
-          <div className="flex justify-center flex-shrink-0 min-w-[120px]">
-            {rightBot ? (
+          <div className="flex justify-center shrink-0 w-24 sm:w-28 md:w-32">
+            {rightBot && (
               <BotSeat
                 player={rightBot}
                 botConfig={getBotConfig(botPersonaIds[2], customBotConfigs[2] || undefined)}
@@ -221,8 +225,6 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
                 displayCardCount={dealtCounts[rightBot.id]}
                 thoughtText={botThinkingThought?.botId === rightBot.id ? botThinkingThought.text : null}
               />
-            ) : (
-              <div className="w-24 hidden md:block" />
             )}
           </div>
         </div>

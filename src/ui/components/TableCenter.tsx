@@ -49,8 +49,23 @@ export const TableCenter: React.FC<TableCenterProps> = ({
 
   const isMobileSize = cardSize === 'table';
 
+  const cardCount = currentMove?.combination?.cards?.length || 0;
+  let spacingClass = isMobileSize ? '-space-x-5 sm:-space-x-6' : '-space-x-6 sm:-space-x-7.5';
+  let scaleClass = 'scale-100';
+  let rotFactor = 3.5;
+
+  if (cardCount >= 6) {
+    spacingClass = isMobileSize ? '-space-x-7 sm:-space-x-8' : '-space-x-8 sm:-space-x-9';
+    scaleClass = 'scale-[0.80] sm:scale-[0.85]';
+    rotFactor = 1.8;
+  } else if (cardCount >= 4) {
+    spacingClass = isMobileSize ? '-space-x-6 sm:-space-x-7' : '-space-x-7 sm:-space-x-8';
+    scaleClass = 'scale-[0.88] sm:scale-[0.92]';
+    rotFactor = 2.4;
+  }
+
   return (
-    <div className={`relative flex flex-col items-center justify-center ${isMobileSize ? 'min-h-[100px]' : 'min-h-[160px]'} w-full select-none overflow-visible`}>
+    <div className={`relative z-30 flex flex-col items-center justify-center ${isMobileSize ? 'min-h-[100px]' : 'min-h-[140px]'} w-full select-none overflow-visible`}>
       {/* Thông báo Chặt Heo / Chặt Hàng nổ bùng */}
       {chopNotification?.visible && (
         <div className={`absolute -top-12 z-50 px-6 py-2 rounded-full flex items-center gap-2 text-white font-black text-lg shadow-2xl ${
@@ -71,17 +86,17 @@ export const TableCenter: React.FC<TableCenterProps> = ({
         <div className="flex flex-col items-center overflow-visible">
           <div
             key={`${currentMove.playerId}-${currentMove.timestamp}-${currentMove.combination.cards.map(c => c.id).join('-')}`}
-            className={`flex items-center justify-center ${isMobileSize ? '-space-x-5 sm:-space-x-6' : '-space-x-8 hover:space-x-1'} transition-all duration-200 overflow-visible ${getSlideAnimationClass(currentMove.playerId)}`}
+            className={`flex items-center justify-center ${spacingClass} ${scaleClass} transition-all duration-200 overflow-visible ${getSlideAnimationClass(currentMove.playerId)}`}
           >
             {currentMove.combination.cards.map((card, idx) => (
               <CardView
                 key={card.id}
                 card={card}
                 disabled
-                size={isMobileSize ? 'table' : 'md'}
+                size="table"
                 style={{
-                  transform: `rotate(${(idx - (currentMove.combination.cards.length - 1) / 2) * 4}deg)`,
-                  zIndex: 10 + idx
+                  transform: `rotate(${(idx - (currentMove.combination.cards.length - 1) / 2) * rotFactor}deg)`,
+                  zIndex: 30 + idx
                 }}
               />
             ))}

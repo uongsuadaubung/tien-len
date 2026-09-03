@@ -234,11 +234,11 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
           )}
         </div>
 
-        {/* TRỤC GIỮA: GHẾ TRÁI + TRUNG TÂM BÀN TRÒN + GHẾ PHẢI */}
-        <div className="w-full flex-1 flex justify-between items-center z-10 px-1 my-auto overflow-visible min-h-[140px]">
+        {/* TRỤC GIỮA: GHẾ TRÁI + TRUNG TÂM BÀN TRÒN + GHẾ PHẢI (NGỒI SÁT CẠNH BÀN) */}
+        <div className="w-full flex-1 flex justify-center items-center gap-2 sm:gap-4 z-10 px-1 my-auto overflow-visible min-h-[140px]">
           {/* Ghế Trái: Bot 1 */}
           <div className="flex justify-center shrink-0">
-            {leftBot ? (
+            {leftBot && (
               <BotSeat
                 player={leftBot}
                 botConfig={getBotConfig(botPersonaIds[0], customBotConfigs[0] || undefined)}
@@ -250,15 +250,18 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
                 thoughtText={botThinkingThought?.botId === leftBot.id ? botThinkingThought.text : null}
                 size="compact"
               />
-            ) : (
-              <div className="w-10" />
             )}
           </div>
 
-          {/* Khối Thảm Nỉ Tròn & Animation Chia Bài */}
-          <div className="relative flex-1 max-w-lg h-36 md:h-44 mx-1 flex items-center justify-center overflow-visible">
-            {/* Thảm nỉ tròn xanh cổ điển */}
-            <div className="absolute inset-0 rounded-full bg-gradient-to-b from-emerald-900/60 to-emerald-950/80 border-2 border-amber-600/30 shadow-[inset_0_0_50px_rgba(0,0,0,0.8),0_5px_20px_rgba(0,0,0,0.5)] pointer-events-none" />
+          {/* BÀN TRÒN TRUNG TÂM */}
+          <div className="round-table relative z-30 flex items-center justify-center p-2 sm:p-4 shadow-2xl shrink-0 overflow-visible">
+            <div className="table-inner-felt">
+              <div className="table-center-emblem">
+                <span className="text-[#d4af37]/20 font-black text-[9px] sm:text-[11px] uppercase tracking-[0.25em] select-none text-center">
+                  TIẾN LÊN
+                </span>
+              </div>
+            </div>
 
             {/* Animation chia bài */}
             {isDealing && (
@@ -271,7 +274,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
             )}
 
             {/* Trung Tâm Bàn Tròn: Bài đã đánh & Thông báo chặt đẹp */}
-            <div className="relative z-20 w-full flex justify-center overflow-visible">
+            <div className="relative z-30 w-full flex justify-center overflow-visible">
               <TableCenter
                 currentMove={currentMove}
                 isLeadMove={isOnlineMatch ? (currentMove === null || leadPlayerId === myPlayerId) : isLeadMove}
@@ -284,7 +287,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
 
           {/* Ghế Phải: Bot 3 */}
           <div className="flex justify-center shrink-0">
-            {rightBot ? (
+            {rightBot && (
               <BotSeat
                 player={rightBot}
                 botConfig={getBotConfig(botPersonaIds[2], customBotConfigs[2] || undefined)}
@@ -296,8 +299,6 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
                 thoughtText={botThinkingThought?.botId === rightBot.id ? botThinkingThought.text : null}
                 size="compact"
               />
-            ) : (
-              <div className="w-10" />
             )}
           </div>
         </div>
