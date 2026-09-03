@@ -1,8 +1,8 @@
 import React from 'react';
-import { PlayerProfile } from '../../../engine/storage';
 import { Sparkles, Gift, Flame, Frown, Disc } from 'lucide-react';
 import { Modal, Card, Badge, Button } from '../../primitives';
 import { useLuckyWheel } from '../../hooks/useLuckyWheel';
+import { useUserStore } from '../../../stores/useUserStore';
 import { 
   ECONOMY_CONSTANTS, 
   LUCKY_WHEEL_SLICES 
@@ -10,17 +10,14 @@ import {
 
 export interface LuckyWheelModalProps {
   isOpen: boolean;
-  profile: PlayerProfile;
   onClose: () => void;
-  onUpdateProfile: (updated: PlayerProfile) => void;
 }
 
 export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
   isOpen,
-  profile,
-  onClose,
-  onUpdateProfile
+  onClose
 }) => {
+  const { profile } = useUserStore();
   const {
     isSpinning,
     rotation,
@@ -30,7 +27,7 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
     sliceAngle,
     renderSlicePath,
     handleSpin
-  } = useLuckyWheel(profile, onUpdateProfile);
+  } = useLuckyWheel();
 
   if (!isOpen) return null;
 

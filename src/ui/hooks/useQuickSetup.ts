@@ -15,8 +15,9 @@ export interface QuickSetupConfig {
   cascadeChopEnabled: boolean;
 }
 
+import { useUserStore } from '../../stores/useUserStore';
+
 export interface UseQuickSetupProps {
-  playerCoins: number;
   initialConfig?: Partial<TableConfigState>;
   onStartGame: (config: QuickSetupConfig) => void;
   onClose?: () => void;
@@ -36,11 +37,12 @@ export interface UseQuickSetupReturn {
  * Custom hook quản lý toàn bộ trạng thái và nghiệp vụ cho Cấu Hình Bàn Chơi Nhanh
  */
 export function useQuickSetup({
-  playerCoins,
   initialConfig,
   onStartGame,
   onClose
 }: UseQuickSetupProps): UseQuickSetupReturn {
+  const { profile } = useUserStore();
+  const playerCoins = profile.coins;
   const [config, setConfig] = useState<TableConfigState>({
     playerCount: initialConfig?.playerCount || 4,
     mode: initialConfig?.mode || 'COUNT_CARDS',

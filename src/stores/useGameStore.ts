@@ -18,6 +18,7 @@ import { ECONOMY_CONSTANTS } from '../engine/constants/economy';
 import { MatchLogReport } from '../engine/match-logger';
 import { createPlayer, createBotPlayer } from '../engine/player-factory';
 import { dbSaveQuickTableConfig } from '../engine/db/indexed-db';
+import { useViewStore } from './useViewStore';
 
 export type ActiveGameType = 'QUICK' | 'CAMPAIGN' | 'ONLINE';
 export type ScreenType = 'LOBBY' | 'GAME_TABLE';
@@ -65,6 +66,8 @@ interface GameState {
   instantWinType?: InstantWinType;
   isThreeSpadesWin: boolean;
   botThinkingThought: { botId: string; text: string } | null;
+  isFirstMoveOfGame: boolean;
+  isLeadMove: boolean;
 
   // Player Hand Interaction
   selectedCardIds: Set<string>;
@@ -126,6 +129,23 @@ interface GameState {
   setLastEloDelta: (delta: number) => void;
   setAllEloDeltas: (deltas: Record<string, number>) => void;
   setMatchLogReport: (report: MatchLogReport | null) => void;
+  applyMatchSnapshot: (snapshot: Partial<{
+    gameNumber: number;
+    players: Player[];
+    currentTurnPlayerId: string | null;
+    leadPlayerId: string | null;
+    currentMove: PlayedMove | null;
+    winners: Player[];
+    isGameOver: boolean;
+    instantWinType?: InstantWinType | null;
+    isDealing: boolean;
+    dealtCounts: Record<string, number>;
+    dealBanner: string | null;
+    chopNotification: ChopNotificationData | null;
+    botThinkingThought: { botId: string; text: string } | null;
+    isFirstMoveOfGame?: boolean;
+    isLeadMove?: boolean;
+  }>) => void;
   resetMatchState: () => void;
 }
 
@@ -186,6 +206,8 @@ export const useGameStore = create<GameState>((set) => ({
   instantWinType: undefined,
   isThreeSpadesWin: false,
   botThinkingThought: null,
+  isFirstMoveOfGame: false,
+  isLeadMove: true,
 
   selectedCardIds: new Set<string>(),
   currentHint: null,
@@ -198,7 +220,10 @@ export const useGameStore = create<GameState>((set) => ({
   allEloDeltas: {},
   matchLogReport: null,
 
-  setCurrentScreen: (screen) => set({ currentScreen: screen }),
+  setCurrentScreen: (screen) => {
+    useViewStore.getState().setScreen(screen);
+    set({ currentScreen: screen });
+  },
   setActiveGameType: (type) => set({ activeGameType: type }),
   setMyPlayerId: (id) => set({ myPlayerId: id }),
   setPlayerCount: (count) => set({ playerCount: count }),
@@ -279,12 +304,25 @@ export const useGameStore = create<GameState>((set) => ({
   setLastEloDelta: (delta) => set({ lastEloDelta: delta }),
   setAllEloDeltas: (deltas) => set({ allEloDeltas: deltas }),
   setMatchLogReport: (report) => set({ matchLogReport: report }),
+  applyMatchSnapshot: (snapshot) => set((state) => ({
+    ...state,
+    ...(snapshot.gameNumber !== undefined ? { gameNumber: snapshot.gameNumber } : {}),
+    ...(snapshot.players !== undefined ? { players: snapshot.players } : {}),
+    ...(snapshot.currentTurnPlayerId !== undefined ? { currentTurnPlayerId: snapshot.currentTurnPlayerId } : {}),
+    ...(snapshot.leadPlayerId !== undefined ? { leadPlayerId: snapshot.leadPlayerId } : {}),
+    ...(snapshot.currentMove !== undefined ? { currentMove: snapshot.currentMove } : {}),
+    ...(snapshot.winners !== undefined ? { winners: snapshot.winners } : {}),
+    ...(snapshot.isGameOver !== undefined ? { isGameOver: snapshot.isGameOver } : {}),
+    ...(snapshot.instantWinType !== undefined ? { instantWinType: snapshot.instantWinType || undefined } : {}),
+    ...(snapshot.isDealing !== undefined ? { isDealing: snapshot.isDealing } : {}),
+    ...(snapshot.dealtCounts !== undefined ? { dealtCounts: snapshot.dealtCounts } : {}),
+    ...(snapshot.dealBanner !== undefined ? { dealBanner: snapshot.dealBanner } : {}),
+    ...(snapshot.chopNotification !== undefined ? { chopNotification: snapshot.chopNotification } : {}),
+    ...(snapshot.botThinkingThought !== undefined ? { botThinkingThought: snapshot.botThinkingThought } : {}),
+    ...(snapshot.isFirstMoveOfGame !== undefined ? { isFirstMoveOfGame: snapshot.isFirstMoveOfGame } : {}),
+    ...(snapshot.isLeadMove !== undefined ? { isLeadMove: snapshot.isLeadMove } : {})
+  })),
   resetMatchState: () => set({
-    currentScreen: 'LOBBY',
-    activeGameType: 'QUICK',
-    myPlayerId: 'p0',
-    gameNumber: 1,
-    players: DEFAULT_PLAYERS,
     isDealing: false,
     dealtCounts: {},
     dealBanner: null,
@@ -298,6 +336,8 @@ export const useGameStore = create<GameState>((set) => ({
     instantWinType: undefined,
     isThreeSpadesWin: false,
     botThinkingThought: null,
+    isFirstMoveOfGame: false,
+    isLeadMove: true,
     selectedCardIds: new Set<string>(),
     currentHint: null,
     smartVariantIndex: 0,

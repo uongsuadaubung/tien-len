@@ -4,10 +4,7 @@ import { ECONOMY_CONSTANTS } from '../../engine/constants/economy';
 import { soundManager } from '../audio/sound-manager';
 import confetti from 'canvas-confetti';
 
-export interface UseBankParams {
-  profile: PlayerProfile;
-  onUpdateProfile: (updated: PlayerProfile) => void;
-}
+import { useUserStore } from '../../stores/useUserStore';
 
 export interface UseBankResult {
   loanAmountToBorrow: number;
@@ -30,7 +27,8 @@ export interface UseBankResult {
   clearMessages: () => void;
 }
 
-export function useBank({ profile, onUpdateProfile }: UseBankParams): UseBankResult {
+export function useBank(): UseBankResult {
+  const { profile, setProfile: onUpdateProfile } = useUserStore();
   const [loanAmountToBorrow, setLoanAmountToBorrow] = useState<number>(
     ECONOMY_CONSTANTS.LOAN_PACKAGES[1].amount
   );

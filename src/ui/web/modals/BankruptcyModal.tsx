@@ -1,22 +1,19 @@
 import React from 'react';
-import { PlayerProfile } from '../../../engine/storage';
 import { Landmark, ShieldCheck, HeartHandshake, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Modal, Card, Badge, Button } from '../../primitives';
 import { useBank } from '../../hooks/useBank';
+import { useUserStore } from '../../../stores/useUserStore';
 
 export interface BankruptcyModalProps {
   isOpen: boolean;
-  profile: PlayerProfile;
   onClose: () => void;
-  onUpdateProfile: (updated: PlayerProfile) => void;
 }
 
 export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
   isOpen,
-  profile,
-  onClose,
-  onUpdateProfile
+  onClose
 }) => {
+  const { profile } = useUserStore();
   const {
     loanAmountToBorrow,
     setLoanAmountToBorrow,
@@ -31,7 +28,7 @@ export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
     handleClaimRelief,
     handleBorrowLoan,
     handleRepayDebt
-  } = useBank({ profile, onUpdateProfile });
+  } = useBank();
 
   if (!isOpen) return null;
 

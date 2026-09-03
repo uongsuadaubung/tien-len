@@ -22,8 +22,9 @@ export interface CustomGameModalConfig {
 
 export type CustomGameTabType = 'MODE_RULES' | 'BOT_ROSTER' | 'ADVANCED_AI';
 
+import { useUserStore } from '../../stores/useUserStore';
+
 export interface UseCustomGameProps {
-  playerCoins: number;
   initialConfig?: Partial<CustomGameModalConfig>;
   onStartCustomGame: (config: CustomGameModalConfig) => void;
   onClose?: () => void;
@@ -74,11 +75,12 @@ const SEAT_LABELS = [
  * Custom hook quản lý toàn bộ trạng thái và nghiệp vụ cho Xưởng Tùy Biến Trận Đấu Sandbox
  */
 export function useCustomGame({
-  playerCoins,
   initialConfig,
   onStartCustomGame,
   onClose
 }: UseCustomGameProps): UseCustomGameReturn {
+  const { profile } = useUserStore();
+  const playerCoins = profile.coins;
   const allPersonas = useMemo(() => getAllBotConfigs(), []);
 
   const initialBet = Math.min(

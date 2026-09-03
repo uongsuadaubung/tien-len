@@ -102,6 +102,7 @@ describe('Zustand State Stores Integration Tests (Kiểm Thử Tích Hợp State
     gameStore.setIsThreeSpadesWin(true);
     gameStore.setDealBanner('Chia Bài Hoàn Tất');
 
+    gameStore.setCurrentScreen('GAME_TABLE');
     expect(useGameStore.getState().selectedCardIds.size).toBe(1);
     expect(useGameStore.getState().isGameOver).toBe(true);
 
@@ -109,6 +110,8 @@ describe('Zustand State Stores Integration Tests (Kiểm Thử Tích Hợp State
     gameStore.resetMatchState();
 
     const cleanState = useGameStore.getState();
+    // Đảm bảo không đè điều hướng màn hình (navigation separation)
+    expect(cleanState.currentScreen).toBe('GAME_TABLE');
     expect(cleanState.selectedCardIds.size).toBe(0);
     expect(cleanState.currentTurnPlayerId).toBeNull();
     expect(cleanState.isGameOver).toBe(false);

@@ -1,46 +1,21 @@
 import { useCallback } from 'react';
-import { GameEngine } from '../../engine/game';
-import { CardTracker } from '../../ai/card-tracker';
-import { getOptimalMoveHint } from '../../ai/hint-engine';
 import { Card } from '../../engine/types';
 import { useGameStore } from '../../stores/useGameStore';
+import { appFlowCoordinator } from '../../services/app-flow-coordinator';
 
 /**
- * Hook quản lý gợi ý nước đi tối ưu của Quân Sư AI và áp dụng tự động
+ * Hook quản lý áp dụng gợi ý nước đi tối ưu của Quân Sư AI
  */
-export function useMatchAIHints(
-  _engineRef: React.RefObject<GameEngine | null>,
-  trackersRef: React.RefObject<Record<string, CardTracker>>,
-  onPassTurn: () => void
-) {
-  const { currentHint, setCurrentHint, setSelectedCardIds } = useGameStore();
-
-  const updatePlayerAiHint = useCallback((engine: GameEngine) => {
-    const p0 = engine.getPlayer('p0');
-    if (!p0) return;
-    const tracker = trackersRef.current['p0'] || new CardTracker(p0.hand, 1.0);
-    const remainingCounts = engine.players.reduce((acc, p) => ({ ...acc, [p.id]: p.hand.length }), {});
-    const nextPlayerId = engine.getNextActivePlayerId('p0');
-    const nextPlayer = engine.getPlayer(nextPlayerId);
-    const isNextPlayerOneCard = nextPlayer ? nextPlayer.hand.length === 1 : false;
-
-    const hint = getOptimalMoveHint(
-      p0.hand,
-      engine.getLeadingMove(),
-      engine.isFirstMoveOfGame,
-      engine.isRoundLeadMove(),
-      tracker,
-      remainingCounts,
-      nextPlayerId,
-      isNextPlayerOneCard,
-      engine.rules.gameFlow.prohibitEndingWithTwo
-    );
-    setCurrentHint(hint);
-  }, [setCurrentHint, trackersRef]);
+export function useMatchAIHints(onPassTurn?: () => void) {
+  const { currentHint, setSelectedCardIds } = useGameStore();
 
   const handleApplyAiHint = useCallback(() => {
     if (!currentHint || currentHint.action === 'PASS') {
-      onPassTurn();
+      if (onPassTurn) {
+        onPassTurn();
+      } else {
+        appFlowCoordinator.passTurn();
+      }
       return;
     }
     if (currentHint.cards) {
@@ -51,7 +26,6 @@ export function useMatchAIHints(
 
   return {
     currentHint,
-    updatePlayerAiHint,
     handleApplyAiHint
   };
 }

@@ -1,7 +1,5 @@
 import React from 'react';
 import { useModalStore } from '../../../stores/useModalStore';
-import { useUserStore } from '../../../stores/useUserStore';
-import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useGameStore } from '../../../stores/useGameStore';
 import { MobileQuestsView } from '../views/MobileQuestsView';
 import { MobileLuckyWheelView } from '../views/MobileLuckyWheelView';
@@ -30,9 +28,10 @@ import { CardTracker } from '../../../ai/card-tracker';
 import { CampaignChapter } from '../../../engine/campaign';
 import { normalizePlayerCount } from '../../../engine/types';
 import { useMatchmakingStore } from '../../../stores/useMatchmakingStore';
+import { appFlowCoordinator } from '../../../services/app-flow-coordinator';
 
 export interface MobileGameSheetsProps {
-  player0Tracker: CardTracker | null;
+  player0Tracker?: CardTracker | null;
   onStartQuickGame: (config: QuickSetupConfig) => void;
   onStartCustomGame: (config: CustomGameModalConfig) => void;
   onSelectCampaignChapter: (chapter: CampaignChapter) => void;
@@ -86,45 +85,15 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
   const { selectedBot } = useEcosystemStore();
   const { disbandNotice, clearDisbandNotice } = useOnlineStore();
 
-  // User Store
-  const { profile, setProfile } = useUserStore();
-
-  // Settings Store
-  const {
-    soundEnabled,
-    autoSortEnabled,
-    aiHintEnabled,
-    quickResponseAssistEnabled,
-    xrayEnabled,
-    botReasoningLogEnabled,
-    gameSpeed,
-    toggleSound,
-    toggleAutoSort,
-    toggleAiHint,
-    toggleQuickResponseAssist,
-    toggleXRay,
-    toggleBotReasoningLog,
-    setGameSpeed
-  } = useSettingsStore();
-
   // Game Store
   const {
-    activeGameType,
     gameSettings,
     quickTableConfig,
-    currentCampaignChapter,
     playerCount,
     botPersonaIds,
     customBotConfigs,
     players,
-    winners,
     currentHint,
-    instantWinType,
-    isThreeSpadesWin,
-    matchPayouts,
-    loanDeductionAmount,
-    lastEloDelta,
-    allEloDeltas,
     myPlayerId
   } = useGameStore();
 
@@ -137,20 +106,6 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
         <MobileSettingsView
           isOpen={isSettingsOpen}
           onClose={() => closeModal('SETTINGS')}
-          soundEnabled={soundEnabled}
-          onToggleSound={toggleSound}
-          autoSortEnabled={autoSortEnabled}
-          onToggleAutoSort={toggleAutoSort}
-          aiHintEnabled={aiHintEnabled}
-          onToggleAiHint={toggleAiHint}
-          quickResponseAssistEnabled={quickResponseAssistEnabled}
-          onToggleQuickResponseAssist={toggleQuickResponseAssist}
-          xrayEnabled={xrayEnabled}
-          onToggleXRay={toggleXRay}
-          botReasoningLogEnabled={botReasoningLogEnabled}
-          onToggleBotReasoningLog={toggleBotReasoningLog}
-          gameSpeed={gameSpeed}
-          onSetGameSpeed={setGameSpeed}
         />
       )}
 
@@ -159,7 +114,6 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
         <MobileCustomGameView
           isOpen={isCustomGameModalOpen}
           onClose={() => closeModal('CUSTOM_GAME')}
-          playerCoins={profile.coins}
           initialConfig={{
             selectedModeId: gameSettings.mode === 'COUNT_CARDS' ? 'COUNT_CARDS' : gameSettings.mode === 'WINNER_TAKES_ALL' ? 'WINNER_TAKES_ALL' : 'TRADITIONAL',
             settings: gameSettings,
@@ -176,7 +130,6 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
         <MobileQuickSetupSheet
           isOpen={isQuickSetupOpen}
           onClose={() => closeModal('QUICK_SETUP')}
-          playerCoins={profile.coins}
           initialConfig={{
             playerCount: quickTableConfig.playerCount,
             mode: quickTableConfig.settlementRule,
@@ -198,7 +151,6 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
           isOpen={isMatchmakingOpen}
           onCancel={cancelMatchmaking}
           onMatchReady={executeMatch}
-          playerProfile={profile}
           betAmount={pendingMatch?.betAmount || 100}
           modeName={pendingMatch?.modeName || 'Tiến Lên Miền Nam'}
           matchedBots={pendingMatch?.botConfigs || []}
@@ -211,7 +163,7 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
         <XRayInspector
           isOpen={isXRayOpen}
           onClose={() => closeModal('XRAY')}
-          tracker={player0Tracker || new CardTracker(localPlayer?.hand || [], 1.0)}
+          tracker={player0Tracker || appFlowCoordinator.getPlayerTracker('p0') || new CardTracker(localPlayer?.hand || [], 1.0)}
           ownHand={localPlayer?.hand || []}
           currentHint={currentHint}
         />
@@ -224,23 +176,7 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
           onNextGame={onNextGame}
           onReturnToLobby={onReturnToLobby}
           onOpenCampaignMap={onOpenCampaignMap || (() => { closeModal('VICTORY'); openModal('CAMPAIGN'); })}
-          winners={winners}
-          allPlayers={players}
-          betAmount={gameSettings.betAmount}
-          instantWinType={instantWinType || null}
-          isThreeSpadesWin={isThreeSpadesWin}
-          payouts={matchPayouts}
-          loanDeduction={loanDeductionAmount}
-          eloDelta={lastEloDelta}
-          playerElo={profile.elo}
-          activeGameType={activeGameType}
-          campaignChapter={currentCampaignChapter || null}
-          chapterWins={campaignResultMeta?.currentWins ?? (profile.campaignChapterWins[currentCampaignChapter?.id || 1] || 0)}
-          isChapterUnlockedNext={campaignResultMeta?.isUnlockedNext || false}
-          isAllCampaignCompleted={campaignResultMeta?.isAllCompleted || false}
-          nextChapter={campaignResultMeta?.nextChapter || null}
-          playerCoins={profile.coins}
-          allEloDeltas={allEloDeltas}
+          campaignResultMeta={campaignResultMeta}
         />
       )}
 
@@ -248,9 +184,7 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
       {isQuestModalOpen && (
         <MobileQuestsView
           isOpen={isQuestModalOpen}
-          profile={profile}
           onClose={() => closeModal('QUEST')}
-          onUpdateProfile={setProfile}
         />
       )}
 
@@ -258,9 +192,7 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
       {isLuckyWheelOpen && (
         <MobileLuckyWheelView
           isOpen={isLuckyWheelOpen}
-          profile={profile}
           onClose={() => closeModal('WHEEL')}
-          onUpdateProfile={setProfile}
         />
       )}
 
@@ -268,9 +200,7 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
       {isBankLoanModalOpen && (
         <MobileBankView
           isOpen={isBankLoanModalOpen}
-          profile={profile}
           onClose={() => closeModal('BANK')}
-          onUpdateProfile={setProfile}
         />
       )}
 
@@ -278,7 +208,6 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
       {isCampaignModalOpen && (
         <MobileCampaignMapView
           isOpen={isCampaignModalOpen}
-          profile={profile}
           onClose={() => closeModal('CAMPAIGN')}
           onSelectChapter={onSelectCampaignChapter}
         />
@@ -294,10 +223,7 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
       {isNameSetupOpen && (
         <MobileNameSetupView
           isOpen={isNameSetupOpen}
-          profile={profile}
           onClose={() => closeModal('NAME_SETUP')}
-          onUpdateProfile={setProfile}
-          isFirstTime={!profile.name || profile.name.trim() === ''}
         />
       )}
 

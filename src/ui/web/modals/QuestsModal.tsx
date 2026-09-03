@@ -1,15 +1,13 @@
 import React from 'react';
-import { PlayerProfile } from '../../../engine/storage';
 import { DAILY_MILESTONES } from '../../../engine/quests';
 import { Target, Award, Sparkles, Clock, CheckCircle, Gift, Layers, Flame, Trophy, Coins, Star } from 'lucide-react';
 import { Modal, Tabs, Card, Badge, Button } from '../../primitives';
 import { useQuests, QuestTabType, AchievementCategoryFilter } from '../../hooks/useQuests';
+import { useUserStore } from '../../../stores/useUserStore';
 
 export interface QuestsModalProps {
   isOpen: boolean;
-  profile: PlayerProfile;
   onClose: () => void;
-  onUpdateProfile: (updated: PlayerProfile) => void;
 }
 
 interface AchievementCategoryTab {
@@ -34,10 +32,9 @@ interface QuestTab {
 
 export const QuestsModal: React.FC<QuestsModalProps> = ({
   isOpen,
-  profile,
-  onClose,
-  onUpdateProfile
+  onClose
 }) => {
+  const { profile } = useUserStore();
   const {
     tab,
     setTab,
@@ -55,7 +52,7 @@ export const QuestsModal: React.FC<QuestsModalProps> = ({
     handleClaimAchievement,
     handleClaimMilestone,
     handleClaimAllCurrentTab
-  } = useQuests({ profile, onUpdateProfile });
+  } = useQuests();
 
   if (!isOpen) return null;
 

@@ -40,4 +40,43 @@ describe('Luật Tới Trắng (Instant Win)', () => {
     // Nếu không phải ván đầu thì không tới trắng vì tứ quý 3
     expect(checkInstantWin(fourThrees, false)).toBeNull();
   });
+
+  test('Xóa bỏ Tới Trắng sau khi sang ván mới (Instant Win State Isolation)', () => {
+    const { OfflineMatchDriver } = require('../../src/engine/offline-match-driver');
+    const { useGameStore } = require('../../src/stores/useGameStore');
+    const { DEFAULT_PLAYER_PROFILE } = require('../../src/engine/storage');
+
+    useGameStore.getState().resetMatchState();
+
+    const driver = new OfflineMatchDriver();
+    driver.subscribe((snapshot: any) => {
+      useGameStore.getState().applyMatchSnapshot(snapshot);
+    });
+
+    // Giả lập ván 1 bị Tới Trắng (Sảnh Rồng)
+    driver.startMatch(1, {
+      profile: { ...DEFAULT_PLAYER_PROFILE, coins: 50000 },
+      playerCount: 4
+    });
+
+    driver.instantWinType = 'DRAGON_STRAIGHT';
+    useGameStore.getState().setInstantWinType('DRAGON_STRAIGHT');
+    expect(useGameStore.getState().instantWinType).toBe('DRAGON_STRAIGHT');
+
+    // Chuyển sang ván 2
+    driver.startMatch(2, {
+      profile: { ...DEFAULT_PLAYER_PROFILE, coins: 50000 },
+      playerCount: 4
+    });
+
+    // Sau khi startMatch ván 2, instantWinType phải được reset về null / undefined
+    expect(driver.instantWinType).toBeUndefined();
+    const snapshotV2 = driver.getSnapshot();
+    expect(snapshotV2.instantWinType).toBeNull();
+
+    // GameStore cũng phải được cập nhật xóa sạch instantWinType
+    expect(useGameStore.getState().instantWinType).toBeUndefined();
+
+    driver.cleanup();
+  });
 });

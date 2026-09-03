@@ -22,27 +22,12 @@ import {
 import { Button } from '../../primitives';
 import { MobileScreenWrapper } from './MobileScreenWrapper';
 import { MobileVirtualInput } from '../components/MobileVirtualInput';
-import { GameSpeedMode } from '../../../engine/game-speed';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useSettingsSync } from '../../hooks/useSettingsSync';
 
 export interface MobileSettingsViewProps {
   isOpen: boolean;
   onClose: () => void;
-  soundEnabled: boolean;
-  onToggleSound: () => void;
-  autoSortEnabled: boolean;
-  onToggleAutoSort: () => void;
-  aiHintEnabled: boolean;
-  onToggleAiHint: () => void;
-  quickResponseAssistEnabled: boolean;
-  onToggleQuickResponseAssist: () => void;
-  xrayEnabled: boolean;
-  onToggleXRay: () => void;
-  botReasoningLogEnabled: boolean;
-  onToggleBotReasoningLog: () => void;
-  gameSpeed: GameSpeedMode;
-  onSetGameSpeed: (speed: GameSpeedMode) => void;
 }
 
 const ToggleSwitch: React.FC<{ checked: boolean }> = ({ checked }) => (
@@ -74,19 +59,19 @@ function formatDateTime(timestamp: number): string {
 
 export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
   isOpen,
-  onClose,
-  soundEnabled,
-  onToggleSound,
-  autoSortEnabled,
-  onToggleAutoSort,
-  aiHintEnabled,
-  onToggleAiHint,
-  quickResponseAssistEnabled,
-  onToggleQuickResponseAssist,
-  gameSpeed,
-  onSetGameSpeed
+  onClose
 }) => {
   const {
+    soundEnabled,
+    toggleSound: onToggleSound,
+    autoSortEnabled,
+    toggleAutoSort: onToggleAutoSort,
+    aiHintEnabled,
+    toggleAiHint: onToggleAiHint,
+    quickResponseAssistEnabled,
+    toggleQuickResponseAssist: onToggleQuickResponseAssist,
+    gameSpeed,
+    setGameSpeed: onSetGameSpeed,
     githubToken,
     cachedGithubUser,
     lastSync,

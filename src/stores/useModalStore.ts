@@ -1,27 +1,16 @@
 import { create } from 'zustand';
-import type { TienLenSaveData } from '../engine/sync/types';
+import { 
+  useViewStore, 
+  type ModalType, 
+  type ForfeitData, 
+  type F5PenaltyData, 
+  type SyncConflictData, 
+  type ActiveModalDescriptor 
+} from './useViewStore';
 
-export type ModalType = 
-  | 'SETTINGS'
-  | 'CUSTOM_GAME'
-  | 'QUICK_SETUP'
-  | 'MATCHMAKING'
-  | 'XRAY'
-  | 'VICTORY'
-  | 'QUEST'
-  | 'WHEEL'
-  | 'BANK'
-  | 'CAMPAIGN'
-  | 'CONFIRM_FORFEIT'
-  | 'F5_PENALTY_NOTICE'
-  | 'NAME_SETUP'
-  | 'RULES'
-  | 'ECOSYSTEM'
-  | 'BOT_PROFILE'
-  | 'SYNC_CONFLICT'
-  | 'ONLINE_ROOM';
+export type { ModalType };
 
-interface ModalState {
+export interface ModalState {
   isSettingsOpen: boolean;
   isCustomGameModalOpen: boolean;
   isQuickSetupOpen: boolean;
@@ -41,15 +30,15 @@ interface ModalState {
   isSyncConflictOpen: boolean;
   isOnlineRoomOpen: boolean;
 
-  forfeitData?: { depositAmount: number; eloPenalty: number; isRanked: boolean; };
-  f5PenaltyData?: { depositLost: number; eloLost: number; isRanked: boolean; };
-  syncConflictData?: { localData: TienLenSaveData; cloudData: TienLenSaveData } | null;
+  forfeitData?: ForfeitData;
+  f5PenaltyData?: F5PenaltyData;
+  syncConflictData?: SyncConflictData | null;
 
-  // Actions
+  // Actions (ủy quyền 100% về useViewStore)
   openModal: (type: ModalType) => void;
-  closeModal: (type: ModalType) => void;
+  closeModal: (type?: ModalType) => void;
   closeAllModals: () => void;
-  
+
   // Specific helper toggles
   setIsSettingsOpen: (open: boolean) => void;
   setIsCustomGameModalOpen: (open: boolean) => void;
@@ -68,119 +57,91 @@ interface ModalState {
   setIsEcosystemOpen: (open: boolean) => void;
   setIsBotProfileOpen: (open: boolean) => void;
   setIsSyncConflictOpen: (open: boolean) => void;
-  setForfeitData: (data?: { depositAmount: number; eloPenalty: number; isRanked: boolean; }) => void;
-  setF5PenaltyData: (data?: { depositLost: number; eloLost: number; isRanked: boolean; }) => void;
-  setSyncConflictData: (data?: { localData: TienLenSaveData; cloudData: TienLenSaveData } | null) => void;
+  setForfeitData: (data?: ForfeitData) => void;
+  setF5PenaltyData: (data?: F5PenaltyData) => void;
+  setSyncConflictData: (data?: SyncConflictData | null) => void;
 }
 
-export const useModalStore = create<ModalState>((set) => ({
-  isSettingsOpen: false,
-  isCustomGameModalOpen: false,
-  isQuickSetupOpen: false,
-  isMatchmakingOpen: false,
-  isXRayOpen: false,
-  isVictoryOpen: false,
-  isQuestModalOpen: false,
-  isLuckyWheelOpen: false,
-  isBankLoanModalOpen: false,
-  isCampaignModalOpen: false,
-  isConfirmForfeitOpen: false,
-  isF5PenaltyNoticeOpen: false,
-  isNameSetupOpen: false,
-  isRulesOpen: false,
-  isEcosystemOpen: false,
-  isBotProfileOpen: false,
-  isSyncConflictOpen: false,
-  isOnlineRoomOpen: false,
-  forfeitData: undefined,
-  f5PenaltyData: undefined,
-  syncConflictData: null,
+function deriveModalFlags(activeModal: ActiveModalDescriptor) {
+  const type = activeModal?.type;
+  return {
+    isSettingsOpen: type === 'SETTINGS',
+    isCustomGameModalOpen: type === 'CUSTOM_GAME',
+    isQuickSetupOpen: type === 'QUICK_SETUP',
+    isMatchmakingOpen: type === 'MATCHMAKING',
+    isXRayOpen: type === 'XRAY',
+    isVictoryOpen: type === 'VICTORY',
+    isQuestModalOpen: type === 'QUEST',
+    isLuckyWheelOpen: type === 'WHEEL',
+    isBankLoanModalOpen: type === 'BANK',
+    isCampaignModalOpen: type === 'CAMPAIGN',
+    isConfirmForfeitOpen: type === 'CONFIRM_FORFEIT',
+    isF5PenaltyNoticeOpen: type === 'F5_PENALTY_NOTICE',
+    isNameSetupOpen: type === 'NAME_SETUP',
+    isRulesOpen: type === 'RULES',
+    isEcosystemOpen: type === 'ECOSYSTEM',
+    isBotProfileOpen: type === 'BOT_PROFILE',
+    isSyncConflictOpen: type === 'SYNC_CONFLICT',
+    isOnlineRoomOpen: type === 'ONLINE_ROOM'
+  };
+}
 
-  openModal: (type: ModalType) => {
-    switch (type) {
-      case 'SETTINGS': set({ isSettingsOpen: true }); break;
-      case 'CUSTOM_GAME': set({ isCustomGameModalOpen: true }); break;
-      case 'QUICK_SETUP': set({ isQuickSetupOpen: true }); break;
-      case 'MATCHMAKING': set({ isMatchmakingOpen: true }); break;
-      case 'XRAY': set({ isXRayOpen: true }); break;
-      case 'VICTORY': set({ isVictoryOpen: true }); break;
-      case 'QUEST': set({ isQuestModalOpen: true }); break;
-      case 'WHEEL': set({ isLuckyWheelOpen: true }); break;
-      case 'BANK': set({ isBankLoanModalOpen: true }); break;
-      case 'CAMPAIGN': set({ isCampaignModalOpen: true }); break;
-      case 'CONFIRM_FORFEIT': set({ isConfirmForfeitOpen: true }); break;
-      case 'F5_PENALTY_NOTICE': set({ isF5PenaltyNoticeOpen: true }); break;
-      case 'NAME_SETUP': set({ isNameSetupOpen: true }); break;
-      case 'RULES': set({ isRulesOpen: true }); break;
-      case 'ECOSYSTEM': set({ isEcosystemOpen: true }); break;
-      case 'BOT_PROFILE': set({ isBotProfileOpen: true }); break;
-      case 'SYNC_CONFLICT': set({ isSyncConflictOpen: true }); break;
-      case 'ONLINE_ROOM': set({ isOnlineRoomOpen: true }); break;
+export const useModalStore = create<ModalState>((set) => {
+  // Tự động đồng bộ cờ boolean từ useViewStore (Single Source of Truth)
+  useViewStore.subscribe((viewState) => {
+    const flags = deriveModalFlags(viewState.activeModal);
+    set({
+      ...flags,
+      forfeitData: viewState.forfeitData,
+      f5PenaltyData: viewState.f5PenaltyData,
+      syncConflictData: viewState.syncConflictData
+    });
+  });
+
+  return {
+    ...deriveModalFlags(useViewStore.getState().activeModal),
+    forfeitData: useViewStore.getState().forfeitData,
+    f5PenaltyData: useViewStore.getState().f5PenaltyData,
+    syncConflictData: useViewStore.getState().syncConflictData,
+
+    openModal: (type: ModalType) => {
+      useViewStore.getState().openModal(type);
+    },
+
+    closeModal: (type?: ModalType) => {
+      useViewStore.getState().closeModal(type);
+    },
+
+    closeAllModals: () => {
+      useViewStore.getState().closeAllModals();
+    },
+
+    setIsSettingsOpen: (open) => open ? useViewStore.getState().openModal('SETTINGS') : useViewStore.getState().closeModal('SETTINGS'),
+    setIsCustomGameModalOpen: (open) => open ? useViewStore.getState().openModal('CUSTOM_GAME') : useViewStore.getState().closeModal('CUSTOM_GAME'),
+    setIsQuickSetupOpen: (open) => open ? useViewStore.getState().openModal('QUICK_SETUP') : useViewStore.getState().closeModal('QUICK_SETUP'),
+    setIsMatchmakingOpen: (open) => open ? useViewStore.getState().openModal('MATCHMAKING') : useViewStore.getState().closeModal('MATCHMAKING'),
+    setIsXRayOpen: (open) => open ? useViewStore.getState().openModal('XRAY') : useViewStore.getState().closeModal('XRAY'),
+    setIsVictoryOpen: (open) => open ? useViewStore.getState().openModal('VICTORY') : useViewStore.getState().closeModal('VICTORY'),
+    setIsQuestModalOpen: (open) => open ? useViewStore.getState().openModal('QUEST') : useViewStore.getState().closeModal('QUEST'),
+    setIsLuckyWheelOpen: (open) => open ? useViewStore.getState().openModal('WHEEL') : useViewStore.getState().closeModal('WHEEL'),
+    setIsBankLoanModalOpen: (open) => open ? useViewStore.getState().openModal('BANK') : useViewStore.getState().closeModal('BANK'),
+    setIsCampaignModalOpen: (open) => open ? useViewStore.getState().openModal('CAMPAIGN') : useViewStore.getState().closeModal('CAMPAIGN'),
+    setIsConfirmForfeitOpen: (open) => open ? useViewStore.getState().openModal('CONFIRM_FORFEIT') : useViewStore.getState().closeModal('CONFIRM_FORFEIT'),
+    setIsF5PenaltyNoticeOpen: (open) => open ? useViewStore.getState().openModal('F5_PENALTY_NOTICE') : useViewStore.getState().closeModal('F5_PENALTY_NOTICE'),
+    setIsNameSetupOpen: (open) => open ? useViewStore.getState().openModal('NAME_SETUP') : useViewStore.getState().closeModal('NAME_SETUP'),
+    setIsRulesOpen: (open) => open ? useViewStore.getState().openModal('RULES') : useViewStore.getState().closeModal('RULES'),
+    setIsEcosystemOpen: (open) => open ? useViewStore.getState().openModal('ECOSYSTEM') : useViewStore.getState().closeModal('ECOSYSTEM'),
+    setIsBotProfileOpen: (open) => open ? useViewStore.getState().openModal('BOT_PROFILE') : useViewStore.getState().closeModal('BOT_PROFILE'),
+    setIsSyncConflictOpen: (open) => open ? useViewStore.getState().openModal('SYNC_CONFLICT') : useViewStore.getState().closeModal('SYNC_CONFLICT'),
+
+    setForfeitData: (data) => {
+      useViewStore.getState().setForfeitData(data);
+    },
+    setF5PenaltyData: (data) => {
+      useViewStore.getState().setF5PenaltyData(data);
+    },
+    setSyncConflictData: (data) => {
+      useViewStore.getState().setSyncConflictData(data);
     }
-  },
-
-  closeModal: (type: ModalType) => {
-    switch (type) {
-      case 'SETTINGS': set({ isSettingsOpen: false }); break;
-      case 'CUSTOM_GAME': set({ isCustomGameModalOpen: false }); break;
-      case 'QUICK_SETUP': set({ isQuickSetupOpen: false }); break;
-      case 'MATCHMAKING': set({ isMatchmakingOpen: false }); break;
-      case 'XRAY': set({ isXRayOpen: false }); break;
-      case 'VICTORY': set({ isVictoryOpen: false }); break;
-      case 'QUEST': set({ isQuestModalOpen: false }); break;
-      case 'WHEEL': set({ isLuckyWheelOpen: false }); break;
-      case 'BANK': set({ isBankLoanModalOpen: false }); break;
-      case 'CAMPAIGN': set({ isCampaignModalOpen: false }); break;
-      case 'CONFIRM_FORFEIT': set({ isConfirmForfeitOpen: false }); break;
-      case 'F5_PENALTY_NOTICE': set({ isF5PenaltyNoticeOpen: false }); break;
-      case 'NAME_SETUP': set({ isNameSetupOpen: false }); break;
-      case 'RULES': set({ isRulesOpen: false }); break;
-      case 'ECOSYSTEM': set({ isEcosystemOpen: false }); break;
-      case 'BOT_PROFILE': set({ isBotProfileOpen: false }); break;
-      case 'SYNC_CONFLICT': set({ isSyncConflictOpen: false }); break;
-      case 'ONLINE_ROOM': set({ isOnlineRoomOpen: false }); break;
-    }
-  },
-
-  closeAllModals: () => set({
-    isSettingsOpen: false,
-    isCustomGameModalOpen: false,
-    isQuickSetupOpen: false,
-    isMatchmakingOpen: false,
-    isXRayOpen: false,
-    isVictoryOpen: false,
-    isQuestModalOpen: false,
-    isLuckyWheelOpen: false,
-    isBankLoanModalOpen: false,
-    isCampaignModalOpen: false,
-    isConfirmForfeitOpen: false,
-    isF5PenaltyNoticeOpen: false,
-    isNameSetupOpen: false,
-    isRulesOpen: false,
-    isEcosystemOpen: false,
-    isBotProfileOpen: false,
-    isSyncConflictOpen: false,
-    isOnlineRoomOpen: false
-  }),
-
-  setIsSettingsOpen: (open) => set({ isSettingsOpen: open }),
-  setIsCustomGameModalOpen: (open) => set({ isCustomGameModalOpen: open }),
-  setIsQuickSetupOpen: (open) => set({ isQuickSetupOpen: open }),
-  setIsMatchmakingOpen: (open) => set({ isMatchmakingOpen: open }),
-  setIsXRayOpen: (open) => set({ isXRayOpen: open }),
-  setIsVictoryOpen: (open) => set({ isVictoryOpen: open }),
-  setIsQuestModalOpen: (open) => set({ isQuestModalOpen: open }),
-  setIsLuckyWheelOpen: (open) => set({ isLuckyWheelOpen: open }),
-  setIsBankLoanModalOpen: (open) => set({ isBankLoanModalOpen: open }),
-  setIsCampaignModalOpen: (open) => set({ isCampaignModalOpen: open }),
-  setIsConfirmForfeitOpen: (open) => set({ isConfirmForfeitOpen: open }),
-  setIsF5PenaltyNoticeOpen: (open) => set({ isF5PenaltyNoticeOpen: open }),
-  setIsNameSetupOpen: (open) => set({ isNameSetupOpen: open }),
-  setIsRulesOpen: (open) => set({ isRulesOpen: open }),
-  setIsEcosystemOpen: (open) => set({ isEcosystemOpen: open }),
-  setIsBotProfileOpen: (open) => set({ isBotProfileOpen: open }),
-  setIsSyncConflictOpen: (open) => set({ isSyncConflictOpen: open }),
-  setForfeitData: (data) => set({ forfeitData: data }),
-  setF5PenaltyData: (data) => set({ f5PenaltyData: data }),
-  setSyncConflictData: (data) => set({ syncConflictData: data })
-}));
+  };
+});

@@ -677,6 +677,9 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
     }
     globalP2PClient.leave();
 
+    useGameStore.getState().setCurrentScreen('LOBBY');
+    useGameStore.getState().setActiveGameType('QUICK');
+    useGameStore.getState().setMyPlayerId('p0');
     useGameStore.getState().resetMatchState();
 
     set({

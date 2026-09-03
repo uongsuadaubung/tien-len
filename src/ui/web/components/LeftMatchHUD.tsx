@@ -85,7 +85,7 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                 const isMe = p.id === myPlayerId;
                 const cardCount = isDealing 
                   ? (dealtCounts[p.id] ?? 0) 
-                  : (isMe ? p.hand.length : (dealtCounts[p.id] ?? p.hand.length));
+                  : (p.hand && p.hand.length > 0 ? p.hand.length : (dealtCounts[p.id] ?? 0));
                 const isOneCardLeft = !isDealing && cardCount === 1 && !p.rankPosition;
                 const botIdx = parseInt(p.id.replace('p', '')) - 1;
                 const botOverride = customBotConfigs && botIdx >= 0 && botIdx < customBotConfigs.length ? customBotConfigs[botIdx] : undefined;

@@ -17,12 +17,12 @@ import {
   CustomGameModalConfig, 
   CustomGameTabType 
 } from '../../hooks/useCustomGame';
+import { useUserStore } from '../../../stores/useUserStore';
 
 export interface MobileCustomGameViewProps {
   isOpen: boolean;
   onClose: () => void;
   initialConfig?: Partial<CustomGameModalConfig>;
-  playerCoins: number;
   onStartCustomGame: (config: CustomGameModalConfig) => void;
 }
 
@@ -42,9 +42,10 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
   isOpen,
   onClose,
   initialConfig,
-  playerCoins,
   onStartCustomGame
 }) => {
+  const { profile } = useUserStore();
+  const playerCoins = profile.coins;
   const {
     playerCount,
     settings,
@@ -69,7 +70,6 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
     handleTableConfigChange,
     handleStartGame
   } = useCustomGame({
-    playerCoins,
     initialConfig,
     onStartCustomGame,
     onClose

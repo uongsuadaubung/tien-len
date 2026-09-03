@@ -1,23 +1,20 @@
 import React from 'react';
-import { PlayerProfile } from '../../../engine/storage';
 import { Landmark, ShieldCheck, HeartHandshake, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Card, Badge, Button } from '../../primitives';
 import { MobileScreenWrapper } from './MobileScreenWrapper';
 import { useBank } from '../../hooks/useBank';
+import { useUserStore } from '../../../stores/useUserStore';
 
 export interface MobileBankViewProps {
   isOpen: boolean;
-  profile: PlayerProfile;
   onClose: () => void;
-  onUpdateProfile: (updated: PlayerProfile) => void;
 }
 
 export const MobileBankView: React.FC<MobileBankViewProps> = ({
   isOpen,
-  profile,
-  onClose,
-  onUpdateProfile
+  onClose
 }) => {
+  const { profile } = useUserStore();
   const {
     loanAmountToBorrow,
     setLoanAmountToBorrow,
@@ -32,7 +29,7 @@ export const MobileBankView: React.FC<MobileBankViewProps> = ({
     handleClaimRelief,
     handleBorrowLoan,
     handleRepayDebt
-  } = useBank({ profile, onUpdateProfile });
+  } = useBank();
 
   if (!isOpen) return null;
 

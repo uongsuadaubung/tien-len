@@ -4,13 +4,10 @@ import { DAILY_MILESTONES, DailyMilestoneReward, Quest, Achievement } from '../.
 import { soundManager } from '../audio/sound-manager';
 import confetti from 'canvas-confetti';
 
+import { useUserStore } from '../../stores/useUserStore';
+
 export type QuestTabType = 'DAILY' | 'ACHIEVEMENTS';
 export type AchievementCategoryFilter = 'ALL' | 'CHOP' | 'VICTORY' | 'WEALTH' | 'SPECIAL';
-
-export interface UseQuestsParams {
-  profile: PlayerProfile;
-  onUpdateProfile: (updated: PlayerProfile) => void;
-}
 
 export interface UseQuestsResult {
   tab: QuestTabType;
@@ -37,7 +34,8 @@ function getQuestSortWeight(item: { isCompleted: boolean; isClaimed: boolean }):
   return 2;
 }
 
-export function useQuests({ profile, onUpdateProfile }: UseQuestsParams): UseQuestsResult {
+export function useQuests(): UseQuestsResult {
+  const { profile, setProfile: onUpdateProfile } = useUserStore();
   const [tab, setTab] = useState<QuestTabType>('DAILY');
   const [achCategory, setAchCategory] = useState<AchievementCategoryFilter>('ALL');
 

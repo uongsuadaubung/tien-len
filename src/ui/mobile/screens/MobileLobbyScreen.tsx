@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { PlayerProfile } from '../../../engine/storage';
 import { getRankTierByElo, RANK_TIERS } from '../../../engine/elo';
 import { getSettlementRuleLabel } from '../../../engine/types';
 import { useModalStore } from '../../../stores/useModalStore';
 import { useEcosystemStore } from '../../../stores/useEcosystemStore';
 import { useGameStore } from '../../../stores/useGameStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
+import { useUserStore } from '../../../stores/useUserStore';
 import { 
   Trophy, 
   MapPin, 
@@ -28,7 +28,6 @@ import { Badge, Card, Button } from '../../primitives';
 import { isFullScreen, toggleFullScreen, lockToLandscape } from '../../utils/fullscreen';
 
 export interface MobileLobbyScreenProps {
-  profile: PlayerProfile;
   onPlayNow: (() => void) | null;
   onOpenQuickSetup: () => void;
   onOpenCustomGameModal: () => void;
@@ -42,7 +41,6 @@ export interface MobileLobbyScreenProps {
 }
 
 export const MobileLobbyScreen: React.FC<MobileLobbyScreenProps> = ({
-  profile,
   onPlayNow,
   onOpenQuickSetup,
   onOpenCustomGameModal,
@@ -54,6 +52,7 @@ export const MobileLobbyScreen: React.FC<MobileLobbyScreenProps> = ({
   onOpenRules,
   onOpenNameSetup
 }) => {
+  const { profile } = useUserStore();
   const { openModal } = useModalStore();
   const { newsfeed, initEcosystem } = useEcosystemStore();
   const { quickTableConfig } = useGameStore();

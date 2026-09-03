@@ -2,19 +2,14 @@ import React from 'react';
 import { MobileLobbyScreen } from './screens/MobileLobbyScreen';
 import { MobileGameTableScreen } from './screens/MobileGameTableScreen';
 import { MobileGameSheets } from './sheets/MobileGameSheets';
-import { GameEngine } from '../../engine/game';
-import { CardTracker } from '../../ai/card-tracker';
 import { QuickSetupConfig } from '../web/modals/QuickSetupModal';
 import { CustomGameModalConfig } from '../web/modals/CustomGameModal';
 import { CampaignChapter } from '../../engine/campaign';
-import { PlayerProfile } from '../../engine/storage';
 import { useModalStore } from '../../stores/useModalStore';
-import { useGameStore } from '../../stores/useGameStore';
+import { useViewStore } from '../../stores/useViewStore';
+import { appFlowCoordinator } from '../../services/app-flow-coordinator';
 
 export interface MobileAppProps {
-  engineRef: React.RefObject<GameEngine | null>;
-  trackersRef: React.RefObject<{ [playerId: string]: CardTracker }>;
-  profile: PlayerProfile;
   campaignResultMeta: {
     isUnlockedNext: boolean;
     isAllCompleted: boolean;
@@ -39,9 +34,6 @@ export interface MobileAppProps {
 }
 
 export const MobileApp: React.FC<MobileAppProps> = ({
-  engineRef,
-  trackersRef,
-  profile,
   campaignResultMeta,
   handleNextGame,
   handlePlaySelectedCards,
@@ -58,14 +50,13 @@ export const MobileApp: React.FC<MobileAppProps> = ({
   handleStartCampaignChapter
 }) => {
   const { openModal, closeModal } = useModalStore();
-  const { currentScreen } = useGameStore();
+  const { currentScreen } = useViewStore();
 
   return (
     <>
       {/* 1. MÀN HÌNH CHÍNH MOBILE: SẢNH HOẶC BÀN ĐẤU */}
       {currentScreen === 'LOBBY' ? (
         <MobileLobbyScreen
-          profile={profile}
           onPlayNow={handlePlayNowDefault}
           onOpenQuickSetup={() => openModal('QUICK_SETUP')}
           onOpenCustomGameModal={() => openModal('CUSTOM_GAME')}
@@ -79,7 +70,6 @@ export const MobileApp: React.FC<MobileAppProps> = ({
         />
       ) : (
         <MobileGameTableScreen
-          engineRef={engineRef}
           onPlaySelectedCards={handlePlaySelectedCards}
           onPassTurn={handlePassTurn}
           onAutoSort={handleAutoSort}
@@ -91,7 +81,7 @@ export const MobileApp: React.FC<MobileAppProps> = ({
 
       {/* 2. TRANG CON TOÀN MÀN HÌNH & BOTTOM SHEETS CHO MOBILE */}
       <MobileGameSheets
-        player0Tracker={trackersRef.current['p0'] || null}
+        player0Tracker={appFlowCoordinator.getPlayerTracker('p0')}
         onStartQuickGame={handleStartQuickGame}
         onStartCustomGame={handleStartCustomGameWithConfig}
         onSelectCampaignChapter={handleStartCampaignChapter}

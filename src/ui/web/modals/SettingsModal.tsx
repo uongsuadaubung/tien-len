@@ -22,27 +22,12 @@ import {
   Wifi
 } from 'lucide-react';
 import { Modal, Button } from '../../primitives';
-import { GameSpeedMode } from '../../../engine/game-speed';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useSettingsSync } from '../../hooks/useSettingsSync';
 
 export interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  soundEnabled: boolean;
-  onToggleSound: () => void;
-  autoSortEnabled: boolean;
-  onToggleAutoSort: () => void;
-  aiHintEnabled: boolean;
-  onToggleAiHint: () => void;
-  quickResponseAssistEnabled: boolean;
-  onToggleQuickResponseAssist: () => void;
-  xrayEnabled: boolean;
-  onToggleXRay: () => void;
-  botReasoningLogEnabled: boolean;
-  onToggleBotReasoningLog: () => void;
-  gameSpeed: GameSpeedMode;
-  onSetGameSpeed: (speed: GameSpeedMode) => void;
 }
 
 const ToggleSwitch: React.FC<{ checked: boolean }> = ({ checked }) => (
@@ -74,23 +59,23 @@ function formatDateTime(timestamp: number): string {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,
-  onClose,
-  soundEnabled,
-  onToggleSound,
-  autoSortEnabled,
-  onToggleAutoSort,
-  aiHintEnabled,
-  onToggleAiHint,
-  quickResponseAssistEnabled,
-  onToggleQuickResponseAssist,
-  xrayEnabled,
-  onToggleXRay,
-  botReasoningLogEnabled,
-  onToggleBotReasoningLog,
-  gameSpeed,
-  onSetGameSpeed
+  onClose
 }) => {
   const {
+    soundEnabled,
+    toggleSound: onToggleSound,
+    autoSortEnabled,
+    toggleAutoSort: onToggleAutoSort,
+    aiHintEnabled,
+    toggleAiHint: onToggleAiHint,
+    quickResponseAssistEnabled,
+    toggleQuickResponseAssist: onToggleQuickResponseAssist,
+    xrayEnabled,
+    toggleXRay: onToggleXRay,
+    botReasoningLogEnabled,
+    toggleBotReasoningLog: onToggleBotReasoningLog,
+    gameSpeed,
+    setGameSpeed: onSetGameSpeed,
     githubToken,
     cachedGithubUser,
     lastSync,

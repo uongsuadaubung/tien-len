@@ -11,6 +11,11 @@
   1. ⚡ **Chơi Nhanh & Đấu Hạng (Quick Play & Ranked Elo)**: Tự động ghép trận với các đối thủ cùng trình độ Elo, tùy chọn luật (Đếm Lá, Nhất Ăn Tất, Truyền Thống, Solo 1v1), tính biến động điểm Elo chuẩn FIDE và tích lũy Xu thưởng.
   2. 🗺️ **Hành Trình Sự Nghiệp (Campaign Story)**: Chinh phục 5 chương cốt truyện độc đáo, mở khóa danh hiệu và phần thưởng đặc biệt.
   3. 🛠️ **Tùy Biến Bàn Chơi (Custom Sandbox)**: Tự do tinh chỉnh số người (2-4), mức cược, phạt chặt, cóng, về 3 bích cuối và chiến thuật đối thủ.
+* 🔄 **Unidirectional Flow & App Flow Coordinator**:
+  - **Cổng Tập Trung Duy Nhất (`AppFlowCoordinator`)**: Quản lý tập trung toàn bộ luồng vào trận, cọc tiền, về sảnh, đầu hàng, chơi lại.
+  - **Tách Game Loop Khỏi React (`OfflineMatchDriver`)**: Vòng lặp ván đấu, bot AI và animation chia bài chạy hoàn toàn bằng TypeScript Class độc lập với React DOM $\to$ triệt tiêu hoàn toàn race conditions, ghost timers và stale closures.
+  - **Modal State Machine (`useViewStore`)**: Discriminated Union đảm bảo chỉ có tối đa 1 Popup hiển thị, loại bỏ 100% nguy cơ kẹt giao diện.
+  - **Atomic Snapshotting**: Đồng bộ dữ liệu bàn đấu nguyên tử qua `applyMatchSnapshot()`, giảm thiểu tối đa số lần re-render.
 * 🤖 **Hệ Sinh Thái 200 Đối Thủ Sống Động & AI Engine**:
   - **200 Đối Thủ Tự Tranh Tài Ngầm**: Vận hành ngầm song song qua Web Worker không gây lag giao diện (0% CPU main thread blockage).
   - **Cơ Chế Đào Thải Vỡ Nợ & Tuyển Mộ Tân Binh**: Bot vỡ nợ bị đào thải, tự động tuyển mộ Tân Binh với 50.000 Xu & 1.000 Elo (kế thừa DNA kỹ năng).
@@ -37,47 +42,43 @@
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
 │                               1. PRESENTATION LAYER (UI / UX)                            │
-│  - React 19 + Tailwind CSS + Hardware-Accelerated CSS (3D Transform, GPU Layering)       │
-│  - Components: LobbyHub, GameTableScreen, TableCenter, PlayerHandView, BotSeat, Modals   │
-│  - SplashScreen (3s Realtime Loading Gate), AIAssistantMascot (Quân Sư AI Chọn Nhanh)    │
-│  - Web Audio API Sound Manager (Nhạc Tết, hiệu ứng đập bài, chặt heo, thối 2)             │
+│  - React 19 Components (WebApp, MobileApp, LobbyHub, GameTable, HandView, BotSeat)       │
+│  - Dumb Components: Chỉ nhận Props hiển thị và phát Intent hành động người dùng          │
+│  - Hardware-Accelerated CSS, Web Audio API Sound Manager                                 │
 └───────────────────────────────────────────┬──────────────────────────────────────────────┘
-                                            │ Actions / Subscriptions
+                                            │ User Intents (Chơi nhanh, Đánh bài, Bỏ lượt)
                                             ▼
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│                           2. STATE MANAGEMENT LAYER (Zustand Stores)                     │
-│  - useGameStore: Đồng bộ snapshot ván bài, lượt đánh, người thắng, tiền cược             │
-│  - useUserStore: Quản lý Profile, Xu, Elo Rating, Nhiệm vụ ngày & Thành tựu trọn đời     │
-│  - useEcosystemStore: Quản lý 200 Đối Thủ, Bảng Tin Giang Hồ, Xếp Hạng Toàn Máy Chủ      │
-│  - useSettingsStore: Tùy chỉnh âm lượng, AI Hint Engine (Trợ lý gợi ý), tốc độ ván đấu   │
-│  - useModalStore: Quản lý vòng đời hiển thị các Popup tương tác                          │
-└───────────────────────────────────────────┬──────────────────────────────────────────────┘
-                                            │ Commands / State Updates
-                                            ▼
+│                  2. FLOW COORDINATION & VIEW STATE LAYER (Unidirectional Flow)           │
+│  - AppFlowCoordinator: Cổng tập trung duy nhất điều phối vào trận, về sảnh, đầu hàng      │
+│  - useViewStore: Modal State Machine (Discriminated Union) - Bảo đảm 1 popup active      │
+│  - Chống Race Conditions, ngăn ngừa văng màn hình và dọn dẹp bộ nhớ RAM 100%            │
+└─────────────────────────────────────┬───────────────────┬────────────────────────────────┘
+                                      │                   │ Starts / Controls Driver
+         Emits Single Atomic Snapshot │                   ▼
+                                      │ ┌──────────────────────────────────────────────────┐
+                                      │ │    3. ENGINE DRIVER LAYER (Pure TypeScript Class)│
+                                      │ │  - OfflineMatchDriver: Vòng lặp ván đấu ngoài DOM│
+                                      │ │  - HostEngineDriver: Vòng lặp Host P2P WebRTC    │
+                                      │ │  - Quản lý Bot turn delay, animation chia bài    │
+                                      │ │  - cleanup() ngắt 100% ghost timers khi rời bàn  │
+                                      │ └─────────────────┬────────────────────────────────┘
+                                      ▼                   │
+┌─────────────────────────────────────────────────────────┼────────────────────────────────┐
+│                           4. STATE & PERSISTENCE LAYER  ▼                                │
+│  - useGameStore: applyMatchSnapshot() đồng bộ nguyên tử trạng thái bàn đấu                │
+│  - useUserStore: Quản lý Profile, Xu, Elo Rating, Nhiệm vụ ngày & Thành tựu              │
+│  - useOnlineStore: RoomSlice, MatchSlice, ChatSlice cho Multiplayer P2P                   │
+│  - 100% Dexie IndexedDB: Lưu trữ vĩnh viễn, chống phạt F5 qua active_session             │
+└─────────────────────────────────────────────────────────┬────────────────────────────────┘
+                                                          │ Executes Rules & Game Loop
+                                                          ▼
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│                           3. PERSISTENCE LAYER (100% Dexie IndexedDB)                    │
-│  - TIEN_LEN_DEXIE_DB_V1: 8 Tables (bots, newsfeed, match_history, player_profile...)     │
-│  - In-Memory RAM Cache: Đọc tức thì 0ms, đồng bộ bất đồng bộ non-blocking xuống DB        │
-│  - Single Source of Truth: getTierFromElo(elo) phái sinh Bậc/Huy hiệu tức thời           │
-└───────────────────────────────────────────┬──────────────────────────────────────────────┘
-                                            │
-                                            ▼
-┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│                           4. GAME ENGINE CORE LAYER (Pure TypeScript)                    │
-│  - GameEngine (State Machine): Khởi tạo ván, chia bài, xử lý vòng, chặt heo, thối 2      │
+│                           5. GAME ENGINE CORE & AI LAYER (Domain Logic)                  │
+│  - GameEngine (State Machine): Bộ luật TLMN, chia bài, tính chặt heo, cóng, thối 2       │
 │  - Validator & Combinations: Nhận diện và thẩm định tính hợp lệ của mọi tổ hợp bài       │
-│  - GameModeStrategy Pattern: 4 chế độ chơi độc lập (Truyền Thống, Đếm Lá, Chiến Dịch...) │
-│  - GameEventBus: Hệ thống Pub/Sub phát sự kiện decoupling giữa Engine và UI/Quests       │
-└───────────────────────────────────────────┬──────────────────────────────────────────────┘
-                                            │ Context Queries / GameRules
-                                            ▼
-┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│                             5. AI & LIVING ECOSYSTEM LAYER                               │
-│  - Web Worker Background Simulator: Mô phỏng song song các bàn đấu ngầm (Error Boundary) │
-│  - Composite Rule Strategy: 5 Rule Strategies (Settlement, Cong, Chop, Flow, TableScale) │
-│  - Chain of Responsibility: Emergency (Cóng/Đền/2) -> Endgame -> Lead -> Responding      │
-│  - CardTracker & Bayesian Inference: Đếm bài, theo dõi rác/heo, phán đoán tay đối thủ   │
-│  - ISMCTS Solver: Mô phỏng Rollout đa kịch bản cho Đối Thủ Cao Thủ & Thần Bài            │
+│  - Strategy Engine: 4 chế độ chơi độc lập (Đếm Lá, Nhất Ăn Tất, Truyền Thống, Chiến Dịch)│
+│  - AI Layer: Composite Rule-First Strategy, Chain of Responsibility, MCTS Solver         │
 └──────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 

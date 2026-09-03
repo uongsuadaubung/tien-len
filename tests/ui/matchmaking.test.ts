@@ -230,5 +230,31 @@ describe('Kiểm Thử Giả Lập Ghép Trận Online (Matchmaking Simulation T
     expect(useMatchmakingStore.getState().isSearching).toBe(false);
     expect(useModalStore.getState().isMatchmakingOpen).toBe(false);
   });
+
+  it('6. Luồng chuyển màn hình sau khi ghép trận: Đảm bảo currentScreen chuyển sang GAME_TABLE và không bị văng về LOBBY', async () => {
+    const { useGameStore } = await import('../../src/stores/useGameStore');
+    const { useMatchmakingStore } = await import('../../src/stores/useMatchmakingStore');
+    
+    useGameStore.getState().setCurrentScreen('LOBBY');
+    expect(useGameStore.getState().currentScreen).toBe('LOBBY');
+
+    useMatchmakingStore.getState().startMatchmaking({
+      betAmount: 1000,
+      modeName: 'Tiến Lên Miền Nam',
+      botConfigs: [],
+      playerCount: 4,
+      onStart: () => {
+        useGameStore.getState().setActiveGameType('QUICK');
+        useGameStore.getState().setCurrentScreen('GAME_TABLE');
+        // Mô phỏng startNewGame gọi resetMatchState
+        useGameStore.getState().resetMatchState();
+      }
+    });
+
+    useMatchmakingStore.getState().executeMatch();
+
+    // Phải bảo toàn GAME_TABLE, không được bị resetMatchState đè về LOBBY
+    expect(useGameStore.getState().currentScreen).toBe('GAME_TABLE');
+  });
 });
 

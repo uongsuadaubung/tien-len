@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react';
-import { PlayerProfile } from '../../engine/storage';
 import { CAMPAIGN_CHAPTERS, CampaignChapter } from '../../engine/campaign';
 import { BotEntity, getTierFromElo } from '../../engine/ecosystem/ecosystem-types';
 import { BotConfig } from '../../ai/types';
 import { useModalStore } from '../../stores/useModalStore';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
+import { useUserStore } from '../../stores/useUserStore';
 
 export interface ChapterStatusInfo {
   unlocked: boolean;
@@ -15,7 +15,6 @@ export interface ChapterStatusInfo {
 }
 
 export interface UseCampaignProps {
-  profile: PlayerProfile;
   onSelectChapter?: (chapter: CampaignChapter) => void;
   initialChapterId?: number;
 }
@@ -101,11 +100,11 @@ export function convertBotConfigToEntity(botConfig: BotConfig, ecosystemBots: Bo
 /**
  * Hook dùng chung cho Bản Đồ Chiến Dịch Cốt Truyện 9 Chương (Web Modal & Mobile View)
  */
-export function useCampaign({
-  profile,
-  onSelectChapter,
-  initialChapterId
-}: UseCampaignProps): UseCampaignReturn {
+export function useCampaign(props?: UseCampaignProps): UseCampaignReturn {
+  const { profile } = useUserStore();
+  const onSelectChapter = props?.onSelectChapter;
+  const initialChapterId = props?.initialChapterId;
+
   const [selectedChapterId, setSelectedChapterId] = useState<number>(
     initialChapterId || profile.campaignUnlockedChapter || 1
   );

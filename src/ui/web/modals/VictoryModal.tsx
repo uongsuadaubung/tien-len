@@ -1,5 +1,4 @@
 import React from 'react';
-import { Player, InstantWinType } from '../../../engine/types';
 import { 
   Home, 
   RotateCcw, 
@@ -14,7 +13,7 @@ import {
   Building2
 } from 'lucide-react';
 import { CampaignChapter } from '../../../engine/campaign';
-import { ActiveGameType, useGameStore } from '../../../stores/useGameStore';
+import { useGameStore } from '../../../stores/useGameStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useOnlineStore } from '../../../stores/useOnlineStore';
 import { MatchLogger } from '../../../engine/match-logger';
@@ -22,28 +21,17 @@ import { Modal, Card, Button } from '../../primitives';
 import { MiniCardView } from '../../components/CardView';
 import { useVictoryLogic, PrimaryBtnIconType, SecondaryBtnIconType } from '../../hooks/useVictoryLogic';
 
-interface VictoryModalProps {
+export interface VictoryModalProps {
   isOpen: boolean;
   onNextGame: () => void;
   onReturnToLobby: () => void;
   onOpenCampaignMap: (() => void) | null;
-  winners: Player[];
-  allPlayers: Player[];
-  betAmount: number;
-  instantWinType: InstantWinType | null;
-  isThreeSpadesWin: boolean;
-  payouts: Record<string, number> | null;
-  loanDeduction: number;
-  eloDelta: number;
-  playerElo: number;
-  activeGameType: ActiveGameType;
-  campaignChapter: CampaignChapter | null;
-  chapterWins: number;
-  isChapterUnlockedNext: boolean;
-  isAllCampaignCompleted: boolean;
-  nextChapter: CampaignChapter | null;
-  playerCoins: number;
-  allEloDeltas: Record<string, number> | null;
+  campaignResultMeta?: {
+    isUnlockedNext: boolean;
+    isAllCompleted: boolean;
+    nextChapter: CampaignChapter | null;
+    currentWins: number;
+  } | null;
 }
 
 export const INSTANT_WIN_TITLES: Record<string, string> = {
@@ -79,23 +67,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   onNextGame,
   onReturnToLobby,
   onOpenCampaignMap,
-  winners,
-  allPlayers,
-  betAmount,
-  instantWinType,
-  isThreeSpadesWin,
-  payouts,
-  loanDeduction,
-  eloDelta,
-  playerElo,
-  activeGameType,
-  campaignChapter,
-  chapterWins,
-  isChapterUnlockedNext,
-  isAllCampaignCompleted,
-  nextChapter,
-  playerCoins,
-  allEloDeltas
+  campaignResultMeta
 }) => {
   const { githubToken, autoBackupOnMatchEnd } = useSettingsStore();
   const { myPlayerId } = useGameStore();
@@ -127,29 +99,21 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     statBox2Sub,
     totalOnlinePlayers,
     readyOnlinePlayers,
-    handleExportJson
-  } = useVictoryLogic({
-    isOpen,
+    handleExportJson,
     winners,
     allPlayers,
-    betAmount,
     instantWinType,
     isThreeSpadesWin,
     payouts,
     loanDeduction,
     eloDelta,
-    playerElo,
-    activeGameType,
-    campaignChapter,
-    chapterWins,
-    isChapterUnlockedNext,
-    isAllCampaignCompleted,
-    nextChapter,
-    playerCoins,
-    allEloDeltas,
+    allEloDeltas
+  } = useVictoryLogic({
+    isOpen,
     onNextGame,
     onReturnToLobby,
-    onOpenCampaignMap
+    onOpenCampaignMap,
+    campaignResultMeta
   });
 
   if (!isOpen) return null;

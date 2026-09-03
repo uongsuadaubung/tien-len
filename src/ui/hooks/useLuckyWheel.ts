@@ -11,6 +11,8 @@ import {
   determineWinningWheelSliceIndex 
 } from '../../engine/constants/economy';
 
+import { useUserStore } from '../../stores/useUserStore';
+
 export interface UseLuckyWheelReturn {
   isSpinning: boolean;
   rotation: number;
@@ -22,10 +24,8 @@ export interface UseLuckyWheelReturn {
   handleSpin: () => void;
 }
 
-export function useLuckyWheel(
-  profile: PlayerProfile,
-  onUpdateProfile: (updated: PlayerProfile) => void
-): UseLuckyWheelReturn {
+export function useLuckyWheel(): UseLuckyWheelReturn {
+  const { profile, setProfile: onUpdateProfile } = useUserStore();
   const [isSpinning, setIsSpinning] = useState<boolean>(false);
   const [rotation, setRotation] = useState<number>(0);
   const [prizeWon, setPrizeWon] = useState<LuckyWheelSliceConfig | null>(null);

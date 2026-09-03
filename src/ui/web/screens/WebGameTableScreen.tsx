@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { GameEngine } from '../../../engine/game';
 import { getBotConfig } from '../../../ai/bot-factory';
 import { HeaderBar } from '../../components/HeaderBar';
 import { LeftMatchHUD } from '../components/LeftMatchHUD';
@@ -17,7 +16,6 @@ import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useGameStore } from '../../../stores/useGameStore';
 
 export interface WebGameTableScreenProps {
-  engineRef: React.RefObject<GameEngine | null>;
   onPlaySelectedCards: () => void;
   onPassTurn: () => void;
   onAutoSort: () => void;
@@ -27,7 +25,6 @@ export interface WebGameTableScreenProps {
 }
 
 export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
-  engineRef,
   onPlaySelectedCards,
   onPassTurn,
   onAutoSort,
@@ -48,23 +45,24 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
   } = useSettingsStore();
 
   const {
-    activeGameType,
-    myPlayerId,
-    gameSettings,
+    players,
     gameNumber,
+    gameSettings,
+    activeGameType,
     isDealing,
     dealtCounts,
     dealBanner,
     chopNotification,
-    questToast,
-    players,
     currentTurnPlayerId,
     leadPlayerId,
     currentMove,
     selectedCardIds,
+    botThinkingThought,
     handSortMode,
     smartVariantIndex,
-    botThinkingThought,
+    myPlayerId,
+    isFirstMoveOfGame,
+    isLeadMove,
     toggleCardSelect,
     clearCardSelection
   } = useGameStore();
@@ -73,11 +71,10 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     isOnlineMatch,
     p0,
     isMyTurn,
-    playerCount,
-    botPersonaIds,
-    customBotConfigs,
     isValidPlaySelection,
     canP0Pass,
+    botPersonaIds,
+    customBotConfigs,
     topBot,
     leftBot,
     rightBot,
@@ -90,7 +87,6 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     handlePlayCards,
     handlePassTurnAction
   } = useGameTableScreenLogic({
-    engineRef,
     onPlaySelectedCards,
     onPassTurn
   });
@@ -108,18 +104,25 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
         soundEnabled={soundEnabled}
         onToggleSound={toggleSound}
         onOpenCustomGameModal={null}
-        xrayEnabled={xrayEnabled}
         onOpenRules={() => openModal('RULES')}
         onOpenSettings={() => openModal('SETTINGS')}
         onOpenXRay={() => openModal('XRAY')}
         onReturnToLobby={onReturnToLobby}
+        xrayEnabled={xrayEnabled}
       />
 
-      {/* BẢNG THÔNG TIN BÀN ĐẤU BÊN TRÁI (LEFT MATCH HUD) */}
+      {/* BANNER THÔNG BÁO QUYỀN ĐI ĐẦU VÁN ĐẤU */}
+      {dealBanner && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 bg-amber-500/90 text-slate-950 font-bold px-6 py-2 rounded-full shadow-lg border border-amber-300 animate-bounce pointer-events-none text-sm tracking-wide">
+          {dealBanner}
+        </div>
+      )}
+
+      {/* HUD GÓC TRÁI: QUÂN SƯ AI & THỐNG KÊ CHIẾN THUẬT */}
       <LeftMatchHUD
         players={players}
-        currentTurnPlayerId={currentTurnPlayerId || 'p0'}
-        leadPlayerId={leadPlayerId || 'p0'}
+        currentTurnPlayerId={currentTurnPlayerId || ''}
+        leadPlayerId={leadPlayerId || ''}
         gameNumber={gameNumber}
         betAmount={gameSettings.betAmount}
         isDealing={isDealing}
@@ -130,8 +133,8 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
         customBotConfigs={customBotConfigs}
       />
 
-      {/* BẢNG SUY LUẬN BOT AI TRỰC TIẾP BÊN PHẢI (RIGHT BOT REASONING HUD) */}
-      {botReasoningLogEnabled && !isOnlineMatch && (
+      {/* HUD GÓC PHẢI: LOGIC SUY LUẬN REAL-TIME CỦA BOT */}
+      {botReasoningLogEnabled && (
         <BotReasoningHUD
           isOpen={isReasoningHudOpen}
           onToggle={() => setIsReasoningHudOpen(prev => !prev)}
@@ -141,32 +144,10 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
         />
       )}
 
-      {/* THÔNG BÁO BANNER MỞ MÀN / NHẤT VÁN TRƯỚC */}
-      {dealBanner && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-40 bg-black/85 border border-[var(--border-gold)] px-6 py-2.5 rounded-2xl shadow-2xl backdrop-blur-md animate-in fade-in zoom-in-90 duration-300">
-          <p className="text-sm font-black text-[var(--color-gold)] tracking-wide flex items-center gap-2">
-            <span>👑</span>
-            <span>{dealBanner}</span>
-          </p>
-        </div>
-      )}
-
-      {/* THÔNG BÁO HOÀN THÀNH NHIỆM VỤ / THÀNH TỰU (TOAST) */}
-      {questToast && (
-        <div className="absolute top-20 right-6 z-50 bg-[#121927]/95 border border-emerald-500/50 px-4 py-3 rounded-2xl shadow-2xl backdrop-blur-md animate-in slide-in-from-top duration-300 flex items-center gap-3">
-          <div className="text-2xl">{questToast.icon}</div>
-          <div>
-            <div className="text-xs font-bold text-emerald-400">Nhiệm Vụ Hoàn Thành!</div>
-            <div className="text-xs font-semibold text-white">{questToast.title}</div>
-            <div className="text-[10px] text-amber-300 font-bold">+{questToast.rewardCoins.toLocaleString()} Xu</div>
-          </div>
-        </div>
-      )}
-
-      {/* KHÔNG GIAN BÀN CHƠI CHÍNH (MAIN GAME BOARD) */}
-      <main className="relative flex-1 w-full max-w-7xl mx-auto flex flex-col justify-between items-center px-4 py-2 z-10 overflow-hidden">
-        {/* GHẾ TRÊN: BOT 2 HOẶC SOLO 1V1 (BOT 1) */}
-        <div className="flex justify-center w-full z-20 mt-1">
+      {/* KHÔNG GIAN BÀN ĐẤU CHÍNH */}
+      <main className="relative flex-1 w-full max-w-7xl mx-auto flex flex-col justify-between items-center px-4 py-2">
+        {/* GHẾ TRÊN: BOT ĐỐI DIỆN */}
+        <div className="w-full flex justify-center z-20">
           {topBot && (
             <BotSeat
               player={topBot}
@@ -181,8 +162,8 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
           )}
         </div>
 
-        {/* HÀNG GIỮA: BOT TRÁI | BÀN TRÒN TRUNG TÂM | BOT PHẢI */}
-        <div className="flex items-center justify-center gap-6 sm:gap-10 md:gap-14 w-full px-2 sm:px-6 z-20 my-auto">
+        {/* TRỤC GIỮA: GHẾ TRÁI + TRUNG TÂM BÀN TRÒN + GHẾ PHẢI */}
+        <div className="w-full flex justify-between items-center my-auto z-10 px-4">
           {/* Ghế Trái: Bot 1 (Nếu có) */}
           <div className="flex justify-center flex-shrink-0 min-w-[120px]">
             {leftBot ? (
@@ -201,23 +182,17 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
             )}
           </div>
 
-          {/* BÀN TRÒN TRUNG TÂM */}
-          <div className="round-table relative flex items-center justify-center p-4 sm:p-6 shadow-2xl">
-            <div className="table-inner-felt">
-              <div className="table-center-emblem">
-                <span className="text-[#d4af37]/25 font-black text-[11px] sm:text-[13px] uppercase tracking-[0.35em] select-none text-center">
-                  TIẾN LÊN MIỀN NAM
-                </span>
-              </div>
-            </div>
+          {/* Khối Thảm Nỉ Tròn & Animation Chia Bài */}
+          <div className="relative flex-1 max-w-2xl h-64 md:h-80 mx-2 flex items-center justify-center">
+            {/* Thảm nỉ tròn xanh cổ điển */}
+            <div className="absolute inset-0 rounded-full bg-gradient-to-b from-emerald-900/60 to-emerald-950/80 border-4 border-amber-600/30 shadow-[inset_0_0_80px_rgba(0,0,0,0.8),0_10px_30px_rgba(0,0,0,0.5)] pointer-events-none" />
 
-            {/* Hiệu ứng bộ bài 3D chia bài */}
+            {/* Animation chia bài */}
             {isDealing && (
               <DealingDeckAnimation
                 isDealing={isDealing}
-                playerCount={playerCount}
-                onDealComplete={onDealComplete}
                 onDealCard={onDealCard}
+                onDealComplete={onDealComplete}
                 onSkip={onDealComplete}
               />
             )}
@@ -226,7 +201,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
             <div className="relative z-10 w-full flex justify-center">
               <TableCenter
                 currentMove={currentMove}
-                isLeadMove={isOnlineMatch ? (currentMove === null || leadPlayerId === myPlayerId) : (engineRef.current?.isRoundLeadMove() ?? true)}
+                isLeadMove={isOnlineMatch ? (currentMove === null || leadPlayerId === myPlayerId) : isLeadMove}
                 chopNotification={chopNotification}
                 isDealing={isDealing}
               />
@@ -272,7 +247,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
               isLeader={leadPlayerId === myPlayerId}
               isDealing={isDealing}
               dealtCardsCount={dealtCounts[myPlayerId]}
-              isFirstMoveOfGame={isOnlineMatch ? false : (engineRef.current?.isFirstMoveOfGame ?? false)}
+              isFirstMoveOfGame={isOnlineMatch ? false : isFirstMoveOfGame}
               sortMode={handSortMode}
               variantIndex={smartVariantIndex}
             />

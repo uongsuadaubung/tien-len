@@ -7,45 +7,34 @@ import { QuickSetupConfig } from './web/modals/QuickSetupModal';
 import { CampaignChapter } from '../engine/campaign';
 import { useGameMatchLoop } from './hooks/useGameMatchLoop';
 import { useIsMobile } from './hooks/useIsMobile';
-import { getRandomBotConfigsForTable } from '../ai/bot-factory';
 import { 
   clearActiveMatchSession, 
   savePlayerProfile,
   hydrateStorageFromIndexedDB
 } from '../engine/storage';
 import { dbGetGameSettings, dbGetQuickTableConfig } from '../engine/db/indexed-db';
-import { GameRulesBuilder } from '../engine/types';
 import { ECONOMY_CONSTANTS } from '../engine/constants/economy';
-import { matchBotsForPlayerTable } from '../engine/ecosystem/matchmaker';
 import { smartSync } from '../engine/sync/sync-service';
 
 // Stores
 import { useModalStore } from '../stores/useModalStore';
+import { useViewStore } from '../stores/useViewStore';
 import { useUserStore } from '../stores/useUserStore';
 import { useGameStore } from '../stores/useGameStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
-import { useEcosystemStore } from '../stores/useEcosystemStore';
-import { useMatchmakingStore } from '../stores/useMatchmakingStore';
 import { useOnlineStore } from '../stores/useOnlineStore';
-import { BotConfig } from '../ai/types';
+import { appFlowCoordinator } from '../services/app-flow-coordinator';
 
 export const App: React.FC = () => {
   const { openModal, setF5PenaltyData } = useModalStore();
   const { profile, setProfile, hydrateProfile } = useUserStore();
+  const { currentScreen } = useViewStore();
   const [isHydrated, setIsHydrated] = useState(false);
   const [hasEnteredGame, setHasEnteredGame] = useState(false);
   const { isMobile } = useIsMobile();
-  const {
-    currentScreen,
-    activeGameType,
-    setActiveGameType,
-    setCurrentScreen,
-    setCurrentCampaignChapter
-  } = useGameStore();
+  const { activeGameType } = useGameStore();
 
   const {
-    engineRef,
-    trackersRef,
     campaignResultMeta,
     startNewGame,
     handleNextGame,
@@ -152,156 +141,30 @@ export const App: React.FC = () => {
 
   // Khởi tạo game khi vào bàn (nếu chưa có engine và không phải trận Online P2P)
   useEffect(() => {
-    if (currentScreen === 'GAME_TABLE' && !engineRef.current && activeGameType !== 'ONLINE') {
+    if (currentScreen === 'GAME_TABLE' && !appFlowCoordinator.hasActiveMatch() && activeGameType !== 'ONLINE') {
       startNewGame(1);
     }
-  }, [currentScreen, startNewGame, engineRef, activeGameType]);
+  }, [currentScreen, startNewGame, activeGameType]);
 
   // ==========================================================================
   // ĐIỀU HƯỚNG TỪ SẢNH VÀO CÁC CHẾ ĐỘ CHƠI (STRATEGY DISPATCH)
   // ==========================================================================
 
   const handleStartQuickGame = async (config: QuickSetupConfig) => {
-    // 1. Kiểm tra số dư tối thiểu của người chơi trước khi vào tìm trận
-    const liveProfile = useUserStore.getState().profile;
-    if (liveProfile.coins < config.betAmount) {
-      openModal('BANK');
-      return;
-    }
-
-    useModalStore.getState().closeModal('QUICK_SETUP');
-
-    // 2. Ghép Bot trực tiếp từ Hệ Sinh Thái 200 Bot
-    const requiredCount = (config.playerCount || 4) - 1;
-    let botConfigs: Partial<BotConfig>[] = [];
-    let botIds: string[] = [];
-
-    try {
-      const tableOpponents = await useEcosystemStore.getState().prepareMatchEcosystem(liveProfile.elo, config.betAmount);
-      if (tableOpponents && tableOpponents.length > 0) {
-        const chosen = tableOpponents.slice(0, requiredCount);
-        botConfigs = chosen;
-        botIds = chosen.map(b => b.id);
-      }
-    } catch {
-      const ecosystemBots = useEcosystemStore.getState().bots;
-      if (ecosystemBots.length > 0) {
-        const matched = matchBotsForPlayerTable(ecosystemBots, liveProfile.elo, config.betAmount, requiredCount);
-        botConfigs = matched;
-        botIds = matched.map(b => b.id);
-      }
-    }
-
-    if (botConfigs.length < requiredCount) {
-      const fallbacks = getRandomBotConfigsForTable([1, 2, 3, 4, 5], requiredCount);
-      botConfigs = fallbacks;
-      botIds = fallbacks.map(b => b.id || 'BOT_ELO_1150');
-    }
-
-    // Lưu cấu hình bàn chơi vĩnh viễn vào DB & Store
-    useGameStore.getState().setQuickTableConfig(config);
-
-    useMatchmakingStore.getState().startMatchmaking({
-      betAmount: config.betAmount,
-      modeName: config.settlementRule === 'COUNT_CARDS' ? 'Đếm Lá (Đấu Hạng)' : config.settlementRule === 'WINNER_TAKES_ALL' ? 'Nhất Ăn Tất (Đấu Hạng)' : 'Tiến Lên Miền Nam',
-      botConfigs,
-      playerCount: config.playerCount ?? 4,
-      onStart: () => {
-        setActiveGameType('QUICK');
-        setCurrentScreen('GAME_TABLE');
-        const customRules = new GameRulesBuilder()
-          .withSettlement(config.settlementRule)
-          .withChopping(c => c
-            .multiplier(config.choppingMultiplier)
-            .allowFourPairsCutAnytime(config.allowFourPairsCutAnytime)
-            .allowThreePairsCutTwo(true)
-            .allowFourOfAKindCutPairsOfTwos(true)
-          )
-          .withCong(cg => cg
-            .enabled(config.congEnabled)
-            .penaltyCards(config.congEnabled ? 26 : 0)
-            .multiplier(config.choppingMultiplier)
-          )
-          .withGameFlow(f => f
-            .prohibitEndingWithTwo(config.prohibitEndingWithTwo)
-          )
-          .withTable(t => t
-            .playerCount(config.playerCount)
-            .betAmount(config.betAmount)
-          )
-          .build();
-
-        startNewGame(1, {
-          playerCount: config.playerCount,
-          customRules,
-          customBotPersonaIds: botIds,
-          customBotConfigs: botConfigs
-        });
-      }
-    });
+    await appFlowCoordinator.enterQuickMatch(config);
   };
 
   const handleStartCustomGameWithConfig = async (config: CustomGameModalConfig) => {
-    // 1. Kiểm tra số dư tối thiểu của người chơi trước khi vào tìm trận
-    const liveProfile = useUserStore.getState().profile;
-    if (liveProfile.coins < config.settings.betAmount) {
-      openModal('BANK');
-      return;
-    }
-
-    useModalStore.getState().closeModal('CUSTOM_GAME');
-
-    // Kích hoạt mô phỏng ngầm song song
-    try {
-      await useEcosystemStore.getState().prepareMatchEcosystem(liveProfile.elo, config.settings.betAmount);
-    } catch {}
-
-    const modeTitle = config.settings.mode === 'COUNT_CARDS'
-      ? 'Đếm Lá Tùy Chỉnh'
-      : config.settings.mode === 'WINNER_TAKES_ALL'
-        ? 'Nhất Ăn Tất Tùy Chỉnh'
-        : 'Truyền Thống Tùy Chỉnh';
-
-    useMatchmakingStore.getState().startMatchmaking({
-      betAmount: config.settings.betAmount,
-      modeName: modeTitle,
-      botConfigs: config.customBotConfigs,
-      playerCount: config.playerCount ?? 4,
-      onStart: () => {
-        setActiveGameType('QUICK');
-        setCurrentScreen('GAME_TABLE');
-        startNewGame(1, {
-          customSettings: config.settings,
-          customBotPersonaIds: config.botPersonaIds,
-          customBotConfigs: config.customBotConfigs,
-          playerCount: config.playerCount
-        });
-      }
-    });
+    await appFlowCoordinator.enterCustomMatch(config);
   };
 
   const handlePlayNowDefault = () => {
-    const liveCoins = useUserStore.getState().profile.coins;
     const savedConfig = useGameStore.getState().quickTableConfig;
-
-    // Nếu không đủ mức cược của bàn đã lưu, mở Ngân Hàng / Cứu trợ
-    if (liveCoins < savedConfig.betAmount) {
-      openModal('BANK');
-      return;
-    }
-
-    handleStartQuickGame(savedConfig);
+    void appFlowCoordinator.enterQuickMatch(savedConfig);
   };
 
   const handleStartCampaignChapter = (chapter: CampaignChapter) => {
-    setCurrentCampaignChapter(chapter);
-    setActiveGameType('CAMPAIGN');
-    useModalStore.getState().closeModal('CAMPAIGN');
-    setCurrentScreen('GAME_TABLE');
-    startNewGame(1, {
-      campaignChapter: chapter,
-      playerCount: 4
-    });
+    appFlowCoordinator.enterCampaignMatch(chapter);
   };
 
   const handleReturnToLobby = () => {
@@ -322,9 +185,6 @@ export const App: React.FC = () => {
   }
 
   const appProps = {
-    engineRef,
-    trackersRef,
-    profile,
     campaignResultMeta,
     startNewGame,
     handleNextGame,

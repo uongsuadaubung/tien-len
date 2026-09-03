@@ -41,7 +41,9 @@ export const BotSeat: React.FC<BotSeatProps> = ({
     }
   };
 
-  const cardCount = isDealing ? (displayCardCount ?? 0) : (player.hand?.length || 0);
+  const cardCount = isDealing 
+    ? (displayCardCount ?? 0) 
+    : (player.hand && player.hand.length > 0 ? player.hand.length : (displayCardCount ?? 0));
   const visibleCards = Math.min(13, cardCount);
 
   if (isCompact) {

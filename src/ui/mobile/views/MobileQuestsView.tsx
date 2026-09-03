@@ -1,16 +1,14 @@
 import React from 'react';
-import { PlayerProfile } from '../../../engine/storage';
 import { DAILY_MILESTONES } from '../../../engine/quests';
 import { Target, Award, Sparkles, Clock, CheckCircle, Gift, Layers, Flame, Trophy, Coins, Star } from 'lucide-react';
 import { Tabs, Card, Badge, Button } from '../../primitives';
 import { MobileScreenWrapper } from './MobileScreenWrapper';
 import { useQuests, QuestTabType, AchievementCategoryFilter } from '../../hooks/useQuests';
+import { useUserStore } from '../../../stores/useUserStore';
 
 export interface MobileQuestsViewProps {
   isOpen: boolean;
-  profile: PlayerProfile;
   onClose: () => void;
-  onUpdateProfile: (updated: PlayerProfile) => void;
 }
 
 interface AchievementCategoryTab {
@@ -35,10 +33,9 @@ interface QuestTab {
 
 export const MobileQuestsView: React.FC<MobileQuestsViewProps> = ({
   isOpen,
-  profile,
-  onClose,
-  onUpdateProfile
+  onClose
 }) => {
+  const { profile } = useUserStore();
   const {
     tab,
     setTab,
@@ -56,7 +53,7 @@ export const MobileQuestsView: React.FC<MobileQuestsViewProps> = ({
     handleClaimAchievement,
     handleClaimMilestone,
     handleClaimAllCurrentTab
-  } = useQuests({ profile, onUpdateProfile });
+  } = useQuests();
 
   if (!isOpen) return null;
 

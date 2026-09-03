@@ -4,11 +4,11 @@ import { TableRulesConfigPanel, TableConfigState } from '../../components/TableR
 import { Badge, Button } from '../../primitives';
 import { MobileScreenWrapper } from './MobileScreenWrapper';
 import { useQuickSetup, QuickSetupConfig } from '../../hooks/useQuickSetup';
+import { useUserStore } from '../../../stores/useUserStore';
 
 export interface MobileQuickSetupSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  playerCoins: number;
   initialConfig?: Partial<TableConfigState>;
   onStartGame: (config: QuickSetupConfig) => void;
 }
@@ -16,10 +16,11 @@ export interface MobileQuickSetupSheetProps {
 export const MobileQuickSetupSheet: React.FC<MobileQuickSetupSheetProps> = ({
   isOpen,
   onClose,
-  playerCoins,
   initialConfig,
   onStartGame
 }) => {
+  const { profile } = useUserStore();
+  const playerCoins = profile.coins;
   const {
     config,
     depositRequired,
@@ -28,7 +29,6 @@ export const MobileQuickSetupSheet: React.FC<MobileQuickSetupSheetProps> = ({
     handleConfigChange,
     handleStart
   } = useQuickSetup({
-    playerCoins,
     initialConfig,
     onStartGame,
     onClose

@@ -1,5 +1,4 @@
 import React from 'react';
-import { PlayerProfile } from '../../../engine/storage';
 import { CampaignChapter } from '../../../engine/campaign';
 import { getTierFromElo } from '../../../engine/ecosystem/ecosystem-types';
 import { Lock, CheckCircle2, Award, Swords, MapPin, Eye } from 'lucide-react';
@@ -8,14 +7,12 @@ import { useCampaign } from '../../hooks/useCampaign';
 
 interface CampaignMapModalProps {
   isOpen: boolean;
-  profile: PlayerProfile;
   onClose: () => void;
   onSelectChapter: (chapter: CampaignChapter) => void;
 }
 
 export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
   isOpen,
-  profile,
   onClose,
   onSelectChapter
 }) => {
@@ -31,7 +28,7 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
     getChapterStatus,
     handleOpenBossProfile,
     handleStartChapter
-  } = useCampaign({ profile, onSelectChapter });
+  } = useCampaign({ onSelectChapter });
 
   if (!isOpen) return null;
 

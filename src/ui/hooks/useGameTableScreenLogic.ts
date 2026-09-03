@@ -1,5 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
-import { GameEngine } from '../../engine/game';
+import { useMemo, useCallback } from 'react';
 import { isValidMove } from '../../engine/validator';
 import { evaluateSelectionFeedback, MoveHint } from '../../ai/hint-engine';
 import { CardTracker } from '../../ai/card-tracker';
@@ -18,7 +17,6 @@ import { useGameStore } from '../../stores/useGameStore';
 import { useOnlineStore } from '../../stores/useOnlineStore';
 
 export interface UseGameTableScreenLogicProps {
-  engineRef: React.RefObject<GameEngine | null>;
   onPlaySelectedCards: () => void;
   onPassTurn: () => void;
 }
@@ -50,7 +48,6 @@ export interface GameTableScreenLogicResult {
 }
 
 export function useGameTableScreenLogic({
-  engineRef,
   onPlaySelectedCards,
   onPassTurn
 }: UseGameTableScreenLogicProps): GameTableScreenLogicResult {
@@ -71,6 +68,9 @@ export function useGameTableScreenLogic({
     currentMove,
     selectedCardIds,
     currentHint,
+    gameRules,
+    isFirstMoveOfGame,
+    isLeadMove,
     setSelectedCardIds,
     clearCardSelection
   } = useGameStore();
@@ -84,18 +84,23 @@ export function useGameTableScreenLogic({
   const isMyTurn = currentTurnPlayerId === myPlayerId;
   const selectedCards = p0 !== null ? p0.hand.filter(c => selectedCardIds.has(c.id)) : [];
 
+  const effectiveIsFirstMove = isOnlineMatch ? false : isFirstMoveOfGame;
+  const effectiveIsLeadMove = isOnlineMatch
+    ? (currentMove === null || leadPlayerId === myPlayerId)
+    : isLeadMove;
+
   const isValidPlaySelection =
     isMyTurn &&
     selectedCards.length > 0 &&
     isValidMove({
       cards: selectedCards,
       target: currentMove !== null ? currentMove.combination : null,
-      isFirstMoveOfGame: isOnlineMatch ? false : (engineRef.current !== null ? engineRef.current.isFirstMoveOfGame : false),
-      isLeadMove: isOnlineMatch ? (currentMove === null || leadPlayerId === myPlayerId) : (engineRef.current !== null ? engineRef.current.isRoundLeadMove() : true),
+      isFirstMoveOfGame: effectiveIsFirstMove,
+      isLeadMove: effectiveIsLeadMove,
       hasPassedRound: p0 !== null ? p0.isPassedCurrentRound : false,
-      allowFourPairsCutAnytime: engineRef.current !== null ? engineRef.current.rules.chopping.allowFourPairsCutAnytime : true,
+      allowFourPairsCutAnytime: gameRules.chopping.allowFourPairsCutAnytime,
       isFinishingMove: selectedCards.length === (p0 !== null ? p0.hand.length : 0),
-      prohibitEndingWithTwo: engineRef.current !== null ? engineRef.current.rules.gameFlow.prohibitEndingWithTwo : true
+      prohibitEndingWithTwo: gameRules.gameFlow.prohibitEndingWithTwo
     }).valid;
 
   const canP0Pass =
@@ -106,54 +111,51 @@ export function useGameTableScreenLogic({
 
   // Tính toán danh sách các phương án Chọn Nhanh
   const quickSelectCandidates = useMemo(() => {
-    if (engineRef.current === null || !isMyTurn || p0 === null || p0.hand.length === 0) return [];
-    const engine = engineRef.current;
+    if (!isMyTurn || p0 === null || p0.hand.length === 0) return [];
     return getSortedQuickSelectCandidates({
       hand: p0.hand,
-      leadingMove: engine.getLeadingMove(),
-      isLeadMove: engine.isRoundLeadMove(),
-      isFirstMoveOfGame: engine.isFirstMoveOfGame,
-      allowFourPairsCutAnytime: engine.rules.chopping.allowFourPairsCutAnytime,
-      prohibitEndingWithTwo: engine.rules.gameFlow.prohibitEndingWithTwo
+      leadingMove: currentMove,
+      isLeadMove: effectiveIsLeadMove,
+      isFirstMoveOfGame: effectiveIsFirstMove,
+      allowFourPairsCutAnytime: gameRules.chopping.allowFourPairsCutAnytime,
+      prohibitEndingWithTwo: gameRules.gameFlow.prohibitEndingWithTwo
     });
-  }, [isMyTurn, p0, currentMove]);
+  }, [isMyTurn, p0, currentMove, effectiveIsLeadMove, effectiveIsFirstMove, gameRules]);
 
   // Phản hồi nhận xét chiến thuật thời gian thực của Quân Sư
   const activeAiHint = useMemo(() => {
-    if (!aiHintEnabled || !isMyTurn || p0 === null || engineRef.current === null) return currentHint;
+    if (!aiHintEnabled || !isMyTurn || p0 === null) return currentHint;
     if (selectedCards.length === 0) return currentHint;
 
-    const engine = engineRef.current;
     const tracker = new CardTracker(p0.hand, 1.0);
 
     const feedback = evaluateSelectionFeedback({
       selectedCards,
       hand: p0.hand,
-      leadingMove: engine.getLeadingMove(),
-      isFirstMoveOfGame: engine.isFirstMoveOfGame,
-      isLeadMove: engine.isRoundLeadMove(),
+      leadingMove: currentMove,
+      isFirstMoveOfGame: effectiveIsFirstMove,
+      isLeadMove: effectiveIsLeadMove,
       tracker,
       optimalHint: currentHint,
-      prohibitEndingWithTwo: engine.rules.gameFlow.prohibitEndingWithTwo
+      prohibitEndingWithTwo: gameRules.gameFlow.prohibitEndingWithTwo
     });
 
     return feedback !== null ? feedback : currentHint;
-  }, [aiHintEnabled, isMyTurn, p0, selectedCards, currentHint]);
+  }, [aiHintEnabled, isMyTurn, p0, selectedCards, currentHint, currentMove, effectiveIsFirstMove, effectiveIsLeadMove, gameRules]);
 
   const canQuickSelect = isMyTurn && !isDealing && quickSelectCandidates.length > 0;
 
   const handleQuickSelect = useCallback(() => {
-    if (engineRef.current === null || !isMyTurn || p0 === null || p0.hand.length === 0) return;
-    const engine = engineRef.current;
+    if (!isMyTurn || p0 === null || p0.hand.length === 0) return;
 
     const nextCards = getNextQuickSelectCards(
       {
         hand: p0.hand,
-        leadingMove: engine.getLeadingMove(),
-        isLeadMove: engine.isRoundLeadMove(),
-        isFirstMoveOfGame: engine.isFirstMoveOfGame,
-        allowFourPairsCutAnytime: engine.rules.chopping.allowFourPairsCutAnytime,
-        prohibitEndingWithTwo: engine.rules.gameFlow.prohibitEndingWithTwo
+        leadingMove: currentMove,
+        isLeadMove: effectiveIsLeadMove,
+        isFirstMoveOfGame: effectiveIsFirstMove,
+        allowFourPairsCutAnytime: gameRules.chopping.allowFourPairsCutAnytime,
+        prohibitEndingWithTwo: gameRules.gameFlow.prohibitEndingWithTwo
       },
       selectedCardIds
     );
@@ -162,7 +164,7 @@ export function useGameTableScreenLogic({
       setSelectedCardIds(new Set(nextCards.map(c => c.id)));
       soundManager.playCardDeal();
     }
-  }, [isMyTurn, p0, selectedCardIds, setSelectedCardIds]);
+  }, [isMyTurn, p0, currentMove, effectiveIsLeadMove, effectiveIsFirstMove, gameRules, selectedCardIds, setSelectedCardIds]);
 
   // Phân bổ ghế tương đối theo chiều kim đồng hồ quanh bàn
   const isSolo1v1 = playerCount === 2;

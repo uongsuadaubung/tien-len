@@ -27,14 +27,11 @@ export interface CampaignResultMeta {
 /**
  * Hook quản lý kết toán ván đấu, tính Xu/Elo, kiểm tra Quest/Thành tựu và cập nhật Hệ Sinh Thái
  */
-export function useMatchSettlement(
-  lastWinnerIdRef: React.RefObject<string | null>,
-  syncGameState: () => void
-) {
+export function useMatchSettlement() {
   const {
     activeGameType,
     currentCampaignChapter,
-    instantWinType,
+    setInstantWinType,
     setIsGameOver,
     setIsThreeSpadesWin,
     setMatchPayouts,
@@ -75,11 +72,12 @@ export function useMatchSettlement(
   // Kết toán ván đấu khi có người thắng hoặc hết ván
   const handleGameCompletion = useCallback((engine: GameEngine) => {
     setIsGameOver(true);
-    syncGameState();
+
+    const resolvedInstantWinType = engine.instantWinner?.instantWinType || null;
+    setInstantWinType(resolvedInstantWinType || undefined);
 
     const winner = engine.winners[0];
     const isPlayerWin = winner?.id === 'p0';
-    lastWinnerIdRef.current = winner?.id || null;
 
     if (isPlayerWin) {
       soundManager.playVictory();
@@ -191,7 +189,7 @@ export function useMatchSettlement(
       congsGivenCount,
       cascadeChopCount: 0,
       loanDeduction: settlement.loanDeduction,
-      instantWinType: instantWinType || null
+      instantWinType: resolvedInstantWinType
     };
 
     const finalQuests = evaluateDailyQuests([matchCompletedEvent], updatedProfile.dailyQuests, updatedProfile);
@@ -211,7 +209,7 @@ export function useMatchSettlement(
       winners: engine.winners,
       payouts: settlement.payouts,
       isThreeSpadesWin: engine.isThreeSpadesWin,
-      instantWinType: instantWinType || null,
+      instantWinType: resolvedInstantWinType,
       loanDeduction: settlement.loanDeduction || 0,
       eloDelta: settlement.eloDelta || 0
     });
@@ -319,8 +317,7 @@ export function useMatchSettlement(
   }, [
     activeGameType,
     currentCampaignChapter,
-    instantWinType,
-    lastWinnerIdRef,
+    setInstantWinType,
     openModal,
     profile,
     setIsGameOver,
@@ -330,7 +327,6 @@ export function useMatchSettlement(
     setMatchLogReport,
     setMatchPayouts,
     setProfile,
-    syncGameState,
     triggerQuestToastIfNewlyCompleted
   ]);
 

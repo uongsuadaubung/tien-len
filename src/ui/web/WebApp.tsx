@@ -2,19 +2,14 @@ import React from 'react';
 import { WebLobbyScreen } from './screens/WebLobbyScreen';
 import { WebGameTableScreen } from './screens/WebGameTableScreen';
 import { WebGameModals } from './modals/WebGameModals';
-import { GameEngine } from '../../engine/game';
-import { CardTracker } from '../../ai/card-tracker';
 import { QuickSetupConfig } from './modals/QuickSetupModal';
 import { CustomGameModalConfig } from './modals/CustomGameModal';
 import { CampaignChapter } from '../../engine/campaign';
-import { PlayerProfile } from '../../engine/storage';
 import { useModalStore } from '../../stores/useModalStore';
-import { useGameStore } from '../../stores/useGameStore';
+import { useViewStore } from '../../stores/useViewStore';
+import { appFlowCoordinator } from '../../services/app-flow-coordinator';
 
 export interface WebAppProps {
-  engineRef: React.RefObject<GameEngine | null>;
-  trackersRef: React.RefObject<{ [playerId: string]: CardTracker }>;
-  profile: PlayerProfile;
   campaignResultMeta: {
     isUnlockedNext: boolean;
     isAllCompleted: boolean;
@@ -39,9 +34,6 @@ export interface WebAppProps {
 }
 
 export const WebApp: React.FC<WebAppProps> = ({
-  engineRef,
-  trackersRef,
-  profile,
   campaignResultMeta,
   handleNextGame,
   handlePlaySelectedCards,
@@ -58,14 +50,13 @@ export const WebApp: React.FC<WebAppProps> = ({
   handleStartCampaignChapter
 }) => {
   const { openModal, closeModal } = useModalStore();
-  const { currentScreen } = useGameStore();
+  const { currentScreen } = useViewStore();
 
   return (
     <>
       {/* 1. MÀN HÌNH CHÍNH DESKTOP: SẢNH HOẶC BÀN ĐẤU */}
       {currentScreen === 'LOBBY' ? (
         <WebLobbyScreen
-          profile={profile}
           onPlayNow={handlePlayNowDefault}
           onOpenQuickSetup={() => openModal('QUICK_SETUP')}
           onOpenCustomGameModal={() => openModal('CUSTOM_GAME')}
@@ -79,7 +70,6 @@ export const WebApp: React.FC<WebAppProps> = ({
         />
       ) : (
         <WebGameTableScreen
-          engineRef={engineRef}
           onPlaySelectedCards={handlePlaySelectedCards}
           onPassTurn={handlePassTurn}
           onAutoSort={handleAutoSort}
@@ -91,7 +81,7 @@ export const WebApp: React.FC<WebAppProps> = ({
 
       {/* 2. MODALS TẬP TRUNG CHO WEB DESKTOP */}
       <WebGameModals
-        player0Tracker={trackersRef.current['p0'] || null}
+        player0Tracker={appFlowCoordinator.getPlayerTracker('p0')}
         onStartQuickGame={handleStartQuickGame}
         onStartCustomGame={handleStartCustomGameWithConfig}
         onSelectCampaignChapter={handleStartCampaignChapter}

@@ -1,16 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { PlayerProfile } from '../../../engine/storage';
 import { BotConfig } from '../../../ai/types';
 import { getRankTierByElo } from '../../../engine/elo';
 import { soundManager } from '../../audio/sound-manager';
 import { Modal, Card, Button, Badge } from '../../primitives';
 import { Swords, Check, X, Loader2, Sparkles } from 'lucide-react';
+import { useUserStore } from '../../../stores/useUserStore';
 
 export interface MatchmakingModalProps {
   isOpen: boolean;
   onCancel: () => void;
   onMatchReady: () => void;
-  playerProfile: PlayerProfile;
   betAmount: number;
   modeName: string;
   matchedBots: Partial<BotConfig>[];
@@ -21,12 +20,12 @@ export const MatchmakingModal: React.FC<MatchmakingModalProps> = ({
   isOpen,
   onCancel,
   onMatchReady,
-  playerProfile,
   betAmount,
   modeName,
   matchedBots,
   playerCount = 4
 }) => {
+  const { profile: playerProfile } = useUserStore();
   const [stage, setStage] = useState<'SEARCHING' | 'FOUND'>('SEARCHING');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [tipIndex, setTipIndex] = useState(0);

@@ -1,15 +1,15 @@
 import { useCallback } from 'react';
-import { GameEngine } from '../../engine/game';
 import { sortCards } from '../../engine/card';
 import { sortCardsSmart, getAvailableSmartVariants } from '../../engine/hand-sorter';
 import { soundManager } from '../audio/sound-manager';
 import { useGameStore } from '../../stores/useGameStore';
+import { appFlowCoordinator } from '../../services/app-flow-coordinator';
 import type { Card } from '../../engine/types';
 
 /**
  * Hook quản lý thuật toán xếp bài thông minh & xoay vòng các phương án bộ bài
  */
-export function useSmartHandSorting(engineRef: React.RefObject<GameEngine | null>) {
+export function useSmartHandSorting() {
   const {
     handSortMode,
     smartVariantIndex,
@@ -59,16 +59,11 @@ export function useSmartHandSorting(engineRef: React.RefObject<GameEngine | null
     });
     setPlayers(updatedPlayers);
 
-    // Đồng bộ vào GameEngine nếu đang chơi Offline
-    if (engineRef.current) {
-      const ep = engineRef.current.getPlayer(localPlayer.id);
-      if (ep) {
-        ep.hand = [...nextSortedHand];
-      }
-    }
+    // Đồng bộ an toàn vào Engine thông qua cổng Coordinator chuẩn mực
+    appFlowCoordinator.reorderPlayerHand(localPlayer.id, nextSortedHand);
 
     soundManager.playCardDeal();
-  }, [engineRef, handSortMode, smartVariantIndex, players, setHandSortMode, setSmartVariantIndex, setPlayers]);
+  }, [handSortMode, smartVariantIndex, players, myPlayerId, setHandSortMode, setSmartVariantIndex, setPlayers]);
 
   return {
     handleAutoSort

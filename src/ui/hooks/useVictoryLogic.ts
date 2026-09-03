@@ -5,6 +5,7 @@ import { CampaignChapter } from '../../engine/campaign';
 import { clearActiveMatchSession } from '../../engine/storage';
 import { MatchLogger } from '../../engine/match-logger';
 import { ActiveGameType, useGameStore } from '../../stores/useGameStore';
+import { useUserStore } from '../../stores/useUserStore';
 import { useOnlineStore } from '../../stores/useOnlineStore';
 import { useModalStore } from '../../stores/useModalStore';
 
@@ -13,26 +14,15 @@ export type SecondaryBtnIconType = 'HOME' | 'MAP';
 
 export interface UseVictoryLogicProps {
   isOpen: boolean;
-  winners: Player[];
-  allPlayers: Player[];
-  betAmount: number;
-  instantWinType: InstantWinType | null;
-  isThreeSpadesWin: boolean;
-  payouts: Record<string, number> | null;
-  loanDeduction: number | null;
-  eloDelta: number | null;
-  playerElo: number;
-  activeGameType: ActiveGameType;
-  campaignChapter: CampaignChapter | null;
-  chapterWins: number;
-  isChapterUnlockedNext: boolean;
-  isAllCampaignCompleted: boolean;
-  nextChapter: CampaignChapter | null;
-  playerCoins: number;
-  allEloDeltas: Record<string, number> | null;
   onNextGame: () => void;
   onReturnToLobby: () => void;
-  onOpenCampaignMap: (() => void) | null;
+  onOpenCampaignMap?: (() => void) | null;
+  campaignResultMeta?: {
+    isUnlockedNext: boolean;
+    isAllCompleted: boolean;
+    nextChapter: CampaignChapter | null;
+    currentWins: number;
+  } | null;
 }
 
 export interface VictoryLogicResult {
@@ -66,31 +56,55 @@ export interface VictoryLogicResult {
   isOnlineHost: boolean;
   voteRematch: (isReady: boolean) => void;
   handleExportJson: () => void;
+
+  // Dữ liệu bảng kết quả từ Store (Single Source of Truth)
+  winners: Player[];
+  allPlayers: Player[];
+  instantWinType: InstantWinType | null;
+  isThreeSpadesWin: boolean;
+  betAmount: number;
+  activeGameType: ActiveGameType;
+  payouts: Record<string, number>;
+  loanDeduction: number;
+  eloDelta: number;
+  allEloDeltas: Record<string, number>;
 }
 
 export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult {
   const {
     isOpen,
-    winners,
-    allPlayers,
-    betAmount,
-    instantWinType,
-    payouts,
-    activeGameType,
-    campaignChapter,
-    chapterWins,
-    isChapterUnlockedNext,
-    isAllCampaignCompleted,
-    nextChapter,
-    playerCoins,
     onNextGame,
     onReturnToLobby,
-    onOpenCampaignMap
+    onOpenCampaignMap = null,
+    campaignResultMeta = null
   } = props;
 
-  const { myPlayerId } = useGameStore();
+  const {
+    winners,
+    players: allPlayers,
+    gameSettings,
+    instantWinType = null,
+    isThreeSpadesWin,
+    matchPayouts: payouts,
+    loanDeductionAmount: loanDeduction,
+    lastEloDelta: eloDelta,
+    allEloDeltas,
+    activeGameType,
+    currentCampaignChapter: campaignChapter,
+    myPlayerId
+  } = useGameStore();
+
+  const { profile } = useUserStore();
   const onlineStore = useOnlineStore();
   const { openModal } = useModalStore();
+
+  const playerCoins = profile.coins;
+  const betAmount = gameSettings.betAmount;
+
+  const chapterWins = campaignResultMeta?.currentWins ?? (campaignChapter ? (profile.campaignChapterWins[campaignChapter.id] || 0) : 0);
+  const isChapterUnlockedNext = campaignResultMeta?.isUnlockedNext ?? false;
+  const isAllCampaignCompleted = campaignResultMeta?.isAllCompleted ?? false;
+  const nextChapter = campaignResultMeta?.nextChapter ?? null;
 
   const roomState = onlineStore.roomState;
   const isOnlineHost = onlineStore.isHost;
@@ -293,6 +307,16 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     isMyPlayerReady,
     isOnlineHost,
     voteRematch,
-    handleExportJson
+    handleExportJson,
+    winners,
+    allPlayers,
+    instantWinType,
+    isThreeSpadesWin,
+    betAmount,
+    activeGameType,
+    payouts,
+    loanDeduction,
+    eloDelta,
+    allEloDeltas
   };
 }

@@ -1,25 +1,22 @@
 import React from 'react';
-import { PlayerProfile } from '../../../engine/storage';
 import { ECONOMY_CONSTANTS } from '../../../engine/constants/economy';
 import { Sparkles, User, Check } from 'lucide-react';
 import { Modal, Card, Button } from '../../primitives';
 import { useNameSetup } from '../../hooks/useNameSetup';
 
+import { useUserStore } from '../../../stores/useUserStore';
+
 export interface NameSetupModalProps {
   isOpen: boolean;
-  profile: PlayerProfile;
-  onClose: (() => void) | null;
-  onUpdateProfile: (updated: PlayerProfile) => void;
-  isFirstTime: boolean;
+  onClose?: (() => void) | null;
 }
 
 export const NameSetupModal: React.FC<NameSetupModalProps> = ({
   isOpen,
-  profile,
-  onClose,
-  onUpdateProfile,
-  isFirstTime
+  onClose = null
 }) => {
+  const { profile } = useUserStore();
+  const isFirstTime = !profile.name || profile.name.trim() === '';
   const {
     name,
     setName,
@@ -29,7 +26,7 @@ export const NameSetupModal: React.FC<NameSetupModalProps> = ({
     setError,
     avatarOptions,
     handleSubmit
-  } = useNameSetup({ profile, isOpen, onClose, onUpdateProfile });
+  } = useNameSetup({ isOpen, onClose });
 
   if (!isOpen) return null;
 

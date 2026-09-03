@@ -3,13 +3,13 @@ import { Play, Sliders } from 'lucide-react';
 import { TableRulesConfigPanel, TableConfigState } from '../../components/TableRulesConfigPanel';
 import { Modal, Button } from '../../primitives';
 import { useQuickSetup, QuickSetupConfig } from '../../hooks/useQuickSetup';
+import { useUserStore } from '../../../stores/useUserStore';
 
 export type { QuickSetupConfig };
 
 interface QuickSetupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  playerCoins: number;
   initialConfig?: Partial<TableConfigState>;
   onStartGame: (config: QuickSetupConfig) => void;
 }
@@ -17,10 +17,11 @@ interface QuickSetupModalProps {
 export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
   isOpen,
   onClose,
-  playerCoins,
   initialConfig,
   onStartGame
 }) => {
+  const { profile } = useUserStore();
+  const playerCoins = profile.coins;
   const {
     config,
     depositRequired,
@@ -29,7 +30,6 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
     handleConfigChange,
     handleStart
   } = useQuickSetup({
-    playerCoins,
     initialConfig,
     onStartGame,
     onClose

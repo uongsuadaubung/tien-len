@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { PlayerProfile, savePlayerProfile } from '../../engine/storage';
 import { soundManager } from '../audio/sound-manager';
 
+import { useUserStore } from '../../stores/useUserStore';
+
 export const AVATAR_OPTIONS: readonly string[] = [
   // Nhóm 1: Thần Bài & Quý Tộc Sòng Bạc
   '🤠', '🤴', '👸', '🥷', '🧙‍♂️', '😎',
@@ -18,10 +20,8 @@ export const AVATAR_OPTIONS: readonly string[] = [
 ];
 
 export interface UseNameSetupParams {
-  profile: PlayerProfile;
   isOpen: boolean;
-  onClose: (() => void) | null;
-  onUpdateProfile: (updated: PlayerProfile) => void;
+  onClose?: (() => void) | null;
 }
 
 export interface UseNameSetupResult {
@@ -36,11 +36,10 @@ export interface UseNameSetupResult {
 }
 
 export function useNameSetup({
-  profile,
   isOpen,
-  onClose,
-  onUpdateProfile
+  onClose = null
 }: UseNameSetupParams): UseNameSetupResult {
+  const { profile, setProfile: onUpdateProfile } = useUserStore();
   const [name, setName] = useState<string>(profile.name || '');
   const [avatar, setAvatar] = useState<string>(profile.avatar || '🤠');
   const [error, setError] = useState<string | null>(null);

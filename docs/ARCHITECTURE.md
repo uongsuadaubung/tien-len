@@ -10,39 +10,43 @@ Hệ thống được thiết kế theo mô hình kiến trúc phân lớp sạc
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
 │                               1. PRESENTATION LAYER (UI / UX)                            │
-│  - React 19 Components (LobbyHub, GameTableScreen, TableCenter, PlayerHandView, BotSeat) │
-│  - Web Audio API Sound Manager (Nhạc nền Tết, hiệu ứng đập bài, chặt heo, lật bài)       │
-│  - Hardware-Accelerated Vanilla CSS (3D Card Transform, GPU Compositor Layering)         │
+│  - React 19 Components (WebApp, MobileApp, LobbyHub, GameTable, HandView, BotSeat)       │
+│  - Dumb Components: Chỉ nhận Props hiển thị và phát Intent hành động người dùng          │
+│  - Web Audio API Sound Manager, CSS GPU Compositor Layering                              │
 └───────────────────────────────────────────┬──────────────────────────────────────────────┘
-                                            │ Actions / Subscriptions
+                                            │ User Intents (Chơi nhanh, Đánh bài, Bỏ lượt)
                                             ▼
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│                           2. STATE MANAGEMENT LAYER (Zustand Stores)                     │
-│  - useGameStore: Đồng bộ trạng thái ván bài, lượt đánh, người thắng, tiền cược           │
-│  - useUserStore: Lưu trữ Profile, Xu, Elo Rating, Nhiệm vụ ngày & Thành tựu trọn đời     │
-│  - useOnlineStore: Module hóa 3 Slices (RoomSlice, MatchSlice, ChatSlice) cho P2P Online │
-│  - useSettingsStore: Tùy chỉnh âm lượng, trợ lý gợi ý (Hint Engine), tốc độ ván đấu       │
-│  - useModalStore: Quản lý vòng đời hiển thị các Popup / Modal tương tác                  │
-└───────────────────────────────────────────┬──────────────────────────────────────────────┘
-                                            │ Commands / State Updates
-                                            ▼
+│                  2. FLOW COORDINATION & VIEW STATE LAYER (Unidirectional Flow)           │
+│  - AppFlowCoordinator: Cổng tập trung duy nhất điều phối vào trận, về sảnh, đầu hàng      │
+│  - useViewStore: Modal State Machine (Discriminated Union) - Bảo đảm 1 popup active      │
+│  - Chống Race Conditions, ngăn ngừa văng màn hình và dọn dẹp bộ nhớ RAM 100%            │
+└─────────────────────────────────────┬───────────────────┬────────────────────────────────┘
+                                      │                   │ Starts / Controls Driver
+         Emits Single Atomic Snapshot │                   ▼
+                                      │ ┌──────────────────────────────────────────────────┐
+                                      │ │    3. ENGINE DRIVER LAYER (Pure TypeScript Class)│
+                                      │ │  - OfflineMatchDriver: Vòng lặp ván đấu ngoài DOM│
+                                      │ │  - HostEngineDriver: Vòng lặp Host P2P WebRTC    │
+                                      │ │  - Quản lý Bot turn delay, animation chia bài    │
+                                      │ │  - cleanup() ngắt 100% ghost timers khi rời bàn  │
+                                      │ └─────────────────┬────────────────────────────────┘
+                                      ▼                   │
+┌─────────────────────────────────────────────────────────┼────────────────────────────────┐
+│                           4. STATE & PERSISTENCE LAYER  ▼                                │
+│  - useGameStore: applyMatchSnapshot() đồng bộ nguyên tử trạng thái bàn đấu                │
+│  - useUserStore: Quản lý Profile, Xu, Elo Rating, Nhiệm vụ ngày & Thành tựu              │
+│  - useOnlineStore: RoomSlice, MatchSlice, ChatSlice cho Multiplayer P2P                   │
+│  - 100% Dexie IndexedDB: Lưu trữ vĩnh viễn, chống phạt F5 qua active_session             │
+└─────────────────────────────────────────────────────────┬────────────────────────────────┘
+                                                          │ Executes Rules & Game Loop
+                                                          ▼
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│                           3. GAME ENGINE CORE LAYER (Pure TypeScript)                    │
-│  - GameEngine (State Machine): Khởi tạo ván, chia bài, xử lý vòng đánh, chặt heo, thối 2│
+│                           5. GAME ENGINE CORE & AI LAYER (Domain Logic)                  │
+│  - GameEngine (State Machine): Bộ luật TLMN, chia bài, tính chặt heo, cóng, thối 2       │
 │  - Validator & Combinations: Nhận diện và thẩm định tính hợp lệ của mọi tổ hợp bài       │
-│  - Strategy Engine: 6 chế độ chơi độc lập (Truyền Thống, Đếm Lá, Nhất Ăn Tất, Ngầm...)   │
-│  - EventBus: Hệ thống Pub/Sub phát sự kiện decoupling giữa Engine và UI/Quests           │
-└───────────────────────────────────────────┬──────────────────────────────────────────────┘
-                                            │ Context Queries / Decisions (GameRules)
-                                            ▼
-┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│                             4. AI INTELLIGENCE LAYER (AI Engine)                         │
-│  - Composite Rule Strategy Manager: 5 Rule Strategies (Settlement, Cong, Chop, Flow, Tab)│
-│  - Chain of Responsibility: Emergency (Cóng/Đền/2) -> Endgame -> Lead -> Response -> Fall│
-│  - Combinatorial Hand Partitioner: Phân rã bài tối ưu ($C(n, k)$, Sảnh, Đôi, Hàng)       │
-│  - CardTracker & Bayesian Inference: Đếm bài, theo dõi rác/heo, phán đoán tay đối thủ   │
-│  - Monte Carlo Tree Search (MCTS): Mô phỏng ván đấu đa kịch bản cho Bot Tier 5 (Mythic)  │
-│  - 18 Bot Personas & 5 Elo Tiers: Định lượng hành vi cá nhân hóa từ 850 đến 2500 Elo      │
+│  - Strategy Engine: 4 chế độ chơi độc lập (Đếm Lá, Nhất Ăn Tất, Truyền Thống, Chiến Dịch)│
+│  - AI Layer: Composite Rule-First Strategy, Chain of Responsibility, MCTS Solver         │
 └──────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -103,14 +107,33 @@ Triển khai tại [`src/engine/evaluators/progress-evaluators.ts`](../src/engin
 
 ---
 
+### 2.6. App Flow Coordinator & Offline Match Driver Pattern (Decoupled Game Loop & Unidirectional Flow)
+Triển khai tại [`src/services/app-flow-coordinator.ts`](../src/services/app-flow-coordinator.ts), [`src/engine/offline-match-driver.ts`](../src/engine/offline-match-driver.ts) và [`src/stores/useViewStore.ts`](../src/stores/useViewStore.ts):
+1. **Cổng Điều Phối Chuyển Cảnh Duy Nhất (`AppFlowCoordinator`)**:
+   - Loại bỏ hoàn toàn việc gọi `setCurrentScreen` hay set state rời rạc trong các Component / Hook.
+   - Quản lý toàn bộ vòng đời ván đấu qua đường ống tuần tự: Kiểm tra số dư Xu $\to$ Khóa cọc $\to$ Tạo Driver $\to$ Đóng Popups $\to$ Chuyển `GAME_TABLE` $\to$ Chia bài.
+   - Quản lý an toàn cổng về sảnh (`returnToLobby`): Hủy Driver, ngắt 100% timers, dọn dẹp active session (chống phạt F5 oan) và đưa màn hình về `LOBBY`.
+2. **Vòng Lặp Ván Đấu Độc Lập Khỏi React (`OfflineMatchDriver`)**:
+   - Tách rời toàn bộ logic nhịp đánh Bot, đếm giây, animation chia bài ra khỏi React `useEffect`.
+   - Vận hành bằng Pure TypeScript Class, không phụ thuộc vào chu kỳ render của DOM $\to$ triệt tiêu hoàn toàn Stale Closures và Race Conditions.
+   - Cơ chế `cleanup()` hủy tức thì 100% `setTimeout` trong RAM khi người chơi rời bàn hoặc đầu hàng.
+3. **Modal State Machine (`useViewStore`)**:
+   - Quản lý `currentScreen` và `activeModal` dưới dạng **Discriminated Union**.
+   - Đảm bảo tính loại trừ lẫn nhau (Mutually Exclusive): Tối đa duy nhất 1 popup được mở tại một thời điểm, loại bỏ triệt để lỗi kẹt giao diện và xung đột z-index.
+4. **Atomic Snapshotting (`useGameStore.applyMatchSnapshot`)**:
+   - Driver phát ra 1 gói dữ liệu duy nhất (`MatchSnapshot`) mỗi khi trạng thái bàn thay đổi, thay thế hơn 15 setters vụn vặt trước đây $\to$ tối ưu hóa vượt trội hiệu năng render.
+
+---
+
 ## 3. PHÂN HỆ QUẢN LÝ TRẠNG THÁI (STATE MANAGEMENT)
 
-Sử dụng **Zustand** cho kiến trúc State mỏng, hiệu năng cao:
-1. **`useGameStore`**: Quản lý instance `GameEngine`, snapshot ván đấu, bài đang chọn, lượt đi.
-2. **`useUserStore`**: Quản lý Profile, Xu, Elo, Nhiệm vụ ngày và Thành tựu trọn đời.
-3. **`useEcosystemStore`**: Quản lý 200 Đối Thủ, Bảng Tin Giang Hồ, Xếp Hạng Toàn Máy Chủ và kết toán mô phỏng ngầm.
-4. **`useSettingsStore`**: Cấu hình âm lượng, gợi ý (AI Hint Engine), tốc độ ván đấu, X-Ray soi bài.
-5. **`useModalStore`**: Quản lý vòng đời hiển thị các Popup / Modal tương tác.
+Sử dụng **Zustand** cho kiến trúc State mỏng, hiệu năng cao, phân định ranh giới rõ ràng:
+1. **`useViewStore`**: Quản lý điều hướng màn hình (`currentScreen: 'LOBBY' | 'GAME_TABLE'`) và Modal State Machine (`activeModal: ActiveModalDescriptor`).
+2. **`useGameStore`**: Lưu trữ trạng thái bàn đấu, nhận cập nhật nguyên tử qua `applyMatchSnapshot()`, quản lý bài đang chọn của người chơi.
+3. **`useUserStore`**: Quản lý Profile, Xu, Elo, Nhiệm vụ ngày và Thành tựu trọn đời.
+4. **`useOnlineStore`**: Module hóa 3 Slices (RoomSlice, MatchSlice, ChatSlice) cho P2P WebRTC Multiplayer.
+5. **`useEcosystemStore`**: Quản lý 200 Đối Thủ, Bảng Tin Giang Hồ, Xếp Hạng Toàn Máy Chủ và kết toán mô phỏng ngầm.
+6. **`useSettingsStore`**: Cấu hình âm lượng, gợi ý (AI Hint Engine), tốc độ ván đấu, X-Ray soi bài.
 
 ---
 

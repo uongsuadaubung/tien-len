@@ -1,5 +1,4 @@
 import React from 'react';
-import { PlayerProfile } from '../../../engine/storage';
 import { ECONOMY_CONSTANTS } from '../../../engine/constants/economy';
 import { Sparkles, User, Check, Shuffle } from 'lucide-react';
 import { Card, Button } from '../../primitives';
@@ -8,21 +7,19 @@ import { useNameSetup } from '../../hooks/useNameSetup';
 import { generateRandomCasinoNickname } from '../components/MobileVirtualKeyboard';
 import { MobileVirtualInput } from '../components/MobileVirtualInput';
 
+import { useUserStore } from '../../../stores/useUserStore';
+
 export interface MobileNameSetupViewProps {
   isOpen: boolean;
-  profile: PlayerProfile;
-  onClose: (() => void) | null;
-  onUpdateProfile: (updated: PlayerProfile) => void;
-  isFirstTime: boolean;
+  onClose?: (() => void) | null;
 }
 
 export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
   isOpen,
-  profile,
-  onClose,
-  onUpdateProfile,
-  isFirstTime
+  onClose = null
 }) => {
+  const { profile } = useUserStore();
+  const isFirstTime = !profile.name || profile.name.trim() === '';
   const {
     name,
     setName,
@@ -32,7 +29,7 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
     setError,
     avatarOptions,
     handleSubmit
-  } = useNameSetup({ profile, isOpen, onClose, onUpdateProfile });
+  } = useNameSetup({ isOpen, onClose });
 
   if (!isOpen) return null;
 
