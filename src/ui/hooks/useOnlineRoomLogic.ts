@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useOnlineStore } from '../../stores/useOnlineStore';
 import { useUserStore } from '../../stores/useUserStore';
-import { useModalStore } from '../../stores/useModalStore';
+import { useViewStore } from '../../stores/useViewStore';
 import { type GameSettlementRule, type PlayerCount } from '../../engine/types';
 import { type OnlineRoomState, type PublicRoomSummary } from '../../engine/network/network.schema';
 import { type PlayerProfile } from '../../engine/storage';
@@ -84,7 +84,7 @@ export interface UseOnlineRoomLogicResult {
 }
 
 export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
-  const { openModal, closeModal } = useModalStore();
+  const { openModal, closeModal } = useViewStore();
   const profile = useUserStore(s => s.profile);
 
   const {

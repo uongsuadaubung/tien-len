@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getRankTierByElo, RANK_TIERS } from '../../../engine/elo';
 import { getSettlementRuleLabel } from '../../../engine/types';
-import { useModalStore } from '../../../stores/useModalStore';
+import { useViewStore } from '../../../stores/useViewStore';
 import { useEcosystemStore } from '../../../stores/useEcosystemStore';
 import { useGameStore } from '../../../stores/useGameStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
@@ -53,7 +53,7 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
   onOpenNameSetup
 }) => {
   const { profile } = useUserStore();
-  const { openModal } = useModalStore();
+  const { openModal } = useViewStore();
   const { newsfeed, initEcosystem } = useEcosystemStore();
   const { quickTableConfig } = useGameStore();
   const { onlineMultiplayerBetaEnabled } = useSettingsStore();

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
-import { useModalStore } from '../../stores/useModalStore';
+import { useViewStore } from '../../stores/useViewStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { BotActivityStatus, BotEntity, EcosystemNewsItem, getTierFromElo } from '../../engine/ecosystem/ecosystem-types';
 
@@ -66,7 +66,7 @@ export interface UseEcosystemResult {
 }
 
 export function useEcosystem(): UseEcosystemResult {
-  const { openModal } = useModalStore();
+  const { openModal } = useViewStore();
   const { profile } = useUserStore();
   const {
     bots,

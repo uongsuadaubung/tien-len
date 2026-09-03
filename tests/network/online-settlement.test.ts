@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach } from 'bun:test';
 import { useOnlineStore } from '../../src/stores/useOnlineStore';
 import { useGameStore } from '../../src/stores/useGameStore';
 import { useUserStore } from '../../src/stores/useUserStore';
-import { useModalStore } from '../../src/stores/useModalStore';
+import { useViewStore } from '../../src/stores/useViewStore';
 import { loadPlayerProfile } from '../../src/engine/storage';
 import { globalP2PClient } from '../../src/engine/network/p2p-client';
 import { createCard } from '../../src/engine/card';
@@ -24,7 +24,7 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
       lastEloDelta: 0,
       allEloDeltas: undefined
     });
-    useModalStore.getState().closeAllModals();
+    useViewStore.getState().closeAllModals();
 
     const profile = loadPlayerProfile();
     profile.coins = 50000;
@@ -90,7 +90,7 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     expect(hostRoomPlayer?.coins).toBe(50000 + hostPayout);
 
     // 3. Modal Victory phải được mở
-    expect(useModalStore.getState().isVictoryOpen).toBe(true);
+    expect(useViewStore.getState().isVictoryOpen).toBe(true);
   });
 
   it('2. Host thua ván đấu: Trừ đúng số Xu dựa theo số lá bài còn lại trên tay và mức cược', () => {
@@ -193,7 +193,7 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     // Bài của đối thủ p0 được hiển thị (thối 2 cơ)
     expect(gameStore.players.find(p => p.id === 'p0')?.hand.length).toBe(1);
     expect(gameStore.players.find(p => p.id === 'p0')?.hand[0].rank).toBe(15);
-    expect(useModalStore.getState().isVictoryOpen).toBe(true);
+    expect(useViewStore.getState().isVictoryOpen).toBe(true);
   });
 
   it('4. Chế độ Nhất Ăn Tất (WINNER_TAKES_ALL): Người về Nhất ăn trọn mức cược cơ bản của cả làng khi không có cóng', () => {

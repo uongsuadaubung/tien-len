@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from 'bun:test';
 import { useOnlineStore } from '../../src/stores/useOnlineStore';
 import { useGameStore } from '../../src/stores/useGameStore';
-import { useModalStore } from '../../src/stores/useModalStore';
+import { useViewStore } from '../../src/stores/useViewStore';
 import { loadPlayerProfile } from '../../src/engine/storage';
 import { PublicRoomSummarySchema, type PublicRoomSummary } from '../../src/engine/network/network.schema';
 import { generateRoomPin } from '../../src/stores/online/roomSlice';
@@ -19,7 +19,7 @@ describe('WebRTC P2P Public Lobby Discovery & Room Browser Tests', () => {
       isGameOver: false,
       isDealing: false
     });
-    useModalStore.getState().closeAllModals();
+    useViewStore.getState().closeAllModals();
   });
 
   it('1. PublicRoomSummarySchema: Validate cấu trúc thông tin tóm tắt phòng công khai', () => {

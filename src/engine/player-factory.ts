@@ -22,35 +22,24 @@ export function createPlayer(overrides?: Partial<Player>): Player {
 }
 
 /**
- * Tạo 1 đối tượng Bot Player với cấu hình tiện lợi
+ * Tạo 1 đối tượng Bot Player với cấu hình chuẩn xác
  */
 export function createBotPlayer(
   idOrIndex: string | number,
-  personaIdOrOverrides?: string | null | Partial<Player>,
+  personaId: string | null = null,
   overrides?: Partial<Player>
 ): Player {
   const id = typeof idOrIndex === 'number' ? `p${idOrIndex}` : idOrIndex;
-  
-  const personaId = (typeof personaIdOrOverrides === 'string' || personaIdOrOverrides === null)
-    ? personaIdOrOverrides
-    : null;
-
-  const extra = (typeof personaIdOrOverrides === 'object' && personaIdOrOverrides !== null)
-    ? personaIdOrOverrides
-    : (overrides || {});
-
-  const defaultName = typeof idOrIndex === 'number'
-    ? `Bot ${idOrIndex}`
-    : (id.startsWith('p') && /^\d+$/.test(id.slice(1)) ? `Bot ${id.slice(1)}` : id);
+  const defaultName = id.startsWith('p') && /^\d+$/.test(id.slice(1)) ? `Bot ${id.slice(1)}` : id;
 
   return createPlayer({
     id,
     name: defaultName,
     avatar: '🤖',
     isBot: true,
-    botPersonaId: personaId ?? null,
+    botPersonaId: personaId,
     score: 1000,
-    ...extra
+    ...overrides
   });
 }
 

@@ -1,4 +1,9 @@
-import { OfflineMatchDriver, type MatchSnapshot, type MatchCompletionResult } from '../engine/offline-match-driver';
+import { 
+  OfflineMatchDriver, 
+  type MatchSnapshot, 
+  type MatchCompletionResult, 
+  type TableSessionConfig 
+} from '../engine/offline-match-driver';
 import { useViewStore } from '../stores/useViewStore';
 import { useGameStore } from '../stores/useGameStore';
 import { useUserStore } from '../stores/useUserStore';
@@ -6,7 +11,14 @@ import { useMatchmakingStore } from '../stores/useMatchmakingStore';
 import { useOnlineStore } from '../stores/useOnlineStore';
 import { useEcosystemStore } from '../stores/useEcosystemStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
-import { GameRulesBuilder, type GameRules, type GameSettings, type DeepPartial, type Card } from '../engine/types';
+import { 
+  GameRulesBuilder, 
+  type GameRules, 
+  type GameSettings, 
+  type DeepPartial, 
+  type Card
+} from '../engine/types';
+import { resolveStrategyForMatch } from '../engine/strategies/game-mode-strategy';
 import { calculateRequiredDeposit, ECONOMY_CONSTANTS } from '../engine/constants/economy';
 import { 
   saveActiveMatchSession, 
@@ -20,6 +32,7 @@ import type { QuickTableConfig } from '../engine/schemas/settings.schema';
 import type { CampaignChapter } from '../engine/campaign';
 import type { CustomGameModalConfig } from '../ui/web/modals/CustomGameModal';
 import type { BotConfig } from '../ai/types';
+import { assertValidMatchStartup } from '../engine/invariants/match-invariants';
 
 export class AppFlowCoordinator {
   private static instance: AppFlowCoordinator | null = null;
@@ -112,12 +125,30 @@ export class AppFlowCoordinator {
           )
           .build();
 
-        this.launchOfflineMatch(1, {
-          playerCount: config.playerCount,
+        const strategy = resolveStrategyForMatch('QUICK', config.settlementRule);
+        const setup = strategy.setupMatch({
+          profile: liveProfile,
           customRules,
+          customSettings: {
+            mode: config.settlementRule,
+            betAmount: config.betAmount,
+            playerCount: config.playerCount,
+            prohibitEndingWithTwo: config.prohibitEndingWithTwo
+          },
           customBotPersonaIds: botIds,
           customBotConfigs: botConfigs,
-          activeGameType: 'QUICK'
+          campaignChapter: null,
+          playerCount: config.playerCount
+        });
+
+        this.startTable({
+          gameType: 'QUICK',
+          rules: setup.rules,
+          settings: setup.settings,
+          playerCount: setup.playerCount,
+          botPersonaIds: setup.botPersonaIds,
+          customBotConfigs: setup.customBotConfigs,
+          campaignChapter: null
         });
       }
     });
@@ -129,13 +160,28 @@ export class AppFlowCoordinator {
    * Bắt đầu Chiến Dịch Cốt Truyện (Campaign Mode)
    */
   public enterCampaignMatch(chapter: CampaignChapter): boolean {
-    useGameStore.getState().setCurrentCampaignChapter(chapter);
     useViewStore.getState().closeModal('CAMPAIGN');
 
-    this.launchOfflineMatch(1, {
+    const liveProfile = useUserStore.getState().profile;
+    const strategy = resolveStrategyForMatch('CAMPAIGN', 'COUNT_CARDS');
+    const setup = strategy.setupMatch({
+      profile: liveProfile,
+      customRules: null,
+      customSettings: null,
+      customBotPersonaIds: null,
+      customBotConfigs: null,
       campaignChapter: chapter,
-      playerCount: 4,
-      activeGameType: 'CAMPAIGN'
+      playerCount: 4
+    });
+
+    this.startTable({
+      gameType: 'CAMPAIGN',
+      rules: setup.rules,
+      settings: setup.settings,
+      playerCount: setup.playerCount,
+      botPersonaIds: setup.botPersonaIds,
+      customBotConfigs: setup.customBotConfigs,
+      campaignChapter: chapter
     });
 
     return true;
@@ -165,12 +211,25 @@ export class AppFlowCoordinator {
       botConfigs: config.customBotConfigs,
       playerCount: config.playerCount ?? 4,
       onStart: () => {
-        this.launchOfflineMatch(1, {
+        const strategy = resolveStrategyForMatch('QUICK', config.settings.mode);
+        const setup = strategy.setupMatch({
+          profile: liveProfile,
+          customRules: null,
           customSettings: config.settings,
           customBotPersonaIds: config.botPersonaIds,
           customBotConfigs: config.customBotConfigs,
-          playerCount: config.playerCount,
-          activeGameType: 'QUICK'
+          campaignChapter: null,
+          playerCount: config.playerCount
+        });
+
+        this.startTable({
+          gameType: 'CUSTOM',
+          rules: setup.rules,
+          settings: setup.settings,
+          playerCount: setup.playerCount,
+          botPersonaIds: setup.botPersonaIds,
+          customBotConfigs: setup.customBotConfigs,
+          campaignChapter: null
         });
       }
     });
@@ -179,7 +238,99 @@ export class AppFlowCoordinator {
   }
 
   /**
-   * Khởi động ván đấu Offline qua Driver thuần túy (Atomic Startup)
+   * Khởi tạo Bàn đấu Đơn nhất (Single Flow: 100% Deterministic)
+   * Không typeof, không ?? fallback, không đoán mò.
+   */
+  public startTable(config: TableSessionConfig): void {
+    const currentProfile = useUserStore.getState().profile;
+    const betAmount = config.settings.betAmount;
+
+    // Chốt chặn 1: Kiểm tra tính toàn vẹn (Fail-fast ở Dev/Test)
+    assertValidMatchStartup({
+      gameNumber: 1,
+      betAmount,
+      playerCoins: currentProfile.coins,
+      playerCount: config.playerCount,
+      activeGameType: config.gameType
+    });
+
+    // 1. Quản lý vòng đời Driver
+    if (this.driver) {
+      this.driver.cleanup();
+    }
+    const settings = useSettingsStore.getState();
+    const driver = new OfflineMatchDriver({
+      gameSpeed: settings.gameSpeed,
+      autoSortEnabled: settings.autoSortEnabled
+    });
+    this.driver = driver;
+
+    driver.subscribe((snapshot: MatchSnapshot) => {
+      useGameStore.getState().applyMatchSnapshot(snapshot);
+    });
+
+    driver.onComplete((result: MatchCompletionResult) => {
+      if (this.onMatchCompleteHandler) {
+        this.onMatchCompleteHandler(result);
+      }
+    });
+
+    // 2. Tính cọc và trừ cọc an toàn
+    const multiplier = config.rules.chopping.multiplier || 1;
+    const targetDeposit = calculateRequiredDeposit(betAmount, multiplier);
+    let actualDeposit = 0;
+    if (betAmount > 0) {
+      actualDeposit = Math.min(currentProfile.coins, targetDeposit);
+      const updatedProfile = {
+        ...currentProfile,
+        coins: Math.max(0, currentProfile.coins - actualDeposit)
+      };
+      useUserStore.getState().setProfile(updatedProfile);
+      savePlayerProfile(updatedProfile);
+    }
+
+    // 3. Lưu Match Session
+    saveActiveMatchSession({
+      gameId: `match_${Date.now()}`,
+      gameType: config.gameType,
+      mode: config.settings.mode,
+      gameNumber: 1,
+      depositAmount: actualDeposit,
+      betAmount,
+      penaltyMultiplier: multiplier,
+      activeGameType: config.gameType === 'CAMPAIGN' ? 'CAMPAIGN' : 'QUICK',
+      playerCount: config.playerCount,
+      isRanked: config.gameType === 'QUICK',
+      startedAt: Date.now(),
+      timestamp: Date.now()
+    });
+
+    // 4. Khởi tạo Bàn trong Driver
+    driver.setupTable(config, currentProfile);
+
+    // 5. Đồng bộ cấu hình vào Zustand Store (Single Source of Truth)
+    const gameStore = useGameStore.getState();
+    gameStore.resetMatchState();
+    gameStore.setInstantWinType(undefined);
+    gameStore.setActiveGameType(config.gameType === 'CAMPAIGN' ? 'CAMPAIGN' : 'QUICK');
+    gameStore.setCurrentCampaignChapter(config.campaignChapter);
+    gameStore.setGameRules(config.rules);
+    gameStore.setGameSettings(config.settings);
+    gameStore.setBotPersonaIds(config.botPersonaIds);
+    gameStore.setCustomBotConfigs(config.customBotConfigs);
+    gameStore.setPlayerCount(config.playerCount);
+
+    // 6. Đóng modal và chuyển màn hình sang bàn đấu
+    useViewStore.getState().closeAllModals();
+    gameStore.setCurrentScreen('GAME_TABLE');
+    useViewStore.getState().setScreen('GAME_TABLE');
+
+    // 7. Bắt đầu ván 1
+    driver.startRound(1);
+  }
+
+  /**
+   * Khởi động ván đấu Offline (Cổng tương thích ngược)
    */
   public launchOfflineMatch(
     gameNumber: number = 1,
@@ -194,104 +345,35 @@ export class AppFlowCoordinator {
       preserveWinnerId?: string;
     }
   ): void {
-    // 1. Quản lý vòng đời Driver: Tái sử dụng driver khi gameNumber > 1 và driver chưa bị hủy
-    let driver = this.driver;
-    if (gameNumber === 1 || !driver) {
-      if (this.driver) {
-        this.driver.cleanup();
-      }
-      const settings = useSettingsStore.getState();
-      driver = new OfflineMatchDriver({
-        gameSpeed: settings.gameSpeed,
-        autoSortEnabled: settings.autoSortEnabled
-      });
-      this.driver = driver;
-
-      // Lắng nghe snapshot và đồng bộ nguyên tử vào GameStore
-      driver.subscribe((snapshot: MatchSnapshot) => {
-        useGameStore.getState().applyMatchSnapshot(snapshot);
+    if (gameNumber === 1 || !this.driver?.tableConfig) {
+      const profile = useUserStore.getState().profile;
+      const gameType = options?.activeGameType || (options?.campaignChapter ? 'CAMPAIGN' : 'QUICK');
+      const mode = options?.customSettings?.mode || 'COUNT_CARDS';
+      const strategy = resolveStrategyForMatch(gameType, mode);
+      const setup = strategy.setupMatch({
+        profile,
+        customRules: options?.customRules ?? null,
+        customSettings: options?.customSettings ?? null,
+        customBotPersonaIds: options?.customBotPersonaIds ?? null,
+        customBotConfigs: options?.customBotConfigs ?? null,
+        campaignChapter: options?.campaignChapter ?? null,
+        playerCount: options?.playerCount ?? null
       });
 
-      // Lắng nghe kết thúc ván đấu
-      driver.onComplete((result: MatchCompletionResult) => {
-        if (this.onMatchCompleteHandler) {
-          this.onMatchCompleteHandler(result);
-        }
+      this.startTable({
+        gameType,
+        rules: setup.rules,
+        settings: setup.settings,
+        playerCount: setup.playerCount,
+        botPersonaIds: setup.botPersonaIds,
+        customBotConfigs: setup.customBotConfigs,
+        campaignChapter: options?.campaignChapter ?? null
       });
+      return;
     }
 
-    // 2. Chuẩn bị tài nguyên & kế thừa cấu hình bàn hiện tại cho các ván tiếp theo
-    useGameStore.getState().setInstantWinType(undefined);
-    const currentProfile = useUserStore.getState().profile;
-    const currentGameStore = useGameStore.getState();
-    const effectiveGameType = options?.activeGameType || (options?.campaignChapter ? 'CAMPAIGN' : 'QUICK');
-    const effectiveRules = options?.customRules || (gameNumber > 1 ? currentGameStore.gameRules : null);
-    const effectiveSettings = options?.customSettings || (gameNumber > 1 ? currentGameStore.gameSettings : null);
-
-    // 6. Tính toán cọc và lưu session an toàn
-    const customBetAmount = typeof effectiveSettings?.betAmount === 'number' 
-      ? effectiveSettings.betAmount 
-      : (typeof options?.customSettings?.betAmount === 'number' ? options.customSettings.betAmount : (gameNumber > 1 ? currentGameStore.gameSettings.betAmount : 100));
-    const tableBet = effectiveRules?.table?.betAmount || customBetAmount;
-    const multiplier = effectiveRules?.chopping?.multiplier || 1;
-    const targetDeposit = calculateRequiredDeposit(tableBet, multiplier);
-    let actualDeposit = 0;
-    if (tableBet > 0) {
-      actualDeposit = Math.min(currentProfile.coins, targetDeposit);
-      const updatedProfile = {
-        ...currentProfile,
-        coins: Math.max(0, currentProfile.coins - actualDeposit)
-      };
-      useUserStore.getState().setProfile(updatedProfile);
-      savePlayerProfile(updatedProfile);
-    }
-
-    const customMode = typeof effectiveSettings?.mode === 'string' 
-      ? effectiveSettings.mode 
-      : (typeof options?.customSettings?.mode === 'string' ? options.customSettings.mode : 'COUNT_CARDS');
-    saveActiveMatchSession({
-      gameId: `match_${Date.now()}`,
-      gameType: effectiveGameType,
-      mode: customMode,
-      gameNumber,
-      depositAmount: actualDeposit,
-      betAmount: tableBet,
-      penaltyMultiplier: multiplier,
-      activeGameType: effectiveGameType,
-      playerCount: options?.playerCount || currentGameStore.playerCount || 4,
-      isRanked: effectiveGameType === 'QUICK',
-      startedAt: Date.now(),
-      timestamp: Date.now()
-    });
-
-    // 7. Khởi chạy ván bài bên trong Driver
-    driver.startMatch(gameNumber, {
-      profile: currentProfile,
-      customRules: effectiveRules,
-      customSettings: effectiveSettings ? { ...currentGameStore.gameSettings, ...effectiveSettings } : (gameNumber > 1 ? currentGameStore.gameSettings : null),
-      customBotPersonaIds: options?.customBotPersonaIds ?? (gameNumber > 1 ? [...currentGameStore.botPersonaIds] : null),
-      customBotConfigs: options?.customBotConfigs ?? (gameNumber > 1 ? [...currentGameStore.customBotConfigs] : null),
-      campaignChapter: options?.campaignChapter ?? (gameNumber > 1 ? currentGameStore.currentCampaignChapter : null),
-      playerCount: options?.playerCount ?? (gameNumber > 1 ? currentGameStore.playerCount : null)
-    }, { preserveWinnerId: options?.preserveWinnerId ?? (gameNumber > 1 ? currentGameStore.winners[0]?.id : undefined) });
-
-    // 8. ĐỒNG BỘ RULES & SETTINGS VÀO GAMESTORE (SINGLE SOURCE OF TRUTH)
-    if (driver.rules) {
-      useGameStore.getState().setGameRules(driver.rules);
-    }
-    if (driver.settings) {
-      useGameStore.getState().setGameSettings(driver.settings);
-    }
-    useGameStore.getState().setBotPersonaIds(driver.botPersonaIds);
-    useGameStore.getState().setCustomBotConfigs(driver.customBotConfigs);
-    useGameStore.getState().setPlayerCount(driver.playerCount);
-
-    // 9. ĐÓNG MODAL VÀ CHUYỂN MÀN HÌNH AN TOÀN TUYỆT ĐỐI
-    useViewStore.getState().closeAllModals();
-
-    useGameStore.getState().setActiveGameType(effectiveGameType);
-    useGameStore.getState().setCurrentScreen('GAME_TABLE');
-    useViewStore.getState().setScreen('GAME_TABLE');
+    // Nếu ván > 1 trong bàn hiện tại, trực tiếp chạy startRound
+    this.driver.startRound(gameNumber, options?.preserveWinnerId);
   }
 
   // =========================================================================
@@ -365,19 +447,15 @@ export class AppFlowCoordinator {
   }
 
   /**
-   * Chuyển sang ván tiếp theo trong cùng bàn đấu (Rematch / Next Game)
+   * Chuyển sang ván tiếp theo trong cùng bàn đấu (Single Flow: Rematch / Next Round)
    */
   public nextGame(campaignNextChapter?: CampaignChapter | null): boolean {
     const liveProfile = useUserStore.getState().profile;
     const currentGameType = useGameStore.getState().activeGameType;
-    const betAmount = useGameStore.getState().gameSettings.betAmount;
 
-    if (liveProfile.coins < betAmount && currentGameType !== 'CAMPAIGN') {
-      useViewStore.getState().openModal('BANK');
-      return false;
+    if (currentGameType === 'CAMPAIGN' && campaignNextChapter) {
+      return this.enterCampaignMatch(campaignNextChapter);
     }
-
-    useViewStore.getState().closeModal('VICTORY');
 
     if (currentGameType === 'ONLINE') {
       if (useOnlineStore.getState().isHost) {
@@ -386,40 +464,54 @@ export class AppFlowCoordinator {
       return true;
     }
 
-    const currentNumber = useGameStore.getState().gameNumber;
-    const gameStore = useGameStore.getState();
-    const lastWinnerId = gameStore.winners[0]?.id;
-
-    if (currentGameType === 'CAMPAIGN') {
-      if (campaignNextChapter) {
-        this.launchOfflineMatch(1, {
-          campaignChapter: campaignNextChapter,
-          playerCount: 4,
-          activeGameType: 'CAMPAIGN'
-        });
-      } else {
-        this.launchOfflineMatch(currentNumber + 1, {
-          activeGameType: 'CAMPAIGN',
-          campaignChapter: gameStore.currentCampaignChapter,
-          customRules: gameStore.gameRules,
-          customSettings: gameStore.gameSettings,
-          customBotPersonaIds: [...gameStore.botPersonaIds],
-          customBotConfigs: [...gameStore.customBotConfigs],
-          preserveWinnerId: lastWinnerId
-        });
-      }
-    } else {
-      this.launchOfflineMatch(currentNumber + 1, {
-        activeGameType: currentGameType,
-        playerCount: gameStore.playerCount,
-        customRules: gameStore.gameRules,
-        customSettings: gameStore.gameSettings,
-        customBotPersonaIds: [...gameStore.botPersonaIds],
-        customBotConfigs: [...gameStore.customBotConfigs],
-        preserveWinnerId: lastWinnerId
-      });
+    const driver = this.driver;
+    if (!driver || !driver.tableConfig) {
+      throw new Error('[AppFlowCoordinator] Không thể sang ván tiếp theo vì không có bàn chơi nào đang mở!');
     }
 
+    const betAmount = driver.tableConfig.settings.betAmount;
+    if (liveProfile.coins < betAmount && currentGameType !== 'CAMPAIGN') {
+      useViewStore.getState().openModal('BANK');
+      return false;
+    }
+
+    useViewStore.getState().closeModal('VICTORY');
+
+    // Trừ cọc cho ván mới
+    const multiplier = driver.tableConfig.rules.chopping.multiplier || 1;
+    const targetDeposit = calculateRequiredDeposit(betAmount, multiplier);
+    let actualDeposit = 0;
+    if (betAmount > 0) {
+      actualDeposit = Math.min(liveProfile.coins, targetDeposit);
+      const updatedProfile = {
+        ...liveProfile,
+        coins: Math.max(0, liveProfile.coins - actualDeposit)
+      };
+      useUserStore.getState().setProfile(updatedProfile);
+      savePlayerProfile(updatedProfile);
+    }
+
+    const nextGameNumber = driver.gameNumber + 1;
+    saveActiveMatchSession({
+      gameId: `match_${Date.now()}`,
+      gameType: driver.tableConfig.gameType,
+      mode: driver.tableConfig.settings.mode,
+      gameNumber: nextGameNumber,
+      depositAmount: actualDeposit,
+      betAmount,
+      penaltyMultiplier: multiplier,
+      activeGameType: driver.tableConfig.gameType === 'CAMPAIGN' ? 'CAMPAIGN' : 'QUICK',
+      playerCount: driver.tableConfig.playerCount,
+      isRanked: driver.tableConfig.gameType === 'QUICK',
+      startedAt: Date.now(),
+      timestamp: Date.now()
+    });
+
+    const lastWinnerId = useGameStore.getState().winners[0]?.id || null;
+    useGameStore.getState().setInstantWinType(undefined);
+
+    // Chạy ván tiếp theo trực tiếp trong driver
+    driver.startRound(nextGameNumber, lastWinnerId);
     return true;
   }
 

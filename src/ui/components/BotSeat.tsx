@@ -2,7 +2,7 @@ import React from 'react';
 import { Player } from '../../engine/types';
 import { BotConfig } from '../../ai/types';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
-import { useModalStore } from '../../stores/useModalStore';
+import { useViewStore } from '../../stores/useViewStore';
 
 interface BotSeatProps {
   player: Player | null;
@@ -37,13 +37,13 @@ export const BotSeat: React.FC<BotSeatProps> = ({
     const targetBot = allBots.find(b => b.id === targetId || b.name === player.name) || null;
     if (targetBot) {
       useEcosystemStore.getState().setSelectedBot(targetBot);
-      useModalStore.getState().openModal('BOT_PROFILE');
+      useViewStore.getState().openModal('BOT_PROFILE');
     }
   };
 
   const cardCount = isDealing 
     ? (displayCardCount ?? 0) 
-    : (player.hand && player.hand.length > 0 ? player.hand.length : (displayCardCount ?? 0));
+    : (player.hand?.length ?? 0);
   const visibleCards = Math.min(13, cardCount);
 
   if (isCompact) {

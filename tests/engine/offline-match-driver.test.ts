@@ -16,14 +16,19 @@ describe('OfflineMatchDriver Unit Tests (Kiểm Thử Driver Vòng Lặp Ván Đ
 
     expect(driver.engine).not.toBeNull();
     expect(snapshot.players.length).toBe(4);
-    expect(snapshot.isDealing).toBe(true);
     expect(snapshot.gameNumber).toBe(1);
 
-    // Hoàn tất chia bài
-    driver.finishDealing();
-    const updated = driver.getSnapshot();
-    expect(updated.isDealing).toBe(false);
-    expect(updated.currentTurnPlayerId).not.toBeNull();
+    if (!snapshot.instantWinType) {
+      expect(snapshot.isDealing).toBe(true);
+      // Hoàn tất chia bài
+      driver.finishDealing();
+      const updated = driver.getSnapshot();
+      expect(updated.isDealing).toBe(false);
+      expect(updated.currentTurnPlayerId).not.toBeNull();
+    } else {
+      expect(snapshot.isDealing).toBe(false);
+      expect(snapshot.isGameOver).toBe(true);
+    }
 
     driver.cleanup();
     expect(driver.engine).toBeNull();

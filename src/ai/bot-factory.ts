@@ -589,7 +589,7 @@ export function sanitizeAvatar(avatar: unknown, fallbackSeed: number = 0): strin
 
 export const BOT_PERSONAS: Record<string, BotConfig> = Object.fromEntries(
   Object.entries(RAW_BOT_PERSONAS).map(([k, v]) => {
-    const tierNum = getTierFromElo(v.elo || 1000).tierNum;
+    const tierNum = getTierFromElo(v.elo ?? 1000).tierNum;
     const tierPool = GLOBAL_AVATARS_BY_TIER[tierNum] || GLOBAL_AVATARS;
     const defaultAvatar = tierPool[0] || '🤖';
 
@@ -777,8 +777,9 @@ export function generateRandomBotConfig(
  * Trả về nhãn định danh chuẩn hóa cho Persona (ví dụ: "Tier 1: Sắt (Elo 750)")
  */
 export function getBotArchetypeLabel(config: BotConfig): string {
-  const tierInfo = getTierFromElo(config.elo || 1000);
-  return `${tierInfo.tier} (Elo ${config.elo || 1000})`;
+  const safeElo = config.elo ?? 1000;
+  const tierInfo = getTierFromElo(safeElo);
+  return `${tierInfo.tier} (Elo ${safeElo})`;
 }
 
 /**

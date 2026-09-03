@@ -7,7 +7,7 @@ import { MatchLogger } from '../../engine/match-logger';
 import { ActiveGameType, useGameStore } from '../../stores/useGameStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { useOnlineStore } from '../../stores/useOnlineStore';
-import { useModalStore } from '../../stores/useModalStore';
+import { useViewStore } from '../../stores/useViewStore';
 
 export type PrimaryBtnIconType = 'PLAY' | 'CHECK' | 'SWORDS' | 'ROTATE_CCW' | 'HOME' | 'BANK' | 'SPINNER';
 export type SecondaryBtnIconType = 'HOME' | 'MAP';
@@ -96,7 +96,7 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
 
   const { profile } = useUserStore();
   const onlineStore = useOnlineStore();
-  const { openModal } = useModalStore();
+  const { openModal } = useViewStore();
 
   const playerCoins = profile.coins;
   const betAmount = gameSettings.betAmount;

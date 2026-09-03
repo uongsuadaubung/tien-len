@@ -12,7 +12,7 @@ import { createCard } from '../../engine/card';
 import { identifyCombination } from '../../engine/combinations';
 import { soundManager } from '../../ui/audio/sound-manager';
 import { useGameStore } from '../useGameStore';
-import { useModalStore } from '../useModalStore';
+import { useViewStore } from '../useViewStore';
 import { useUserStore } from '../useUserStore';
 import { 
   type Player, 
@@ -61,7 +61,7 @@ function syncLobbyBroadcast(roomState: OnlineRoomState): void {
     roomCode: roomState.roomCode,
     hostName: host?.name || 'Chủ Bàn',
     hostAvatar: host?.avatar || '🤠',
-    hostElo: host?.elo || 1000,
+    hostElo: host?.elo ?? 1000,
     playerCount: roomState.players.length,
     maxPlayers: roomState.playerCount,
     betAmount: roomState.betAmount,
@@ -127,8 +127,8 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       playerId: 'p0',
       name: profile.name || 'Chủ Bàn',
       avatar: profile.avatar || '🤠',
-      elo: profile.elo || 1000,
-      coins: profile.coins || 50000,
+      elo: profile.elo ?? 1000,
+      coins: profile.coins ?? 50000,
       isHost: true,
       isReady: true,
       isBot: false
@@ -268,8 +268,8 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       playerId: '',
       name: profile.name || 'Đấu Thủ',
       avatar: profile.avatar || '🤠',
-      elo: profile.elo || 1000,
-      coins: profile.coins || 50000,
+      elo: profile.elo ?? 1000,
+      coins: profile.coins ?? 50000,
       isHost: false,
       isReady: true,
       isBot: false
@@ -286,8 +286,8 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
             message: reason
           }
         });
-        useModalStore.getState().closeModal('VICTORY');
-        useModalStore.getState().closeModal('ONLINE_ROOM');
+        useViewStore.getState().closeModal('VICTORY');
+        useViewStore.getState().closeModal('ONLINE_ROOM');
         useGameStore.getState().resetMatchState();
         return;
       }
@@ -302,8 +302,8 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
             message: `Số dư ví của bạn (${userProfile.coins.toLocaleString()} Xu) không đủ để tham gia phòng có mức cược ${roomState.betAmount.toLocaleString()} Xu/lá. Vui lòng nạp thêm hoặc mở Ngân Hàng để vay vốn/nhận trợ cấp!`
           }
         });
-        useModalStore.getState().closeModal('VICTORY');
-        useModalStore.getState().closeModal('ONLINE_ROOM');
+        useViewStore.getState().closeModal('VICTORY');
+        useViewStore.getState().closeModal('ONLINE_ROOM');
         useGameStore.getState().resetMatchState();
         return;
       }
@@ -324,8 +324,8 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
 
       if (roomState.status === 'PLAYING') {
         const gameStore = useGameStore.getState();
-        useModalStore.getState().closeModal('ONLINE_ROOM');
-        useModalStore.getState().closeModal('VICTORY');
+        useViewStore.getState().closeModal('ONLINE_ROOM');
+        useViewStore.getState().closeModal('VICTORY');
 
         const currentPlayersMap = new Map(gameStore.players.map(p => [p.id, p]));
 
@@ -385,8 +385,8 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
             message: 'Chủ phòng đã thoát khỏi trận đấu hoặc mất kết nối mạng. Bàn chơi đã tự động giải tán.'
           }
         });
-        useModalStore.getState().closeModal('VICTORY');
-        useModalStore.getState().closeModal('ONLINE_ROOM');
+        useViewStore.getState().closeModal('VICTORY');
+        useViewStore.getState().closeModal('ONLINE_ROOM');
         useGameStore.getState().resetMatchState();
       }
     });
@@ -441,8 +441,8 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       });
       gameStore.setDealtCounts(counts);
 
-      useModalStore.getState().closeModal('VICTORY');
-      useModalStore.getState().closeModal('ONLINE_ROOM');
+      useViewStore.getState().closeModal('VICTORY');
+      useViewStore.getState().closeModal('ONLINE_ROOM');
     });
 
     // Client lắng nghe đồng bộ bàn đấu công khai
@@ -486,8 +486,8 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       }
 
       if (!sync.isGameOver) {
-        useModalStore.getState().closeModal('VICTORY');
-        useModalStore.getState().closeModal('ONLINE_ROOM');
+        useViewStore.getState().closeModal('VICTORY');
+        useViewStore.getState().closeModal('ONLINE_ROOM');
       }
 
       if (sync.isGameOver) {
@@ -498,7 +498,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
             .filter((p): p is Player => p !== undefined && p !== null);
           gameStore.setWinners(winningPlayers);
         }
-        useModalStore.getState().openModal('VICTORY');
+        useViewStore.getState().openModal('VICTORY');
       }
     });
 
@@ -539,7 +539,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         gameStore.setWinners(winningPlayers);
       }
 
-      useModalStore.getState().openModal('VICTORY');
+      useViewStore.getState().openModal('VICTORY');
 
       // Cập nhật Profile cho Client/Guest
       const userStore = useUserStore.getState();
@@ -579,7 +579,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         payouts: endPacket.payouts,
         humanNetCoins: myPayout,
         totalHumanCoins: nextCoins,
-        betAmount: get().roomState?.betAmount || 1000,
+        betAmount: get().roomState?.betAmount ?? gameStore.gameRules.table.betAmount,
         isThreeSpadesWin: false,
         playerCount: gameStore.players.length,
         congsGivenCount,
@@ -597,7 +597,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       savePlayerProfile(updatedProfile);
       GameEventBus.getInstance().publish(matchCompletedEvent);
 
-      useModalStore.getState().openModal('VICTORY');
+      useViewStore.getState().openModal('VICTORY');
     });
 
     // Client lắng nghe Chat

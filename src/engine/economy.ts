@@ -24,9 +24,8 @@ export interface EndGameSettlementResult {
 /**
  * Helper trích xuất hệ số nhân sát phạt (multiplier: 1x, 2x, 3x, 4x, 5x...)
  */
-function getMultiplier(val: boolean | number = 1): number {
-  if (typeof val === 'number') return Math.max(1, val);
-  return val ? 2 : 1;
+function getMultiplier(val: number = 1): number {
+  return Math.max(1, val);
 }
 
 /**
@@ -36,7 +35,7 @@ export function calculateChopPenalty(
   target: Combination,
   _candidate: Combination,
   betAmount: number,
-  penaltyMultiplier: boolean | number = 1
+  penaltyMultiplier: number = 1
 ): { amount: number; description: string } {
   const mult = getMultiplier(penaltyMultiplier);
   const bet = betAmount;
@@ -99,7 +98,7 @@ export function calculateChopPenalty(
 /**
  * Tính tiền phạt Thối Heo/Hàng khi ván đấu kết thúc
  */
-export function calculateRottenPenalty(hand: Card[], betAmount: number, penaltyMultiplier: boolean | number = 1): number {
+export function calculateRottenPenalty(hand: Card[], betAmount: number, penaltyMultiplier: number = 1): number {
   let penalty = 0;
   const mult = getMultiplier(penaltyMultiplier);
   const bet = betAmount;
@@ -129,7 +128,7 @@ export function calculateRottenPenalty(hand: Card[], betAmount: number, penaltyM
 /**
  * Tính toán tiền phạt Cóng (Cháy bài)
  */
-export function calculateCongPenalty(betAmount: number, penaltyMultiplier: boolean | number = 1): number {
+export function calculateCongPenalty(betAmount: number, penaltyMultiplier: number = 1): number {
   const mult = getMultiplier(penaltyMultiplier);
   // Cóng đền 26 mức cược (hoặc 52, 78, 104... mức cược tùy theo multiplier)
   return 26 * betAmount * mult;
@@ -146,7 +145,7 @@ export function calculateCountCardsSettlement(
   players: Player[],
   winnerId: string,
   betAmount: number,
-  penaltyMultiplier: boolean | number = 1,
+  penaltyMultiplier: number = 1,
   isThreeSpadesWin: boolean = false
 ): Record<string, number> {
   const payouts: Record<string, number> = {};
@@ -192,7 +191,7 @@ export function calculateWinnerTakesAllSettlement(
   players: Player[],
   winnerId: string,
   betAmount: number,
-  penaltyMultiplier: boolean | number = 1,
+  penaltyMultiplier: number = 1,
   isThreeSpadesWin: boolean = false
 ): Record<string, number> {
   const payouts: Record<string, number> = {};
@@ -232,7 +231,7 @@ export function calculateTraditionalSettlement(
   players: Player[],
   winners: Player[],
   betAmount: number,
-  penaltyMultiplier: boolean | number = 1,
+  penaltyMultiplier: number = 1,
   isThreeSpadesWin: boolean = false
 ): Record<string, number> {
   const payouts: Record<string, number> = {};

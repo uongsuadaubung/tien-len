@@ -3,7 +3,7 @@ import { globalLobbyDiscoveryClient } from '../../engine/network/lobby-discovery
 import { type OnlineRoomState } from '../../engine/network/network.schema';
 import { HostEngineDriver } from '../../engine/network/host-engine-driver';
 import { useGameStore } from '../useGameStore';
-import { useModalStore } from '../useModalStore';
+import { useViewStore } from '../useViewStore';
 import { 
   type Player, 
   GameRulesBuilder,
@@ -93,8 +93,8 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
     gameStore.setActiveGameType('ONLINE');
     gameStore.setCurrentScreen('GAME_TABLE');
     gameStore.setIsDealing(false);
-    useModalStore.getState().closeModal('ONLINE_ROOM');
-    useModalStore.getState().closeModal('VICTORY');
+    useViewStore.getState().closeModal('ONLINE_ROOM');
+    useViewStore.getState().closeModal('VICTORY');
 
     const prevDriver = get().hostDriver;
     const prevGameNumber = prevDriver ? prevDriver.gameNumber : 0;
@@ -116,8 +116,8 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
               message: reason
             }
           });
-          useModalStore.getState().closeModal('VICTORY');
-          useModalStore.getState().closeModal('ONLINE_ROOM');
+          useViewStore.getState().closeModal('VICTORY');
+          useViewStore.getState().closeModal('ONLINE_ROOM');
           useGameStore.getState().resetMatchState();
         }
       },
@@ -151,7 +151,7 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
         counts[p.id] = 13;
       });
       gameStore.setDealtCounts(counts);
-      useModalStore.getState().closeModal('VICTORY');
+      useViewStore.getState().closeModal('VICTORY');
     });
   },
 

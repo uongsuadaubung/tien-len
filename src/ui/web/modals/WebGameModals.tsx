@@ -1,5 +1,5 @@
 import React from 'react';
-import { useModalStore } from '../../../stores/useModalStore';
+import { useViewStore } from '../../../stores/useViewStore';
 import { useGameStore } from '../../../stores/useGameStore';
 import { QuestsModal } from './QuestsModal';
 import { LuckyWheelModal } from './LuckyWheelModal';
@@ -75,7 +75,7 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
     syncConflictData,
     openModal,
     closeModal
-  } = useModalStore();
+  } = useViewStore();
 
   const { selectedBot } = useEcosystemStore();
 
@@ -139,15 +139,17 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
       />
 
       {/* 5.1. Matchmaking Modal (Giả Lập Ghép Trận Online) */}
-      <MatchmakingModal
-        isOpen={isMatchmakingOpen}
-        onCancel={cancelMatchmaking}
-        onMatchReady={executeMatch}
-        betAmount={pendingMatch?.betAmount || 100}
-        modeName={pendingMatch?.modeName || 'Tiến Lên Miền Nam'}
-        matchedBots={pendingMatch?.botConfigs || []}
-        playerCount={pendingMatch?.playerCount || 4}
-      />
+      {isMatchmakingOpen && pendingMatch && (
+        <MatchmakingModal
+          isOpen={isMatchmakingOpen}
+          onCancel={cancelMatchmaking}
+          onMatchReady={executeMatch}
+          betAmount={pendingMatch.betAmount}
+          modeName={pendingMatch.modeName}
+          matchedBots={pendingMatch.botConfigs}
+          playerCount={pendingMatch.playerCount}
+        />
+      )}
 
       {/* 6. Custom Game Config Modal */}
       <CustomGameModal

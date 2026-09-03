@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { BotConfig } from '../ai/types';
-import { useModalStore } from './useModalStore';
+import { useViewStore } from './useViewStore';
 
 export interface MatchmakingData {
   betAmount: number;
@@ -32,11 +32,11 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => ({
 
   startMatchmaking: (match) => {
     set({ pendingMatch: match, isSearching: true });
-    useModalStore.getState().openModal('MATCHMAKING');
+    useViewStore.getState().openModal('MATCHMAKING');
   },
 
   cancelMatchmaking: () => {
-    useModalStore.getState().closeModal('MATCHMAKING');
+    useViewStore.getState().closeModal('MATCHMAKING');
     set({ pendingMatch: null, isSearching: false });
   },
 
@@ -44,7 +44,7 @@ export const useMatchmakingStore = create<MatchmakingState>((set, get) => ({
     const { pendingMatch } = get();
     if (!pendingMatch) return;
     
-    useModalStore.getState().closeModal('MATCHMAKING');
+    useViewStore.getState().closeModal('MATCHMAKING');
     set({ isSearching: false });
     
     const onStart = pendingMatch.onStart;

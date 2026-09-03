@@ -83,7 +83,7 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
       })
     ];
 
-    const payouts = calculateCountCardsSettlement(players, 'p0', BET, false);
+    const payouts = calculateCountCardsSettlement(players, 'p0', BET, 1);
 
     // Bot 1: 3 lá x 500 = -1,500
     expect(payouts['p1']).toBe(-1500);
@@ -169,7 +169,7 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
       })
     ];
 
-    const payouts = calculateWinnerTakesAllSettlement(players, 'p0', BET, false);
+    const payouts = calculateWinnerTakesAllSettlement(players, 'p0', BET, 1);
     expect(payouts['p1']).toBe(-500);
     expect(payouts['p2']).toBe(-1000);
     expect(payouts['p3']).toBe(-500);

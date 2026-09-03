@@ -21,7 +21,7 @@ export type MessageHandler<T> = (data: T, peerId: string) => void;
 
 export class P2PClient {
   public room: ReturnType<typeof joinRoom> | null = null;
-  public selfPeerId: string = typeof selfId === 'string' ? selfId : `peer_${Date.now()}`;
+  public selfPeerId: string = selfId || `peer_${Date.now()}`;
   public currentRoomCode: string | null = null;
 
   // Action senders

@@ -236,11 +236,11 @@ export function makeBotDecision(context: DecisionContext): BotDecision {
     topCandidates: decision.candidatesEvaluated || (decision.cards ? [{
       cards: decision.cards,
       combinationType: decision.combination?.type || null,
-      score: decision.evaluationScore || 100,
+      score: decision.evaluationScore ?? 100,
       reasons: [decision.reason || 'Quyết định từ chiến thuật ưu tiên']
     }] : []),
     mctsWinRate: mctsBestWinRate,
-    mctsSimulations: config.mctsSimulations || null,
+    mctsSimulations: config.mctsSimulations ?? null,
     handStrengthTwoCount: handTwoCount,
     handStrengthTrashCount: trashCount,
     remainingOpponentCards: { ...remainingPlayerCards }

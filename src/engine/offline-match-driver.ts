@@ -22,8 +22,20 @@ import { OpponentProfiler } from '../ai/opponent-profiler';
 import type { ChopNotificationData } from '../stores/useGameStore';
 import { GameEventBus, type ChopExecutedEvent, type CardPlayedEvent } from './events/game-event-bus';
 import type { PlayerProfile } from './storage';
+import type { CampaignChapter } from './campaign';
 import { getOptimalMoveHint, type MoveHint } from '../ai/hint-engine';
 import { getSortedQuickSelectCandidates } from './quick-response-finder';
+import { assertValidSnapshot } from './invariants/match-invariants';
+
+export interface TableSessionConfig {
+  gameType: 'QUICK' | 'CAMPAIGN' | 'CUSTOM';
+  rules: GameRules;
+  settings: GameSettings;
+  playerCount: number;
+  botPersonaIds: BotPersonaIdTuple;
+  customBotConfigs: CustomBotConfigTuple<BotConfig>;
+  campaignChapter: CampaignChapter | null;
+}
 
 export interface MatchSnapshot {
   gameNumber: number;
@@ -53,6 +65,7 @@ export type SnapshotListener = (snapshot: MatchSnapshot) => void;
 export type CompletionListener = (result: MatchCompletionResult) => void;
 
 export class OfflineMatchDriver {
+  public tableConfig: TableSessionConfig | null = null;
   public engine: GameEngine | null = null;
   public trackers: Record<string, CardTracker> = {};
   public gameNumber: number = 1;
@@ -146,7 +159,7 @@ export class OfflineMatchDriver {
       resolvedDealtCounts[p.id] = this.isDealing ? (this.dealtCounts[p.id] ?? 0) : p.hand.length;
     }
 
-    return {
+    const snapshot: MatchSnapshot = {
       gameNumber: this.engine.gameNumber,
       players: [...this.engine.players],
       currentTurnPlayerId: currentId,
@@ -163,84 +176,44 @@ export class OfflineMatchDriver {
       isFirstMoveOfGame: this.engine.isFirstMoveOfGame,
       isLeadMove: this.engine.isRoundLeadMove()
     };
+
+    assertValidSnapshot(snapshot);
+    return snapshot;
   }
 
-  public startMatch(
-    gameNumber: number = 1,
-    context: Partial<MatchSetupContext> & { profile: PlayerProfile },
-    options?: { preserveWinnerId?: string }
-  ): MatchSnapshot {
-    this.cleanupTimers();
-    this.isDisposed = false;
-    this.gameNumber = gameNumber;
-    this.instantWinType = undefined;
-    this.botThinkingThought = null;
-    this.chopNotification = null;
+  /**
+   * Khởi tạo bàn đấu (Chạy đúng 1 lần khi người chơi bắt đầu phiên chơi bàn)
+   */
+  public setupTable(config: TableSessionConfig, profile: PlayerProfile): void {
+    this.tableConfig = config;
+    this.rules = config.rules;
+    this.settings = config.settings;
+    this.botPersonaIds = config.botPersonaIds;
+    this.customBotConfigs = config.customBotConfigs;
+    this.playerCount = config.playerCount;
+    this.gameNumber = 0;
+    this.lastWinnerId = null;
+    this.trackers = {};
+    OpponentProfiler.getInstance().reset();
 
-    if (gameNumber === 1) {
-      this.lastWinnerId = null;
-      this.trackers = {};
-      OpponentProfiler.getInstance().reset();
-    }
+    const strategy = resolveStrategyForMatch(
+      config.gameType === 'CAMPAIGN' ? 'CAMPAIGN' : 'QUICK',
+      config.settings.mode
+    );
 
-    const resolvedContext: MatchSetupContext = {
-      profile: context.profile,
-      customRules: context.customRules ?? null,
-      customSettings: context.customSettings ?? null,
-      customBotPersonaIds: context.customBotPersonaIds ?? null,
-      customBotConfigs: context.customBotConfigs ?? null,
-      campaignChapter: context.campaignChapter ?? null,
-      playerCount: context.playerCount ?? null
-    };
+    const setup = strategy.setupMatch({
+      profile,
+      customRules: config.rules,
+      customSettings: config.settings,
+      customBotPersonaIds: config.botPersonaIds,
+      customBotConfigs: config.customBotConfigs,
+      campaignChapter: config.campaignChapter,
+      playerCount: config.playerCount
+    });
 
-    // 1. Phân giải Strategy theo chế độ chơi
-    const gameType = resolvedContext.campaignChapter ? 'CAMPAIGN' : 'QUICK';
-    const mode = resolvedContext.customSettings?.mode || 'COUNT_CARDS';
-    const strategy = resolveStrategyForMatch(gameType, mode);
-    const setup = strategy.setupMatch(resolvedContext);
-    this.rules = setup.rules;
-    this.settings = setup.settings;
-    this.botPersonaIds = setup.botPersonaIds;
-    this.customBotConfigs = setup.customBotConfigs;
-    this.playerCount = setup.playerCount;
-
-    // 2. Bảo lưu người chơi và số dư nếu là ván tiếp theo
-    let initialPlayers = setup.initialPlayers;
-    if (gameNumber > 1 && this.engine) {
-      const prevEngine = this.engine;
-      const betAmount = setup.settings.betAmount || 100;
-
-      initialPlayers = initialPlayers.map((p, idx) => {
-        const prevPlayer = prevEngine.getPlayer(p.id);
-        let prevScore = prevPlayer ? prevPlayer.score : p.score;
-
-        if (p.id === 'p0') {
-          prevScore = context.profile.coins;
-        } else if (p.isBot && prevScore < betAmount) {
-          const botIdx = idx - 1;
-          const chapterBot = context.campaignChapter?.bots[botIdx] || setup.customBotConfigs[botIdx];
-          prevScore = generateRealisticBotBankroll(chapterBot || {}, betAmount);
-        }
-
-        const resolvedPlayer = prevPlayer || p;
-        return {
-          ...resolvedPlayer,
-          hand: [],
-          playedCards: [],
-          isPassedCurrentRound: false,
-          hasPlayedFirstCard: false,
-          rankPosition: null,
-          instantWinType: null,
-          score: prevScore
-        };
-      });
-    }
-
-    // 3. Khởi tạo Engine mới
-    const engine = new GameEngine(initialPlayers, setup.rules);
+    const engine = new GameEngine(setup.initialPlayers, config.rules);
     this.engine = engine;
 
-    // 4. Khởi tạo CardTracker cho từng Bot
     const newTrackers: Record<string, CardTracker> = {};
     for (const player of engine.players) {
       if (player.isBot) {
@@ -249,21 +222,57 @@ export class OfflineMatchDriver {
       }
     }
     this.trackers = newTrackers;
+  }
 
-    // 5. Bắt đầu chia bài ván đấu
-    const winnerToPreserve = options?.preserveWinnerId || (gameNumber > 1 ? this.lastWinnerId || undefined : undefined);
-    const startResult = engine.startNewGame(gameNumber, winnerToPreserve);
+  /**
+   * Bắt đầu một ván đấu trong bàn (Ván 1, Ván 2, Ván 3...)
+   * Luồng đơn nhất: Tái sử dụng 100% cấu hình bàn đã khởi tạo, không đoán mò fallback.
+   */
+  public startRound(roundNumber: number, preserveWinnerId?: string | null): MatchSnapshot {
+    if (!this.engine || !this.tableConfig) {
+      throw new Error('[OfflineMatchDriver] Không thể bắt đầu ván đấu khi bàn chưa được khởi tạo!');
+    }
 
-    // 6. Chuẩn bị hoạt ảnh chia bài
+    this.cleanupTimers();
+    this.isDisposed = false;
+    this.gameNumber = roundNumber;
+    this.instantWinType = undefined;
+    this.botThinkingThought = null;
+    this.chopNotification = null;
+
+    if (roundNumber > 1) {
+      const betAmount = this.tableConfig.settings.betAmount;
+      for (let idx = 1; idx < this.engine.players.length; idx++) {
+        const p = this.engine.players[idx];
+        if (p.isBot && p.score < betAmount) {
+          const botIdx = idx - 1;
+          const chapterBot = this.tableConfig.campaignChapter?.bots[botIdx] || this.tableConfig.customBotConfigs[botIdx];
+          p.score = generateRealisticBotBankroll(chapterBot || {}, betAmount);
+        }
+      }
+    }
+
+    const winnerToPreserve = preserveWinnerId || (roundNumber > 1 ? this.lastWinnerId || undefined : undefined);
+    const startResult = this.engine.startNewGame(roundNumber, winnerToPreserve);
+
+    // Cập nhật card trackers với bài mới
+    for (const player of this.engine.players) {
+      if (player.isBot && this.trackers[player.id]) {
+        const botConfig = getBotConfig(player.botPersonaId || 'BOT_ELO_1150');
+        this.trackers[player.id] = new CardTracker(player.hand, botConfig.memoryDepth);
+      }
+    }
+
+    // Hoạt ảnh chia bài
     const initialDealtCounts: Record<string, number> = {};
-    for (const p of engine.players) {
+    for (const p of this.engine.players) {
       initialDealtCounts[p.id] = 0;
     }
     this.isDealing = true;
     this.dealtCounts = initialDealtCounts;
     this.dealBanner = null;
 
-    // 7. Xử lý Tới Trắng (Instant Win)
+    // Xử lý Tới Trắng (Instant Win)
     if (startResult.instantWin && startResult.instantWinType) {
       this.instantWinType = startResult.instantWinType;
       this.isDealing = false;
@@ -286,6 +295,42 @@ export class OfflineMatchDriver {
 
     this.emitSnapshot();
     return this.getSnapshot();
+  }
+
+  /**
+   * Cổng tương thích ngược: Tự động khởi tạo bàn nếu chưa có và bắt đầu ván
+   */
+  public startMatch(
+    gameNumber: number = 1,
+    context: Partial<MatchSetupContext> & { profile: PlayerProfile },
+    options?: { preserveWinnerId?: string }
+  ): MatchSnapshot {
+    if (gameNumber === 1 || !this.tableConfig) {
+      const gameType = context.campaignChapter ? 'CAMPAIGN' : 'QUICK';
+      const mode = context.customSettings?.mode || 'COUNT_CARDS';
+      const strategy = resolveStrategyForMatch(gameType, mode);
+      const setup = strategy.setupMatch({
+        profile: context.profile,
+        customRules: context.customRules ?? null,
+        customSettings: context.customSettings ?? null,
+        customBotPersonaIds: context.customBotPersonaIds ?? null,
+        customBotConfigs: context.customBotConfigs ?? null,
+        campaignChapter: context.campaignChapter ?? null,
+        playerCount: context.playerCount ?? null
+      });
+
+      this.setupTable({
+        gameType,
+        rules: setup.rules,
+        settings: setup.settings,
+        playerCount: setup.playerCount,
+        botPersonaIds: setup.botPersonaIds,
+        customBotConfigs: setup.customBotConfigs,
+        campaignChapter: context.campaignChapter ?? null
+      }, context.profile);
+    }
+
+    return this.startRound(gameNumber, options?.preserveWinnerId);
   }
 
   public finishDealing(): void {
@@ -648,6 +693,7 @@ export class OfflineMatchDriver {
     this.completionListeners.clear();
     this.engine = null;
     this.trackers = {};
+    this.tableConfig = null;
     this.rules = null;
     this.settings = null;
     this.instantWinType = undefined;

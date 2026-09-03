@@ -139,9 +139,9 @@ describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)',
 
       const betAmount = 100;
       // Normal settlement
-      const normalPayouts = calculateCountCardsSettlement(players, 'p0', betAmount, false, false);
+      const normalPayouts = calculateCountCardsSettlement(players, 'p0', betAmount, 1, false);
       // 3 of Spades settlement
-      const threeSpadesPayouts = calculateCountCardsSettlement(players, 'p0', betAmount, false, true);
+      const threeSpadesPayouts = calculateCountCardsSettlement(players, 'p0', betAmount, 1, true);
 
       expect(threeSpadesPayouts['p1']).toBe(normalPayouts['p1'] * 2);
       expect(threeSpadesPayouts['p2']).toBe(normalPayouts['p2'] * 2);
@@ -157,8 +157,8 @@ describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)',
       players[3].hand = [card4D];
 
       const betAmount = 500;
-      const normalPayouts = calculateWinnerTakesAllSettlement(players, 'p0', betAmount, false, false);
-      const threeSpadesPayouts = calculateWinnerTakesAllSettlement(players, 'p0', betAmount, false, true);
+      const normalPayouts = calculateWinnerTakesAllSettlement(players, 'p0', betAmount, 1, false);
+      const threeSpadesPayouts = calculateWinnerTakesAllSettlement(players, 'p0', betAmount, 1, true);
 
       expect(normalPayouts['p1']).toBe(-500);
       expect(threeSpadesPayouts['p1']).toBe(-1000);
@@ -175,8 +175,8 @@ describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)',
       const betAmount = 1000;
       const winners = [players[0], players[1], players[2], players[3]];
 
-      const normalPayouts = calculateTraditionalSettlement(players, winners, betAmount, false, false);
-      const threeSpadesPayouts = calculateTraditionalSettlement(players, winners, betAmount, false, true);
+      const normalPayouts = calculateTraditionalSettlement(players, winners, betAmount, 1, false);
+      const threeSpadesPayouts = calculateTraditionalSettlement(players, winners, betAmount, 1, true);
 
       expect(normalPayouts['p0']).toBe(3000);
       expect(threeSpadesPayouts['p0']).toBe(6000);

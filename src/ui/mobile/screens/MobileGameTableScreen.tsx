@@ -11,7 +11,7 @@ import { lockToLandscape } from '../../utils/fullscreen';
 import { useGameTableScreenLogic } from '../../hooks/useGameTableScreenLogic';
 
 // Stores
-import { useModalStore } from '../../../stores/useModalStore';
+import { useViewStore } from '../../../stores/useViewStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useGameStore } from '../../../stores/useGameStore';
 
@@ -48,7 +48,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
   const [isReasoningHudOpen, setIsReasoningHudOpen] = useState<boolean>(false);
 
   const { isPortrait } = useIsMobile();
-  const { openModal } = useModalStore();
+  const { openModal } = useViewStore();
 
   const {
     soundEnabled,

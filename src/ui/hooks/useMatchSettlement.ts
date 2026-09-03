@@ -10,12 +10,13 @@ import { MatchLogger } from '../../engine/match-logger';
 import { soundManager } from '../audio/sound-manager';
 import { useGameStore } from '../../stores/useGameStore';
 import { useUserStore } from '../../stores/useUserStore';
-import { useModalStore } from '../../stores/useModalStore';
+import { useViewStore } from '../../stores/useViewStore';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { forceUploadToCloud } from '../../engine/sync/sync-service';
-import { BotConfig } from '../../ai/types';
 import { CustomBotConfigTuple } from '../../engine/types';
+import type { BotConfig } from '../../ai/types';
+import { assertEconomicBalance } from '../../engine/invariants/match-invariants';
 
 export interface CampaignResultMeta {
   isUnlockedNext: boolean;
@@ -43,7 +44,7 @@ export function useMatchSettlement() {
   } = useGameStore();
 
   const { profile, setProfile } = useUserStore();
-  const { openModal } = useModalStore();
+  const { openModal } = useViewStore();
   const [campaignResultMeta, setCampaignResultMeta] = useState<CampaignResultMeta | null>(null);
 
   // Helper thông báo hoàn thành nhiệm vụ ngay trong trận
@@ -101,6 +102,9 @@ export function useMatchSettlement() {
       isThreeSpadesWin: engine.isThreeSpadesWin
     });
 
+    // Chốt chặn 3: Kiểm tra tính toàn vẹn cân bằng dòng tiền kinh tế
+    assertEconomicBalance(settlement.payouts);
+
     setIsThreeSpadesWin(engine.isThreeSpadesWin);
     setMatchPayouts(settlement.payouts);
     setLoanDeductionAmount(settlement.loanDeduction);
@@ -131,12 +135,12 @@ export function useMatchSettlement() {
 
     if (activeGameType === 'CAMPAIGN' && currentCampaignChapter) {
       const chapNumber = currentCampaignChapter.id;
-      const prevWins = profile.campaignChapterWins[chapNumber] || 0;
+      const prevWins = currentProfile.campaignChapterWins[chapNumber] || 0;
       currentWinsInChapter = isPlayerWin ? prevWins + 1 : prevWins;
       updatedChapterWins[chapNumber] = currentWinsInChapter;
 
       if (currentWinsInChapter >= currentCampaignChapter.requiredWins) {
-        if (chapNumber >= profile.campaignUnlockedChapter && chapNumber < CAMPAIGN_CHAPTERS.length) {
+        if (chapNumber >= currentProfile.campaignUnlockedChapter && chapNumber < CAMPAIGN_CHAPTERS.length) {
           updatedUnlockedChapter = chapNumber + 1;
           nextChapObj = CAMPAIGN_CHAPTERS[chapNumber]; // Chương tiếp theo
           unlockedNext = true;
@@ -156,15 +160,15 @@ export function useMatchSettlement() {
     }
 
     const updatedProfile: PlayerProfile = {
-      ...profile,
+      ...currentProfile,
       coins: nextCoins,
       loans: nextLoans,
       elo: nextElo,
       campaignUnlockedChapter: updatedUnlockedChapter,
       campaignChapterWins: updatedChapterWins,
       stats: {
-        ...profile.stats,
-        gamesPlayed: profile.stats.gamesPlayed + 1,
+        ...currentProfile.stats,
+        gamesPlayed: currentProfile.stats.gamesPlayed + 1,
         wins: nextWins,
         currentStreak: nextCurrentStreak,
         highestStreak: nextHighestStreak,
@@ -195,7 +199,7 @@ export function useMatchSettlement() {
     const finalQuests = evaluateDailyQuests([matchCompletedEvent], updatedProfile.dailyQuests, updatedProfile);
     const finalAchievements = evaluateAchievements([matchCompletedEvent], updatedProfile.achievements, updatedProfile);
 
-    triggerQuestToastIfNewlyCompleted(profile.dailyQuests, finalQuests, profile.achievements, finalAchievements);
+    triggerQuestToastIfNewlyCompleted(currentProfile.dailyQuests, finalQuests, currentProfile.achievements, finalAchievements);
 
     updatedProfile.dailyQuests = finalQuests;
     updatedProfile.achievements = finalAchievements;
@@ -276,7 +280,7 @@ export function useMatchSettlement() {
           if (!playerAtIdx) return cfg;
           const res = botResults.find(b => b.botId === playerAtIdx.botPersonaId || b.botId === playerAtIdx.id || b.botId === playerAtIdx.name);
           if (res) {
-            const currentElo = cfg.elo || 1000;
+            const currentElo = cfg.elo ?? 1000;
             return {
               ...cfg,
               elo: Math.max(800, Math.min(2600, currentElo + res.deltaElo))

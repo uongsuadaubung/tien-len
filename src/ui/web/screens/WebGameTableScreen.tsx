@@ -10,7 +10,7 @@ import { PlayerHandView } from '../../components/PlayerHandView';
 import { useGameTableScreenLogic } from '../../hooks/useGameTableScreenLogic';
 
 // Stores
-import { useModalStore } from '../../../stores/useModalStore';
+import { useViewStore } from '../../../stores/useViewStore';
 import { useUserStore } from '../../../stores/useUserStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useGameStore } from '../../../stores/useGameStore';
@@ -33,7 +33,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
   onReturnToLobby
 }) => {
   const [isReasoningHudOpen, setIsReasoningHudOpen] = useState<boolean>(true);
-  const { openModal } = useModalStore();
+  const { openModal } = useViewStore();
   const { profile } = useUserStore();
   const {
     soundEnabled,

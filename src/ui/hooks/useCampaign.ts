@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { CAMPAIGN_CHAPTERS, CampaignChapter } from '../../engine/campaign';
 import { BotEntity, getTierFromElo } from '../../engine/ecosystem/ecosystem-types';
 import { BotConfig } from '../../ai/types';
-import { useModalStore } from '../../stores/useModalStore';
+import { useViewStore } from '../../stores/useViewStore';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { useUserStore } from '../../stores/useUserStore';
 
@@ -109,7 +109,7 @@ export function useCampaign(props?: UseCampaignProps): UseCampaignReturn {
     initialChapterId || profile.campaignUnlockedChapter || 1
   );
 
-  const { openModal } = useModalStore();
+  const { openModal } = useViewStore();
   const { bots: ecosystemBots, setSelectedBot } = useEcosystemStore();
 
   const currentChapter = CAMPAIGN_CHAPTERS.find(c => c.id === selectedChapterId) || CAMPAIGN_CHAPTERS[0];

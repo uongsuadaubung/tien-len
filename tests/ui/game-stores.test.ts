@@ -2,13 +2,13 @@ import { describe, expect, it, beforeEach } from 'bun:test';
 import { useGameStore } from '../../src/stores/useGameStore';
 import { useUserStore } from '../../src/stores/useUserStore';
 import { useSettingsStore } from '../../src/stores/useSettingsStore';
-import { useModalStore } from '../../src/stores/useModalStore';
+import { useViewStore } from '../../src/stores/useViewStore';
 import { createCard } from '../../src/engine/card';
 
 describe('Zustand State Stores Integration Tests (Kiểm Thử Tích Hợp State Quản Lý Giao Diện)', () => {
   beforeEach(() => {
     useUserStore.getState().resetProfile();
-    useModalStore.getState().closeAllModals();
+    useViewStore.getState().closeAllModals();
     useGameStore.getState().clearCardSelection();
   });
 
@@ -49,18 +49,18 @@ describe('Zustand State Stores Integration Tests (Kiểm Thử Tích Hợp State
     expect(useGameStore.getState().currentTurnPlayerId).toBe('p1');
   });
 
-  it('3. useModalStore: Mở Modal, Đóng Modal và Quản lý Hàng Đợi Popup', () => {
-    const modalStore = useModalStore.getState();
+  it('3. useViewStore: Mở Modal, Đóng Modal và Quản lý Hàng Đợi Popup', () => {
+    const modalStore = useViewStore.getState();
 
     modalStore.openModal('BANK');
-    expect(useModalStore.getState().isBankLoanModalOpen).toBe(true);
+    expect(useViewStore.getState().isBankLoanModalOpen).toBe(true);
 
     modalStore.openModal('SETTINGS');
-    expect(useModalStore.getState().isSettingsOpen).toBe(true);
+    expect(useViewStore.getState().isSettingsOpen).toBe(true);
 
     modalStore.closeAllModals();
-    expect(useModalStore.getState().isBankLoanModalOpen).toBe(false);
-    expect(useModalStore.getState().isSettingsOpen).toBe(false);
+    expect(useViewStore.getState().isBankLoanModalOpen).toBe(false);
+    expect(useViewStore.getState().isSettingsOpen).toBe(false);
   });
 
   it('4. useSettingsStore: Tùy chỉnh AI Hint, Tự Động Xếp Bài & Âm Thanh', () => {

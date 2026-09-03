@@ -109,7 +109,7 @@ export const MatchmakingModal: React.FC<MatchmakingModalProps> = ({
       id: `bot_${idx}`,
       name: b.name || `Đối thủ ${idx + 1}`,
       avatar: b.avatar || '🤖',
-      elo: b.elo || 1000,
+      elo: b.elo ?? 1000,
       isHuman: false
     }))
   ];

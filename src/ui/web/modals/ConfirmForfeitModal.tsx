@@ -1,6 +1,6 @@
 import React from 'react';
 import { Skull, ShieldAlert, AlertTriangle } from 'lucide-react';
-import { useModalStore } from '../../../stores/useModalStore';
+import { useViewStore } from '../../../stores/useViewStore';
 import { useUserStore } from '../../../stores/useUserStore';
 import { Modal, Card, Button, Badge } from '../../primitives';
 
@@ -9,7 +9,7 @@ interface ConfirmForfeitModalProps {
 }
 
 export const ConfirmForfeitModal: React.FC<ConfirmForfeitModalProps> = ({ onConfirmForfeit }) => {
-  const { isConfirmForfeitOpen, closeModal, forfeitData } = useModalStore();
+  const { isConfirmForfeitOpen, closeModal, forfeitData } = useViewStore();
   const { profile } = useUserStore();
 
   if (!isConfirmForfeitOpen) return null;

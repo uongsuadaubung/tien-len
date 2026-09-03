@@ -304,10 +304,10 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                 ⚡ {currentSettlement.label}
               </Badge>
               <Badge variant="neutral" size="sm">
-                👥 {roomState?.playerCount || 4} Người
+                👥 {roomState ? roomState.playerCount : 4} Người
               </Badge>
               <Badge variant="neutral" size="sm">
-                💰 {roomState?.betAmount.toLocaleString() || 1000} Xu/lá
+                💰 {roomState ? roomState.betAmount.toLocaleString() : '---'} Xu/lá
               </Badge>
               {roomState?.choppingMultiplier && roomState.choppingMultiplier > 1 && (
                 <Badge variant="neutral" size="sm" className="text-amber-300">

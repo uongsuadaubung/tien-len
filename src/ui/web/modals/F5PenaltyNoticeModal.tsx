@@ -1,10 +1,10 @@
 import React from 'react';
 import { AlertOctagon, Check } from 'lucide-react';
-import { useModalStore } from '../../../stores/useModalStore';
+import { useViewStore } from '../../../stores/useViewStore';
 import { Modal, Card, Button, Badge } from '../../primitives';
 
 export const F5PenaltyNoticeModal: React.FC = () => {
-  const { isF5PenaltyNoticeOpen, closeModal, f5PenaltyData } = useModalStore();
+  const { isF5PenaltyNoticeOpen, closeModal, f5PenaltyData } = useViewStore();
 
   if (!isF5PenaltyNoticeOpen) return null;
 

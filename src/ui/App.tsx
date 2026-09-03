@@ -17,7 +17,6 @@ import { ECONOMY_CONSTANTS } from '../engine/constants/economy';
 import { smartSync } from '../engine/sync/sync-service';
 
 // Stores
-import { useModalStore } from '../stores/useModalStore';
 import { useViewStore } from '../stores/useViewStore';
 import { useUserStore } from '../stores/useUserStore';
 import { useGameStore } from '../stores/useGameStore';
@@ -26,9 +25,8 @@ import { useOnlineStore } from '../stores/useOnlineStore';
 import { appFlowCoordinator } from '../services/app-flow-coordinator';
 
 export const App: React.FC = () => {
-  const { openModal, setF5PenaltyData } = useModalStore();
+  const { currentScreen, openModal, setF5PenaltyData } = useViewStore();
   const { profile, setProfile, hydrateProfile } = useUserStore();
-  const { currentScreen } = useViewStore();
   const [isHydrated, setIsHydrated] = useState(false);
   const [hasEnteredGame, setHasEnteredGame] = useState(false);
   const { isMobile } = useIsMobile();
@@ -36,7 +34,6 @@ export const App: React.FC = () => {
 
   const {
     campaignResultMeta,
-    startNewGame,
     handleNextGame,
     handlePlaySelectedCards,
     handlePassTurn,
@@ -45,7 +42,7 @@ export const App: React.FC = () => {
     handleDealCard,
     handleDealComplete,
     handleForfeitMatch,
-    handleRequestReturnToLobby
+    handleReturnToLobby
   } = useGameMatchLoop();
 
   // Khởi động nạp dữ liệu từ Dexie IndexedDB thuần túy (Tối thiểu 2s)
@@ -74,11 +71,11 @@ export const App: React.FC = () => {
         try {
           const syncResult = await smartSync();
           if (syncResult.type === 'conflict') {
-            useModalStore.getState().setSyncConflictData({
+            useViewStore.getState().setSyncConflictData({
               localData: syncResult.localData,
               cloudData: syncResult.cloudData
             });
-            useModalStore.getState().openModal('SYNC_CONFLICT');
+            useViewStore.getState().openModal('SYNC_CONFLICT');
           }
         } catch (err: unknown) {
           console.warn('[AutoSyncOnStartup] Tự động đồng bộ khi mở game gặp sự cố:', err);
@@ -139,12 +136,12 @@ export const App: React.FC = () => {
     }
   }, [isHydrated, profile, openModal]);
 
-  // Khởi tạo game khi vào bàn (nếu chưa có engine và không phải trận Online P2P)
+  // Nếu ở màn hình GAME_TABLE mà không có bàn đấu nào đang hoạt động -> Quay về Sảnh
   useEffect(() => {
     if (currentScreen === 'GAME_TABLE' && !appFlowCoordinator.hasActiveMatch() && activeGameType !== 'ONLINE') {
-      startNewGame(1);
+      appFlowCoordinator.returnToLobby();
     }
-  }, [currentScreen, startNewGame, activeGameType]);
+  }, [currentScreen, activeGameType]);
 
   // ==========================================================================
   // ĐIỀU HƯỚNG TỪ SẢNH VÀO CÁC CHẾ ĐỘ CHƠI (STRATEGY DISPATCH)
@@ -167,10 +164,6 @@ export const App: React.FC = () => {
     appFlowCoordinator.enterCampaignMatch(chapter);
   };
 
-  const handleReturnToLobby = () => {
-    handleRequestReturnToLobby();
-  };
-
   // Màn hình Loading Gate khởi động (Kích hoạt Xoay Ngang & Âm Thanh tại First-Touch trên Mobile, tự động vào trên Web)
   if (!isHydrated || !hasEnteredGame) {
     return (
@@ -186,7 +179,6 @@ export const App: React.FC = () => {
 
   const appProps = {
     campaignResultMeta,
-    startNewGame,
     handleNextGame,
     handlePlaySelectedCards,
     handlePassTurn,
@@ -195,7 +187,6 @@ export const App: React.FC = () => {
     handleDealCard,
     handleDealComplete,
     handleForfeitMatch,
-    handleRequestReturnToLobby,
     handleReturnToLobby,
     handlePlayNowDefault,
     handleStartQuickGame,

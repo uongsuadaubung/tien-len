@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from 'bun:test';
 import { useUserStore } from '../../src/stores/useUserStore';
 import { useGameStore } from '../../src/stores/useGameStore';
-import { useModalStore } from '../../src/stores/useModalStore';
+import { useViewStore } from '../../src/stores/useViewStore';
 import { calculateRequiredDeposit } from '../../src/engine/constants/economy';
 import { resolveStrategyForMatch } from '../../src/engine/strategies/game-mode-strategy';
 import { GameEngine } from '../../src/engine/game';
@@ -9,7 +9,7 @@ import { GameRulesBuilder } from '../../src/engine/types';
 
 describe('Kiểm Thử Kinh Tế & Tiền Cọc Khi Bấm Ván Tiếp Theo (Multi-Round Economy & Deposit Tests)', () => {
   beforeEach(() => {
-    useModalStore.getState().closeAllModals();
+    useViewStore.getState().closeAllModals();
   });
 
   it('1. Người chơi có số dư nhỏ hơn cọc tối đa 26 lá nhưng lớn hơn cược bàn vẫn được chơi tiếp', () => {

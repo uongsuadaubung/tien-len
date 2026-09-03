@@ -1,10 +1,10 @@
 import { describe, expect, it, beforeEach } from 'bun:test';
 import { useUserStore } from '../../src/stores/useUserStore';
-import { useModalStore } from '../../src/stores/useModalStore';
+import { useViewStore } from '../../src/stores/useViewStore';
 
 describe('Kiểm Thử Vào Bàn Chơi Nhanh & Chặn Khi Không Đủ Tiền Cược Chuẩn (Quick Play Standard Bet Tests)', () => {
   beforeEach(() => {
-    useModalStore.getState().closeAllModals();
+    useViewStore.getState().closeAllModals();
   });
 
   it('1. Đủ 1.000 Xu: Cho phép Chơi Nhanh bình thường', () => {
@@ -24,9 +24,9 @@ describe('Kiểm Thử Vào Bàn Chơi Nhanh & Chặn Khi Không Đủ Tiền C�
     expect(isEligible).toBe(false);
 
     if (!isEligible) {
-      useModalStore.getState().openModal('BANK');
+      useViewStore.getState().openModal('BANK');
     }
 
-    expect(useModalStore.getState().isBankLoanModalOpen).toBe(true);
+    expect(useViewStore.getState().isBankLoanModalOpen).toBe(true);
   });
 });

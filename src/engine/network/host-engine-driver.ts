@@ -21,7 +21,7 @@ import {
 } from './network.schema';
 import { P2PClient } from './p2p-client';
 import { useGameStore } from '../../stores/useGameStore';
-import { useModalStore } from '../../stores/useModalStore';
+import { useViewStore } from '../../stores/useViewStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { soundManager } from '../../ui/audio/sound-manager';
 import { resolveStrategyForMatch } from '../strategies/game-mode-strategy';
@@ -432,7 +432,7 @@ export class HostEngineDriver {
     gameStore.setAllEloDeltas(eloDeltas);
     gameStore.setIsGameOver(true);
     gameStore.setWinners([...this.engine.winners]);
-    useModalStore.getState().openModal('VICTORY');
+    useViewStore.getState().openModal('VICTORY');
 
     const packet: GameEndPacket = {
       winners: this.engine.winners.map(w => w.id),

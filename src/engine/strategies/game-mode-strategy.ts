@@ -220,7 +220,7 @@ function computeMatchEloDelta(context: MatchSettlementContext): number {
     ? Math.round(
         opponentBots.reduce((sum, p) => {
           const config = getBotConfig(p.botPersonaId || 'BOT_ELO_1150');
-          return sum + (config.elo || 1000);
+          return sum + (config.elo ?? 1000);
         }, 0) / opponentBots.length
       )
     : 1000;

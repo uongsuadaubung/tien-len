@@ -3,7 +3,6 @@ import { appFlowCoordinator } from '../../src/services/app-flow-coordinator';
 import { useGameStore } from '../../src/stores/useGameStore';
 import { useViewStore } from '../../src/stores/useViewStore';
 import { useUserStore } from '../../src/stores/useUserStore';
-import { useModalStore } from '../../src/stores/useModalStore';
 import { useMatchmakingStore } from '../../src/stores/useMatchmakingStore';
 
 describe('AppFlowCoordinator Unit Tests (Kiểm Thử Cổng Điều Phối Chuyển Cảnh Tập Trung)', () => {
@@ -14,13 +13,13 @@ describe('AppFlowCoordinator Unit Tests (Kiểm Thử Cổng Điều Phối Chuy
   it('1. returnToLobby: Dọn dẹp sạch sẽ tài nguyên và đưa màn hình về LOBBY', () => {
     useGameStore.getState().setCurrentScreen('GAME_TABLE');
     useViewStore.getState().setScreen('GAME_TABLE');
-    useModalStore.getState().openModal('SETTINGS');
+    useViewStore.getState().openModal('SETTINGS');
 
     appFlowCoordinator.returnToLobby('TEST_EXIT');
 
     expect(useGameStore.getState().currentScreen).toBe('LOBBY');
     expect(useViewStore.getState().currentScreen).toBe('LOBBY');
-    expect(useModalStore.getState().isSettingsOpen).toBe(false);
+    expect(useViewStore.getState().isSettingsOpen).toBe(false);
     expect(appFlowCoordinator.driver).toBeNull();
   });
 
@@ -44,7 +43,7 @@ describe('AppFlowCoordinator Unit Tests (Kiểm Thử Cổng Điều Phối Chuy
     });
 
     expect(success).toBe(false);
-    expect(useModalStore.getState().isBankLoanModalOpen).toBe(true);
+    expect(useViewStore.getState().isBankLoanModalOpen).toBe(true);
 
     // Phục hồi lại Profile
     useUserStore.getState().setProfile(origProfile);
@@ -113,6 +112,67 @@ describe('AppFlowCoordinator Unit Tests (Kiểm Thử Cổng Điều Phối Chuy
     expect(useGameStore.getState().gameSettings.betAmount).toBe(1000);
     expect(useGameStore.getState().gameRules.table.betAmount).toBe(1000);
     expect(useGameStore.getState().botPersonaIds).toEqual(firstRoundBots);
+
+    useUserStore.getState().setProfile(origProfile);
+  });
+
+  it('6. startTable: Khởi tạo bàn đấu đơn nhất (Single Flow) và vận hành liên tiếp 3 ván bảo toàn tuyệt đối 100% cấu hình', () => {
+    const { GameRulesBuilder } = require('../../src/engine/types');
+    const origProfile = useUserStore.getState().profile;
+    useUserStore.getState().setProfile({
+      ...origProfile,
+      coins: 500000
+    });
+
+    const rules = new GameRulesBuilder()
+      .withTable((t: any) => t.betAmount(5000).playerCount(4))
+      .build();
+
+    const settings = {
+      mode: 'COUNT_CARDS',
+      betAmount: 5000,
+      soundEnabled: true,
+      musicEnabled: true,
+      gameSpeed: 'REALISTIC',
+      deckType: 'standard',
+      autoSort: true,
+      autoSortOrder: 'asc',
+      autoSortSuit: true,
+      hintsEnabled: true,
+      vibrationEnabled: true,
+      cardBack: 'classic',
+      theme: 'classic',
+      playerCount: 4,
+      prohibitEndingWithTwo: true,
+      threeSpadesEndingBonus: true,
+      cascadeChopEnabled: true
+    };
+
+    appFlowCoordinator.startTable({
+      gameType: 'QUICK',
+      rules,
+      settings: settings as any,
+      playerCount: 4,
+      botPersonaIds: ['BOT_ELO_850', 'BOT_ELO_1150', 'BOT_ELO_1450'],
+      customBotConfigs: [{}, {}, {}],
+      campaignChapter: null
+    });
+
+    // Ván 1
+    expect(appFlowCoordinator.driver?.gameNumber).toBe(1);
+    expect(useGameStore.getState().gameSettings.betAmount).toBe(5000);
+    expect(useGameStore.getState().currentScreen).toBe('GAME_TABLE');
+
+    // Ván 2
+    appFlowCoordinator.nextGame();
+    expect(appFlowCoordinator.driver?.gameNumber).toBe(2);
+    expect(useGameStore.getState().gameSettings.betAmount).toBe(5000);
+
+    // Ván 3
+    appFlowCoordinator.nextGame();
+    expect(appFlowCoordinator.driver?.gameNumber).toBe(3);
+    expect(useGameStore.getState().gameSettings.betAmount).toBe(5000);
+    expect(appFlowCoordinator.driver?.tableConfig?.settings.betAmount).toBe(5000);
 
     useUserStore.getState().setProfile(origProfile);
   });

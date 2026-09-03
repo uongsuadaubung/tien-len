@@ -3,7 +3,6 @@ import { useSmartHandSorting } from './useSmartHandSorting';
 import { useMatchSettlement, CampaignResultMeta } from './useMatchSettlement';
 import { useMatchAIHints } from './useMatchAIHints';
 import { appFlowCoordinator } from '../../services/app-flow-coordinator';
-import type { MatchSetupContext } from '../../engine/strategies/game-mode-strategy';
 
 export type { CampaignResultMeta };
 
@@ -28,23 +27,6 @@ export function useGameMatchLoop() {
   // Hook Xếp bài thông minh & Gợi ý AI
   const { handleAutoSort } = useSmartHandSorting();
   const { handleApplyAiHint } = useMatchAIHints();
-
-  // Ủy quyền khởi tạo trận đấu cho AppFlowCoordinator
-  const startNewGame = useCallback((
-    nextGameNumber = 1,
-    setupContext?: Partial<MatchSetupContext>,
-    preserveWinnerId?: string
-  ) => {
-    appFlowCoordinator.launchOfflineMatch(nextGameNumber, {
-      playerCount: setupContext?.playerCount ?? 4,
-      customRules: setupContext?.customRules ?? null,
-      customSettings: setupContext?.customSettings ?? null,
-      customBotPersonaIds: setupContext?.customBotPersonaIds ?? null,
-      customBotConfigs: setupContext?.customBotConfigs ?? null,
-      campaignChapter: setupContext?.campaignChapter ?? null,
-      preserveWinnerId
-    });
-  }, []);
 
   const handleNextGame = useCallback(() => {
     appFlowCoordinator.nextGame(
@@ -72,13 +54,12 @@ export function useGameMatchLoop() {
     appFlowCoordinator.forfeitMatch();
   }, []);
 
-  const handleRequestReturnToLobby = useCallback(() => {
+  const handleReturnToLobby = useCallback(() => {
     appFlowCoordinator.returnToLobby();
   }, []);
 
   return {
     campaignResultMeta,
-    startNewGame,
     handleNextGame,
     handlePlaySelectedCards,
     handlePassTurn,
@@ -87,6 +68,6 @@ export function useGameMatchLoop() {
     handleDealCard,
     handleDealComplete,
     handleForfeitMatch,
-    handleRequestReturnToLobby
+    handleReturnToLobby
   };
 }

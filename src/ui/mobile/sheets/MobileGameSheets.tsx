@@ -1,5 +1,5 @@
 import React from 'react';
-import { useModalStore } from '../../../stores/useModalStore';
+import { useViewStore } from '../../../stores/useViewStore';
 import { useGameStore } from '../../../stores/useGameStore';
 import { MobileQuestsView } from '../views/MobileQuestsView';
 import { MobileLuckyWheelView } from '../views/MobileLuckyWheelView';
@@ -80,7 +80,7 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
     syncConflictData,
     openModal,
     closeModal
-  } = useModalStore();
+  } = useViewStore();
 
   const { selectedBot } = useEcosystemStore();
   const { disbandNotice, clearDisbandNotice } = useOnlineStore();
@@ -146,15 +146,15 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
       )}
 
       {/* 4. Màn Hình Ghép Trận Đấu Radar Native Mobile */}
-      {isMatchmakingOpen && (
+      {isMatchmakingOpen && pendingMatch && (
         <MobileMatchmakingSheet
           isOpen={isMatchmakingOpen}
           onCancel={cancelMatchmaking}
           onMatchReady={executeMatch}
-          betAmount={pendingMatch?.betAmount || 100}
-          modeName={pendingMatch?.modeName || 'Tiến Lên Miền Nam'}
-          matchedBots={pendingMatch?.botConfigs || []}
-          playerCount={pendingMatch?.playerCount || 4}
+          betAmount={pendingMatch.betAmount}
+          modeName={pendingMatch.modeName}
+          matchedBots={pendingMatch.botConfigs}
+          playerCount={pendingMatch.playerCount}
         />
       )}
 

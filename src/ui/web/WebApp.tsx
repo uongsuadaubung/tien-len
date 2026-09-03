@@ -5,7 +5,6 @@ import { WebGameModals } from './modals/WebGameModals';
 import { QuickSetupConfig } from './modals/QuickSetupModal';
 import { CustomGameModalConfig } from './modals/CustomGameModal';
 import { CampaignChapter } from '../../engine/campaign';
-import { useModalStore } from '../../stores/useModalStore';
 import { useViewStore } from '../../stores/useViewStore';
 import { appFlowCoordinator } from '../../services/app-flow-coordinator';
 
@@ -16,7 +15,6 @@ export interface WebAppProps {
     nextChapter: CampaignChapter | null;
     currentWins: number;
   } | null;
-  startNewGame: (nextGameNumber: number, options?: { playerCount?: number; campaignChapter?: CampaignChapter }) => void;
   handleNextGame: () => void;
   handlePlaySelectedCards: () => void;
   handlePassTurn: () => void;
@@ -25,7 +23,6 @@ export interface WebAppProps {
   handleDealCard: (playerIndex: number, currentCardCount: number) => void;
   handleDealComplete: () => void;
   handleForfeitMatch: () => void;
-  handleRequestReturnToLobby: () => void;
   handleReturnToLobby: () => void;
   handlePlayNowDefault: () => void;
   handleStartQuickGame: (config: QuickSetupConfig) => void;
@@ -42,15 +39,13 @@ export const WebApp: React.FC<WebAppProps> = ({
   handleDealCard,
   handleDealComplete,
   handleForfeitMatch,
-  handleRequestReturnToLobby,
   handleReturnToLobby,
   handlePlayNowDefault,
   handleStartQuickGame,
   handleStartCustomGameWithConfig,
   handleStartCampaignChapter
 }) => {
-  const { openModal, closeModal } = useModalStore();
-  const { currentScreen } = useViewStore();
+  const { currentScreen, openModal, closeModal } = useViewStore();
 
   return (
     <>
@@ -75,7 +70,7 @@ export const WebApp: React.FC<WebAppProps> = ({
           onAutoSort={handleAutoSort}
           onDealCard={handleDealCard}
           onDealComplete={handleDealComplete}
-          onReturnToLobby={handleRequestReturnToLobby}
+          onReturnToLobby={handleReturnToLobby}
         />
       )}
 

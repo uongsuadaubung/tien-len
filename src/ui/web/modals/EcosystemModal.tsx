@@ -1,6 +1,6 @@
 import React from 'react';
 import { Modal, Card, Badge, Button, Tabs, TabOption } from '../../primitives';
-import { useModalStore } from '../../../stores/useModalStore';
+import { useViewStore } from '../../../stores/useViewStore';
 import { useEcosystem, EcosystemTab, TIER_FILTERS, PAGE_SIZE } from '../../hooks/useEcosystem';
 import { getTierFilterLabel } from '../../../engine/ecosystem/ecosystem-types';
 import { 
@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 
 export const EcosystemModal: React.FC = () => {
-  const { isEcosystemOpen, closeModal } = useModalStore();
+  const { isEcosystemOpen, closeModal } = useViewStore();
   const {
     activeTab,
     setActiveTab,

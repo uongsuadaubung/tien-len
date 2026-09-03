@@ -234,5 +234,5 @@ export const ECONOMY_CONSTANTS = {
  * Tính tiền cọc an toàn yêu cầu cho bàn đấu: 26 * betAmount * choppingMultiplier
  */
 export function calculateRequiredDeposit(betAmount: number, choppingMultiplier: number = 1): number {
-  return ECONOMY_CONSTANTS.DEPOSIT_CARD_MULTIPLIER * betAmount * (choppingMultiplier || 1);
+  return ECONOMY_CONSTANTS.DEPOSIT_CARD_MULTIPLIER * betAmount * Math.max(1, choppingMultiplier);
 }

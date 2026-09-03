@@ -1,12 +1,12 @@
 import React from 'react';
 import { AlertTriangle, Home, Landmark } from 'lucide-react';
 import { useOnlineStore } from '../../stores/useOnlineStore';
-import { useModalStore } from '../../stores/useModalStore';
+import { useViewStore } from '../../stores/useViewStore';
 import { Button } from '../primitives';
 
 export const OnlineDisbandModal: React.FC = () => {
   const { disbandNotice, clearDisbandNotice } = useOnlineStore();
-  const { openModal } = useModalStore();
+  const { openModal } = useViewStore();
 
   if (disbandNotice === null) return null;
 

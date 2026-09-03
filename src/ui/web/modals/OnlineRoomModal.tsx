@@ -1,5 +1,5 @@
 import React from 'react';
-import { useModalStore } from '../../../stores/useModalStore';
+import { useViewStore } from '../../../stores/useViewStore';
 import { 
   Users, 
   Copy, 
@@ -22,7 +22,7 @@ import { OnlineRoomBrowser } from '../../components/OnlineRoomBrowser';
 import { Modal, Card, Badge, Button } from '../../primitives';
 
 export const OnlineRoomModal: React.FC = () => {
-  const { isOnlineRoomOpen } = useModalStore();
+  const { isOnlineRoomOpen } = useViewStore();
   
   const {
     profile,
@@ -304,10 +304,10 @@ export const OnlineRoomModal: React.FC = () => {
                 ⚡ {currentSettlement.label}
               </Badge>
               <Badge variant="neutral" size="sm">
-                👥 {roomState?.playerCount || 4} Người
+                👥 {roomState ? roomState.playerCount : 4} Người
               </Badge>
               <Badge variant="neutral" size="sm">
-                💰 {roomState?.betAmount.toLocaleString() || 1000} Xu/lá
+                💰 {roomState ? roomState.betAmount.toLocaleString() : '---'} Xu/lá
               </Badge>
               {roomState?.choppingMultiplier && roomState.choppingMultiplier > 1 && (
                 <Badge variant="neutral" size="sm" className="text-amber-300">

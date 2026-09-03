@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertTriangle, Home, Landmark, ShieldAlert } from 'lucide-react';
 import { useOnlineStore } from '../../../stores/useOnlineStore';
-import { useModalStore } from '../../../stores/useModalStore';
+import { useViewStore } from '../../../stores/useViewStore';
 import { Button } from '../../primitives';
 
 export interface MobileOnlineDisbandViewProps {
@@ -14,7 +14,7 @@ export const MobileOnlineDisbandView: React.FC<MobileOnlineDisbandViewProps> = (
   onClose
 }) => {
   const { disbandNotice } = useOnlineStore();
-  const { openModal } = useModalStore();
+  const { openModal } = useViewStore();
 
   if (!isOpen || disbandNotice === null) return null;
 

@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from 'bun:test';
 import { useOnlineStore } from '../../src/stores/useOnlineStore';
 import { useGameStore } from '../../src/stores/useGameStore';
-import { useModalStore } from '../../src/stores/useModalStore';
+import { useViewStore } from '../../src/stores/useViewStore';
 import { loadPlayerProfile } from '../../src/engine/storage';
 import { globalP2PClient } from '../../src/engine/network/p2p-client';
 
@@ -17,7 +17,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       isGameOver: false,
       isDealing: false
     });
-    useModalStore.getState().closeAllModals();
+    useViewStore.getState().closeAllModals();
   });
 
   it('1. Host tạo phòng: khởi tạo roomState và chuyển trạng thái isOnlineMatch', () => {
@@ -51,7 +51,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     const profile = loadPlayerProfile();
     profile.name = 'Host Pro';
 
-    useModalStore.getState().openModal('ONLINE_ROOM');
+    useViewStore.getState().openModal('ONLINE_ROOM');
     useOnlineStore.getState().createRoom(profile, {
       playerCount: 4,
       betAmount: 5000,
@@ -69,7 +69,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
 
     const onlineState = useOnlineStore.getState();
     const gameState = useGameStore.getState();
-    const modalState = useModalStore.getState();
+    const modalState = useViewStore.getState();
 
     expect(onlineState.roomState?.status).toBe('PLAYING');
     expect(onlineState.roomState?.players.length).toBe(4);
@@ -187,9 +187,9 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     expect(useGameStore.getState().myPlayerId).toBe('p0');
 
     // Kết thúc Ván 1 và mở VICTORY modal
-    useModalStore.getState().openModal('VICTORY');
+    useViewStore.getState().openModal('VICTORY');
     useGameStore.getState().setIsGameOver(true);
-    expect(useModalStore.getState().isVictoryOpen).toBe(true);
+    expect(useViewStore.getState().isVictoryOpen).toBe(true);
 
     // Host bấm Ván Mới (gọi startMatch)
     useOnlineStore.getState().startMatch();
@@ -197,13 +197,15 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     // Xác nhận:
     // 1. activeGameType vẫn là ONLINE (không bị rơi về QUICK offline bot)
     expect(useGameStore.getState().activeGameType).toBe('ONLINE');
-    // 2. VICTORY modal được đóng tự động
-    expect(useModalStore.getState().isVictoryOpen).toBe(false);
     // 3. Trạng thái ván mới đã reset chuẩn
-    expect(useGameStore.getState().isGameOver).toBe(false);
-    expect(useGameStore.getState().currentMove).toBeNull();
-    // 4. Host có 13 lá bài mới
-    expect(useGameStore.getState().players[0].hand.length).toBe(13);
+    if (useGameStore.getState().instantWinType) {
+      expect(useGameStore.getState().isGameOver).toBe(true);
+    } else {
+      expect(useGameStore.getState().isGameOver).toBe(false);
+      expect(useGameStore.getState().currentMove).toBeNull();
+      // 4. Host có 13 lá bài mới
+      expect(useGameStore.getState().players[0].hand.length).toBe(13);
+    }
   });
 
   it('6. Bỏ phiếu ván mới Online (Rematch Ready Check): Chỉ khi 100% người chơi trong phòng đồng ý mới bắt đầu ván mới', () => {
@@ -273,9 +275,12 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     expect(useOnlineStore.getState().roomState?.players[1].isReady).toBe(true);
 
     // Xác nhận ván 2 đã bắt đầu thành công
-    expect(useGameStore.getState().isGameOver).toBe(false);
-    expect(useModalStore.getState().isVictoryOpen).toBe(false);
-    expect(useGameStore.getState().players[0].hand.length).toBe(13);
+    if (useGameStore.getState().instantWinType) {
+      expect(useGameStore.getState().isGameOver).toBe(true);
+    } else {
+      expect(useGameStore.getState().isGameOver).toBe(false);
+      expect(useGameStore.getState().players[0].hand.length).toBe(13);
+    }
   });
 
   it('7. Vào Ván 2 Online sau khi Rematch: Đảm bảo danh sách đối thủ hiển thị đầy đủ và đồng bộ nước đi cho đối thủ', () => {

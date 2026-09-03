@@ -1,23 +1,23 @@
 import { describe, expect, it, beforeEach } from 'bun:test';
-import { useModalStore } from '../../src/stores/useModalStore';
+import { useViewStore } from '../../src/stores/useViewStore';
 import { matchBotsForPlayerTable } from '../../src/engine/ecosystem/matchmaker';
 import { BotEntity } from '../../src/engine/ecosystem/ecosystem-types';
 import { getBotConfig } from '../../src/ai/bot-factory';
 
 describe('Kiểm Thử Giả Lập Ghép Trận Online (Matchmaking Simulation Tests)', () => {
   beforeEach(() => {
-    useModalStore.getState().closeAllModals();
+    useViewStore.getState().closeAllModals();
   });
 
-  it('1. useModalStore: Bật/Tắt Modal MATCHMAKING', () => {
-    const modalStore = useModalStore.getState();
+  it('1. useViewStore: Bật/Tắt Modal MATCHMAKING', () => {
+    const modalStore = useViewStore.getState();
     expect(modalStore.isMatchmakingOpen).toBe(false);
 
     modalStore.openModal('MATCHMAKING');
-    expect(useModalStore.getState().isMatchmakingOpen).toBe(true);
+    expect(useViewStore.getState().isMatchmakingOpen).toBe(true);
 
     modalStore.closeModal('MATCHMAKING');
-    expect(useModalStore.getState().isMatchmakingOpen).toBe(false);
+    expect(useViewStore.getState().isMatchmakingOpen).toBe(false);
   });
 
   it('2. Ghép trận: Quét tìm 3 đối thủ trong hệ sinh thái tương thích Elo và tiền cược', () => {
@@ -163,7 +163,8 @@ describe('Kiểm Thử Giả Lập Ghép Trận Online (Matchmaking Simulation T
     const { ecosystemManager } = await import('../../src/engine/ecosystem/ecosystem-manager');
     await useEcosystemStore.getState().initEcosystem();
 
-    const botsBefore = await ecosystemManager.getAllBots();
+    useEcosystemStore.setState({ activeSimulationPromise: null });
+    const botsBefore = useEcosystemStore.getState().bots;
     expect(botsBefore.length).toBeGreaterThan(0);
 
     const testBot = botsBefore[0];
@@ -206,13 +207,13 @@ describe('Kiểm Thử Giả Lập Ghép Trận Online (Matchmaking Simulation T
 
     expect(useMatchmakingStore.getState().isSearching).toBe(true);
     expect(useMatchmakingStore.getState().pendingMatch?.betAmount).toBe(2000);
-    expect(useModalStore.getState().isMatchmakingOpen).toBe(true);
+    expect(useViewStore.getState().isMatchmakingOpen).toBe(true);
 
     // Test cancel
     useMatchmakingStore.getState().cancelMatchmaking();
     expect(useMatchmakingStore.getState().isSearching).toBe(false);
     expect(useMatchmakingStore.getState().pendingMatch).toBeNull();
-    expect(useModalStore.getState().isMatchmakingOpen).toBe(false);
+    expect(useViewStore.getState().isMatchmakingOpen).toBe(false);
 
     // Test execute
     useMatchmakingStore.getState().startMatchmaking({
@@ -228,7 +229,7 @@ describe('Kiểm Thử Giả Lập Ghép Trận Online (Matchmaking Simulation T
     useMatchmakingStore.getState().executeMatch();
     expect(started).toBe(true);
     expect(useMatchmakingStore.getState().isSearching).toBe(false);
-    expect(useModalStore.getState().isMatchmakingOpen).toBe(false);
+    expect(useViewStore.getState().isMatchmakingOpen).toBe(false);
   });
 
   it('6. Luồng chuyển màn hình sau khi ghép trận: Đảm bảo currentScreen chuyển sang GAME_TABLE và không bị văng về LOBBY', async () => {
