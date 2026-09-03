@@ -26,24 +26,83 @@ export interface CreateRoomOptions {
 }
 
 export interface OnlineDisbandNotice {
-  title: string;
-  message: string;
+  readonly title: string;
+  readonly message: string;
 }
 
+/**
+ * Các trạng thái phiên phòng P2P Online theo chuẩn State Pattern (Discriminated Unions)
+ */
+export interface IdleOnlineState {
+  readonly status: 'IDLE';
+  readonly publicRooms: readonly PublicRoomSummary[];
+}
+
+export interface BrowsingLobbyOnlineState {
+  readonly status: 'BROWSING_LOBBY';
+  readonly publicRooms: readonly PublicRoomSummary[];
+  readonly isLoading: boolean;
+}
+
+export interface ConnectingOnlineState {
+  readonly status: 'CONNECTING';
+  readonly targetRoomCode: string;
+  readonly attemptCount: number;
+}
+
+export interface InRoomWaitingOnlineState {
+  readonly status: 'IN_ROOM_WAITING';
+  readonly roomCode: string;             // ✅ Bảo đảm luôn tồn tại
+  readonly roomState: OnlineRoomState;   // ✅ Bảo đảm luôn tồn tại
+  readonly isHost: boolean;
+  readonly myPlayerId: string;
+}
+
+export interface InRoomPlayingOnlineState {
+  readonly status: 'IN_ROOM_PLAYING';
+  readonly roomCode: string;             // ✅ Bảo đảm luôn tồn tại
+  readonly roomState: OnlineRoomState;   // ✅ Bảo đảm luôn tồn tại
+  readonly isHost: boolean;
+  readonly myPlayerId: string;
+  readonly hostDriver: HostEngineDriver | null;
+}
+
+export interface DisbandedOnlineState {
+  readonly status: 'DISBANDED';
+  readonly notice: OnlineDisbandNotice;  // ✅ Bảo đảm luôn có thông báo lý do
+}
+
+export interface DisconnectedOnlineState {
+  readonly status: 'DISCONNECTED';
+  readonly reason: string;
+  readonly canReconnect: boolean;
+}
+
+export type OnlineSessionState =
+  | IdleOnlineState
+  | BrowsingLobbyOnlineState
+  | ConnectingOnlineState
+  | InRoomWaitingOnlineState
+  | InRoomPlayingOnlineState
+  | DisbandedOnlineState
+  | DisconnectedOnlineState;
+
 export interface RoomSliceState {
-  isOnlineMatch: boolean;
-  isHost: boolean;
-  roomCode: string | null;
-  roomState: OnlineRoomState | null;
-  myPlayerId: string;
-  connectionStatus: 'IDLE' | 'CONNECTING' | 'CONNECTED' | 'DISCONNECTED';
-  disbandNotice: OnlineDisbandNotice | null;
-  publicRooms: PublicRoomSummary[];
-  isBrowsingLobby: boolean;
-  isLobbyLoading: boolean;
+  readonly sessionState: OnlineSessionState;
+  readonly isOnlineMatch: boolean;
+  readonly isHost: boolean;
+  readonly roomCode: string | null;
+  readonly roomState: OnlineRoomState | null;
+  readonly myPlayerId: string;
+  readonly connectionStatus: 'IDLE' | 'CONNECTING' | 'CONNECTED' | 'DISCONNECTED';
+  readonly disbandNotice: OnlineDisbandNotice | null;
+  readonly publicRooms: readonly PublicRoomSummary[];
+  readonly isBrowsingLobby: boolean;
+  readonly isLobbyLoading: boolean;
 }
 
 export interface RoomSliceActions {
+  setSessionState: (session: OnlineSessionState) => void;
   createRoom: (profile: PlayerProfile, options: CreateRoomOptions) => void;
   joinRoom: (profile: PlayerProfile, roomCode: string) => void;
   joinPublicRoom: (profile: PlayerProfile, room: PublicRoomSummary) => void;

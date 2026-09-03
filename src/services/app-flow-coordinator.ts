@@ -265,6 +265,10 @@ export class AppFlowCoordinator {
       useGameStore.getState().applyMatchSnapshot(snapshot);
     });
 
+    driver.subscribeMatchState((matchState) => {
+      useGameStore.getState().applyMatchState(matchState);
+    });
+
     driver.onComplete((result: MatchCompletionResult) => {
       settleCompletedMatch(result.engine);
     });

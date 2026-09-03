@@ -1,12 +1,11 @@
 import { GameEngine } from '../engine/game';
 import { CampaignChapter, CAMPAIGN_CHAPTERS } from '../engine/campaign';
 import { resolveStrategyForMatch } from '../engine/strategies/game-mode-strategy';
-import { type MatchCompletedEvent } from '../engine/events/game-event-bus';
+import { type MatchCompletedEvent, GameEventBus } from '../engine/events/game-event-bus';
 import { evaluateDailyQuests, evaluateAchievements } from '../engine/evaluators/progress-evaluators';
 import { Quest, Achievement } from '../engine/quests';
 import { PlayerProfile, getActiveMatchSession, clearActiveMatchSession, savePlayerProfile } from '../engine/storage';
 import { MatchLogger } from '../engine/match-logger';
-import { soundManager } from '../ui/audio/sound-manager';
 import { useGameStore, CampaignResultMeta } from '../stores/useGameStore';
 import { useUserStore } from '../stores/useUserStore';
 import { useViewStore } from '../stores/useViewStore';
@@ -29,7 +28,6 @@ function triggerQuestToastIfNewlyCompleted(
   const newlyCompletedAch = newAchs.find((a, idx) => a.isCompleted && !oldAchs[idx]?.isCompleted);
   const completedItem = newlyCompletedQuest || newlyCompletedAch;
   if (completedItem) {
-    soundManager.playVictory();
     useGameStore.getState().setQuestToast({
       title: completedItem.title,
       rewardCoins: completedItem.rewardCoins,
@@ -57,10 +55,6 @@ export function settleCompletedMatch(engine: GameEngine): void {
 
   const winner = engine.winners[0];
   const isPlayerWin = winner?.id === 'p0';
-
-  if (isPlayerWin) {
-    soundManager.playVictory();
-  }
 
   const currentProfile = userStore.profile;
   const currentCoins = currentProfile.coins;
@@ -175,6 +169,9 @@ export function settleCompletedMatch(engine: GameEngine): void {
     loanDeduction: settlement.loanDeduction,
     instantWinType: resolvedInstantWinType
   };
+
+  // Phát sự kiện MATCH_COMPLETED tới Observer âm thanh và toàn bộ hệ thống
+  GameEventBus.getInstance().emit(matchCompletedEvent);
 
   // Hệ thống ngoài rìa (Quests & Achievements) chỉ nhận event DTO để đánh giá tiến độ
   const finalQuests = evaluateDailyQuests([matchCompletedEvent], updatedProfile.dailyQuests, updatedProfile);

@@ -10,7 +10,7 @@ import {
 } from '../../engine/network/network.schema';
 import { createCard } from '../../engine/card';
 import { identifyCombination } from '../../engine/combinations';
-import { soundManager } from '../../ui/audio/sound-manager';
+import { GameEventBus } from '../../engine/events/game-event-bus';
 import { useGameStore } from '../useGameStore';
 import { useViewStore } from '../useViewStore';
 import { useUserStore } from '../useUserStore';
@@ -28,7 +28,7 @@ import { type MatchCompletedEvent } from '../../engine/events/game-event-bus';
 import { evaluateDailyQuests, evaluateAchievements } from '../../engine/evaluators/progress-evaluators';
 import { type RoomSlice, type OnlineSliceCreator } from './types';
 
-export function generateRoomPin(existingRooms: PublicRoomSummary[] = []): string {
+export function generateRoomPin(existingRooms: readonly PublicRoomSummary[] = []): string {
   const existingCodes = new Set(existingRooms.map(r => r.roomCode.toUpperCase().trim()));
 
   for (let attempt = 0; attempt < 50; attempt++) {
@@ -80,6 +80,10 @@ function syncLobbyBroadcast(roomState: OnlineRoomState): void {
 }
 
 export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
+  sessionState: {
+    status: 'IDLE',
+    publicRooms: []
+  },
   isOnlineMatch: false,
   isHost: false,
   roomCode: null,
@@ -91,16 +95,41 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
   isBrowsingLobby: false,
   isLobbyLoading: false,
 
+  setSessionState: (session) => set({ sessionState: session }),
+
   startBrowsingLobby: () => {
-    set({ isBrowsingLobby: true, isLobbyLoading: true });
+    set({
+      isBrowsingLobby: true,
+      isLobbyLoading: true,
+      sessionState: {
+        status: 'BROWSING_LOBBY',
+        publicRooms: get().publicRooms,
+        isLoading: true
+      }
+    });
     globalLobbyDiscoveryClient.startListening((rooms) => {
-      set({ publicRooms: rooms, isLobbyLoading: false });
+      set({
+        publicRooms: rooms,
+        isLobbyLoading: false,
+        sessionState: {
+          status: 'BROWSING_LOBBY',
+          publicRooms: rooms,
+          isLoading: false
+        }
+      });
     });
   },
 
   stopBrowsingLobby: () => {
     globalLobbyDiscoveryClient.stopListening();
-    set({ isBrowsingLobby: false, isLobbyLoading: false });
+    set({
+      isBrowsingLobby: false,
+      isLobbyLoading: false,
+      sessionState: {
+        status: 'IDLE',
+        publicRooms: get().publicRooms
+      }
+    });
   },
 
   refreshLobbyRooms: () => {
@@ -231,6 +260,13 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
     });
 
     set({
+      sessionState: {
+        status: 'IN_ROOM_WAITING',
+        roomCode,
+        roomState: initialRoomState,
+        isHost: true,
+        myPlayerId: 'p0'
+      },
       isOnlineMatch: true,
       isHost: true,
       roomCode,
@@ -253,6 +289,11 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
     });
 
     set({
+      sessionState: {
+        status: 'CONNECTING',
+        targetRoomCode: formattedCode,
+        attemptCount: 1
+      },
       isOnlineMatch: true,
       isHost: false,
       roomCode: formattedCode,
@@ -310,6 +351,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
 
       const me = roomState.players.find(p => p.peerId === globalP2PClient.selfPeerId);
       const myId = me ? me.playerId : get().myPlayerId;
+      const isPlaying = roomState.status === 'PLAYING';
 
       useGameStore.setState({
         myPlayerId: myId,
@@ -317,6 +359,20 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       });
 
       set({
+        sessionState: isPlaying ? {
+          status: 'IN_ROOM_PLAYING',
+          roomCode: roomState.roomCode,
+          roomState,
+          isHost: false,
+          myPlayerId: myId,
+          hostDriver: null
+        } : {
+          status: 'IN_ROOM_WAITING',
+          roomCode: roomState.roomCode,
+          roomState,
+          isHost: false,
+          myPlayerId: myId
+        },
         roomState,
         connectionStatus: 'CONNECTED',
         myPlayerId: myId
@@ -471,14 +527,23 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
             chopChainCount: null,
             chopChainTotalAmount: null
           });
+          GameEventBus.getInstance().emit({
+            type: 'CARD_PLAYED',
+            playerId: sync.currentMovePlayerId || '',
+            cards: [...moveCards],
+            combination: combo,
+            remainingCardsCount: 0
+          });
         }
-        soundManager.playCardSlap();
       } else {
         gameStore.setCurrentMove(null);
       }
 
       if (sync.lastActionMessage && sync.lastActionMessage.includes('bỏ lượt')) {
-        soundManager.playPass();
+        GameEventBus.getInstance().emit({
+          type: 'TURN_PASSED',
+          playerId: sync.currentTurnPlayerId || ''
+        });
       }
 
       if (sync.remainingCardCounts) {
@@ -682,6 +747,10 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
     useGameStore.getState().resetMatchState();
 
     set({
+      sessionState: {
+        status: 'IDLE',
+        publicRooms: get().publicRooms
+      },
       isOnlineMatch: false,
       isHost: false,
       roomCode: null,

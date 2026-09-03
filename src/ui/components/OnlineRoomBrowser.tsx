@@ -15,7 +15,7 @@ import { getSettlementRuleLabel } from '../../engine/types';
 import { getRankTierByElo } from '../../engine/elo';
 
 export interface OnlineRoomBrowserProps {
-  rooms: PublicRoomSummary[];
+  rooms: readonly PublicRoomSummary[];
   isLoading: boolean;
   userCoins: number;
   inputPin: string;

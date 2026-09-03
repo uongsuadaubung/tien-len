@@ -7,14 +7,16 @@ import {
   type GameRules,
   type GameSettings,
   type BotPersonaIdTuple,
-  type CustomBotConfigTuple
+  type CustomBotConfigTuple,
+  createDefaultGameRules
 } from './types';
+import { mapMatchStateToSnapshot, type MatchState } from './state-machine';
 import type { BotConfig } from '../ai/types';
 import { CardTracker } from '../ai/card-tracker';
 import { getBotConfig } from '../ai/bot-factory';
 import { calculateDynamicBotDelay, type GameSpeedMode } from './game-speed';
 import { isTwo, sortCards } from './card';
-import { soundManager } from '../ui/audio/sound-manager';
+import { GameEventBus } from './events/game-event-bus';
 import { UI_TIMINGS } from '../ui/constants/ui-timings';
 import { resolveStrategyForMatch, type MatchSetupContext } from './strategies/game-mode-strategy';
 import { generateRealisticBotBankroll } from '../ai/bot-factory';
@@ -61,6 +63,7 @@ export interface MatchCompletionResult {
 }
 
 export type SnapshotListener = (snapshot: MatchSnapshot) => void;
+export type MatchStateListener = (state: MatchState) => void;
 export type CompletionListener = (result: MatchCompletionResult) => void;
 
 export class OfflineMatchDriver {
@@ -81,7 +84,7 @@ export class OfflineMatchDriver {
   public dealBanner: string | null = null;
   public chopNotification: ChopNotificationData | null = null;
   public botThinkingThought: { botId: string; text: string } | null = null;
-  public instantWinType?: InstantWinType;
+  public instantWinType: InstantWinType | null = null;
 
   // Runtime control
   private isDisposed: boolean = false;
@@ -93,11 +96,12 @@ export class OfflineMatchDriver {
 
   // Observers
   private snapshotListeners: Set<SnapshotListener> = new Set();
+  private matchStateListeners: Set<MatchStateListener> = new Set();
   private completionListeners: Set<CompletionListener> = new Set();
 
-  constructor(options?: { gameSpeed?: GameSpeedMode; autoSortEnabled?: boolean }) {
-    if (options?.gameSpeed !== undefined) this.gameSpeed = options.gameSpeed;
-    if (options?.autoSortEnabled !== undefined) this.autoSortEnabled = options.autoSortEnabled;
+  constructor(options: { gameSpeed: GameSpeedMode | null; autoSortEnabled: boolean | null } | null = null) {
+    if (options && options.gameSpeed !== null) this.gameSpeed = options.gameSpeed;
+    if (options && options.autoSortEnabled !== null) this.autoSortEnabled = options.autoSortEnabled;
   }
 
   public setGameSpeed(speed: GameSpeedMode): void {
@@ -116,6 +120,14 @@ export class OfflineMatchDriver {
     };
   }
 
+  public subscribeMatchState(listener: MatchStateListener): () => void {
+    this.matchStateListeners.add(listener);
+    listener(this.getMatchState());
+    return () => {
+      this.matchStateListeners.delete(listener);
+    };
+  }
+
   public onComplete(listener: CompletionListener): () => void {
     this.completionListeners.add(listener);
     return () => {
@@ -129,54 +141,112 @@ export class OfflineMatchDriver {
     for (const listener of this.snapshotListeners) {
       listener(snapshot);
     }
+    const matchState = this.getMatchState();
+    for (const stateListener of this.matchStateListeners) {
+      stateListener(matchState);
+    }
   }
 
-  public getSnapshot(): MatchSnapshot {
+  /**
+   * Lấy trạng thái trận đấu theo chuẩn Type-Safe State Pattern (Discriminated Union)
+   */
+  public getMatchState(): MatchState {
     if (!this.engine) {
       return {
+        status: 'WAITING',
         gameNumber: this.gameNumber,
         players: [],
-        currentTurnPlayerId: null,
-        leadPlayerId: null,
-        currentMove: null,
-        winners: [],
-        isGameOver: false,
-        instantWinType: null,
-        isDealing: this.isDealing,
-        dealtCounts: this.dealtCounts,
+        rules: this.rules || (this.tableConfig ? this.tableConfig.rules : createDefaultGameRules()),
+        lastWinnerId: this.lastWinnerId
+      };
+    }
+
+    if (this.isDealing) {
+      const resolvedDealtCounts: Record<string, number> = {};
+      let totalCards = 0;
+      for (const p of this.engine.players) {
+        const count = this.dealtCounts[p.id] ?? 0;
+        resolvedDealtCounts[p.id] = count;
+        totalCards += count;
+      }
+      return {
+        status: 'DEALING',
+        gameNumber: this.engine.gameNumber,
+        players: [...this.engine.players],
+        dealtCounts: resolvedDealtCounts,
         dealBanner: this.dealBanner,
-        chopNotification: this.chopNotification,
-        botThinkingThought: this.botThinkingThought,
-        isFirstMoveOfGame: false,
-        isLeadMove: true
+        totalCardsDealt: totalCards,
+        rules: this.engine.rules
+      };
+    }
+
+    if (this.instantWinType) {
+      const winner = this.engine.instantWinner || this.engine.players.find(p => p.instantWinType) || this.engine.players[0];
+      return {
+        status: 'INSTANT_WIN',
+        gameNumber: this.engine.gameNumber,
+        players: [...this.engine.players],
+        instantWinner: winner,
+        instantWinType: this.instantWinType,
+        matchPayouts: {},
+        eloDeltas: {},
+        matchLogReport: null,
+        rules: this.engine.rules
+      };
+    }
+
+    if (this.engine.isGameOver) {
+      return {
+        status: 'GAME_OVER',
+        gameNumber: this.engine.gameNumber,
+        players: [...this.engine.players],
+        winners: [...this.engine.winners],
+        isThreeSpadesWin: this.engine.isThreeSpadesWin,
+        matchPayouts: {},
+        eloDeltas: {},
+        matchLogReport: null,
+        rules: this.engine.rules
+      };
+    }
+
+    if (this.engine.currentRound.isFinished) {
+      return {
+        status: 'ROUND_ENDED',
+        gameNumber: this.engine.gameNumber,
+        roundNumber: this.engine.roundNumber,
+        players: [...this.engine.players],
+        roundWinnerId: this.engine.currentRound.leadPlayerId,
+        nextLeadPlayerId: this.engine.currentRound.leadPlayerId,
+        lastRoundMoves: [...this.engine.currentRound.moves],
+        chopNotification: this.chopNotification ? { ...this.chopNotification } : null,
+        rules: this.engine.rules
       };
     }
 
     const currentId = this.engine.getCurrentPlayer()?.id || this.engine.currentRound.currentTurnPlayerId;
-    const resolvedDealtCounts: Record<string, number> = {};
-    for (const p of this.engine.players) {
-      resolvedDealtCounts[p.id] = this.isDealing ? (this.dealtCounts[p.id] ?? 0) : p.hand.length;
-    }
-
-    const snapshot: MatchSnapshot = {
+    return {
+      status: 'PLAYING',
       gameNumber: this.engine.gameNumber,
+      roundNumber: this.engine.roundNumber,
       players: [...this.engine.players],
       currentTurnPlayerId: currentId,
       leadPlayerId: this.engine.currentRound.leadPlayerId,
-      currentMove: this.engine.getLeadingMove(),
-      winners: [...this.engine.winners],
-      isGameOver: this.engine.isGameOver,
-      instantWinType: this.instantWinType || null,
-      isDealing: this.isDealing,
-      dealtCounts: resolvedDealtCounts,
-      dealBanner: this.dealBanner,
+      roundMoves: [...this.engine.currentRound.moves],
+      leadingMove: this.engine.getLeadingMove(),
+      isLeadMove: this.engine.isRoundLeadMove(),
+      isFirstMoveOfGame: this.engine.isFirstMoveOfGame,
+      passedPlayerIds: [...this.engine.currentRound.passedPlayerIds],
       chopNotification: this.chopNotification ? { ...this.chopNotification } : null,
       botThinkingThought: this.botThinkingThought ? { ...this.botThinkingThought } : null,
-      isFirstMoveOfGame: this.engine.isFirstMoveOfGame,
-      isLeadMove: this.engine.isRoundLeadMove()
+      rules: this.engine.rules
     };
+  }
 
-    assertValidSnapshot(snapshot);
+  public getSnapshot(): MatchSnapshot {
+    const snapshot = mapMatchStateToSnapshot(this.getMatchState());
+    if (this.engine) {
+      assertValidSnapshot(snapshot);
+    }
     return snapshot;
   }
 
@@ -235,7 +305,7 @@ export class OfflineMatchDriver {
     this.cleanupTimers();
     this.isDisposed = false;
     this.gameNumber = roundNumber;
-    this.instantWinType = undefined;
+    this.instantWinType = null;
     this.botThinkingThought = null;
     this.chopNotification = null;
 
@@ -275,7 +345,15 @@ export class OfflineMatchDriver {
     if (startResult.instantWin && startResult.instantWinType) {
       this.instantWinType = startResult.instantWinType;
       this.isDealing = false;
-      soundManager.playVictory();
+      const winnerId = typeof startResult.instantWinner === 'object' && startResult.instantWinner !== null
+        ? (startResult.instantWinner as any).id
+        : (typeof startResult.instantWinner === 'string' ? startResult.instantWinner : (this.engine ? this.engine.players[0].id : ''));
+
+      GameEventBus.getInstance().emit({
+        type: 'INSTANT_WIN',
+        winnerPlayerId: winnerId,
+        instantWinType: startResult.instantWinType
+      });
       this.emitSnapshot();
 
       this.bannerTimer = setTimeout(() => {
@@ -402,7 +480,15 @@ export class OfflineMatchDriver {
     }
 
     this.dealtCounts[playerId] = player.hand.length;
-    soundManager.playCardSlap();
+    if (moveRes.playedMove) {
+      GameEventBus.getInstance().emit({
+        type: 'CARD_PLAYED',
+        playerId,
+        cards: [...moveRes.playedMove.combination.cards],
+        combination: moveRes.playedMove.combination,
+        remainingCardsCount: player.hand.length
+      });
+    }
 
     // Xử lý chặt heo / hàng
     if (moveRes.isChop && moveRes.choppedPlayerId) {
@@ -413,7 +499,10 @@ export class OfflineMatchDriver {
         chopped?.name || 'Đối thủ',
         penalty,
         moveRes.isCascadeChop || false,
-        moveRes.chopChainCount || 1
+        moveRes.chopChainCount || 1,
+        playerId,
+        moveRes.choppedPlayerId,
+        [...cards]
       );
     }
 
@@ -445,7 +534,10 @@ export class OfflineMatchDriver {
       return { success: false, error: passRes.error || 'Không thể bỏ lượt lúc này.' };
     }
 
-    soundManager.playPass();
+    GameEventBus.getInstance().emit({
+      type: 'TURN_PASSED',
+      playerId
+    });
 
     const leadingMove = this.engine.getLeadingMove();
     if (leadingMove) {
@@ -517,9 +609,14 @@ export class OfflineMatchDriver {
       const result = this.engine.executeBotTurn(botConfig, tracker);
 
       if (result.action === 'PLAY') {
-        soundManager.playCardSlap();
-
         if (result.playedMove) {
+          GameEventBus.getInstance().emit({
+            type: 'CARD_PLAYED',
+            playerId: currentPlayer.id,
+            cards: [...result.playedMove.combination.cards],
+            combination: result.playedMove.combination,
+            remainingCardsCount: currentPlayer.hand.length
+          });
           for (const t of Object.values(this.trackers)) {
             t.recordMove(result.playedMove);
           }
@@ -533,11 +630,17 @@ export class OfflineMatchDriver {
             chopped?.name || 'Đối thủ',
             penalty,
             result.isCascadeChop || false,
-            result.chopChainCount || 1
+            result.chopChainCount || 1,
+            currentPlayer.id,
+            result.choppedPlayerId,
+            result.playedMove ? [...result.playedMove.combination.cards] : null
           );
         }
       } else {
-        soundManager.playPass();
+        GameEventBus.getInstance().emit({
+          type: 'TURN_PASSED',
+          playerId: currentPlayer.id
+        });
         const leadingMove = this.engine.getLeadingMove();
         if (leadingMove) {
           for (const t of Object.values(this.trackers)) {
@@ -561,9 +664,22 @@ export class OfflineMatchDriver {
     targetName: string,
     amount: number,
     isCascade: boolean,
-    chainCount: number
+    chainCount: number,
+    chopperPlayerId: string | null = null,
+    victimPlayerId: string | null = null,
+    choppingCards: Card[] | null = null
   ): void {
-    soundManager.playChop();
+    if (chopperPlayerId && victimPlayerId) {
+      GameEventBus.getInstance().emit({
+        type: 'CHOP_EXECUTED',
+        chopperPlayerId,
+        victimPlayerId,
+        penaltyAmount: amount,
+        choppingCards: choppingCards || [],
+        isCascadeChop: isCascade,
+        chopChainCount: chainCount
+      });
+    }
     this.chopNotification = {
       visible: true,
       chopperName,
@@ -675,6 +791,6 @@ export class OfflineMatchDriver {
     this.tableConfig = null;
     this.rules = null;
     this.settings = null;
-    this.instantWinType = undefined;
+    this.instantWinType = null;
   }
 }

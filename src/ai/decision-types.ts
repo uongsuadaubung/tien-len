@@ -30,11 +30,15 @@ export interface DecisionContext {
   opponentProfiles: Record<string, OpponentBehaviorProfile> | null;
 }
 
-/**
- * Kết quả quyết định nước đi của Bot AI
- */
-export interface BotDecision {
-  type: 'PLAY' | 'PASS';
+export { 
+  type BotDecision, 
+  type PlayBotDecision, 
+  type PassBotDecision,
+  type BotThinkingPhaseStatus 
+} from './thinking-phases';
+import type { PlayBotDecision, PassBotDecision, BotDecision } from './thinking-phases';
+
+export interface BuildBotDecisionOptions {
   cards: Card[] | null;
   combination: Combination | null;
   reason: string | null;
@@ -45,24 +49,28 @@ export interface BotDecision {
 }
 
 /**
- * Helper khởi tạo đối tượng BotDecision
+ * Helper khởi tạo đối tượng BotDecision (Discriminated Union)
  */
 export function buildBotDecision(
   type: 'PLAY' | 'PASS',
-  opts: {
-    cards?: Card[] | null;
-    combination?: Combination | null;
-    reason?: string | null;
-    strategyUsed?: string | null;
-    evaluationScore?: number | null;
-    candidatesEvaluated?: BotCandidateEvaluation[] | null;
-    telemetry?: BotDecisionTelemetry | null;
-  } = {}
+  opts: Partial<BuildBotDecisionOptions> = {}
 ): BotDecision {
+  if (type === 'PLAY') {
+    return {
+      type: 'PLAY',
+      cards: opts.cards || [],
+      combination: opts.combination!,
+      reason: opts.reason ?? null,
+      strategyUsed: opts.strategyUsed ?? null,
+      evaluationScore: opts.evaluationScore ?? null,
+      candidatesEvaluated: opts.candidatesEvaluated ?? null,
+      telemetry: opts.telemetry ?? null
+    };
+  }
   return {
-    type,
-    cards: opts.cards ?? null,
-    combination: opts.combination ?? null,
+    type: 'PASS',
+    cards: null,
+    combination: null,
     reason: opts.reason ?? null,
     strategyUsed: opts.strategyUsed ?? null,
     evaluationScore: opts.evaluationScore ?? null,

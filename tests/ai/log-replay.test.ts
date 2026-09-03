@@ -156,7 +156,8 @@ describe('Log Replay & Deterministic Test Reproduction', () => {
             mctsSimulations: null,
             handStrengthTwoCount: 1,
             handStrengthTrashCount: 1,
-            remainingOpponentCards: { p0: 5 }
+            remainingOpponentCards: { p0: 5 },
+            thinkingPhase: 'END_GAME'
           }
         }
       ],

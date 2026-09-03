@@ -61,16 +61,11 @@ export function useGameTableScreenLogic({
     playerCount,
     botPersonaIds,
     customBotConfigs,
-    isDealing,
     players,
-    currentTurnPlayerId,
-    leadPlayerId,
-    currentMove,
+    matchState,
     selectedCardIds,
     currentHint,
     gameRules,
-    isFirstMoveOfGame,
-    isLeadMove,
     setSelectedCardIds,
     clearCardSelection
   } = useGameStore();
@@ -81,7 +76,16 @@ export function useGameTableScreenLogic({
   const myPlayerIndex = Math.max(0, players.findIndex(p => p.id === myPlayerId));
   const p0 = players[myPlayerIndex] || (players.length > 0 ? players[0] : null);
 
-  const isMyTurn = currentTurnPlayerId === myPlayerId;
+  // Trích xuất thuộc tính bảo đảm tồn tại từ State Pattern (Discriminated Union)
+  const isPlaying = matchState.status === 'PLAYING';
+  const currentTurnPlayerId = isPlaying ? matchState.currentTurnPlayerId : null;
+  const leadPlayerId = isPlaying ? matchState.leadPlayerId : null;
+  const currentMove = isPlaying ? matchState.leadingMove : null;
+  const isLeadMove = isPlaying ? matchState.isLeadMove : true;
+  const isFirstMoveOfGame = isPlaying ? matchState.isFirstMoveOfGame : false;
+
+  // Lượt của tôi: chỉ có thể xảy ra khi trận đấu đang ở trạng thái PLAYING
+  const isMyTurn = isPlaying && currentTurnPlayerId === myPlayerId;
   const selectedCards = p0 !== null ? p0.hand.filter(c => selectedCardIds.has(c.id)) : [];
 
   const effectiveIsFirstMove = isOnlineMatch ? false : isFirstMoveOfGame;
@@ -103,9 +107,10 @@ export function useGameTableScreenLogic({
       prohibitEndingWithTwo: gameRules.gameFlow.prohibitEndingWithTwo
     }).valid;
 
+  // Không cần kiểm tra !isDealing vì isMyTurn đã bảo đảm trận đấu ở trạng thái PLAYING
   const canP0Pass =
     isMyTurn &&
-    !isDealing &&
+    !effectiveIsLeadMove &&
     currentMove !== null &&
     currentMove.playerId !== myPlayerId;
 
@@ -143,7 +148,7 @@ export function useGameTableScreenLogic({
     return feedback !== null ? feedback : currentHint;
   }, [aiHintEnabled, isMyTurn, p0, selectedCards, currentHint, currentMove, effectiveIsFirstMove, effectiveIsLeadMove, gameRules]);
 
-  const canQuickSelect = isMyTurn && !isDealing && quickSelectCandidates.length > 0;
+  const canQuickSelect = isMyTurn && quickSelectCandidates.length > 0;
 
   const handleQuickSelect = useCallback(() => {
     if (!isMyTurn || p0 === null || p0.hand.length === 0) return;

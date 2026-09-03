@@ -20,6 +20,7 @@ import { CardTracker } from '../ai/card-tracker';
 import { OpponentProfiler } from '../ai/opponent-profiler';
 import { calculateChopPenalty, calculateRottenPenalty } from './economy';
 import { MatchLogger, BotDecisionTelemetry } from './match-logger';
+import { ChopChainStateMachine } from './state-machine';
 
 export interface PlayMoveResult {
   success: boolean;
@@ -344,60 +345,47 @@ export class GameEngine {
     // Ván 1: Đã đánh ra 3S ở lượt đầu
     this.isFirstMoveOfGame = false;
 
-    // 2. Xử lý Chặt Heo & Chặt Hàng (Phạt tức thì & Chặt Chồng Tích Lũy)
+    // 2. Xử lý Chặt Heo & Chặt Hàng (Quản lý qua ChopChainStateMachine)
     let isChop = false;
     let isCascadeChop = false;
     let chopChainCount = 0;
     let chopChainTotalAmount = 0;
-    let choppedPlayerId: string | undefined;
+    let choppedPlayerId: string | null = null;
     let penaltyAmount = 0;
 
     if (validation.isChop && leadingMove) {
-      isChop = true;
-      choppedPlayerId = leadingMove.playerId;
       const basePenalty = this.calculateChopPenalty(leadingMove.combination, validation.combination);
       const isCascadeRuleActive = this.rules.chopping.cascadeMultiplier;
 
-      const prevChopMoves = this.currentRound.moves.filter(m => m.isChop);
+      const fsm = new ChopChainStateMachine();
+      const transition = fsm.evaluateMove({
+        isChopMove: true,
+        chopperId: playerId,
+        leadingMove,
+        basePenalty,
+        isCascadeRuleActive,
+        currentRoundChopMoves: this.currentRound.moves
+      });
 
-      if (isCascadeRuleActive && prevChopMoves.length > 0) {
-        // CHẶT CHỒNG TÍCH LŨY (Chop Cascade Stack):
-        isCascadeChop = true;
-        chopChainCount = prevChopMoves.length + 1;
+      isChop = transition.isChop;
+      isCascadeChop = transition.isCascadeChop;
+      chopChainCount = transition.chopChainCount;
+      chopChainTotalAmount = transition.chopChainTotalAmount;
+      choppedPlayerId = transition.choppedPlayerId;
+      penaltyAmount = transition.penaltyAmount;
 
-        // Hoàn trả lại tiền phạt cho người bị chặt ở bước trước (giải thoát)
-        const lastChopMove = prevChopMoves[prevChopMoves.length - 1];
-        if (lastChopMove && lastChopMove.choppedPlayerId) {
-          const previousVictim = this.getPlayer(lastChopMove.choppedPlayerId);
-          const previousChopper = this.getPlayer(lastChopMove.playerId);
-          const previousAmount = lastChopMove.penaltyAmount || 0;
-
-          if (previousVictim && previousChopper) {
-            // Hoàn lại tiền cho previousVictim, trừ lại từ previousChopper
-            previousVictim.score += previousAmount;
-            previousChopper.score -= previousAmount;
-          }
-
-          // Tổng tiền phạt tích lũy = Tiền chuỗi trước + Tiền chặt đè mới
-          penaltyAmount = previousAmount + basePenalty;
-        } else {
-          penaltyAmount = basePenalty;
+      // Hoàn trả lại tiền phạt cho người bị chặt ở bước trước (giải thoát)
+      if (transition.refund) {
+        const previousVictim = this.getPlayer(transition.refund.toPlayerId);
+        const previousChopper = this.getPlayer(transition.refund.fromPlayerId);
+        if (previousVictim && previousChopper) {
+          previousVictim.score += transition.refund.amount;
+          previousChopper.score -= transition.refund.amount;
         }
+      }
 
-        chopChainTotalAmount = penaltyAmount;
-
-        // Người bị chặt đè hiện tại (choppedPlayerId) đền TOÀN BỘ chuỗi tích lũy cho người chặt mới (player)
-        const choppedPlayer = this.getPlayer(choppedPlayerId);
-        if (choppedPlayer) {
-          choppedPlayer.score -= penaltyAmount;
-          player.score += penaltyAmount;
-        }
-      } else {
-        // Chặt đơn lẻ thông thường
-        penaltyAmount = basePenalty;
-        chopChainCount = 1;
-        chopChainTotalAmount = basePenalty;
-
+      // Người bị chặt hiện tại đền tiền cho người chặt mới
+      if (choppedPlayerId) {
         const choppedPlayer = this.getPlayer(choppedPlayerId);
         if (choppedPlayer) {
           choppedPlayer.score -= penaltyAmount;

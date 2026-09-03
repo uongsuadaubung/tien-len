@@ -164,6 +164,13 @@ export class GameEventBus {
   }
 
   /**
+   * Bí danh ngắn gọn cho publish
+   */
+  public emit(event: GameEvent): void {
+    this.publish(event);
+  }
+
+  /**
    * Xóa toàn bộ listeners (phục vụ reset/testing)
    */
   public clear(): void {

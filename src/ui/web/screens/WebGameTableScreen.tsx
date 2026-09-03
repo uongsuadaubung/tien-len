@@ -47,25 +47,29 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
   const {
     players,
     gameNumber,
+    matchState,
     gameSettings,
     activeGameType,
-    isDealing,
-    dealtCounts,
-    dealBanner,
-    chopNotification,
-    currentTurnPlayerId,
-    leadPlayerId,
-    currentMove,
     selectedCardIds,
-    botThinkingThought,
     handSortMode,
     smartVariantIndex,
     myPlayerId,
-    isFirstMoveOfGame,
-    isLeadMove,
     toggleCardSelect,
     clearCardSelection
   } = useGameStore();
+
+  const isDealing = matchState.status === 'DEALING';
+  const isPlaying = matchState.status === 'PLAYING';
+  const isRoundEnded = matchState.status === 'ROUND_ENDED';
+  const dealtCounts = isDealing ? matchState.dealtCounts : {};
+  const dealBanner = isDealing ? matchState.dealBanner : null;
+  const currentTurnPlayerId = isPlaying ? matchState.currentTurnPlayerId : (isRoundEnded ? matchState.nextLeadPlayerId : null);
+  const leadPlayerId = isPlaying ? matchState.leadPlayerId : (isRoundEnded ? matchState.nextLeadPlayerId : null);
+  const currentMove = isPlaying ? matchState.leadingMove : null;
+  const chopNotification = (isPlaying || isRoundEnded) ? matchState.chopNotification : null;
+  const botThinkingThought = isPlaying ? matchState.botThinkingThought : null;
+  const isLeadMove = isPlaying ? matchState.isLeadMove : true;
+  const isFirstMoveOfGame = isPlaying ? matchState.isFirstMoveOfGame : false;
 
   const {
     isOnlineMatch,
@@ -152,7 +156,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
             <BotSeat
               player={topBot}
               botConfig={getBotConfig(topBotPersonaId, topBotCustomConfig || undefined)}
-              isCurrentTurn={!isDealing && currentTurnPlayerId === topBot.id}
+              isCurrentTurn={currentTurnPlayerId === topBot.id}
               position="top"
               isLeader={leadPlayerId === topBot.id}
               isDealing={isDealing}
@@ -170,7 +174,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
               <BotSeat
                 player={leftBot}
                 botConfig={getBotConfig(botPersonaIds[0], customBotConfigs[0] || undefined)}
-                isCurrentTurn={!isDealing && currentTurnPlayerId === leftBot.id}
+                isCurrentTurn={currentTurnPlayerId === leftBot.id}
                 position="left"
                 isLeader={leadPlayerId === leftBot.id}
                 isDealing={isDealing}
@@ -218,7 +222,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
               <BotSeat
                 player={rightBot}
                 botConfig={getBotConfig(botPersonaIds[2], customBotConfigs[2] || undefined)}
-                isCurrentTurn={!isDealing && currentTurnPlayerId === rightBot.id}
+                isCurrentTurn={currentTurnPlayerId === rightBot.id}
                 position="right"
                 isLeader={leadPlayerId === rightBot.id}
                 isDealing={isDealing}

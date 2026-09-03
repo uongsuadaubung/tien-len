@@ -10,6 +10,7 @@ import {
   CustomBotConfigTuple,
   updateTupleAt
 } from '../engine/types';
+import type { MatchState } from '../engine/state-machine';
 import { BotConfig } from '../ai/types';
 import { GameSettingsSchema, QuickTableConfigSchema, type QuickTableConfig } from '../engine/schemas/settings.schema';
 import { CampaignChapter } from '../engine/campaign';
@@ -23,7 +24,7 @@ import { useViewStore } from './useViewStore';
 export type ActiveGameType = 'QUICK' | 'CAMPAIGN' | 'ONLINE';
 export type ScreenType = 'LOBBY' | 'GAME_TABLE';
 
-export type HandSortMode = 'NATURAL' | 'SMART_GROUP';
+export type HandSortMode = 'NATURAL' | 'SMART_GROUP' | 'BY_SUIT' | 'TWO_PRESERVE';
 
 export interface CampaignResultMeta {
   isUnlockedNext: boolean;
@@ -63,14 +64,15 @@ interface GameState {
   chopNotification: ChopNotificationData | null;
   questToast: { title: string; rewardCoins: number; icon: string } | null;
 
-  // Board State
+  // Board State (State Pattern & Discriminated Unions)
+  matchState: MatchState;
   players: Player[];
   currentTurnPlayerId: string | null;
   leadPlayerId: string | null;
   currentMove: PlayedMove | null;
   winners: Player[];
   isGameOver: boolean;
-  instantWinType?: InstantWinType;
+  instantWinType: InstantWinType | null;
   isThreeSpadesWin: boolean;
   botThinkingThought: { botId: string; text: string } | null;
   isFirstMoveOfGame: boolean;
@@ -138,6 +140,8 @@ interface GameState {
   setLastEloDelta: (delta: number) => void;
   setAllEloDeltas: (deltas: Record<string, number>) => void;
   setMatchLogReport: (report: MatchLogReport | null) => void;
+  setMatchState: (state: MatchState) => void;
+  applyMatchState: (state: MatchState) => void;
   applyMatchSnapshot: (snapshot: Partial<{
     gameNumber: number;
     players: Player[];
@@ -146,14 +150,14 @@ interface GameState {
     currentMove: PlayedMove | null;
     winners: Player[];
     isGameOver: boolean;
-    instantWinType?: InstantWinType | null;
+    instantWinType: InstantWinType | null;
     isDealing: boolean;
     dealtCounts: Record<string, number>;
     dealBanner: string | null;
     chopNotification: ChopNotificationData | null;
     botThinkingThought: { botId: string; text: string } | null;
-    isFirstMoveOfGame?: boolean;
-    isLeadMove?: boolean;
+    isFirstMoveOfGame: boolean | null;
+    isLeadMove: boolean | null;
   }>) => void;
   resetMatchState: () => void;
 }
@@ -186,6 +190,14 @@ const DEFAULT_GAME_RULES: GameRules = createDefaultGameRules();
 const DEFAULT_GAME_SETTINGS: GameSettings = GameSettingsSchema.parse({});
 export const DEFAULT_QUICK_TABLE_CONFIG: QuickTableConfig = QuickTableConfigSchema.parse({});
 
+export const DEFAULT_MATCH_STATE: MatchState = {
+  status: 'WAITING',
+  gameNumber: 1,
+  players: DEFAULT_PLAYERS,
+  rules: DEFAULT_GAME_RULES,
+  lastWinnerId: null
+};
+
 export const useGameStore = create<GameState>((set) => ({
   currentScreen: 'LOBBY',
   activeGameType: 'QUICK',
@@ -206,13 +218,15 @@ export const useGameStore = create<GameState>((set) => ({
   chopNotification: null,
   questToast: null,
 
+  // Board State (State Pattern)
+  matchState: DEFAULT_MATCH_STATE,
   players: DEFAULT_PLAYERS,
   currentTurnPlayerId: null,
   leadPlayerId: null,
   currentMove: null,
   winners: [],
   isGameOver: false,
-  instantWinType: undefined,
+  instantWinType: null,
   isThreeSpadesWin: false,
   botThinkingThought: null,
   isFirstMoveOfGame: false,
@@ -305,9 +319,12 @@ export const useGameStore = create<GameState>((set) => ({
   clearCardSelection: () => set({ selectedCardIds: new Set<string>() }),
   setCurrentHint: (hint) => set({ currentHint: hint }),
   setHandSortMode: (mode) => set({ handSortMode: mode }),
-  toggleHandSortMode: () => set((state) => ({
-    handSortMode: state.handSortMode === 'NATURAL' ? 'SMART_GROUP' : 'NATURAL'
-  })),
+  toggleHandSortMode: () => set((state) => {
+    const modes: HandSortMode[] = ['NATURAL', 'SMART_GROUP', 'BY_SUIT', 'TWO_PRESERVE'];
+    const currentIdx = modes.indexOf(state.handSortMode);
+    const nextIdx = (currentIdx + 1) % modes.length;
+    return { handSortMode: modes[nextIdx] };
+  }),
   setSmartVariantIndex: (index) => set({ smartVariantIndex: index }),
 
   setMatchPayouts: (payouts) => set({ matchPayouts: payouts }),
@@ -315,6 +332,93 @@ export const useGameStore = create<GameState>((set) => ({
   setLastEloDelta: (delta) => set({ lastEloDelta: delta }),
   setAllEloDeltas: (deltas) => set({ allEloDeltas: deltas }),
   setMatchLogReport: (report) => set({ matchLogReport: report }),
+  setMatchState: (matchState) => set({ matchState }),
+  applyMatchState: (matchState) => set((prev) => {
+    switch (matchState.status) {
+      case 'WAITING':
+        return {
+          matchState,
+          gameNumber: matchState.gameNumber,
+          players: [...matchState.players],
+          isDealing: false,
+          isGameOver: false,
+          currentTurnPlayerId: null,
+          leadPlayerId: null,
+          currentMove: null,
+          winners: [],
+          instantWinType: null
+        };
+      case 'DEALING':
+        return {
+          matchState,
+          gameNumber: matchState.gameNumber,
+          players: [...matchState.players],
+          isDealing: true,
+          dealtCounts: { ...matchState.dealtCounts },
+          dealBanner: matchState.dealBanner,
+          isGameOver: false,
+          currentTurnPlayerId: null,
+          instantWinType: null
+        };
+      case 'PLAYING':
+        return {
+          matchState,
+          gameNumber: matchState.gameNumber,
+          players: [...matchState.players],
+          currentTurnPlayerId: matchState.currentTurnPlayerId,
+          leadPlayerId: matchState.leadPlayerId,
+          currentMove: matchState.leadingMove ? { ...matchState.leadingMove } : null,
+          isDealing: false,
+          isGameOver: false,
+          instantWinType: null,
+          isFirstMoveOfGame: matchState.isFirstMoveOfGame,
+          isLeadMove: matchState.isLeadMove,
+          chopNotification: matchState.chopNotification ? { ...matchState.chopNotification } : null,
+          botThinkingThought: matchState.botThinkingThought ? { ...matchState.botThinkingThought } : null
+        };
+      case 'INSTANT_WIN':
+        return {
+          matchState,
+          gameNumber: matchState.gameNumber,
+          players: [...matchState.players],
+          winners: [matchState.instantWinner],
+          instantWinType: matchState.instantWinType,
+          isDealing: false,
+          isGameOver: true,
+          currentTurnPlayerId: null,
+          matchPayouts: { ...matchState.matchPayouts },
+          allEloDeltas: { ...matchState.eloDeltas },
+          matchLogReport: matchState.matchLogReport
+        };
+      case 'ROUND_ENDED':
+        return {
+          matchState,
+          gameNumber: matchState.gameNumber,
+          players: [...matchState.players],
+          currentTurnPlayerId: matchState.nextLeadPlayerId,
+          leadPlayerId: matchState.nextLeadPlayerId,
+          currentMove: null,
+          isDealing: false,
+          isGameOver: false,
+          instantWinType: null,
+          isLeadMove: true,
+          chopNotification: matchState.chopNotification ? { ...matchState.chopNotification } : null
+        };
+      case 'GAME_OVER':
+        return {
+          matchState,
+          gameNumber: matchState.gameNumber,
+          players: [...matchState.players],
+          winners: [...matchState.winners],
+          isDealing: false,
+          isGameOver: true,
+          currentTurnPlayerId: null,
+          matchPayouts: { ...matchState.matchPayouts },
+          allEloDeltas: { ...matchState.eloDeltas },
+          matchLogReport: matchState.matchLogReport
+        };
+    }
+  }),
   applyMatchSnapshot: (snapshot) => set((state) => ({
     ...state,
     ...(snapshot.gameNumber !== undefined ? { gameNumber: snapshot.gameNumber } : {}),
@@ -324,16 +428,17 @@ export const useGameStore = create<GameState>((set) => ({
     ...(snapshot.currentMove !== undefined ? { currentMove: snapshot.currentMove } : {}),
     ...(snapshot.winners !== undefined ? { winners: snapshot.winners } : {}),
     ...(snapshot.isGameOver !== undefined ? { isGameOver: snapshot.isGameOver } : {}),
-    ...(snapshot.instantWinType !== undefined ? { instantWinType: snapshot.instantWinType || undefined } : {}),
+    ...(snapshot.instantWinType !== undefined ? { instantWinType: snapshot.instantWinType } : {}),
     ...(snapshot.isDealing !== undefined ? { isDealing: snapshot.isDealing } : {}),
     ...(snapshot.dealtCounts !== undefined ? { dealtCounts: snapshot.dealtCounts } : {}),
     ...(snapshot.dealBanner !== undefined ? { dealBanner: snapshot.dealBanner } : {}),
     ...(snapshot.chopNotification !== undefined ? { chopNotification: snapshot.chopNotification } : {}),
     ...(snapshot.botThinkingThought !== undefined ? { botThinkingThought: snapshot.botThinkingThought } : {}),
-    ...(snapshot.isFirstMoveOfGame !== undefined ? { isFirstMoveOfGame: snapshot.isFirstMoveOfGame } : {}),
-    ...(snapshot.isLeadMove !== undefined ? { isLeadMove: snapshot.isLeadMove } : {})
+    ...(snapshot.isFirstMoveOfGame !== undefined ? { isFirstMoveOfGame: snapshot.isFirstMoveOfGame ?? false } : {}),
+    ...(snapshot.isLeadMove !== undefined ? { isLeadMove: snapshot.isLeadMove ?? false } : {})
   })),
   resetMatchState: () => set({
+    matchState: DEFAULT_MATCH_STATE,
     isDealing: false,
     dealtCounts: {},
     dealBanner: null,
@@ -344,7 +449,7 @@ export const useGameStore = create<GameState>((set) => ({
     currentMove: null,
     winners: [],
     isGameOver: false,
-    instantWinType: undefined,
+    instantWinType: null,
     isThreeSpadesWin: false,
     botThinkingThought: null,
     isFirstMoveOfGame: false,

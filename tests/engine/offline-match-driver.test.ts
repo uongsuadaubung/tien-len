@@ -75,9 +75,12 @@ describe('OfflineMatchDriver Unit Tests (Kiểm Thử Driver Vòng Lặp Ván Đ
     const driver = new OfflineMatchDriver();
     const profile = loadPlayerProfile();
 
+    const testRules = createDefaultGameRules();
+    testRules.instantWin.enabled = false;
+
     driver.startMatch(1, {
       profile,
-      customRules: createDefaultGameRules(),
+      customRules: testRules,
       playerCount: 4
     });
 

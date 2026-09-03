@@ -56,7 +56,7 @@ export interface UseOnlineRoomLogicResult {
   canAffordBet: boolean;
   isRoomFull: boolean;
   isPublicRoom: boolean;
-  publicRooms: PublicRoomSummary[];
+  publicRooms: readonly PublicRoomSummary[];
   isLobbyLoading: boolean;
   setTab: (tab: 'LOBBY' | 'CREATE') => void;
   setInputPin: (pin: string) => void;

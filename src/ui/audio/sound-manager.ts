@@ -245,6 +245,31 @@ class SoundManager {
       osc.stop(startTime + 0.38);
     });
   }
+
+  // Âm thanh Thất Bại / Về Bét "Tò te tí te..."
+  public playDefeat() {
+    if (!this.enabled) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    const notes = [329.63, 293.66, 261.63, 220.00]; // E4, D4, C4, A3 (âm điệu trầm buồn)
+    notes.forEach((freq, idx) => {
+      const osc = this.ctx!.createOscillator();
+      const gain = this.ctx!.createGain();
+      const startTime = this.ctx!.currentTime + idx * 0.16;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      gain.gain.setValueAtTime(0.3, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.35);
+
+      osc.connect(gain);
+      gain.connect(this.ctx!.destination);
+      osc.start(startTime);
+      osc.stop(startTime + 0.4);
+    });
+  }
 }
 
 export const soundManager = new SoundManager();

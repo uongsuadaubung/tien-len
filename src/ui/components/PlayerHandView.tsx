@@ -3,6 +3,7 @@ import { Player } from '../../engine/types';
 import { HandSortMode } from '../../stores/useGameStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { getAvailableSmartVariants } from '../../engine/hand-sorter';
+import { resolveHandSortStrategy } from '../../engine/strategies/hand-sort-strategy';
 import { CardView } from './CardView';
 import { Play, SkipForward, ArrowUpDown, ArrowDownToLine, Layers, Crosshair } from 'lucide-react';
 
@@ -78,31 +79,22 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
     return availableVariants[safeIdx];
   }, [isSmartMode, variantIndex, availableVariants]);
 
-  // Xác định nhãn và icon của nút Xếp Bài khi xoay vòng
-  let sortButtonLabel = 'Xếp Bộ';
-  let sortButtonTitle = 'Tự động gom nhóm thông minh theo Sảnh, Đôi, Tứ Quý, Rác';
-  let isNextSortNatural = false;
+  // Áp dụng Strategy Pattern để sắp xếp danh sách lá bài hiển thị
+  const sortedHand = React.useMemo(() => {
+    const strategy = resolveHandSortStrategy(sortMode);
+    return strategy.sort(hand);
+  }, [hand, sortMode]);
 
-  if (totalVariants > 1) {
-    if (!isSmartMode) {
-      sortButtonLabel = 'Xếp Bộ 1';
-      sortButtonTitle = `Chuyển sang phương án xếp bộ 1 (trong ${totalVariants} cách)`;
-    } else if (variantIndex < totalVariants - 1) {
-      sortButtonLabel = `Xếp Bộ ${variantIndex + 2}`;
+  const currentStrategy = resolveHandSortStrategy(sortMode);
+  // Xác định nhãn và icon của nút Xếp Bài khi xoay vòng
+  let sortButtonLabel = currentStrategy.label;
+  let sortButtonTitle = currentStrategy.description;
+  let isNextSortNatural = sortMode === 'TWO_PRESERVE';
+
+  if (totalVariants > 1 && isSmartMode) {
+    if (variantIndex < totalVariants - 1) {
+      sortButtonLabel = `Bộ ${variantIndex + 2}`;
       sortButtonTitle = `Chuyển sang phương án xếp bộ ${variantIndex + 2} (trong ${totalVariants} cách)`;
-    } else {
-      sortButtonLabel = 'Xếp Điểm';
-      sortButtonTitle = 'Chuyển về xếp theo điểm từ bé đến lớn (3 -> 2)';
-      isNextSortNatural = true;
-    }
-  } else {
-    if (isSmartMode) {
-      sortButtonLabel = 'Xếp Điểm';
-      sortButtonTitle = 'Chuyển về xếp theo điểm từ bé đến lớn (3 -> 2)';
-      isNextSortNatural = true;
-    } else {
-      sortButtonLabel = 'Xếp Bộ';
-      sortButtonTitle = 'Tự động gom nhóm thông minh theo Sảnh, Đôi, Tứ Quý, Rác';
     }
   }
 
@@ -300,7 +292,7 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
         </div>
       ) : (
         <div className={`relative flex items-center justify-center ${isMobileSize ? '-space-x-6 sm:-space-x-6.5' : '-space-x-8'} max-w-full overflow-x-visible px-2 py-0.5`}>
-          {hand.map((card, index) => {
+          {sortedHand.map((card, index) => {
             const isSelected = selectedCardIds.has(card.id);
             const isKey3S = isFirstMoveOfGame && isCurrentTurn && card.rank === 3 && card.suit === 'SPADES';
             const rot = (index - (hand.length - 1) / 2) * 2;

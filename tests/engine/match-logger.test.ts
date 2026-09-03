@@ -59,7 +59,8 @@ describe('MatchLogger & Bot Reasoning Telemetry', () => {
       mctsSimulations: 50,
       handStrengthTwoCount: 1,
       handStrengthTrashCount: 1,
-      remainingOpponentCards: { p0: 2 }
+      remainingOpponentCards: { p0: 2 },
+      thinkingPhase: 'MID_GAME'
     };
 
     logger.recordTurn({

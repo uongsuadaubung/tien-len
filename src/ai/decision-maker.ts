@@ -34,6 +34,7 @@ import { EndgameSolverHandler } from './handlers/endgame-handler';
 import { LeadMoveHeuristicHandler } from './handlers/lead-move-handler';
 import { RespondingMoveHeuristicHandler } from './handlers/responding-move-handler';
 import { FallbackDecisionHandler } from './handlers/fallback-handler';
+import { BotThinkingPhaseStateMachine } from './thinking-phases';
 
 /**
  * Xây dựng chuỗi Chain of Responsibility hoàn chỉnh cho AI
@@ -167,7 +168,8 @@ export function makeBotDecision(context: DecisionContext): BotDecision {
       mctsSimulations: config.mctsSimulations || null,
       handStrengthTwoCount: handTwoCount,
       handStrengthTrashCount: trashCount,
-      remainingOpponentCards: { ...remainingPlayerCards }
+      remainingOpponentCards: { ...remainingPlayerCards },
+      thinkingPhase: 'NO_VALID_MOVES'
     };
 
     return {
@@ -204,17 +206,30 @@ export function makeBotDecision(context: DecisionContext): BotDecision {
     opponentProfiles
   };
 
-  // 5. Xử lý qua Rule-First Chain of Responsibility
-  const decision = DEFAULT_DECISION_CHAIN.handle(enrichedContext, validMoves) || {
-    type: isLeadMove ? 'PLAY' : 'PASS',
-    cards: isLeadMove ? validMoves[0].cards : null,
-    combination: isLeadMove ? validMoves[0].combination : null,
-    reason: isLeadMove ? 'Nước đi mặc định khi cầm cái' : 'Bỏ lượt mặc định',
+  // 5. Xử lý qua State Pattern: BotThinkingPhaseStateMachine điều phối theo giai đoạn nhận thức
+  const phaseFSM = new BotThinkingPhaseStateMachine();
+  const currentThinkingPhase = phaseFSM.transitionToPhase(enrichedContext).phase;
+
+  const phaseDecision = phaseFSM.evaluate(enrichedContext, validMoves);
+  const decision: BotDecision = phaseDecision || DEFAULT_DECISION_CHAIN.handle(enrichedContext, validMoves) || (isLeadMove ? {
+    type: 'PLAY',
+    cards: validMoves[0].cards,
+    combination: validMoves[0].combination,
+    reason: 'Nước đi mặc định khi cầm cái',
     strategyUsed: 'SAFE_DEFAULT',
     evaluationScore: null,
     candidatesEvaluated: null,
     telemetry: null
-  };
+  } : {
+    type: 'PASS',
+    cards: null,
+    combination: null,
+    reason: 'Bỏ lượt mặc định',
+    strategyUsed: 'SAFE_DEFAULT',
+    evaluationScore: null,
+    candidatesEvaluated: null,
+    telemetry: null
+  });
 
   const handTwoCount = hand.filter(isTwo).length;
   const partition = partitionHand(hand, config.handPartitioningOptimality);
@@ -233,8 +248,8 @@ export function makeBotDecision(context: DecisionContext): BotDecision {
     strategyUsed: decision.strategyUsed || (isLeadMove ? 'LEAD_STRATEGY' : 'RESPONSE_STRATEGY'),
     heuristicScore: decision.evaluationScore !== undefined ? decision.evaluationScore : null,
     evaluatedCandidatesCount: validMoves.length,
-    topCandidates: decision.candidatesEvaluated || (decision.cards ? [{
-      cards: decision.cards,
+    topCandidates: decision.candidatesEvaluated ? [...decision.candidatesEvaluated] : (decision.cards ? [{
+      cards: [...decision.cards],
       combinationType: decision.combination?.type || null,
       score: decision.evaluationScore ?? 100,
       reasons: [decision.reason || 'Quyết định từ chiến thuật ưu tiên']
@@ -243,7 +258,8 @@ export function makeBotDecision(context: DecisionContext): BotDecision {
     mctsSimulations: config.mctsSimulations ?? null,
     handStrengthTwoCount: handTwoCount,
     handStrengthTrashCount: trashCount,
-    remainingOpponentCards: { ...remainingPlayerCards }
+    remainingOpponentCards: { ...remainingPlayerCards },
+    thinkingPhase: currentThinkingPhase
   };
 
   return {

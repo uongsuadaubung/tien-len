@@ -25,6 +25,7 @@ export interface BotDecisionTelemetry {
   handStrengthTwoCount: number;
   handStrengthTrashCount: number;
   remainingOpponentCards: Record<string, number>;
+  thinkingPhase: string | null;
 }
 
 /**

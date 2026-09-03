@@ -23,10 +23,9 @@ import { P2PClient } from './p2p-client';
 import { useGameStore } from '../../stores/useGameStore';
 import { useViewStore } from '../../stores/useViewStore';
 import { useUserStore } from '../../stores/useUserStore';
-import { soundManager } from '../../ui/audio/sound-manager';
 import { resolveStrategyForMatch } from '../strategies/game-mode-strategy';
 import { savePlayerProfile, type PlayerProfile } from '../storage';
-import { type MatchCompletedEvent } from '../events/game-event-bus';
+import { type MatchCompletedEvent, GameEventBus } from '../events/game-event-bus';
 import { evaluateDailyQuests, evaluateAchievements } from '../evaluators/progress-evaluators';
 
 export interface HostEngineDriverCallbacks {
@@ -158,7 +157,10 @@ export class HostEngineDriver {
     if (packet.type === 'PASS') {
       const res = this.engine.passTurn(packet.playerId);
       if (res.success) {
-        soundManager.playPass();
+        GameEventBus.getInstance().emit({
+          type: 'TURN_PASSED',
+          playerId: packet.playerId
+        });
         this.broadcastCurrentTableState(`${player.name} bỏ lượt`);
         this.checkAndExecuteBotTurn();
       }
@@ -166,10 +168,26 @@ export class HostEngineDriver {
       const selectedCards = player.hand.filter(c => packet.cardIds?.includes(c.id));
       const res = this.engine.playMove(packet.playerId, selectedCards);
       if (res.success) {
-        if (res.isChop) {
-          soundManager.playChop();
-        } else {
-          soundManager.playCardSlap();
+        if (res.playedMove) {
+          GameEventBus.getInstance().emit({
+            type: 'CARD_PLAYED',
+            playerId: packet.playerId,
+            cards: [...res.playedMove.combination.cards],
+            combination: res.playedMove.combination,
+            remainingCardsCount: player.hand.length
+          });
+          this.cardTracker.recordMove(res.playedMove);
+        }
+        if (res.isChop && res.choppedPlayerId) {
+          GameEventBus.getInstance().emit({
+            type: 'CHOP_EXECUTED',
+            chopperPlayerId: packet.playerId,
+            victimPlayerId: res.choppedPlayerId,
+            penaltyAmount: res.penaltyAmount || 0,
+            choppingCards: [...selectedCards],
+            isCascadeChop: res.isCascadeChop || false,
+            chopChainCount: res.chopChainCount || 1
+          });
         }
         if (res.playedMove) {
           this.cardTracker.recordMove(res.playedMove);
@@ -233,13 +251,26 @@ export class HostEngineDriver {
       if (decision.type === 'PLAY' && decision.cards && decision.cards.length > 0) {
         const res = this.engine.playMove(botPlayer.id, decision.cards);
         if (res.success) {
-          if (res.isChop) {
-            soundManager.playChop();
-          } else {
-            soundManager.playCardSlap();
-          }
           if (res.playedMove) {
+            GameEventBus.getInstance().emit({
+              type: 'CARD_PLAYED',
+              playerId: botPlayer.id,
+              cards: [...res.playedMove.combination.cards],
+              combination: res.playedMove.combination,
+              remainingCardsCount: botPlayer.hand.length
+            });
             this.cardTracker.recordMove(res.playedMove);
+          }
+          if (res.isChop && res.choppedPlayerId) {
+            GameEventBus.getInstance().emit({
+              type: 'CHOP_EXECUTED',
+              chopperPlayerId: botPlayer.id,
+              victimPlayerId: res.choppedPlayerId,
+              penaltyAmount: res.penaltyAmount || 0,
+              choppingCards: [...decision.cards],
+              isCascadeChop: res.isCascadeChop || false,
+              chopChainCount: res.chopChainCount || 1
+            });
           }
           this.broadcastCurrentTableState(`${botPlayer.name} đã đánh bài`);
           if (this.engine.isGameOver) {
@@ -250,7 +281,10 @@ export class HostEngineDriver {
       } else {
         const res = this.engine.passTurn(botPlayer.id);
         if (res.success) {
-          soundManager.playPass();
+          GameEventBus.getInstance().emit({
+            type: 'TURN_PASSED',
+            playerId: botPlayer.id
+          });
           this.broadcastCurrentTableState(`${botPlayer.name} bỏ lượt`);
         }
       }

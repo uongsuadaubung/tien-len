@@ -50,7 +50,17 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
       updatedAt: Date.now()
     };
 
-    set({ roomState: updatedState });
+    set({
+      sessionState: {
+        status: 'IN_ROOM_PLAYING',
+        roomCode: updatedState.roomCode,
+        roomState: updatedState,
+        isHost: true,
+        myPlayerId: get().myPlayerId,
+        hostDriver: null
+      },
+      roomState: updatedState
+    });
     void globalP2PClient.broadcastRoomState(updatedState);
 
     // Khởi tạo GameEngine và HostEngineDriver
@@ -127,7 +137,12 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
     });
     driver.gameNumber = prevGameNumber;
     driver.lastWinnerId = prevWinnerId;
-    set({ hostDriver: driver });
+    set(state => ({
+      hostDriver: driver,
+      sessionState: state.sessionState.status === 'IN_ROOM_PLAYING'
+        ? { ...state.sessionState, hostDriver: driver }
+        : state.sessionState
+    }));
 
     driver.startMatch((hostCards) => {
       const currentPlayers = initialPlayers.map((p, idx) => {
