@@ -28,6 +28,27 @@ describe('Game Flow & Lifecycle Engine', () => {
     expect(game.isFirstMoveOfGame).toBe(true);
   });
 
+  test('Bàn 2 người: Khi không ai có 3♠, người có lá bài nhỏ nhất đi trước và đi bài bình thường', () => {
+    const p1 = createPlayer({ id: 'p1', name: 'Người Chơi', avatar: 'user', score: 1000 });
+    const p2 = createBotPlayer('p2', null, { name: 'Bé Năm', avatar: 'bot1', score: 1000 });
+    // p1 lá nhỏ nhất là 4S, p2 lá nhỏ nhất là 3C (3 Chuồn < 4 Bích, không ai có 3 Bích 3S)
+    p1.hand = parseCards('4S 5S 6S 7S 8S 9S 10S JS QS KS AS 2S 2C');
+    p2.hand = parseCards('3C 4D 5D 6D 7D 8D 9D 10D JD QD KD AD 2D');
+
+    const game = new GameEngine([p1, p2], { mode: 'TRADITIONAL', betAmount: 100 });
+    game.startCustomGame(1);
+
+    // p2 cầm 3C nhỏ nhất nên được quyền đi trước!
+    expect(game.getCurrentPlayer().id).toBe('p2');
+    // Không ai có 3 Bích nên không ép buộc phải có 3 Bích
+    expect(game.isFirstMoveOfGame).toBe(false);
+
+    // p2 đánh bài thành công
+    const res = game.playMove('p2', parseCards('3C'));
+    expect(res.success).toBe(true);
+    expect(game.getCurrentPlayer().id).toBe('p1');
+  });
+
   test('Vòng chơi: Đánh bài hợp lệ, Bỏ lượt và Giành Cái khi tất cả cùng bỏ', () => {
     const players = createMockPlayers();
     players[0].hand = parseCards('3S 6S 7S 8S');

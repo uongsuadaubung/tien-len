@@ -7,20 +7,16 @@ import {
   MidGamePhaseState
 } from './phases';
 
+const emergencyState = new EmergencyRescuePhaseState();
+const endGameState = new EndGamePhaseState();
+const openingState = new OpeningPhaseState();
+const midGameState = new MidGamePhaseState();
+
 /**
  * Máy trạng thái điều phối các Giai đoạn Suy luận nhận thức của Bot AI (State Pattern)
  */
 export class BotThinkingPhaseStateMachine {
-  private currentState: IBotThinkingPhaseState;
-
-  private readonly emergencyState = new EmergencyRescuePhaseState();
-  private readonly endGameState = new EndGamePhaseState();
-  private readonly openingState = new OpeningPhaseState();
-  private readonly midGameState = new MidGamePhaseState();
-
-  constructor() {
-    this.currentState = this.openingState;
-  }
+  private currentState: IBotThinkingPhaseState = openingState;
 
   public get currentPhase(): BotThinkingPhaseStatus {
     return this.currentState.phase;
@@ -42,24 +38,24 @@ export class BotThinkingPhaseStateMachine {
     const isAntiOneCardDanger = isNextPlayerOneCard && isLeadMove;
 
     if (isAntiCongDanger || isAntiOneCardDanger) {
-      this.currentState = this.emergencyState;
+      this.currentState = emergencyState;
       return this.currentState;
     }
 
     // 2. Kiểm tra Cờ Tàn (Endgame: Còn ít bài hoặc có đối thủ sắp về)
     if (hand.length <= 3 || minOpponentCards <= 2) {
-      this.currentState = this.endGameState;
+      this.currentState = endGameState;
       return this.currentState;
     }
 
     // 3. Khai Cuộc (Opening: Bài còn nhiều > 8 lá)
     if (hand.length > 8) {
-      this.currentState = this.openingState;
+      this.currentState = openingState;
       return this.currentState;
     }
 
     // 4. Trung Cuộc (Mid Game: Giằng co thế cờ 4-8 lá)
-    this.currentState = this.midGameState;
+    this.currentState = midGameState;
     return this.currentState;
   }
 
@@ -68,9 +64,9 @@ export class BotThinkingPhaseStateMachine {
    */
   public evaluate(context: DecisionContext, validMoves: readonly ValidMoveInfo[]): BotDecision | null {
     // 1. Kiểm tra các Quy Tắc Khẩn Cấp từ CompositeRuleStrategy (Chống Cóng, Đền bài 1 lá, Cấm 2 cuối, Mở màn 3 Bích)
-    const emergencyDecision = this.emergencyState.evaluate(context, validMoves);
+    const emergencyDecision = emergencyState.evaluate(context, validMoves);
     if (emergencyDecision) {
-      this.currentState = this.emergencyState;
+      this.currentState = emergencyState;
       return emergencyDecision;
     }
 

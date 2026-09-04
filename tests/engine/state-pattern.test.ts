@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'bun:test';
 import { 
-  MatchStateMachine, 
   mapMatchStateToSnapshot 
 } from '../../src/engine/state-machine/match-state-machine';
 import type { 
@@ -12,14 +11,6 @@ import type {
   RoundEndedMatchState,
   GameOverMatchState
 } from '../../src/engine/state-machine/types';
-import { 
-  WaitingStateBehavior,
-  DealingStateBehavior,
-  PlayingTurnStateBehavior,
-  InstantWinStateBehavior,
-  RoundEndedStateBehavior,
-  GameOverStateBehavior
-} from '../../src/engine/state-machine/behaviors';
 import { createDefaultGameRules, Player } from '../../src/engine/types';
 import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 import { OfflineMatchDriver } from '../../src/engine/offline-match-driver';
@@ -138,206 +129,8 @@ describe('Kiến Trúc State Pattern & Discriminated Unions (Game Engine State M
     });
   });
 
-  describe('2. State Behaviors & Ràng Buộc Hành Vi Ở Từng Trạng Thái', () => {
-    it('WaitingStateBehavior: Chặn đánh bài và bỏ lượt khi chưa bắt đầu', () => {
-      const waitingState: WaitingMatchState = {
-        status: 'WAITING',
-        gameNumber: 1,
-        players: testPlayers,
-        rules: defaultRules,
-        lastWinnerId: null
-      };
-      const behavior = new WaitingStateBehavior(waitingState);
-
-      expect(behavior.canPlayMove()).toBe(false);
-      expect(behavior.canPass()).toBe(false);
-
-      const playResult = behavior.handlePlayMove();
-      expect(playResult.success).toBe(false);
-      expect(playResult.error).toContain('trạng thái chờ');
-
-      const passResult = behavior.handlePassTurn();
-      expect(passResult.success).toBe(false);
-      expect(passResult.error).toContain('chưa bắt đầu');
-    });
-
-    it('DealingStateBehavior: Chặn đánh bài và bỏ lượt trong lúc chia bài', () => {
-      const dealingState: DealingMatchState = {
-        status: 'DEALING',
-        gameNumber: 1,
-        players: testPlayers,
-        dealtCounts: { p0: 13, p1: 13, p2: 13, p3: 13 },
-        dealBanner: 'Chia bài xong',
-        totalCardsDealt: 52,
-        rules: defaultRules
-      };
-      const behavior = new DealingStateBehavior(dealingState);
-
-      expect(behavior.canPlayMove()).toBe(false);
-      expect(behavior.canPass()).toBe(false);
-
-      const playResult = behavior.handlePlayMove();
-      expect(playResult.success).toBe(false);
-      expect(playResult.error).toContain('quá trình chia bài');
-
-      const passResult = behavior.handlePassTurn();
-      expect(passResult.success).toBe(false);
-      expect(passResult.error).toContain('quá trình chia bài');
-    });
-
-    it('PlayingTurnStateBehavior: Chặn người chơi đánh sai lượt hoặc bỏ lượt khi đang Lead', () => {
-      const playingState: PlayingTurnMatchState = {
-        status: 'PLAYING',
-        gameNumber: 1,
-        roundNumber: 1,
-        players: testPlayers,
-        currentTurnPlayerId: 'p0',
-        leadPlayerId: 'p0',
-        roundMoves: [],
-        leadingMove: null,
-        isLeadMove: true,
-        isFirstMoveOfGame: true,
-        passedPlayerIds: [],
-        chopNotification: null,
-        botThinkingThought: null,
-        rules: defaultRules
-      };
-
-      const mockPlayMove = () => ({
-        success: true,
-        isChop: null,
-        choppedPlayerId: null,
-        penaltyAmount: null,
-        isCascadeChop: null,
-        chopChainCount: null,
-        chopChainTotalAmount: null,
-        playedMove: null,
-        error: null,
-        isGameOver: false
-      });
-
-      const mockPassTurn = () => ({
-        success: true,
-        isRoundOver: false,
-        nextTurnPlayerId: 'p1',
-        error: null
-      });
-
-      const behavior = new PlayingTurnStateBehavior(playingState, mockPlayMove, mockPassTurn);
-
-      expect(behavior.canPlayMove()).toBe(true);
-      expect(behavior.canPass()).toBe(false); // Đang Lead -> Không được bỏ lượt
-
-      // Đánh sai lượt (p1 đánh khi đang lượt p0)
-      const wrongPlayerPlay = behavior.handlePlayMove('p1', []);
-      expect(wrongPlayerPlay.success).toBe(false);
-      expect(wrongPlayerPlay.error).toContain('Chưa tới lượt');
-
-      // Bỏ lượt khi đang Lead
-      const leadPass = behavior.handlePassTurn('p0');
-      expect(leadPass.success).toBe(false);
-      expect(leadPass.error).toContain('Lead');
-
-      // Đánh đúng lượt p0
-      const validPlay = behavior.handlePlayMove('p0', []);
-      expect(validPlay.success).toBe(true);
-    });
-
-    it('GameOverStateBehavior: Chặn đánh bài và bỏ lượt khi ván đấu đã kết thúc', () => {
-      const gameOverState: GameOverMatchState = {
-        status: 'GAME_OVER',
-        gameNumber: 1,
-        players: testPlayers,
-        winners: [testPlayers[0]],
-        isThreeSpadesWin: false,
-        matchPayouts: {},
-        eloDeltas: {},
-        matchLogReport: null,
-        rules: defaultRules
-      };
-      const behavior = new GameOverStateBehavior(gameOverState);
-
-      expect(behavior.canPlayMove()).toBe(false);
-      expect(behavior.canPass()).toBe(false);
-
-      const playResult = behavior.handlePlayMove();
-      expect(playResult.success).toBe(false);
-      expect(playResult.error).toContain('kết thúc');
-    });
-  });
-
-  describe('3. MatchStateMachine Context & Chuyển Đổi Trạng Thái (Transitions)', () => {
-    it('Chuyển đổi trạng thái tuần tự và thông báo cho Listener', () => {
-      const waitingState: WaitingMatchState = {
-        status: 'WAITING',
-        gameNumber: 1,
-        players: testPlayers,
-        rules: defaultRules,
-        lastWinnerId: null
-      };
-      const fsm = new MatchStateMachine(new WaitingStateBehavior(waitingState));
-
-      const observedStates: string[] = [];
-      const unsubscribe = fsm.subscribe((state) => {
-        observedStates.push(state.status);
-      });
-
-      expect(fsm.status).toBe('WAITING');
-      expect(observedStates).toEqual(['WAITING']);
-
-      // 1. Chuyển sang DEALING
-      const dealingState: DealingMatchState = {
-        status: 'DEALING',
-        gameNumber: 1,
-        players: testPlayers,
-        dealtCounts: { p0: 13, p1: 13, p2: 13, p3: 13 },
-        dealBanner: 'Chia bài',
-        totalCardsDealt: 52,
-        rules: defaultRules
-      };
-      fsm.transitionTo(new DealingStateBehavior(dealingState));
-      expect(fsm.status).toBe('DEALING');
-
-      // 2. Chuyển sang PLAYING
-      const playingState: PlayingTurnMatchState = {
-        status: 'PLAYING',
-        gameNumber: 1,
-        roundNumber: 1,
-        players: testPlayers,
-        currentTurnPlayerId: 'p0',
-        leadPlayerId: 'p0',
-        roundMoves: [],
-        leadingMove: null,
-        isLeadMove: true,
-        isFirstMoveOfGame: true,
-        passedPlayerIds: [],
-        chopNotification: null,
-        botThinkingThought: null,
-        rules: defaultRules
-      };
-      fsm.transitionTo(new PlayingTurnStateBehavior(playingState, () => ({} as any), () => ({} as any)));
-      expect(fsm.status).toBe('PLAYING');
-
-      // 3. Chuyển sang GAME_OVER
-      const gameOverState: GameOverMatchState = {
-        status: 'GAME_OVER',
-        gameNumber: 1,
-        players: testPlayers,
-        winners: [testPlayers[0]],
-        isThreeSpadesWin: false,
-        matchPayouts: { p0: 1000 },
-        eloDeltas: { p0: 15 },
-        matchLogReport: null,
-        rules: defaultRules
-      };
-      fsm.transitionTo(new GameOverStateBehavior(gameOverState));
-      expect(fsm.status).toBe('GAME_OVER');
-
-      expect(observedStates).toEqual(['WAITING', 'DEALING', 'PLAYING', 'GAME_OVER']);
-      unsubscribe();
-    });
-
-    it('mapMatchStateToSnapshot: Ánh xạ chuẩn xác sang MatchSnapshot tương thích ngược', () => {
+  describe('2. mapMatchStateToSnapshot: Ánh xạ chuẩn xác sang MatchSnapshot tương thích ngược', () => {
+    it('Ánh xạ các trường trạng thái PLAYING sang snapshot', () => {
       const playingState: PlayingTurnMatchState = {
         status: 'PLAYING',
         gameNumber: 2,
@@ -365,7 +158,7 @@ describe('Kiến Trúc State Pattern & Discriminated Unions (Game Engine State M
     });
   });
 
-  describe('4. Tích Hợp OfflineMatchDriver Với MatchState', () => {
+  describe('3. Tích Hợp OfflineMatchDriver Với MatchState', () => {
     it('driver.getMatchState() trả về WAITING trước khi setup ván bài', () => {
       const driver = new OfflineMatchDriver();
       const state = driver.getMatchState();

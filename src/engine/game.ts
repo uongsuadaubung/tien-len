@@ -20,7 +20,7 @@ import { CardTracker } from '../ai/card-tracker';
 import { OpponentProfiler } from '../ai/opponent-profiler';
 import { calculateChopPenalty, calculateRottenPenalty } from './economy';
 import { MatchLogger, BotDecisionTelemetry } from './match-logger';
-import { ChopChainStateMachine } from './state-machine';
+import { evaluateChopTransition } from './state-machine';
 
 export interface PlayMoveResult {
   success: boolean;
@@ -164,39 +164,8 @@ export class GameEngine {
     this.winners = [];
 
     // 3. Tìm người đi đầu tiên:
-    let firstPlayerId = this.players[0].id;
-    const resolvedPrevWinnerId = previousWinnerId || this.lastWinnerId;
-
-    if (this.gameNumber > 1 && resolvedPrevWinnerId && this.players.some(p => p.id === resolvedPrevWinnerId)) {
-      // Ván thứ 2 trở đi: Người về Nhất ván trước được quyền đi trước bất kể đang cầm bài gì!
-      firstPlayerId = resolvedPrevWinnerId;
-      this.isFirstMoveOfGame = false;
-    } else {
-      // Ván đầu tiên (gameNumber === 1): Người giữ 3 Bích đi trước
-      let found3Spades = false;
-      for (const player of this.players) {
-        if (player.hand.some(c => c.rank === 3 && c.suit === 'SPADES')) {
-          firstPlayerId = player.id;
-          found3Spades = true;
-          break;
-        }
-      }
-
-      if (!found3Spades) {
-        // Trong bàn 2 hoặc 3 người chơi không có 3 Bích: Tìm người có lá nhỏ nhất
-        let smallestCardWeight = 9999;
-        for (const player of this.players) {
-          const sorted = sortCards(player.hand);
-          if (sorted.length > 0 && sorted[0].weight < smallestCardWeight) {
-            smallestCardWeight = sorted[0].weight;
-            firstPlayerId = player.id;
-          }
-        }
-        this.isFirstMoveOfGame = false;
-      } else {
-        this.isFirstMoveOfGame = true;
-      }
-    }
+    const { firstPlayerId, isFirstMoveOfGame } = this.determineFirstPlayer(previousWinnerId);
+    this.isFirstMoveOfGame = isFirstMoveOfGame;
 
     // 4. Khởi tạo vòng chơi đầu tiên
     this.currentRound = {
@@ -218,11 +187,50 @@ export class GameEngine {
   }
 
   /**
+   * Xác định người chơi đi đầu tiên:
+   * - Ván > 1: Người về Nhất ván trước
+   * - Ván 1: Người có lá 3 Bích (bắt buộc chứa 3 Bích ở lượt đầu).
+   *   Nếu không ai có 3 Bích (bàn 2-3 người): Tìm người có lá bài nhỏ nhất trên tay và cho người đó đi trước.
+   */
+  private determineFirstPlayer(previousWinnerId?: string): { firstPlayerId: string; isFirstMoveOfGame: boolean } {
+    let firstPlayerId = this.players[0].id;
+    const resolvedPrevWinnerId = previousWinnerId || this.lastWinnerId;
+
+    if (this.gameNumber > 1 && resolvedPrevWinnerId && this.players.some(p => p.id === resolvedPrevWinnerId)) {
+      // Ván thứ 2 trở đi: Người về Nhất ván trước được quyền đi trước bất kể đang cầm bài gì!
+      return { firstPlayerId: resolvedPrevWinnerId, isFirstMoveOfGame: false };
+    }
+
+    const require3Spades = this.rules?.gameFlow?.firstGameRequireThreeOfSpades ?? true;
+    if (!require3Spades) {
+      return { firstPlayerId: this.players[0].id, isFirstMoveOfGame: false };
+    }
+
+    // Ván đầu tiên: Người giữ 3 Bích đi trước
+    for (const player of this.players) {
+      if (player.hand.some(c => c.rank === 3 && c.suit === 'SPADES')) {
+        return { firstPlayerId: player.id, isFirstMoveOfGame: true };
+      }
+    }
+
+    // Trong bàn 2 hoặc 3 người chơi không có 3 Bích: Tìm người có lá nhỏ nhất
+    let smallestCardWeight = Infinity;
+    for (const player of this.players) {
+      const sorted = sortCards(player.hand);
+      if (sorted.length > 0 && sorted[0].weight < smallestCardWeight) {
+        smallestCardWeight = sorted[0].weight;
+        firstPlayerId = player.id;
+      }
+    }
+
+    return { firstPlayerId, isFirstMoveOfGame: false };
+  }
+
+  /**
    * Khởi tạo custom game để phục vụ Unit Test
    */
   public startCustomGame(gameNumber = 1, previousWinnerId?: string): void {
     this.gameNumber = gameNumber;
-    this.isFirstMoveOfGame = this.gameNumber === 1 && (this.rules?.gameFlow?.firstGameRequireThreeOfSpades ?? true);
     this.isGameOver = false;
     this.playedCardsInGame = [];
     this.instantWinner = null;
@@ -236,20 +244,8 @@ export class GameEngine {
       p.instantWinType = null;
     });
 
-    let firstPlayerId = this.players[0].id;
-    const resolvedPrevWinnerId = previousWinnerId || this.lastWinnerId;
-
-    if (this.gameNumber > 1 && resolvedPrevWinnerId && this.players.some(p => p.id === resolvedPrevWinnerId)) {
-      firstPlayerId = resolvedPrevWinnerId;
-      this.isFirstMoveOfGame = false;
-    } else if (this.isFirstMoveOfGame) {
-      for (const player of this.players) {
-        if (player.hand.some(c => c.rank === 3 && c.suit === 'SPADES')) {
-          firstPlayerId = player.id;
-          break;
-        }
-      }
-    }
+    const { firstPlayerId, isFirstMoveOfGame } = this.determineFirstPlayer(previousWinnerId);
+    this.isFirstMoveOfGame = isFirstMoveOfGame;
 
     this.winners = [];
 
@@ -357,8 +353,7 @@ export class GameEngine {
       const basePenalty = this.calculateChopPenalty(leadingMove.combination, validation.combination);
       const isCascadeRuleActive = this.rules.chopping.cascadeMultiplier;
 
-      const fsm = new ChopChainStateMachine();
-      const transition = fsm.evaluateMove({
+      const transition = evaluateChopTransition({
         isChopMove: true,
         chopperId: playerId,
         leadingMove,

@@ -6,16 +6,32 @@ import { LeadMoveHeuristicHandler } from '../handlers/lead-move-handler';
 import { RespondingMoveHeuristicHandler } from '../handlers/responding-move-handler';
 import { FallbackDecisionHandler } from '../handlers/fallback-handler';
 
+// Handlers dùng chung (Singletons) tránh cấp phát mới liên tục trên mỗi turn
+const emergencyRuleHandler = new EmergencyRuleHandler();
+const endgameSolverHandler = new EndgameSolverHandler();
+const leadMoveHandler = new LeadMoveHeuristicHandler();
+const respondingMoveHandler = new RespondingMoveHeuristicHandler();
+const fallbackDecisionHandler = new FallbackDecisionHandler();
+
+/**
+ * Đánh giá nước đi chiến thuật thông thường (áp dụng chung cho cả Khai cuộc và Trung cuộc)
+ */
+function evaluateStandardPlayMove(context: DecisionContext, validMoves: readonly ValidMoveInfo[]): BotDecision | null {
+  if (context.isLeadMove) {
+    return leadMoveHandler.handle(context, [...validMoves]) || fallbackDecisionHandler.handle(context, [...validMoves]);
+  }
+  return respondingMoveHandler.handle(context, [...validMoves]) || fallbackDecisionHandler.handle(context, [...validMoves]);
+}
+
 /**
  * 1. Giai đoạn Cứu Nguy Khẩn Cấp (EMERGENCY_RESCUE)
  * Ưu tiên tối thượng: Chống Cóng & Chặn đền bài người 1 lá
  */
 export class EmergencyRescuePhaseState implements IBotThinkingPhaseState {
   public readonly phase: BotThinkingPhaseStatus = 'EMERGENCY_RESCUE';
-  private readonly handler = new EmergencyRuleHandler();
 
   public evaluate(context: DecisionContext, validMoves: readonly ValidMoveInfo[]): BotDecision | null {
-    return this.handler.handle(context, [...validMoves]);
+    return emergencyRuleHandler.handle(context, [...validMoves]);
   }
 }
 
@@ -25,10 +41,9 @@ export class EmergencyRescuePhaseState implements IBotThinkingPhaseState {
  */
 export class EndGamePhaseState implements IBotThinkingPhaseState {
   public readonly phase: BotThinkingPhaseStatus = 'END_GAME';
-  private readonly handler = new EndgameSolverHandler();
 
   public evaluate(context: DecisionContext, validMoves: readonly ValidMoveInfo[]): BotDecision | null {
-    return this.handler.handle(context, [...validMoves]);
+    return endgameSolverHandler.handle(context, [...validMoves]);
   }
 }
 
@@ -38,15 +53,9 @@ export class EndGamePhaseState implements IBotThinkingPhaseState {
  */
 export class OpeningPhaseState implements IBotThinkingPhaseState {
   public readonly phase: BotThinkingPhaseStatus = 'OPENING';
-  private readonly leadHandler = new LeadMoveHeuristicHandler();
-  private readonly responseHandler = new RespondingMoveHeuristicHandler();
-  private readonly fallbackHandler = new FallbackDecisionHandler();
 
   public evaluate(context: DecisionContext, validMoves: readonly ValidMoveInfo[]): BotDecision | null {
-    if (context.isLeadMove) {
-      return this.leadHandler.handle(context, [...validMoves]) || this.fallbackHandler.handle(context, [...validMoves]);
-    }
-    return this.responseHandler.handle(context, [...validMoves]) || this.fallbackHandler.handle(context, [...validMoves]);
+    return evaluateStandardPlayMove(context, validMoves);
   }
 }
 
@@ -56,14 +65,8 @@ export class OpeningPhaseState implements IBotThinkingPhaseState {
  */
 export class MidGamePhaseState implements IBotThinkingPhaseState {
   public readonly phase: BotThinkingPhaseStatus = 'MID_GAME';
-  private readonly leadHandler = new LeadMoveHeuristicHandler();
-  private readonly responseHandler = new RespondingMoveHeuristicHandler();
-  private readonly fallbackHandler = new FallbackDecisionHandler();
 
   public evaluate(context: DecisionContext, validMoves: readonly ValidMoveInfo[]): BotDecision | null {
-    if (context.isLeadMove) {
-      return this.leadHandler.handle(context, [...validMoves]) || this.fallbackHandler.handle(context, [...validMoves]);
-    }
-    return this.responseHandler.handle(context, [...validMoves]) || this.fallbackHandler.handle(context, [...validMoves]);
+    return evaluateStandardPlayMove(context, validMoves);
   }
 }

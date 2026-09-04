@@ -434,9 +434,10 @@ export class OfflineMatchDriver {
         ? `${leadPlayer.name} (${leadPlayer.avatar}) giành quyền mở màn (Thắng ván trước)!`
         : 'Bạn (Người Chơi) giành quyền mở màn (Thắng ván trước)!';
     } else {
+      const reason = this.engine.isFirstMoveOfGame ? '3 Bích' : 'Bài nhỏ nhất';
       leadText = leadPlayer?.isBot
-        ? `${leadPlayer.name} (${leadPlayer.avatar}) giành quyền mở màn (3 Bích)!`
-        : 'Bạn (Người Chơi) giành quyền mở màn (3 Bích)!';
+        ? `${leadPlayer.name} (${leadPlayer.avatar}) giành quyền mở màn (${reason})!`
+        : `Bạn (Người Chơi) giành quyền mở màn (${reason})!`;
     }
 
     this.dealBanner = leadText;
