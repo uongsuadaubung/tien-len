@@ -4,6 +4,7 @@ import { getTierFromElo } from '../../../engine/ecosystem/ecosystem-types';
 import { Lock, CheckCircle2, Award, Swords, MapPin, Eye } from 'lucide-react';
 import { Modal, Card, Badge, Button } from '../../primitives';
 import { useCampaign } from '../../hooks/useCampaign';
+import { useI18n } from '../../../locales';
 
 interface CampaignMapModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
     handleOpenBossProfile,
     handleStartChapter
   } = useCampaign({ onSelectChapter });
+  const { t } = useI18n();
 
   if (!isOpen) return null;
 
@@ -36,25 +38,25 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Bản Đồ Chiến Dịch Cốt Truyện"
-      subtitle="Vượt qua các sới bạc lừng danh để trở thành Thần Bài Tối Thượng"
+      title={t('campaign.mapTitle')}
+      subtitle={t('campaign.mapSubtitle')}
       icon={<MapPin className="w-5 h-5 text-[var(--color-gold)]" />}
       maxWidth="4xl"
       height="h-[92vh] sm:h-[680px]"
       headerRight={
         <Badge variant="gold" size="md">
-          Tiến Độ: {unlockedChapterCount}/{totalChaptersCount} Chương
+          {t('campaign.progress', { unlocked: unlockedChapterCount, total: totalChaptersCount })}
         </Badge>
       }
       footer={
         <div className="w-full flex items-center justify-between gap-3">
           <span className="text-xs text-[var(--text-muted)]">
-            Điều kiện qua màn: <strong className="text-[var(--text-primary)]">Thắng {chapterWins}/{currentChapter.requiredWins} ván</strong>
+            {t('campaign.condition')} <strong className="text-[var(--text-primary)]">{t('campaign.conditionDetail', { wins: chapterWins, required: currentChapter.requiredWins })}</strong>
           </span>
 
           <div className="flex items-center gap-2">
             <Button variant="surface" size="md" onClick={onClose}>
-              Đóng
+              {t('common.close')}
             </Button>
             <Button
               variant={isUnlocked ? 'gold' : 'surface'}
@@ -63,7 +65,7 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
               onClick={() => handleStartChapter(currentChapter)}
               leftIcon={<Swords className="w-4 h-4" />}
             >
-              <span>{isCompleted ? 'Đấu Lại Sới Này' : isUnlocked ? 'Khiêu Chiến Ngay' : 'Chưa Mở Khóa'}</span>
+              <span>{isCompleted ? t('campaign.replayChapter') : isUnlocked ? t('campaign.challengeNow') : t('campaign.locked')}</span>
             </Button>
           </div>
         </div>
@@ -98,7 +100,7 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
               <div className="mt-2">
                 {status.isCompleted ? (
                   <Badge variant="emerald" size="sm" icon={<CheckCircle2 className="w-3 h-3" />}>
-                    Đã Vượt
+                    {t('campaign.completed')}
                   </Badge>
                 ) : status.unlocked ? (
                   <Badge variant="gold" size="sm">
@@ -106,7 +108,7 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
                   </Badge>
                 ) : (
                   <Badge variant="dark" size="sm" icon={<Lock className="w-3 h-3" />}>
-                    Khóa
+                    {t('campaign.locked')}
                   </Badge>
                 )}
               </div>
@@ -129,9 +131,9 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[var(--text-muted)]">Tiền cược:</span>
+              <span className="text-xs text-[var(--text-muted)]">{t('campaign.betAmountLabel')}</span>
               <Badge variant="gold" size="md">
-                🪙 {currentChapter.betAmount.toLocaleString()} Xu
+                🪙 {currentChapter.betAmount.toLocaleString()} {t('common.coins')}
               </Badge>
             </div>
           </div>
@@ -143,7 +145,7 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
           {/* DANH SÁCH 3 BOT TRÙM TRONG CHƯƠNG */}
           <div className="mb-4">
             <span className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider block mb-2">
-              Danh Sách 3 Đối Thủ Trong Chương:
+              {t('campaign.bossListTitle')}
             </span>
             <div className="grid grid-cols-3 gap-2">
               {currentChapter.bots.slice(0, 3).map((bot, idx) => (
@@ -153,10 +155,10 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
                   className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--color-gold-border)] transition-all cursor-pointer shadow-sm group"
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-2xl shrink-0">{bot.avatar || '👤'}</span>
+                    <span className="text-2xl shrink-0">{bot.avatar}</span>
                     <div className="min-w-0">
                       <h5 className="font-bold text-xs text-[var(--text-primary)] truncate">
-                        {bot.name || getTierFromElo(bot.elo).label || 'Cao Thủ'}
+                        {bot.name}
                       </h5>
                       <span className="text-[10px] text-[var(--color-gold)] font-bold block">
                         Elo {bot.elo}
@@ -174,7 +176,7 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
                     }}
                     leftIcon={<Eye className="w-3 h-3 text-[var(--color-gold)]" />}
                   >
-                    Hồ Sơ
+                    {t('campaign.profile')}
                   </Button>
                 </div>
               ))}
@@ -186,11 +188,11 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
             <div className="flex items-center gap-2.5">
               <Award className="w-6 h-6 text-[var(--color-gold)] flex-shrink-0" />
               <div>
-                <span className="text-xs font-bold text-[var(--text-primary)]">Phần Thưởng Hoàn Thành:</span>
+                <span className="text-xs font-bold text-[var(--text-primary)]">{t('campaign.rewardTitle')}</span>
                 <p className="text-[11px] text-[var(--text-muted)]">
-                  Nhận ngay <strong className="text-[var(--color-gold)]">+{currentChapter.rewardCoins.toLocaleString()} Xu</strong>
+                  <strong className="text-[var(--color-gold)]">{t('campaign.rewardCoins', { amount: currentChapter.rewardCoins.toLocaleString() })}</strong>
                   {currentChapter.rewardTitle && (
-                    <> + Danh hiệu <strong className="text-[var(--text-primary)]">"{currentChapter.rewardTitle}"</strong></>
+                    <span className="text-[var(--text-primary)]">{t('campaign.rewardTitleSuffix', { title: currentChapter.rewardTitle })}</span>
                   )}
                 </p>
               </div>

@@ -3,6 +3,7 @@ import { AlertTriangle, Home, Landmark, ShieldAlert } from 'lucide-react';
 import { useOnlineStore } from '../../../stores/useOnlineStore';
 import { useViewStore } from '../../../stores/useViewStore';
 import { Button } from '../../primitives';
+import { useI18n } from '../../../locales';
 
 export interface MobileOnlineDisbandViewProps {
   isOpen: boolean;
@@ -13,12 +14,14 @@ export const MobileOnlineDisbandView: React.FC<MobileOnlineDisbandViewProps> = (
   isOpen,
   onClose
 }) => {
+  const { t } = useI18n();
   const { disbandNotice } = useOnlineStore();
   const { openModal } = useViewStore();
 
   if (!isOpen || disbandNotice === null) return null;
 
-  const isInsufficientCoins = disbandNotice.title === 'KHÔNG ĐỦ TIỀN CƯỢC';
+  const normalizedTitle = disbandNotice.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+  const isInsufficientCoins = normalizedTitle.includes('KHONG DU') || normalizedTitle.includes('INSUFFICIENT');
 
   const handleOpenBank = () => {
     onClose();
@@ -40,7 +43,7 @@ export const MobileOnlineDisbandView: React.FC<MobileOnlineDisbandViewProps> = (
 
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-[11px] font-bold text-amber-300">
             <ShieldAlert className="w-3.5 h-3.5" />
-            <span>Phòng Đấu Online Trực Tuyến</span>
+            <span>{t('online.disbandBadge')}</span>
           </div>
         </div>
 
@@ -66,7 +69,7 @@ export const MobileOnlineDisbandView: React.FC<MobileOnlineDisbandViewProps> = (
               leftIcon={<Landmark className="w-4 h-4 text-slate-950" />}
               className="w-full font-black text-sm uppercase tracking-wider py-3.5 rounded-2xl shadow-xl shadow-amber-500/20 active:scale-95 transition-transform cursor-pointer"
             >
-              Mở Ngân Hàng
+              {t('bankruptcy.visitBank')}
             </Button>
           )}
 
@@ -77,7 +80,7 @@ export const MobileOnlineDisbandView: React.FC<MobileOnlineDisbandViewProps> = (
             leftIcon={<Home className="w-4 h-4" />}
             className="w-full font-black text-sm uppercase tracking-wider py-3.5 rounded-2xl shadow-xl active:scale-95 transition-transform cursor-pointer"
           >
-            Quay Về Sảnh Chính
+            {t('victory.btnBackLobby')}
           </Button>
         </div>
       </div>

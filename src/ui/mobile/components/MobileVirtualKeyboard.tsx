@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Delete, Shuffle, Clipboard, CornerDownLeft, Space, ChevronDown } from 'lucide-react';
 import { soundManager } from '../../audio/sound-manager';
+import { useI18n } from '../../../locales';
 
 export type KeyboardLayoutMode = 'ALPHA' | 'NUMERIC';
 
@@ -8,7 +9,7 @@ export interface MobileVirtualKeyboardProps {
   value: string;
   onChange: (newValue: string) => void;
   onEnter: (() => void) | null;
-  onClose: (() => void) | null;
+  onClose: () => void | null;
   onRandomName: (() => void) | null;
   onPaste: (() => void) | null;
   maxLength: number;
@@ -61,6 +62,7 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
   showPasteButton,
   className
 }) => {
+  const { t } = useI18n();
   const [isUppercase, setIsUppercase] = useState<boolean>(true);
   const [layoutMode, setLayoutMode] = useState<KeyboardLayoutMode>('ALPHA');
 
@@ -131,7 +133,7 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--color-gold)]/15 border border-[var(--color-gold)]/30 text-[var(--color-gold)] text-xs font-bold active:scale-95 transition-transform cursor-pointer"
             >
               <Shuffle className="w-3.5 h-3.5" />
-              <span>🎲 Tên Nhanh</span>
+              <span>🎲 {t('keyboard.quickName')}</span>
             </button>
           )}
 
@@ -142,7 +144,7 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-300 text-xs font-bold active:scale-95 transition-transform cursor-pointer"
             >
               <Clipboard className="w-3.5 h-3.5" />
-              <span>📋 Dán</span>
+              <span>📋 {t('common.paste')}</span>
             </button>
           )}
 
@@ -152,7 +154,7 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
               onClick={handleClear}
               className="text-xs text-[#f87171] hover:underline px-1.5 py-0.5 cursor-pointer font-semibold"
             >
-              Xóa hết
+              {t('keyboard.clearAll')}
             </button>
           )}
         </div>
@@ -166,10 +168,10 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
               type="button"
               onClick={onClose}
               className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white text-xs font-bold active:scale-95 transition-all cursor-pointer"
-              title="Ẩn bàn phím"
+              title={t('keyboard.hideKeyboard')}
             >
               <ChevronDown className="w-3.5 h-3.5 text-[var(--color-gold)]" />
-              <span>Đóng</span>
+              <span>{t('common.close')}</span>
             </button>
           )}
         </div>
@@ -251,7 +253,7 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
               type="button"
               onClick={handleDelete}
               className="w-11 sm:w-14 h-10 sm:h-11 rounded-lg bg-[#2a1717] border border-rose-900/40 text-rose-300 active:bg-rose-600 active:text-white active:scale-95 transition-all flex items-center justify-center shadow-sm cursor-pointer shrink-0"
-              title="Xóa ký tự"
+              title={t('keyboard.deleteChar')}
             >
               <Delete className="w-4 h-4" />
             </button>
@@ -290,7 +292,7 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
           className="flex-1 h-10 sm:h-11 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] text-xs sm:text-sm font-bold text-[var(--text-secondary)] active:bg-[var(--color-gold)] active:text-black active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
         >
           <Space className="w-4 h-4" />
-          <span>Cách</span>
+          <span>{t('keyboard.space')}</span>
         </button>
 
         {/* Phím HOÀN TẤT / XONG */}
@@ -303,7 +305,7 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
           className="px-3.5 sm:px-5 h-10 sm:h-11 rounded-lg bg-[var(--color-gold)] border border-[var(--color-gold-border)] text-xs sm:text-sm font-black text-[#0a0c0e] active:scale-95 transition-all flex items-center justify-center gap-1.5 shadow-md cursor-pointer shrink-0"
         >
           <CornerDownLeft className="w-3.5 h-3.5" />
-          <span>Xong</span>
+          <span>{t('keyboard.done')}</span>
         </button>
       </div>
     </div>

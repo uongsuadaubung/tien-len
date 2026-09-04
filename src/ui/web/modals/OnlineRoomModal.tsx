@@ -20,8 +20,10 @@ import { useOnlineRoomLogic, SETTLEMENT_MODES } from '../../hooks/useOnlineRoomL
 import { TableRulesConfigPanel } from '../../components/TableRulesConfigPanel';
 import { OnlineRoomBrowser } from '../../components/OnlineRoomBrowser';
 import { Modal, Card, Badge, Button } from '../../primitives';
+import { useI18n } from '../../../locales';
 
 export const OnlineRoomModal: React.FC = () => {
+  const { t } = useI18n();
   const { isOnlineRoomOpen } = useViewStore();
   
   const {
@@ -66,8 +68,8 @@ export const OnlineRoomModal: React.FC = () => {
     <Modal
       isOpen={isOnlineRoomOpen}
       onClose={handleClose}
-      title="Chơi Online Cùng Bạn Bè"
-      subtitle="Tìm bàn trong sảnh chờ hoặc tạo phòng riêng với bạn bè"
+      title={t('online.modalTitle')}
+      subtitle={t('online.modalSubtitle')}
       icon={<Wifi className="w-5 h-5 text-[var(--color-gold)] animate-pulse" />}
       maxWidth="2xl"
       height="h-[90vh] sm:h-[720px]"
@@ -86,7 +88,7 @@ export const OnlineRoomModal: React.FC = () => {
               leftIcon={<LogOut className="w-4 h-4 text-rose-400" />}
               className="text-rose-300 font-bold border-rose-500/30 hover:bg-rose-950/40 cursor-pointer"
             >
-              {isHost ? 'Giải Tán Phòng' : 'Rời Phòng'}
+              {isHost ? t('online.disbandBtn') : t('online.leaveBtn')}
             </Button>
 
             {isHost ? (
@@ -97,12 +99,12 @@ export const OnlineRoomModal: React.FC = () => {
                 leftIcon={<Play className="w-4 h-4 text-slate-950 fill-current" />}
                 className="flex-1 font-black shadow-lg shadow-amber-500/20 cursor-pointer"
               >
-                Bắt Đầu Trận Đấu
+                {t('online.startGameBtn')}
               </Button>
             ) : (
               <div className="flex-1 py-2.5 px-4 rounded-xl bg-[var(--bg-card)] border border-amber-500/20 text-center text-xs font-bold text-amber-200/80 flex items-center justify-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                Đang đợi Chủ phòng bắt đầu ván...
+                {t('online.waitingHost')}
               </div>
             )}
           </div>
@@ -117,13 +119,13 @@ export const OnlineRoomModal: React.FC = () => {
                 leftIcon={<Sparkles className="w-4 h-4 text-slate-950" />}
                 className="w-full font-black text-sm uppercase tracking-wider py-3.5 shadow-lg shadow-amber-500/20 cursor-pointer"
               >
-                {canAffordBet ? 'Tạo Phòng Ngay' : 'Không Đủ Xu Để Tạo Phòng'}
+                {canAffordBet ? t('online.createRoomBtn') : t('online.cantAffordRoom')}
               </Button>
             </div>
           ) : (
             <div className="w-full flex items-center justify-between gap-2">
               <span className="text-xs text-[var(--text-muted)]">
-                Bạn muốn mở bàn chơi với luật riêng?
+                {t('online.createCustomPrompt')}
               </span>
               <Button
                 variant="surface"
@@ -132,7 +134,7 @@ export const OnlineRoomModal: React.FC = () => {
                 leftIcon={<Plus className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
                 className="font-bold text-xs py-1.5 px-3 text-[var(--color-gold)] border-[var(--border-gold)]/40 hover:bg-amber-500/10"
               >
-                Tạo Bàn Mới
+                {t('online.createRoomBtn')}
               </Button>
             </div>
           )
@@ -156,7 +158,7 @@ export const OnlineRoomModal: React.FC = () => {
                 }`}
               >
                 <Radio className="w-4 h-4" />
-                <span>Sảnh Phòng Chờ</span>
+                <span>{t('online.tabAll')}</span>
                 {publicRooms.length > 0 && (
                   <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
                     tab === 'LOBBY' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/20 text-amber-300'
@@ -175,7 +177,7 @@ export const OnlineRoomModal: React.FC = () => {
                 }`}
               >
                 <Sparkles className="w-4 h-4" />
-                <span>Tạo Phòng Mới</span>
+                <span>{t('online.createRoomBtn')}</span>
               </button>
             </div>
 
@@ -202,7 +204,7 @@ export const OnlineRoomModal: React.FC = () => {
                 {/* Tùy chọn Quyền Riêng Tư (Public vs Private) */}
                 <Card variant="surface" className="p-3 rounded-2xl border border-[var(--border-container)] bg-[var(--bg-container)]/80">
                   <div className="text-xs font-bold text-[var(--text-primary)] mb-2 flex items-center gap-1.5">
-                    <span>Quyền Riêng Tư Phòng</span>
+                    <span>{t('online.roomPrivacyTitle')}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <button
@@ -217,10 +219,10 @@ export const OnlineRoomModal: React.FC = () => {
                       <Globe className={`w-4 h-4 mt-0.5 shrink-0 ${isPublicRoom ? 'text-[var(--color-gold)]' : 'text-zinc-400'}`} />
                       <div>
                         <span className={`font-bold text-xs block ${isPublicRoom ? 'text-[var(--color-gold)]' : 'text-[var(--text-primary)]'}`}>
-                          Công Khai
+                          {t('online.publicRoom')}
                         </span>
                         <span className="text-[10px] text-[var(--text-muted)] block leading-tight mt-0.5">
-                          Hiện ở sảnh chờ cho mọi người cùng vào
+                          {t('online.publicRoomDesc')}
                         </span>
                       </div>
                     </button>
@@ -237,10 +239,10 @@ export const OnlineRoomModal: React.FC = () => {
                       <Lock className={`w-4 h-4 mt-0.5 shrink-0 ${!isPublicRoom ? 'text-[var(--color-gold)]' : 'text-zinc-400'}`} />
                       <div>
                         <span className={`font-bold text-xs block ${!isPublicRoom ? 'text-[var(--color-gold)]' : 'text-[var(--text-primary)]'}`}>
-                          Riêng Tư
+                          {t('online.privateRoom')}
                         </span>
                         <span className="text-[10px] text-[var(--text-muted)] block leading-tight mt-0.5">
-                          Chỉ ai có mã PIN 4 số mới vào được
+                          {t('online.privateRoomDesc')}
                         </span>
                       </div>
                     </button>
@@ -268,10 +270,10 @@ export const OnlineRoomModal: React.FC = () => {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-amber-400/90 font-black uppercase tracking-wider block">
-                    Mã Phòng Bàn Đấu
+                    {t('online.roomCodeTitle')}
                   </span>
                   <Badge variant={roomState?.isPublic ? 'gold' : 'neutral'} size="sm">
-                    {roomState?.isPublic ? '🌐 Công Khai' : '🔒 Riêng Tư'}
+                    {roomState?.isPublic ? `🌐 ${t('online.publicRoom')}` : `🔒 ${t('online.privateRoom')}`}
                   </Badge>
                 </div>
                 <span className="text-2xl sm:text-3xl font-mono font-black text-amber-300 tracking-wider">
@@ -285,7 +287,7 @@ export const OnlineRoomModal: React.FC = () => {
                   className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
                 >
                   {copiedPin ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                  <span>{copiedPin ? 'Đã Chép Mã' : 'Chép Mã PIN'}</span>
+                  <span>{copiedPin ? t('online.copied') : t('online.copyPin')}</span>
                 </button>
 
                 <button
@@ -293,7 +295,7 @@ export const OnlineRoomModal: React.FC = () => {
                   className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
                 >
                   {copiedLink ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                  <span>{copiedLink ? 'Đã Chép Link' : 'Chép Link Mời'}</span>
+                  <span>{copiedLink ? t('online.copied') : t('online.copyLink')}</span>
                 </button>
               </div>
             </Card>
@@ -304,14 +306,14 @@ export const OnlineRoomModal: React.FC = () => {
                 ⚡ {currentSettlement.label}
               </Badge>
               <Badge variant="neutral" size="sm">
-                👥 {roomState ? roomState.playerCount : 4} Người
+                👥 {t('tableConfig.tablePlayerCount', { count: roomState ? roomState.playerCount : 4 })}
               </Badge>
               <Badge variant="neutral" size="sm">
-                💰 {roomState ? roomState.betAmount.toLocaleString() : '---'} Xu/lá
+                💰 {t('online.betPerCard', { amount: roomState ? roomState.betAmount.toLocaleString() : '---' })}
               </Badge>
               {roomState?.choppingMultiplier && roomState.choppingMultiplier > 1 && (
                 <Badge variant="neutral" size="sm" className="text-amber-300">
-                  ⚡ x{roomState.choppingMultiplier} Chặt
+                  ⚡ {t('online.chopMultiplierBadge', { count: roomState.choppingMultiplier, multiplier: roomState.choppingMultiplier })}
                 </Badge>
               )}
             </div>
@@ -321,11 +323,11 @@ export const OnlineRoomModal: React.FC = () => {
               <div className="flex items-center justify-between px-1">
                 <span className="text-[11px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5">
                   <Users className="w-3.5 h-3.5" />
-                  <span>Danh Sách Đấu Thủ ({roomState?.players.length || 1}/{roomState?.playerCount || 4})</span>
+                  <span>{t('online.playerListTitle', { current: roomState?.players.length || 1, max: roomState?.playerCount || 4 })}</span>
                 </span>
                 {isHost && !isRoomFull && (
                   <span className="text-[10px] text-[var(--text-muted)]">
-                    Có thể thêm Bot để bắt đầu ngay
+                    {t('online.canAddBot')}
                   </span>
                 )}
               </div>
@@ -374,7 +376,7 @@ export const OnlineRoomModal: React.FC = () => {
                             <button
                               onClick={() => handleRemoveSlot(idx)}
                               className="p-1.5 text-zinc-400 hover:text-rose-400 hover:bg-rose-950/30 rounded-xl transition-all cursor-pointer"
-                              title="Xóa khỏi phòng"
+                              title={t('online.removePlayer')}
                             >
                               ✕
                             </button>
@@ -387,7 +389,7 @@ export const OnlineRoomModal: React.FC = () => {
                               {idx + 1}
                             </div>
                             <span className="text-[11px] font-medium italic">
-                              Đang chờ người chơi...
+                              {t('online.waitingPlayer')}
                             </span>
                           </div>
 
@@ -398,7 +400,7 @@ export const OnlineRoomModal: React.FC = () => {
                             >
                               <Plus className="w-3 h-3" />
                               <Bot className="w-3 h-3" />
-                              <span>Thêm Bot</span>
+                              <span>{t('online.addBot')}</span>
                             </button>
                           )}
                         </div>

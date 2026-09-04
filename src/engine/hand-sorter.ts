@@ -10,7 +10,7 @@ export interface SmartCardGroup {
   cards: Card[];
 }
 
-export type PartitionStrategy = 'OPTIMAL_TURNS' | 'BIG_HANDS' | 'MAX_STRAIGHTS';
+export type PartitionStrategy = 'OPTIMAL_TURNS' | 'BIG_HANDS' | 'MAX_STRAIGHTS' | 'MAX_PAIRS';
 
 /**
  * Tìm tất cả các tổ hợp tiềm năng có thể tạo được từ tập bài
@@ -145,6 +145,19 @@ function evaluateCombinationScoreByStrategy(combo: Combination, strategy: Partit
       case 'STRAIGHT': return 60 + combo.length * 35; // Ưu tiên cực đại sảnh
       case 'TRIPLE': return 20;
       case 'PAIR': return 10;
+      default: return 0;
+    }
+  }
+
+  if (strategy === 'MAX_PAIRS') {
+    switch (combo.type) {
+      case 'FIVE_PAIRS_SEQUENTIAL': return 500;
+      case 'FOUR_PAIRS_SEQUENTIAL': return 400;
+      case 'FOUR_OF_A_KIND': return 350;
+      case 'THREE_PAIRS_SEQUENTIAL': return 250;
+      case 'TRIPLE': return 70;
+      case 'PAIR': return 45;
+      case 'STRAIGHT': return 10 + combo.length * 6;
       default: return 0;
     }
   }
@@ -327,7 +340,7 @@ function getPartitionSignature(groups: SmartCardGroup[]): string {
 export function getAvailableSmartVariants(hand: Card[]): SmartCardGroup[][] {
   if (!hand || hand.length === 0) return [];
 
-  const strategies: PartitionStrategy[] = ['OPTIMAL_TURNS', 'BIG_HANDS', 'MAX_STRAIGHTS'];
+  const strategies: PartitionStrategy[] = ['OPTIMAL_TURNS', 'BIG_HANDS', 'MAX_STRAIGHTS', 'MAX_PAIRS'];
   const variants: SmartCardGroup[][] = [];
   const seenSignatures = new Set<string>();
 

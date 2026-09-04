@@ -3,6 +3,7 @@ import { Sparkles, Gift, Flame, Frown, Disc } from 'lucide-react';
 import { Modal, Card, Badge, Button } from '../../primitives';
 import { useLuckyWheel } from '../../hooks/useLuckyWheel';
 import { useUserStore } from '../../../stores/useUserStore';
+import { useI18n } from '../../../locales';
 import { 
   ECONOMY_CONSTANTS, 
   LUCKY_WHEEL_SLICES 
@@ -17,6 +18,7 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
   isOpen,
   onClose
 }) => {
+  const { t } = useI18n();
   const { profile } = useUserStore();
   const {
     isSpinning,
@@ -35,8 +37,8 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Vòng Quay Thần Bài"
-      subtitle={`Thử vận may Casino: Cơ hội nổ hũ lên tới ${ECONOMY_CONSTANTS.LUCKY_WHEEL_JACKPOT.toLocaleString()} Xu`}
+      title={t('wheel.modalTitle')}
+      subtitle={t('wheel.modalSubtitle', { amount: ECONOMY_CONSTANTS.LUCKY_WHEEL_JACKPOT })}
       icon={<Disc className="w-5 h-5 text-[var(--color-gold)]" />}
       maxWidth="xl"
       height="h-[94vh] sm:h-[720px]"
@@ -48,12 +50,12 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
       footer={
         <div className="w-full flex items-center justify-between gap-3">
           <div className="text-xs text-[var(--text-muted)]">
-            Vé quay: <strong className="text-[var(--color-gold)] font-bold">{spinCost.toLocaleString()} Xu</strong>
+            {t('wheel.ticketCost', { cost: spinCost })}
           </div>
 
           <div className="flex items-center gap-2">
             <Button variant="surface" size="md" onClick={onClose}>
-              Đóng
+              {t('common.close')}
             </Button>
             <Button
               variant="gold"
@@ -62,7 +64,7 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
               onClick={handleSpin}
               leftIcon={<Sparkles className="w-4 h-4 text-[#0a0c0e]" />}
             >
-              <span>{isSpinning ? 'Đang quay...' : canSpin ? `Quay (${spinCost.toLocaleString()} Xu)` : 'Thiếu Xu'}</span>
+              <span>{isSpinning ? t('wheel.spinning') : canSpin ? t('wheel.spinBtn', { cost: spinCost }) : t('wheel.insufficientCoins')}</span>
             </Button>
           </div>
         </div>
@@ -173,14 +175,20 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
             {prizeWon.value > spinCost ? (
               <>
                 <Gift className="w-5 h-5 text-[var(--color-gold)]" />
-                <span className="text-[var(--text-primary)]">Chúc mừng trúng lớn: <strong className="text-[var(--color-gold)]">+{prizeWon.value.toLocaleString()} Xu</strong>!</span>
+                <span className="text-[var(--text-primary)]">
+                  {t('wheel.congratsPrefix')}: <strong className="text-[var(--color-gold)]">+{prizeWon.value.toLocaleString()} {t('common.coins')}</strong>!
+                </span>
               </>
             ) : prizeWon.value === spinCost ? (
-              <span className="text-[#4ade80]">🍀 Nhận lại {spinCost.toLocaleString()} Xu!</span>
+              <span className="text-[#4ade80]">🍀 {t('wheel.refundCoins', { amount: spinCost.toLocaleString() })}</span>
             ) : (
               <>
                 <Frown className="w-5 h-5 text-[#f87171]" />
-                <span className="text-[var(--text-secondary)]">{prizeWon.value === 0 ? `${prizeWon.label}: Rất tiếc, chúc bạn may mắn lần sau!` : `Lỗ ${(spinCost - prizeWon.value).toLocaleString()} Xu (Nhận an ủi ${prizeWon.value.toLocaleString()} Xu)`}</span>
+                <span className="text-[var(--text-secondary)]">
+                  {prizeWon.value === 0
+                    ? `${prizeWon.label}: ${t('wheel.betterLuckNextTime')}`
+                    : t('wheel.receivedCoins', { amount: prizeWon.value.toLocaleString() })}
+                </span>
               </>
             )}
           </Card>

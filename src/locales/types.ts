@@ -2,11 +2,13 @@ import type { vi } from './vi';
 
 export type SupportedLocale = 'vi' | 'en';
 
-export type LocaleDictionary = {
-  readonly [K in keyof typeof vi]: {
-    readonly [P in keyof (typeof vi)[K]]: string;
-  };
+export type DeepStringDictionary<T> = {
+  readonly [K in keyof T]: T[K] extends object
+    ? DeepStringDictionary<T[K]>
+    : string;
 };
+
+export type LocaleDictionary = DeepStringDictionary<typeof vi>;
 
 type NestedKeyOf<ObjectType extends object> = {
   [Key in keyof ObjectType & string]: ObjectType[Key] extends object

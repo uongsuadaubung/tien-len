@@ -114,14 +114,14 @@ function buildInitialPlayers(
     config.name = botName;
     config.avatar = botAvatar;
 
-    usedNames.push(botName || `Cao Thủ ${i + 1}`);
+    usedNames.push(botName);
     usedAvatars.push(botAvatar);
 
     const botInitialBankroll = generateRealisticBotBankroll(config, betAmount);
 
     players.push(
       createBotPlayer(`p${i + 1}`, personaId || null, {
-        name: botName || `Cao Thủ ${i + 1}`,
+        name: botName,
         avatar: botAvatar,
         score: botInitialBankroll
       })

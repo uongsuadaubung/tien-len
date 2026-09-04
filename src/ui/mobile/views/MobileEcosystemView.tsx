@@ -4,6 +4,7 @@ import { MobileScreenWrapper } from './MobileScreenWrapper';
 import { useEcosystem, EcosystemTab, TIER_FILTERS, PAGE_SIZE } from '../../hooks/useEcosystem';
 import { getTierFilterLabel } from '../../../engine/ecosystem/ecosystem-types';
 import { MobileVirtualInput } from '../components/MobileVirtualInput';
+import { useI18n } from '../../../locales';
 import { 
   Trophy, 
   Flame, 
@@ -26,6 +27,7 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
   isOpen,
   onClose
 }) => {
+  const { t } = useI18n();
   const {
     activeTab,
     setActiveTab,
@@ -54,12 +56,12 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
   const tabOptions: TabOption<EcosystemTab>[] = [
     {
       id: 'LEADERBOARD',
-      label: 'Bảng Xếp Hạng',
+      label: t('ecosystem.tabLeaderboard'),
       icon: <Trophy className="w-4 h-4" />
     },
     {
       id: 'NEWSFEED',
-      label: 'Bảng Tin',
+      label: t('ecosystem.tabNewsfeed'),
       icon: <Newspaper className="w-4 h-4" />,
       badge: newsfeed.length > 0 ? (
         <Badge variant="danger" size="sm">
@@ -73,12 +75,12 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
     <MobileScreenWrapper
       isOpen={isOpen}
       onClose={onClose}
-      title="Bảng Vàng Danh Vọng"
-      subtitle="Vinh danh cao thủ, tỷ lệ thắng & tài chính toàn máy chủ"
+      title={t('ecosystem.modalTitle')}
+      subtitle={t('ecosystem.modalSubtitle')}
       icon={<Trophy className="w-5 h-5 text-[var(--color-gold)]" />}
       headerRight={
         <Badge variant="gold" size="sm" icon={<span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}>
-          Mùa 2026
+          {t('ecosystem.seasonLive')}
         </Badge>
       }
       footer={
@@ -90,7 +92,7 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
             onClick={handleJumpToMyRank}
             leftIcon={<Target className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
           >
-            Hạng Của Bạn: <strong className="ml-1 text-[var(--color-gold)]">#{humanGlobalRank}</strong>
+            {t('ecosystem.jumpToMyRank')}: <strong className="ml-1 text-[var(--color-gold)]">#{humanGlobalRank}</strong>
           </Button>
 
           {totalPages > 1 && (
@@ -103,7 +105,7 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                 leftIcon={<ChevronLeft className="w-3 h-3" />}
               >
-                Trước
+                {t('common.prev')}
               </Button>
               <span className="px-1.5 font-bold text-[var(--text-primary)] text-xs">
                 {currentPage}/{totalPages}
@@ -116,7 +118,7 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                 rightIcon={<ChevronRight className="w-3 h-3" />}
               >
-                Sau
+                {t('common.next')}
               </Button>
             </div>
           )}
@@ -144,7 +146,7 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
                 setSearchQuery(val);
                 setCurrentPage(1);
               }}
-              placeholder="Tìm kiếm người chơi, danh hiệu..."
+              placeholder={t('ecosystem.searchPlaceholder')}
               icon={<Search className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
               label={null}
               error={null}
@@ -185,7 +187,7 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
             {/* THANH SẮP XẾP */}
             <div className="flex items-center justify-between gap-2 text-xs px-1">
               <span className="text-[11px] text-[var(--text-muted)] font-semibold">
-                Hiển thị {sortedAndFilteredList.length} người chơi
+                {t('ecosystem.showingPlayersShort', { count: sortedAndFilteredList.length })}
               </span>
 
               <div className="flex items-center gap-1.5">
@@ -199,17 +201,17 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
                   }}
                   className="bg-[var(--bg-input)] border border-[var(--border-card)] text-xs text-[var(--text-primary)] rounded-lg px-2 py-1 focus:outline-none focus:border-[var(--color-gold)] cursor-pointer"
                 >
-                  <option value="elo">Elo</option>
-                  <option value="coins">Xu</option>
-                  <option value="winRate">Thắng %</option>
-                  <option value="gamesPlayed">Số Trận</option>
+                  <option value="elo">{t('ecosystem.sortEloShort')}</option>
+                  <option value="coins">{t('ecosystem.sortCoinsShort')}</option>
+                  <option value="winRate">{t('ecosystem.sortWinRateShort')}</option>
+                  <option value="gamesPlayed">{t('ecosystem.sortGamesPlayedShort')}</option>
                 </select>
 
                 <Button
                   variant="surface"
                   size="sm"
                   onClick={toggleSortOrder}
-                  title="Đổi thứ tự tăng/giảm"
+                  title={t('ecosystem.sortOrderTooltip')}
                   className="h-7 px-2 text-xs"
                   leftIcon={<ArrowUpDown className="w-3 h-3 text-[var(--color-gold)]" />}
                 >
@@ -250,7 +252,7 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
                         </div>
 
                         <div className="w-9 h-9 rounded-xl bg-[var(--bg-input)] border border-[var(--border-container)] flex items-center justify-center text-xl shrink-0">
-                          <span className="emoji-avatar">{item.avatar || '🤖'}</span>
+                          <span className="emoji-avatar">{item.avatar}</span>
                         </div>
 
                         <div className="min-w-0">
@@ -258,7 +260,7 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
                             <span className="truncate">{item.name}</span>
                             {isHuman && (
                               <Badge variant="gold" size="sm">
-                                BẠN
+                                {t('common.you')}
                               </Badge>
                             )}
                           </div>
@@ -298,7 +300,7 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
                           }}
                           leftIcon={<Eye className={`w-3.5 h-3.5 ${isHuman ? 'text-black' : 'text-[var(--color-gold)]'}`} />}
                         >
-                          Hồ Sơ
+                          {t('common.detail')}
                         </Button>
                       </div>
                     </div>
@@ -306,11 +308,11 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
                     {/* Dòng tóm tắt: Tỷ lệ thắng & Phong độ */}
                     <div className="flex items-center justify-between pt-2 mt-2 border-t border-[var(--border-container)] text-[10px] text-[var(--text-muted)]">
                       <div>
-                        Thắng: <strong className="text-emerald-400 font-bold">{item.winRate}%</strong> ({item.stats.wins}/{item.stats.gamesPlayed} trận)
+                        {t('ecosystem.winRateLabel')} <strong className="text-emerald-400 font-bold">{item.winRate}%</strong> {t('ecosystem.matchCount', { wins: item.stats.wins, total: item.stats.gamesPlayed })}
                       </div>
 
                       <div>
-                        Phong độ: {item.currentStreak > 0 ? (
+                        {t('ecosystem.streakLabel')} {item.currentStreak > 0 ? (
                           <span className="text-orange-400 font-bold inline-flex items-center gap-0.5">
                             <Flame className="w-3 h-3 text-orange-400" /> +{item.currentStreak}
                           </span>
@@ -336,7 +338,7 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
             {newsfeed.length === 0 ? (
               <div className="text-center py-16 text-[var(--text-muted)] text-xs flex flex-col items-center justify-center gap-2">
                 <Newspaper className="w-8 h-8 text-[var(--text-dim)]" />
-                <span>Chưa có sự kiện nổi bật nào hôm nay. Các trận thắng lớn và sự kiện nổ hũ sẽ được vinh danh tại đây!</span>
+                <span>{t('ecosystem.emptyNewsfeed')}</span>
               </div>
             ) : (
               newsfeed.map((news) => {
@@ -364,7 +366,7 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold leading-relaxed text-[var(--text-primary)]">{news.message}</p>
                       <span className="text-[10px] text-[var(--text-muted)] mt-1 block">
-                        {new Date(news.timestamp).toLocaleTimeString('vi-VN')} - Toàn Server
+                        {new Date(news.timestamp).toLocaleTimeString()} - {t('ecosystem.serverWide')}
                       </span>
                     </div>
                   </Card>

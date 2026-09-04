@@ -6,6 +6,7 @@ import { type GameSettlementRule, type PlayerCount } from '../../engine/types';
 import { type OnlineRoomState, type PublicRoomSummary } from '../../engine/network/network.schema';
 import { type PlayerProfile } from '../../engine/storage';
 import { type TableConfigState } from '../components/TableRulesConfigPanel';
+import { t } from '../../locales';
 
 export interface SettlementModeOption {
   id: GameSettlementRule;
@@ -14,26 +15,28 @@ export interface SettlementModeOption {
   icon: string;
 }
 
-export const SETTLEMENT_MODES: SettlementModeOption[] = [
+export const getSettlementModes = (): SettlementModeOption[] => [
   { 
     id: 'COUNT_CARDS', 
-    label: 'Đếm Lá', 
-    desc: 'Phạt theo số lá bài còn lại trên tay khi có người về Nhất.',
+    label: t('tableConfig.modeCountCardsTitle'), 
+    desc: t('tableConfig.modeCountCardsDesc'),
     icon: '⚡'
   },
   { 
     id: 'TRADITIONAL', 
-    label: 'Truyền Thống', 
-    desc: 'Tính điểm phân hạng Nhất, Nhì, Ba, Bét đầy đủ.',
+    label: t('tableConfig.modeTraditionalTitle'), 
+    desc: t('tableConfig.modeTraditionalDesc'),
     icon: '👑'
   },
   { 
     id: 'WINNER_TAKES_ALL', 
-    label: 'Nhất Ăn Tất', 
-    desc: 'Người về Nhất gom toàn bộ tiền cược của cả làng.',
+    label: t('tableConfig.modeWinnerTakesAllTitle'), 
+    desc: t('tableConfig.modeWinnerTakesAllDesc'),
     icon: '💰'
   }
 ];
+
+export const SETTLEMENT_MODES: SettlementModeOption[] = getSettlementModes();
 
 export const BET_PRESETS: number[] = [500, 1000, 2000, 5000, 10000];
 

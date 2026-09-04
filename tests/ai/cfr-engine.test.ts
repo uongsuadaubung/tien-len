@@ -12,7 +12,7 @@ describe('CFR & Regret Matching Engine (Lý Thuyết Trò Chơi & Cân Bằng Na
   const grandmasterBot: BotConfig = {
     id: 'bot_alpha',
     name: 'Alpha-TL',
-    avatar: null,
+    avatar: '🧠',
     description: 'Thần bài CFR',
     elo: 2500,
     memoryDepth: 1.0,
@@ -40,7 +40,7 @@ describe('CFR & Regret Matching Engine (Lý Thuyết Trò Chơi & Cân Bằng Na
   const rookieBot: BotConfig = {
     id: 'bot_rookie',
     name: 'Bé Tập Sự',
-    avatar: null,
+    avatar: '👶',
     description: 'Rookie',
     elo: 850,
     memoryDepth: 0.2,

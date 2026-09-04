@@ -16,6 +16,7 @@ export interface QuickSetupConfig {
 }
 
 import { useUserStore } from '../../stores/useUserStore';
+import { t } from '../../locales';
 
 export interface UseQuickSetupProps {
   initialConfig?: Partial<TableConfigState>;
@@ -85,7 +86,10 @@ export function useQuickSetup({
 
   const handleStart = useCallback(() => {
     if (isInsufficientCoins) {
-      alert(`Số dư hiện tại (${playerCoins.toLocaleString()} Xu) không đủ mức cược tối thiểu của bàn (${config.betAmount.toLocaleString()} Xu)!`);
+      alert(t('tableConfig.insufficientCoinsAlert', {
+        coins: playerCoins.toLocaleString(),
+        bet: config.betAmount.toLocaleString()
+      }));
       return;
     }
 

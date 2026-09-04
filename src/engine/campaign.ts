@@ -1,5 +1,14 @@
 import { BOT_PERSONAS } from '../ai/bot-factory';
 import { BotConfig } from '../ai/types';
+import { BotEntity, getTierFromElo } from './ecosystem/ecosystem-types';
+
+export interface CampaignBotConfig extends BotConfig {
+  id: string;
+  name: string;
+  avatar: string;
+  description: string;
+  elo: number;
+}
 
 export interface CampaignChapter {
   id: number;
@@ -13,7 +22,7 @@ export interface CampaignChapter {
   betAmount: number;
   rewardCoins: number;
   rewardTitle: string | null;
-  bots: readonly BotConfig[];
+  bots: readonly CampaignBotConfig[];
   specialRuleDescription: string | null;
 }
 
@@ -190,3 +199,71 @@ export const CAMPAIGN_CHAPTERS: readonly CampaignChapter[] = Object.freeze([
     specialRuleDescription: 'Đánh bại Tam Đại Boss Superhuman AI để bước lên Ngai Vàng Bá Chủ Tiến Lên!'
   })
 ]);
+
+/**
+ * Entity State Lifecycle / Factory:
+ * Chuyển đổi CampaignBotConfig sang thực thể BotEntity hoàn chỉnh.
+ * Đảm bảo các invariants nghiệp vụ (name, avatar, description, stats) luôn đầy đủ,
+ * không cho phép trạng thái khuyết thiếu hoặc dựa dẫm vào fallback ở tầng UI.
+ */
+export function createCampaignBotEntity(botConfig: CampaignBotConfig, ecosystemBots?: BotEntity[]): BotEntity {
+  if (ecosystemBots) {
+    const existing = ecosystemBots.find(b => b.id === botConfig.id || b.name === botConfig.name);
+    if (existing) return existing;
+  }
+
+  const tierInfo = getTierFromElo(botConfig.elo);
+  return {
+    id: botConfig.id,
+    dnaTier: tierInfo.tierNum,
+    name: botConfig.name,
+    avatar: botConfig.avatar,
+    elo: botConfig.elo,
+    coins: botConfig.elo * 150,
+    description: botConfig.description,
+    personalityTags: [
+      tierInfo.label,
+      botConfig.useMinimaxEndgame ? 'Già Rơ' : 'Chiến Thuật',
+      botConfig.riskAppetite > 0.7 ? 'Liều Lĩnh' : 'Chặt Chẽ'
+    ],
+    title: `Trùm ${tierInfo.label}`,
+    status: 'ACTIVE',
+    activityStatus: 'IN_MATCH',
+    createdAt: Date.now(),
+    memoryDepth: botConfig.memoryDepth ?? 0.5,
+    riskAppetite: botConfig.riskAppetite ?? 0.5,
+    trapTendency: botConfig.trapTendency ?? 0.5,
+    baitingTendency: botConfig.baitingTendency ?? 0.5,
+    antiLeaderAggression: botConfig.antiLeaderAggression ?? 1.0,
+    tempoControl: botConfig.tempoControl ?? 0.5,
+    damageControl: botConfig.damageControl ?? 0.5,
+    turnsToWinLookahead: botConfig.turnsToWinLookahead ?? 0.5,
+    dynamicHandSacrifice: botConfig.dynamicHandSacrifice ?? 0.5,
+    bombInferenceRate: botConfig.bombInferenceRate ?? 0.5,
+    semiCooperativeCooperation: botConfig.semiCooperativeCooperation ?? 0.5,
+    positionalAwareness: botConfig.positionalAwareness ?? 0.5,
+    inMatchAdaptationRate: botConfig.inMatchAdaptationRate ?? 0.5,
+    mctsSimulations: botConfig.mctsSimulations ?? 0,
+    handPartitioningOptimality: botConfig.handPartitioningOptimality ?? 0.5,
+    simulationLookahead: botConfig.simulationLookahead ?? 1,
+    useMinimaxEndgame: botConfig.useMinimaxEndgame ?? false,
+    useBayesianInference: botConfig.useBayesianInference ?? false,
+    useNashEquilibrium: botConfig.useNashEquilibrium ?? false,
+    useDynamicRepartitioning: botConfig.useDynamicRepartitioning ?? false,
+    currentStreak: 2,
+    highestStreak: 6,
+    stats: {
+      gamesPlayed: 120,
+      wins: 72,
+      chopsDone: 35,
+      congsGiven: 18,
+      totalEarned: botConfig.elo * 600
+    },
+    headToHeadVsHuman: {
+      games: 0,
+      botWins: 0,
+      humanWins: 0,
+      netCoinsEarnedFromHuman: 0
+    }
+  };
+}

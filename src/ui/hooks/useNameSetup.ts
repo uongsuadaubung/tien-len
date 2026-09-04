@@ -3,6 +3,7 @@ import { PlayerProfile, savePlayerProfile } from '../../engine/storage';
 import { soundManager } from '../audio/sound-manager';
 
 import { useUserStore } from '../../stores/useUserStore';
+import { useI18n } from '../../locales';
 
 export const AVATAR_OPTIONS: readonly string[] = [
   // Nhóm 1: Thần Bài & Quý Tộc Sòng Bạc
@@ -39,6 +40,7 @@ export function useNameSetup({
   isOpen,
   onClose = null
 }: UseNameSetupParams): UseNameSetupResult {
+  const { t } = useI18n();
   const { profile, setProfile: onUpdateProfile } = useUserStore();
   const [name, setName] = useState<string>(profile.name || '');
   const [avatar, setAvatar] = useState<string>(profile.avatar || '🤠');
@@ -57,15 +59,15 @@ export function useNameSetup({
 
     const trimmed = name.trim();
     if (!trimmed) {
-      setError('Vui lòng nhập tên / biệt danh của bạn!');
+      setError(t('nameSetup.errorEmpty'));
       return;
     }
     if (trimmed.length < 2) {
-      setError('Biệt danh phải có ít nhất 2 ký tự!');
+      setError(t('nameSetup.errorMinLength'));
       return;
     }
     if (trimmed.length > 20) {
-      setError('Biệt danh không được vượt quá 20 ký tự!');
+      setError(t('nameSetup.errorMaxLength'));
       return;
     }
 

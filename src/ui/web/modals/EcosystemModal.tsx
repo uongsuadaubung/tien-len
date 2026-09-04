@@ -3,6 +3,7 @@ import { Modal, Card, Badge, Button, Tabs, TabOption } from '../../primitives';
 import { useViewStore } from '../../../stores/useViewStore';
 import { useEcosystem, EcosystemTab, TIER_FILTERS, PAGE_SIZE } from '../../hooks/useEcosystem';
 import { getTierFilterLabel } from '../../../engine/ecosystem/ecosystem-types';
+import { useI18n } from '../../../locales';
 import { 
   Trophy, 
   Flame, 
@@ -11,12 +12,13 @@ import {
   Newspaper, 
   ChevronLeft, 
   ChevronRight, 
-  Eye,
-  ArrowUpDown,
-  Target
+  Eye, 
+  ArrowUpDown, 
+  Target 
 } from 'lucide-react';
 
 export const EcosystemModal: React.FC = () => {
+  const { t } = useI18n();
   const { isEcosystemOpen, closeModal } = useViewStore();
   const {
     activeTab,
@@ -44,12 +46,12 @@ export const EcosystemModal: React.FC = () => {
   const tabOptions: TabOption<EcosystemTab>[] = [
     {
       id: 'LEADERBOARD',
-      label: 'Bảng Xếp Hạng',
+      label: t('ecosystem.tabLeaderboard'),
       icon: <Trophy className="w-4 h-4" />
     },
     {
       id: 'NEWSFEED',
-      label: 'Bảng Tin',
+      label: t('ecosystem.tabNewsfeed'),
       icon: <Newspaper className="w-4 h-4" />,
       badge: newsfeed.length > 0 ? (
         <Badge variant="danger" size="sm">
@@ -65,14 +67,14 @@ export const EcosystemModal: React.FC = () => {
     <Modal
       isOpen={isEcosystemOpen}
       onClose={() => closeModal('ECOSYSTEM')}
-      title="Bảng Vàng Danh Vọng"
-      subtitle="Vinh danh cao thủ, tỷ lệ thắng & biến động tài chính toàn máy chủ"
+      title={t('ecosystem.modalTitle')}
+      subtitle={t('ecosystem.modalSubtitle')}
       icon={<Trophy className="w-5 h-5 text-[var(--color-gold)]" />}
       maxWidth="5xl"
       height="h-[90vh] sm:h-[700px]"
       headerRight={
         <Badge variant="gold" size="md" icon={<span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}>
-          Mùa Giải 2026 • Trực Tuyến
+          {t('ecosystem.seasonLive')}
         </Badge>
       }
       footer={
@@ -85,16 +87,16 @@ export const EcosystemModal: React.FC = () => {
               onClick={handleJumpToMyRank}
               leftIcon={<Target className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
             >
-              Hạng Của Bạn: <strong className="ml-1 text-[var(--color-gold)]">#{humanGlobalRank}</strong>
+              {t('ecosystem.jumpToMyRank')}: <strong className="ml-1 text-[var(--color-gold)]">#{humanGlobalRank}</strong>
             </Button>
           </div>
 
           <div className="flex items-center gap-3">
             <span className="text-[var(--text-muted)] text-[11px]">
-              Hiển thị {sortedAndFilteredList.length} người chơi | Trang {currentPage}/{totalPages}
+              {t('ecosystem.showingPlayers', { count: sortedAndFilteredList.length, page: currentPage, total: totalPages })}
             </span>
             <Button variant="surface" size="sm" onClick={() => closeModal('ECOSYSTEM')}>
-              Đóng
+              {t('common.close')}
             </Button>
           </div>
         </div>
@@ -118,7 +120,7 @@ export const EcosystemModal: React.FC = () => {
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
               <input
                 type="text"
-                placeholder="Tìm kiếm người chơi, danh hiệu..."
+                placeholder={t('ecosystem.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                 className="w-full pl-8 pr-3 py-1.5 text-xs bg-[var(--bg-input)] border border-[var(--border-container)] rounded-xl text-[var(--text-primary)] focus:outline-none focus:border-[var(--color-gold)] transition-colors placeholder:text-[var(--text-dim)]"
@@ -133,7 +135,7 @@ export const EcosystemModal: React.FC = () => {
             {/* BỘ LỌC THEO BẬC TIER & NÚT SẮP XẾP */}
             <div className="flex flex-wrap items-center justify-between gap-2.5 text-xs">
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] font-semibold text-[var(--text-muted)] mr-0.5">Bậc Rank:</span>
+                <span className="text-[11px] font-semibold text-[var(--text-muted)] mr-0.5">{t('ecosystem.tierFilterLabel')}</span>
                 {TIER_FILTERS.map((tier) => (
                   <button
                     key={tier}
@@ -150,7 +152,7 @@ export const EcosystemModal: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2 ml-auto">
-                <span className="text-[11px] font-semibold text-[var(--text-muted)]">Xếp theo:</span>
+                <span className="text-[11px] font-semibold text-[var(--text-muted)]">{t('ecosystem.sortByLabel')}</span>
                 <div className="relative">
                   <select
                     value={selectedSortField}
@@ -162,17 +164,17 @@ export const EcosystemModal: React.FC = () => {
                     }}
                     className="bg-[var(--bg-input)] border border-[var(--border-card)] text-xs text-[var(--text-primary)] rounded-lg px-2.5 py-1 focus:outline-none focus:border-[var(--color-gold)] cursor-pointer"
                   >
-                    <option value="elo">Điểm Elo</option>
-                    <option value="coins">Tiền Vốn (Xu)</option>
-                    <option value="winRate">Tỉ Lệ Thắng (%)</option>
-                    <option value="gamesPlayed">Số Trận Đấu</option>
+                    <option value="elo">{t('ecosystem.sortElo')}</option>
+                    <option value="coins">{t('ecosystem.sortCoins')}</option>
+                    <option value="winRate">{t('ecosystem.sortWinRate')}</option>
+                    <option value="gamesPlayed">{t('ecosystem.sortGamesPlayed')}</option>
                   </select>
                 </div>
                 <Button
                   variant="surface"
                   size="sm"
                   onClick={toggleSortOrder}
-                  title="Đổi thứ tự tăng/giảm"
+                  title={t('ecosystem.sortOrderTooltip')}
                   className="h-7 px-2 text-xs"
                   leftIcon={<ArrowUpDown className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
                 >
@@ -186,14 +188,14 @@ export const EcosystemModal: React.FC = () => {
               <table className="w-full text-left text-xs border-collapse">
                 <thead className="sticky top-0 bg-[var(--bg-container)] border-b border-[var(--border-container)] text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-wider z-10">
                   <tr>
-                    <th className="py-2.5 px-3 w-14 text-center whitespace-nowrap">Hạng</th>
-                    <th className="py-2.5 px-3 whitespace-nowrap min-w-[180px]">Cao Thủ</th>
-                    <th className="py-2.5 px-3 text-center whitespace-nowrap min-w-[110px]">Bậc Rank</th>
-                    <th className="py-2.5 px-3 text-right whitespace-nowrap min-w-[90px]">Điểm Elo</th>
-                    <th className="py-2.5 px-3 text-right whitespace-nowrap min-w-[110px]">Tiền Vốn</th>
-                    <th className="py-2.5 px-3 text-center whitespace-nowrap min-w-[110px]">Tỉ Lệ Thắng</th>
-                    <th className="py-2.5 px-3 text-center whitespace-nowrap min-w-[100px]">Phong Độ</th>
-                    <th className="py-2.5 px-3 text-center whitespace-nowrap min-w-[110px]">Hồ Sơ</th>
+                    <th className="py-2.5 px-3 w-14 text-center whitespace-nowrap">{t('ecosystem.colRank')}</th>
+                    <th className="py-2.5 px-3 whitespace-nowrap min-w-[180px]">{t('ecosystem.colPlayer')}</th>
+                    <th className="py-2.5 px-3 text-center whitespace-nowrap min-w-[110px]">Tier</th>
+                    <th className="py-2.5 px-3 text-right whitespace-nowrap min-w-[90px]">{t('ecosystem.colElo')}</th>
+                    <th className="py-2.5 px-3 text-right whitespace-nowrap min-w-[110px]">{t('ecosystem.colCoins')}</th>
+                    <th className="py-2.5 px-3 text-center whitespace-nowrap min-w-[110px]">{t('ecosystem.colWinRate')}</th>
+                    <th className="py-2.5 px-3 text-center whitespace-nowrap min-w-[100px]">{t('ecosystem.colStreak')}</th>
+                    <th className="py-2.5 px-3 text-center whitespace-nowrap min-w-[110px]">{t('common.detail')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-container)]">
@@ -227,14 +229,14 @@ export const EcosystemModal: React.FC = () => {
                         <td className="py-2.5 px-3 whitespace-nowrap">
                           <div className="flex items-center gap-2.5">
                             <div className="w-8 h-8 rounded-lg bg-[var(--bg-input)] border border-[var(--border-container)] flex items-center justify-center text-lg flex-shrink-0">
-                              {item.avatar || '🤖'}
+                              {item.avatar}
                             </div>
                             <div>
                               <div className="font-bold text-[var(--text-primary)] flex items-center gap-1.5">
                                 {item.name}
                                 {isHuman && (
                                   <Badge variant="gold" size="sm">
-                                    BẠN
+                                    {t('common.you')}
                                   </Badge>
                                 )}
                               </div>
@@ -242,7 +244,7 @@ export const EcosystemModal: React.FC = () => {
                                 <span className={`w-1.5 h-1.5 rounded-full ${
                                   item.activityStatus === 'IN_MATCH' ? 'bg-[var(--color-emerald-text)] animate-pulse' : 'bg-slate-400'
                                 }`} />
-                                <span>{item.activityStatus === 'IN_MATCH' ? 'Đang Trong Bàn' : 'Trực Tuyến'}</span>
+                                <span>{item.activityStatus === 'IN_MATCH' ? t('ecosystem.statusInMatch') : t('ecosystem.statusOnline')}</span>
                               </div>
                             </div>
                           </div>
@@ -271,7 +273,7 @@ export const EcosystemModal: React.FC = () => {
                             {item.winRate}%
                           </span>
                           <span className="text-[10px] text-[var(--text-muted)] block">
-                            ({item.stats.wins}/{item.stats.gamesPlayed} ván)
+                            {t('ecosystem.matchCount', { wins: item.stats.wins, total: item.stats.gamesPlayed })}
                           </span>
                         </td>
 
@@ -305,7 +307,7 @@ export const EcosystemModal: React.FC = () => {
                             }}
                             leftIcon={<Eye className={`w-3.5 h-3.5 ${isHuman ? 'text-black' : 'text-[var(--color-gold)]'}`} />}
                           >
-                            Hồ Sơ
+                            {t('ecosystem.btnProfile')}
                           </Button>
                         </td>
                       </tr>
@@ -319,7 +321,7 @@ export const EcosystemModal: React.FC = () => {
             {totalPages > 1 && (
               <div className="flex items-center justify-between pt-1 text-xs">
                 <span className="text-[var(--text-muted)] text-[11px]">
-                  Đang xem {((currentPage - 1) * PAGE_SIZE) + 1} - {Math.min(currentPage * PAGE_SIZE, sortedAndFilteredList.length)} trong tổng số {sortedAndFilteredList.length}
+                  {t('ecosystem.viewingRange', { from: ((currentPage - 1) * PAGE_SIZE) + 1, to: Math.min(currentPage * PAGE_SIZE, sortedAndFilteredList.length), total: sortedAndFilteredList.length })}
                 </span>
                 <div className="flex items-center gap-1.5">
                   <Button
@@ -330,7 +332,7 @@ export const EcosystemModal: React.FC = () => {
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     leftIcon={<ChevronLeft className="w-3.5 h-3.5" />}
                   >
-                    Trước
+                    {t('common.prev')}
                   </Button>
                   <span className="px-2.5 font-bold text-[var(--text-primary)] text-xs">
                     {currentPage} / {totalPages}
@@ -343,7 +345,7 @@ export const EcosystemModal: React.FC = () => {
                     onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                     rightIcon={<ChevronRight className="w-3.5 h-3.5" />}
                   >
-                    Sau
+                    {t('common.next')}
                   </Button>
                 </div>
               </div>
@@ -357,7 +359,7 @@ export const EcosystemModal: React.FC = () => {
             {newsfeed.length === 0 ? (
               <div className="text-center py-16 text-[var(--text-muted)] text-xs flex flex-col items-center justify-center gap-2">
                 <Newspaper className="w-8 h-8 text-[var(--text-dim)]" />
-                <span>Chưa có sự kiện nổi bật nào hôm nay. Các trận thắng lớn và sự kiện nổ hũ sẽ được vinh danh tại đây!</span>
+                <span>{t('ecosystem.emptyNewsfeed')}</span>
               </div>
             ) : (
               newsfeed.map((news) => {
@@ -385,7 +387,7 @@ export const EcosystemModal: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold leading-relaxed text-[var(--text-primary)]">{news.message}</p>
                       <span className="text-[10px] text-[var(--text-muted)] mt-1 block">
-                        {new Date(news.timestamp).toLocaleTimeString('vi-VN')} - Toàn Server
+                        {new Date(news.timestamp).toLocaleTimeString()} - {t('ecosystem.serverWide')}
                       </span>
                     </div>
                   </Card>

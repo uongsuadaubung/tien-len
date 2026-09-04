@@ -8,6 +8,7 @@ import { TableCenter } from '../../components/TableCenter';
 import { DealingDeckAnimation } from '../../components/DealingDeckAnimation';
 import { PlayerHandView } from '../../components/PlayerHandView';
 import { useGameTableScreenLogic } from '../../hooks/useGameTableScreenLogic';
+import { useI18n } from '../../../locales';
 
 // Stores
 import { useViewStore } from '../../../stores/useViewStore';
@@ -32,6 +33,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
   onDealComplete,
   onReturnToLobby
 }) => {
+  const { t } = useI18n();
   const [isReasoningHudOpen, setIsReasoningHudOpen] = useState<boolean>(true);
   const { openModal } = useViewStore();
   const { profile } = useUserStore();
@@ -189,7 +191,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
             <div className="table-inner-felt">
               <div className="table-center-emblem">
                 <span className="text-[#d4af37]/25 font-black text-[11px] sm:text-[13px] uppercase tracking-[0.35em] select-none text-center">
-                  TIẾN LÊN MIỀN NAM
+                  {t('table.emblem')}
                 </span>
               </div>
             </div>

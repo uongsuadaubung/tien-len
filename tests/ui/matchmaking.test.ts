@@ -193,12 +193,13 @@ describe('Kiểm Thử Giả Lập Ghép Trận Online (Matchmaking Simulation T
 
   it('5. useMatchmakingStore: Khởi tạo, hủy và thực thi trận đấu độc lập', async () => {
     const { useMatchmakingStore } = await import('../../src/stores/useMatchmakingStore');
+    const { getBotConfig } = await import('../../src/ai/bot-factory');
     let started = false;
 
     useMatchmakingStore.getState().startMatchmaking({
       betAmount: 2000,
       modeName: 'Đếm Lá Siêu Tốc',
-      botConfigs: [{ id: 'BOT_1', name: 'Bot 1' }],
+      botConfigs: [getBotConfig('BOT_ELO_1150', { id: 'BOT_1', name: 'Bot 1' })],
       playerCount: 4,
       onStart: () => {
         started = true;

@@ -83,7 +83,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-sm sm:text-base font-bold text-[var(--text-primary)] tracking-wider">
-              TIẾN LÊN MIỀN NAM
+              {t('table.emblem')}
             </h1>
             <Badge variant="gold" size="sm">
               {modeBadgeText[activeGameType]}
@@ -112,7 +112,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             variant="surface"
             size="icon"
             onClick={onOpenXRay}
-            title="Soi Bài Cả Bàn (X-Ray Inspector)"
+            title={t('header.xrayTooltip')}
           >
             <Eye className="w-4 h-4 text-[var(--color-gold)]" />
           </Button>
@@ -123,7 +123,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
           variant={soundEnabled ? 'surface' : 'danger'}
           size="icon"
           onClick={onToggleSound}
-          title={soundEnabled ? 'Tắt Âm Thanh' : 'Bật Âm Thanh'}
+          title={soundEnabled ? t('header.soundOffTooltip') : t('header.soundOnTooltip')}
         >
           {soundEnabled ? <Volume2 className="w-4 h-4 text-[var(--text-secondary)]" /> : <VolumeX className="w-4 h-4" />}
         </Button>
@@ -146,7 +146,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             const fs = await toggleFullScreen();
             setIsFullscreenState(fs);
           }}
-          title={isFullscreenState ? 'Thoát Toàn Màn Hình' : 'Toàn Màn Hình'}
+          title={isFullscreenState ? t('header.exitFullscreenTooltip') : t('header.fullscreenTooltip')}
         >
           {isFullscreenState ? (
             <Minimize className="w-4 h-4 text-[var(--color-gold)]" />

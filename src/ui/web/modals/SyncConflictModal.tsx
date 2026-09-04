@@ -4,6 +4,7 @@ import { Modal, Button, Card, Badge } from '../../primitives';
 import { getRankTierByElo } from '../../../engine/elo';
 import { forceUploadToCloud, forceDownloadFromCloud } from '../../../engine/sync/sync-service';
 import type { TienLenSaveData } from '../../../engine/sync/types';
+import { useI18n } from '../../../locales';
 
 interface SyncConflictModalProps {
   isOpen: boolean;
@@ -15,8 +16,8 @@ interface SyncConflictModalProps {
   onResolved?: () => void;
 }
 
-function formatTime(timestamp?: number): string {
-  if (!timestamp) return 'Không rõ';
+function formatTime(timestamp?: number, fallback: string = '---'): string {
+  if (!timestamp) return fallback;
   const d = new Date(timestamp);
   const hours = String(d.getHours()).padStart(2, '0');
   const minutes = String(d.getMinutes()).padStart(2, '0');
@@ -32,6 +33,7 @@ export const SyncConflictModal: React.FC<SyncConflictModalProps> = ({
   conflictData,
   onResolved
 }) => {
+  const { t } = useI18n();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -49,7 +51,7 @@ export const SyncConflictModal: React.FC<SyncConflictModalProps> = ({
       onClose();
       if (onResolved) onResolved();
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Lỗi khi ghi đè dữ liệu lên đám mây.');
+      setErrorMsg(err instanceof Error ? err.message : t('sync.conflictUploadError'));
     } finally {
       setIsProcessing(false);
     }
@@ -63,7 +65,7 @@ export const SyncConflictModal: React.FC<SyncConflictModalProps> = ({
       onClose();
       if (onResolved) onResolved();
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Lỗi khi áp dụng dữ liệu từ đám mây.');
+      setErrorMsg(err instanceof Error ? err.message : t('sync.conflictDownloadError'));
     } finally {
       setIsProcessing(false);
     }
@@ -77,14 +79,14 @@ export const SyncConflictModal: React.FC<SyncConflictModalProps> = ({
       showCloseButton={false}
       maxWidth="2xl"
       height="h-auto"
-      title="Phát Hiện Xung Đột Dữ Liệu Đồng Bộ"
-      subtitle="Cả máy này và GitHub Gist đều có dữ liệu mới. Bắt buộc chọn bản bạn muốn giữ lại."
+      title={t('sync.conflictTitle')}
+      subtitle={t('sync.conflictDesc')}
       icon={<AlertTriangle className="w-5 h-5 text-amber-400" />}
     >
       <div className="space-y-4">
         {/* Lời giải thích */}
         <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs leading-relaxed">
-          Tiến trình trên máy này và bản lưu đám mây đều đã thay đổi kể từ lần đồng bộ trước. Hãy xem so sánh dưới đây và chọn bản bạn muốn sử dụng tiếp:
+          {t('sync.conflictChoosePrompt')}
         </div>
 
         {errorMsg && (
@@ -101,7 +103,7 @@ export const SyncConflictModal: React.FC<SyncConflictModalProps> = ({
               <div className="flex items-center justify-between pb-2 border-b border-[var(--border-card)]">
                 <div className="flex items-center gap-2 font-bold text-sm text-[var(--color-gold)]">
                   <span>💻</span>
-                  <span>Bản Trên Máy Này</span>
+                  <span>{t('sync.conflictLocalCard')}</span>
                 </div>
                 <Badge variant="gold" size="sm">Local</Badge>
               </div>
@@ -113,7 +115,7 @@ export const SyncConflictModal: React.FC<SyncConflictModalProps> = ({
                 </div>
                 <div className="min-w-0">
                   <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)] truncate">
-                    {localData.profile.name || 'Chưa Đặt Tên'}
+                    {localData.profile.name || t('lobby.defaultName')}
                   </div>
                   <div className="text-[11px] text-[var(--color-gold)] font-semibold mt-0.5 flex items-center gap-1">
                     <span>{localRank.badge}</span>
@@ -128,27 +130,27 @@ export const SyncConflictModal: React.FC<SyncConflictModalProps> = ({
                 <div className="p-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)]">
                   <div className="text-[10px] text-[var(--text-muted)] flex items-center gap-1 font-medium">
                     <Coins className="w-3 h-3 text-amber-400 shrink-0" />
-                    <span>Tài Sản</span>
+                    <span>{t('lobby.assetsLabel')}</span>
                   </div>
                   <div className="font-bold text-[var(--color-gold)] mt-0.5">
-                    {localData.profile.coins.toLocaleString()} Xu
+                    {localData.profile.coins.toLocaleString()} {t('common.coins')}
                   </div>
                 </div>
 
                 <div className="p-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)]">
                   <div className="text-[10px] text-[var(--text-muted)] flex items-center gap-1 font-medium">
                     <Trophy className="w-3 h-3 text-emerald-400 shrink-0" />
-                    <span>Thắng / Tổng</span>
+                    <span>{t('sync.conflictWinsGames')}</span>
                   </div>
                   <div className="font-bold text-[var(--text-primary)] mt-0.5">
-                    {localData.profile.stats.wins} / {localData.profile.stats.gamesPlayed}
+                    {t('sync.conflictWinsTotal', { wins: localData.profile.stats.wins, total: localData.profile.stats.gamesPlayed })}
                   </div>
                 </div>
               </div>
 
               <div className="text-[11px] text-[var(--text-muted)] flex items-center gap-1.5 pt-0.5">
                 <Calendar className="w-3.5 h-3.5 shrink-0" />
-                <span>Cập nhật: {formatTime(localData.updatedAt)}</span>
+                <span>{t('sync.conflictUpdated', { time: formatTime(localData.updatedAt, t('common.unknown')) })}</span>
               </div>
             </div>
 
@@ -162,7 +164,7 @@ export const SyncConflictModal: React.FC<SyncConflictModalProps> = ({
                 disabled={isProcessing}
                 leftIcon={<CloudUpload className="w-4 h-4 shrink-0" />}
               >
-                Giữ Bản Trên Máy (Ghi Đè Gist)
+                {t('sync.conflictOverwriteCloud')}
               </Button>
             </div>
           </Card>
@@ -173,7 +175,7 @@ export const SyncConflictModal: React.FC<SyncConflictModalProps> = ({
               <div className="flex items-center justify-between pb-2 border-b border-[var(--border-card)]">
                 <div className="flex items-center gap-2 font-bold text-sm text-sky-400">
                   <span>☁️</span>
-                  <span>Bản Trên GitHub Gist</span>
+                  <span>{t('sync.conflictCloudCard')}</span>
                 </div>
                 <Badge variant="sapphire" size="sm">Cloud</Badge>
               </div>
@@ -185,7 +187,7 @@ export const SyncConflictModal: React.FC<SyncConflictModalProps> = ({
                 </div>
                 <div className="min-w-0">
                   <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)] truncate">
-                    {cloudData.profile.name || 'Chưa Đặt Tên'}
+                    {cloudData.profile.name || t('lobby.defaultName')}
                   </div>
                   <div className="text-[11px] text-sky-400 font-semibold mt-0.5 flex items-center gap-1">
                     <span>{cloudRank.badge}</span>
@@ -200,27 +202,27 @@ export const SyncConflictModal: React.FC<SyncConflictModalProps> = ({
                 <div className="p-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)]">
                   <div className="text-[10px] text-[var(--text-muted)] flex items-center gap-1 font-medium">
                     <Coins className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span>Tài Sản</span>
+                    <span>{t('lobby.assetsLabel')}</span>
                   </div>
                   <div className="font-bold text-[var(--color-gold)] mt-0.5">
-                    {cloudData.profile.coins.toLocaleString()} Xu
+                    {cloudData.profile.coins.toLocaleString()} {t('common.coins')}
                   </div>
                 </div>
 
                 <div className="p-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)]">
                   <div className="text-[10px] text-[var(--text-muted)] flex items-center gap-1 font-medium">
                     <Trophy className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>Thắng / Tổng</span>
+                    <span>{t('sync.conflictWinsGames')}</span>
                   </div>
                   <div className="font-bold text-[var(--text-primary)] mt-0.5">
-                    {cloudData.profile.stats.wins} / {cloudData.profile.stats.gamesPlayed}
+                    {t('sync.conflictWinsTotal', { wins: cloudData.profile.stats.wins, total: cloudData.profile.stats.gamesPlayed })}
                   </div>
                 </div>
               </div>
 
               <div className="text-[11px] text-[var(--text-muted)] flex items-center gap-1.5 pt-0.5">
                 <Calendar className="w-3.5 h-3.5 shrink-0" />
-                <span>Cập nhật: {formatTime(cloudData.updatedAt)}</span>
+                <span>{t('sync.conflictUpdated', { time: formatTime(cloudData.updatedAt, t('common.unknown')) })}</span>
               </div>
             </div>
 
@@ -235,14 +237,14 @@ export const SyncConflictModal: React.FC<SyncConflictModalProps> = ({
                 leftIcon={<CloudDownload className="w-4 h-4 shrink-0 text-sky-400" />}
                 className="border-sky-500/40 text-sky-300 hover:bg-sky-500/10"
               >
-                Tải Bản Gist Về Máy
+                {t('sync.conflictApplyLocal')}
               </Button>
             </div>
           </Card>
         </div>
 
         <div className="text-[11px] text-[var(--text-muted)] text-center pt-1">
-          💡 <em>Mọi lần ghi đè đều được bảo lưu vĩnh viễn trong lịch sử Git của Gist. Bạn có thể mở Cài Đặt ➔ Lịch Sử Gist để khôi phục bất cứ lúc nào.</em>
+          💡 <em>{t('sync.conflictNote')}</em>
         </div>
       </div>
     </Modal>

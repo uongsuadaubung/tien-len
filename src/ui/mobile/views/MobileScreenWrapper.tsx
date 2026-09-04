@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { useI18n } from '../../../locales';
 
 export interface MobileScreenWrapperProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export const MobileScreenWrapper: React.FC<MobileScreenWrapperProps> = ({
   children,
   className
 }) => {
+  const { t } = useI18n();
   if (!isOpen) return null;
 
   return (
@@ -35,10 +37,10 @@ export const MobileScreenWrapper: React.FC<MobileScreenWrapperProps> = ({
           <button
             onClick={onClose}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] text-xs font-bold text-[var(--color-gold)] active:scale-95 transition-transform shrink-0"
-            title="Quay lại"
+            title={t('common.back')}
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Quay Lại</span>
+            <span>{t('common.back')}</span>
           </button>
 
           {icon && (

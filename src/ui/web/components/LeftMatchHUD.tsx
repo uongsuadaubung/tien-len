@@ -10,6 +10,7 @@ import { BotConfig } from '../../../ai/types';
 import { useUserStore } from '../../../stores/useUserStore';
 import { useEcosystemStore } from '../../../stores/useEcosystemStore';
 import { useGameStore } from '../../../stores/useGameStore';
+import { useI18n } from '../../../locales';
 
 interface LeftMatchHUDProps {
   players: Player[];
@@ -39,6 +40,7 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
   customBotConfigs
 }) => {
   const [isOpen] = useState<boolean>(true);
+  const { t } = useI18n();
   const { profile } = useUserStore();
   const ecosystemBots = useEcosystemStore(state => state.bots);
   const { myPlayerId } = useGameStore();
@@ -59,12 +61,12 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
           <div className="flex items-center gap-1.5">
             <Trophy className="w-4 h-4 text-[var(--color-gold)]" />
             <span className="font-bold text-xs text-[var(--text-primary)] uppercase tracking-wider">
-              Ván #{gameNumber}
+              {t('hud.gameNumber', { number: gameNumber })}
             </span>
           </div>
           <Badge variant="gold" size="sm">
             <Coins className="w-3.5 h-3.5 text-[#0a0c0e]" />
-            <span>{betAmount.toLocaleString()} Xu</span>
+            <span>{betAmount.toLocaleString()} {t('common.coins')}</span>
           </Badge>
         </div>
 
@@ -73,9 +75,9 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[var(--bg-card)] text-[var(--text-primary)] text-[10px] sm:text-[11px] font-bold uppercase tracking-wider border-b border-[var(--border-container)]">
-                <th className="py-2 px-2.5 border-r border-[var(--border-container)]">Người Chơi</th>
-                <th className="py-2 px-2 text-center border-r border-[var(--border-container)] w-16">Lá Bài</th>
-                <th className="py-2 px-2.5 text-right w-18">Điểm / Xu</th>
+                <th className="py-2 px-2.5 border-r border-[var(--border-container)]">{t('hud.colPlayer')}</th>
+                <th className="py-2 px-2 text-center border-r border-[var(--border-container)] w-16">{t('hud.colCards')}</th>
+                <th className="py-2 px-2.5 text-right w-18">{t('hud.colScore')}</th>
               </tr>
             </thead>
             <tbody className="text-xs font-semibold divide-y divide-white/5">
@@ -121,18 +123,18 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                         <div className="flex flex-col min-w-0">
                           <div className="flex items-center gap-1">
                             <span className={`truncate text-xs ${isMe ? 'text-[var(--color-gold)] font-bold' : 'text-[var(--text-primary)]'}`}>
-                              {isMe ? `${p.name} (Bạn)` : p.name}
+                              {isMe ? `${p.name} ${t('hud.you')}` : p.name}
                             </span>
                           </div>
 
                           {/* Bậc Rank hoặc Trạng thái Bỏ Lượt */}
                           <div className="flex items-center gap-1 text-[9px]">
                             {p.isPassedCurrentRound ? (
-                              <span className="text-red-400 font-bold">Bỏ Lượt</span>
+                              <span className="text-red-400 font-bold">{t('hud.turnPassed')}</span>
                             ) : p.rankPosition ? (
-                              <span className="text-[var(--color-gold)] font-bold">Về #{p.rankPosition}</span>
+                              <span className="text-[var(--color-gold)] font-bold">{t('hud.rankBadge', { rank: p.rankPosition })}</span>
                             ) : isTurn ? (
-                              <span className="text-[var(--color-gold)] font-bold">Đang Đánh</span>
+                              <span className="text-[var(--color-gold)] font-bold">{t('hud.turnPlaying')}</span>
                             ) : (
                               <span className="text-[var(--text-muted)] font-medium">{displayElo} Elo</span>
                             )}
@@ -147,7 +149,7 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                         <Badge variant="gold" size="sm">#{p.rankPosition}</Badge>
                       ) : isOneCardLeft ? (
                         <span className="bg-red-600 text-white font-bold px-1.5 py-0.5 rounded text-[10px] animate-pulse">
-                          1 Lá
+                          {t('hud.oneCardAlert')}
                         </span>
                       ) : (
                         <span className={`text-xs font-bold ${cardCount <= 3 ? 'text-amber-400' : 'text-[var(--text-primary)]'}`}>

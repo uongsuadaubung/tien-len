@@ -5,6 +5,7 @@ import { soundManager } from '../../audio/sound-manager';
 import { Swords, Check, X, Loader2, Sparkles, ArrowLeft } from 'lucide-react';
 import { Badge } from '../../primitives';
 import { useUserStore } from '../../../stores/useUserStore';
+import { useI18n } from '../../../locales';
 
 export interface MobileMatchmakingSheetProps {
   isOpen: boolean;
@@ -12,7 +13,7 @@ export interface MobileMatchmakingSheetProps {
   onMatchReady: () => void;
   betAmount: number;
   modeName: string;
-  matchedBots: Partial<BotConfig>[];
+  matchedBots: BotConfig[];
   playerCount?: number;
 }
 
@@ -25,6 +26,7 @@ export const MobileMatchmakingSheet: React.FC<MobileMatchmakingSheetProps> = ({
   matchedBots,
   playerCount = 4
 }) => {
+  const { t } = useI18n();
   const { profile: playerProfile } = useUserStore();
   const [stage, setStage] = useState<'SEARCHING' | 'FOUND'>('SEARCHING');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -39,13 +41,13 @@ export const MobileMatchmakingSheet: React.FC<MobileMatchmakingSheetProps> = ({
 
   const searchingTips = [
     actualPlayerCount === 2 
-      ? `🔍 Quét 1 đối thủ bậc ${playerTier.name} (Solo 1v1)...`
+      ? t('matchmaking.tipSolo')
       : actualPlayerCount === 3
-        ? `🔍 Quét 2 đối thủ bậc ${playerTier.name} (Bàn 3)...`
-        : `🔍 Quét 3 đấu thủ bậc ${playerTier.name} (Bàn 4)...`,
-    `⚡ Đang kiểm tra sới bạc ${modeName}...`,
-    '📡 Đang kết nối vào phòng đấu bảo mật...',
-    '🃏 Đang chuẩn bị bộ bài 52 lá tiêu chuẩn...'
+        ? t('matchmaking.tip3P')
+        : t('matchmaking.tip4P'),
+    t('matchmaking.tipDeposit'),
+    t('matchmaking.tipConnecting'),
+    t('matchmaking.tipDeck')
   ];
 
   useEffect(() => {
@@ -100,16 +102,16 @@ export const MobileMatchmakingSheet: React.FC<MobileMatchmakingSheetProps> = ({
   const allSlots = [
     {
       id: 'p0',
-      name: playerProfile.name || 'Bạn',
+      name: playerProfile.name || t('hud.you').replace(/[()]/g, ''),
       avatar: playerProfile.avatar || '🤠',
       elo: playerProfile.elo,
       isHuman: true
     },
     ...matchedBots.slice(0, requiredBotCount).map((b, idx) => ({
-      id: `bot_${idx}`,
-      name: b.name || `Đối thủ ${idx + 1}`,
-      avatar: b.avatar || '🤖',
-      elo: b.elo ?? 1000,
+      id: b.id || `bot_${idx}`,
+      name: b.name,
+      avatar: b.avatar,
+      elo: b.elo,
       isHuman: false
     }))
   ];
@@ -123,25 +125,25 @@ export const MobileMatchmakingSheet: React.FC<MobileMatchmakingSheetProps> = ({
           <button
             onClick={stage === 'SEARCHING' ? onCancel : () => {}}
             className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-[#141b2b] border border-[#2a3449] text-xs font-bold text-amber-400 active:scale-95 transition-transform shrink-0"
-            title="Hủy tìm trận"
+            title={t('matchmaking.cancelSearch')}
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Quay Lại</span>
+            <span>{t('common.back')}</span>
           </button>
           
           <div className="flex items-center gap-1.5 min-w-0">
             <Swords className="w-4 h-4 text-amber-400 shrink-0" />
             <span className="text-xs sm:text-sm font-bold text-zinc-100 truncate">
-              {stage === 'SEARCHING' ? 'Ghép Trận Đấu Radar' : 'Đã Tìm Thấy Phòng Đấu!'}
+              {stage === 'SEARCHING' ? t('matchmaking.radarSearch') : t('matchmaking.matchFound')}
             </span>
             <span className="text-[10px] text-zinc-400 hidden sm:inline">
-              • {modeName} ({actualPlayerCount} Người)
+              • {modeName} ({t('tableConfig.tablePlayerCount', { count: actualPlayerCount })})
             </span>
           </div>
         </div>
 
         <Badge variant="gold" size="sm">
-          🪙 {betAmount.toLocaleString()} Xu/lá
+          {t('tableConfig.modeCountCardsBadge', { amount: betAmount.toLocaleString() })}
         </Badge>
       </header>
 
@@ -170,7 +172,7 @@ export const MobileMatchmakingSheet: React.FC<MobileMatchmakingSheetProps> = ({
                 {formatTime(elapsedSeconds)}
               </div>
               <span className="text-[9px] font-black uppercase text-amber-500 tracking-wider">
-                Đang Dò Tìm Sới Bạc
+                {t('matchmaking.searchingDen')}
               </span>
             </div>
 
@@ -182,17 +184,17 @@ export const MobileMatchmakingSheet: React.FC<MobileMatchmakingSheetProps> = ({
                   <span className="text-2xl shrink-0">{playerProfile.avatar || '🤠'}</span>
                   <div className="text-left min-w-0">
                     <div className="font-bold text-xs text-zinc-100 truncate">
-                      {playerProfile.name || 'Bạn'}
+                      {playerProfile.name || t('hud.you').replace(/[()]/g, '')}
                     </div>
                     <div className="text-[10px] text-zinc-400 flex items-center gap-1 font-medium truncate">
-                      <span>{playerTier.badge} Bậc {playerTier.name}</span>
+                      <span>{playerTier.badge} {playerTier.name}</span>
                       <span>•</span>
                       <span className="text-amber-400 font-bold">{playerProfile.elo} Elo</span>
                     </div>
                   </div>
                 </div>
                 <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-bold px-1.5 py-0.5 rounded-lg shrink-0 animate-pulse">
-                  Đang Quét
+                  {t('matchmaking.scanning')}
                 </span>
               </div>
 
@@ -207,7 +209,7 @@ export const MobileMatchmakingSheet: React.FC<MobileMatchmakingSheetProps> = ({
                 className="w-full py-1.5 px-3 rounded-xl bg-[#1c1418] hover:bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs font-bold flex items-center justify-center gap-1.5 active:scale-95 transition-all shadow"
               >
                 <X className="w-3.5 h-3.5 text-rose-400" />
-                <span>HỦY TÌM TRẬN</span>
+                <span>{t('matchmaking.cancelSearch').toUpperCase()}</span>
               </button>
             </div>
 
@@ -224,8 +226,8 @@ export const MobileMatchmakingSheet: React.FC<MobileMatchmakingSheetProps> = ({
               <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
               <span className="font-black text-xs text-emerald-300 uppercase tracking-wide">
                 {actualPlayerCount === 2
-                  ? '⚔️ Đã tìm thấy đối thủ Solo 1v1 xứng tầm!'
-                  : `⚔️ Đã ghép đủ ${actualPlayerCount} đấu thủ cùng bậc Rank!`}
+                  ? t('matchmaking.foundSolo')
+                  : t('matchmaking.foundRankMatch', { count: actualPlayerCount })}
               </span>
               <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
             </div>
@@ -248,7 +250,7 @@ export const MobileMatchmakingSheet: React.FC<MobileMatchmakingSheetProps> = ({
                         <span className="text-xl sm:text-2xl">{slot.avatar}</span>
                         {slot.isHuman && (
                           <span className="absolute -bottom-1 -right-1 text-[7px] bg-amber-500 text-black font-black px-0.5 rounded-full shadow">
-                            BẠN
+                            {t('hud.you').replace(/[()]/g, '').toUpperCase()}
                           </span>
                         )}
                       </div>
@@ -265,7 +267,7 @@ export const MobileMatchmakingSheet: React.FC<MobileMatchmakingSheetProps> = ({
 
                     <div className="w-full flex items-center justify-center gap-1 text-emerald-400 font-black text-[9px] bg-emerald-950/70 border border-emerald-500/40 py-0.5 rounded-lg shrink-0">
                       <Check className="w-3 h-3" />
-                      <span>SẴN SÀNG</span>
+                      <span>{t('common.ready').toUpperCase()}</span>
                     </div>
                   </div>
                 );
@@ -275,7 +277,7 @@ export const MobileMatchmakingSheet: React.FC<MobileMatchmakingSheetProps> = ({
             {/* Thông báo vào bàn */}
             <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-xs animate-pulse mt-0.5">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Tất cả đã sẵn sàng ({actualPlayerCount}/{actualPlayerCount})! Đang vào bàn...</span>
+              <span>{t('matchmaking.allReadyEntering', { count: actualPlayerCount })}</span>
             </div>
           </div>
         )}
@@ -284,7 +286,7 @@ export const MobileMatchmakingSheet: React.FC<MobileMatchmakingSheetProps> = ({
 
       {/* 3. FOOTER TRẠNG THÁI NHẸ NHÀNG */}
       <footer className="w-full text-center text-[10px] text-zinc-500 py-0.5 shrink-0">
-        Tiến Lên Miền Nam • Hệ Sinh Thái Đấu Thủ Tự Động
+        {t('matchmaking.ecosystemFooter')}
       </footer>
 
     </div>

@@ -4,6 +4,7 @@ import { Button, Badge } from '../../primitives';
 import { getRankTierByElo } from '../../../engine/elo';
 import { forceUploadToCloud, forceDownloadFromCloud } from '../../../engine/sync/sync-service';
 import type { TienLenSaveData } from '../../../engine/sync/types';
+import { useI18n } from '../../../locales';
 
 export interface MobileSyncConflictViewProps {
   isOpen: boolean;
@@ -15,8 +16,8 @@ export interface MobileSyncConflictViewProps {
   onResolved?: () => void;
 }
 
-function formatTime(timestamp?: number): string {
-  if (!timestamp) return 'Không rõ';
+function formatTime(timestamp?: number, fallback: string = '---'): string {
+  if (!timestamp) return fallback;
   const d = new Date(timestamp);
   const hours = String(d.getHours()).padStart(2, '0');
   const minutes = String(d.getMinutes()).padStart(2, '0');
@@ -32,6 +33,7 @@ export const MobileSyncConflictView: React.FC<MobileSyncConflictViewProps> = ({
   conflictData,
   onResolved
 }) => {
+  const { t } = useI18n();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -49,7 +51,7 @@ export const MobileSyncConflictView: React.FC<MobileSyncConflictViewProps> = ({
       onClose();
       if (onResolved) onResolved();
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Lỗi khi ghi đè dữ liệu lên đám mây.');
+      setErrorMsg(err instanceof Error ? err.message : t('sync.conflictUploadError'));
     } finally {
       setIsProcessing(false);
     }
@@ -63,7 +65,7 @@ export const MobileSyncConflictView: React.FC<MobileSyncConflictViewProps> = ({
       onClose();
       if (onResolved) onResolved();
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Lỗi khi áp dụng dữ liệu từ đám mây.');
+      setErrorMsg(err instanceof Error ? err.message : t('sync.conflictDownloadError'));
     } finally {
       setIsProcessing(false);
     }
@@ -80,16 +82,16 @@ export const MobileSyncConflictView: React.FC<MobileSyncConflictViewProps> = ({
           </div>
           <div className="min-w-0">
             <h2 className="text-xs sm:text-sm font-black text-amber-400 uppercase tracking-wider truncate">
-              Xung Đột Dữ Liệu Đồng Bộ
+              {t('sync.conflictTitle')}
             </h2>
             <p className="text-[10px] text-zinc-400 truncate">
-              Bắt buộc chọn 1 bản để tiếp tục (không thể bỏ qua)
+              {t('sync.conflictMandatorySub')}
             </p>
           </div>
         </div>
 
         <span className="bg-rose-500/15 border border-rose-500/40 text-rose-300 text-[10px] font-bold px-2 py-0.5 rounded-lg shrink-0 animate-pulse">
-          Cần Chọn
+          {t('sync.conflictMandatoryBadge')}
         </span>
       </header>
 
@@ -99,7 +101,7 @@ export const MobileSyncConflictView: React.FC<MobileSyncConflictViewProps> = ({
           
           {/* Lời giải thích cảnh báo */}
           <div className="p-2.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs leading-relaxed shadow">
-            Tiến trình trên máy này và bản lưu đám mây đều đã thay đổi kể từ lần đồng bộ trước. Vui lòng xem so sánh dưới đây và chọn bản bạn muốn giữ lại:
+            {t('sync.conflictChoosePrompt')}
           </div>
 
           {errorMsg && (
@@ -117,7 +119,7 @@ export const MobileSyncConflictView: React.FC<MobileSyncConflictViewProps> = ({
                 <div className="flex items-center justify-between pb-2 border-b border-[#222c3d]">
                   <div className="flex items-center gap-1.5 font-black text-xs sm:text-sm text-amber-400 uppercase tracking-wide">
                     <span>💻</span>
-                    <span>Bản Trên Máy Này</span>
+                    <span>{t('sync.conflictLocalCard')}</span>
                   </div>
                   <Badge variant="gold" size="sm">Local</Badge>
                 </div>
@@ -129,7 +131,7 @@ export const MobileSyncConflictView: React.FC<MobileSyncConflictViewProps> = ({
                   </div>
                   <div className="min-w-0">
                     <div className="font-bold text-xs sm:text-sm text-zinc-100 truncate">
-                      {localData.profile.name || 'Chưa Đặt Tên'}
+                      {localData.profile.name || t('lobby.defaultName')}
                     </div>
                     <div className="text-[11px] text-amber-400 font-semibold mt-0.5 flex items-center gap-1">
                       <span>{localRank.badge}</span>
@@ -144,27 +146,27 @@ export const MobileSyncConflictView: React.FC<MobileSyncConflictViewProps> = ({
                   <div className="p-2 rounded-xl bg-[#141b2b] border border-[#2a3449]">
                     <div className="text-[9px] text-zinc-400 flex items-center gap-1 font-bold uppercase">
                       <Coins className="w-3 h-3 text-amber-400 shrink-0" />
-                      <span>Tài Sản</span>
+                      <span>{t('lobby.assetsLabel')}</span>
                     </div>
                     <div className="font-black text-amber-400 mt-0.5 text-xs sm:text-sm">
-                      {localData.profile.coins.toLocaleString()} Xu
+                      {localData.profile.coins.toLocaleString()} {t('common.coins')}
                     </div>
                   </div>
 
                   <div className="p-2 rounded-xl bg-[#141b2b] border border-[#2a3449]">
                     <div className="text-[9px] text-zinc-400 flex items-center gap-1 font-bold uppercase">
                       <Trophy className="w-3 h-3 text-emerald-400 shrink-0" />
-                      <span>Thắng / Tổng</span>
+                      <span>{t('sync.conflictWinsGames')}</span>
                     </div>
                     <div className="font-black text-zinc-100 mt-0.5 text-xs sm:text-sm">
-                      {localData.profile.stats.wins} / {localData.profile.stats.gamesPlayed}
+                      {t('sync.conflictWinsTotal', { wins: localData.profile.stats.wins, total: localData.profile.stats.gamesPlayed })}
                     </div>
                   </div>
                 </div>
 
                 <div className="text-[10px] text-zinc-400 flex items-center gap-1.5 pt-0.5">
                   <Calendar className="w-3 h-3 text-amber-400 shrink-0" />
-                  <span className="truncate">Cập nhật: {formatTime(localData.updatedAt)}</span>
+                  <span className="truncate">{t('sync.conflictUpdated', { time: formatTime(localData.updatedAt, t('common.unknown')) })}</span>
                 </div>
               </div>
 
@@ -179,7 +181,7 @@ export const MobileSyncConflictView: React.FC<MobileSyncConflictViewProps> = ({
                   leftIcon={<CloudUpload className="w-4 h-4 shrink-0" />}
                   className="font-black text-xs py-2 shadow-lg"
                 >
-                  Giữ Bản Trên Máy (Ghi Đè Gist)
+                  {t('sync.conflictOverwriteCloud')}
                 </Button>
               </div>
             </div>
@@ -190,7 +192,7 @@ export const MobileSyncConflictView: React.FC<MobileSyncConflictViewProps> = ({
                 <div className="flex items-center justify-between pb-2 border-b border-[#222c3d]">
                   <div className="flex items-center gap-1.5 font-black text-xs sm:text-sm text-sky-400 uppercase tracking-wide">
                     <span>☁️</span>
-                    <span>Bản Trên GitHub Gist</span>
+                    <span>{t('sync.conflictCloudCard')}</span>
                   </div>
                   <Badge variant="sapphire" size="sm">Cloud</Badge>
                 </div>
@@ -202,7 +204,7 @@ export const MobileSyncConflictView: React.FC<MobileSyncConflictViewProps> = ({
                   </div>
                   <div className="min-w-0">
                     <div className="font-bold text-xs sm:text-sm text-zinc-100 truncate">
-                      {cloudData.profile.name || 'Chưa Đặt Tên'}
+                      {cloudData.profile.name || t('lobby.defaultName')}
                     </div>
                     <div className="text-[11px] text-sky-400 font-semibold mt-0.5 flex items-center gap-1">
                       <span>{cloudRank.badge}</span>
@@ -217,27 +219,27 @@ export const MobileSyncConflictView: React.FC<MobileSyncConflictViewProps> = ({
                   <div className="p-2 rounded-xl bg-[#141b2b] border border-[#2a3449]">
                     <div className="text-[9px] text-zinc-400 flex items-center gap-1 font-bold uppercase">
                       <Coins className="w-3 h-3 text-amber-400 shrink-0" />
-                      <span>Tài Sản</span>
+                      <span>{t('lobby.assetsLabel')}</span>
                     </div>
                     <div className="font-black text-amber-400 mt-0.5 text-xs sm:text-sm">
-                      {cloudData.profile.coins.toLocaleString()} Xu
+                      {cloudData.profile.coins.toLocaleString()} {t('common.coins')}
                     </div>
                   </div>
 
                   <div className="p-2 rounded-xl bg-[#141b2b] border border-[#2a3449]">
                     <div className="text-[9px] text-zinc-400 flex items-center gap-1 font-bold uppercase">
                       <Trophy className="w-3 h-3 text-emerald-400 shrink-0" />
-                      <span>Thắng / Tổng</span>
+                      <span>{t('sync.conflictWinsGames')}</span>
                     </div>
                     <div className="font-black text-zinc-100 mt-0.5 text-xs sm:text-sm">
-                      {cloudData.profile.stats.wins} / {cloudData.profile.stats.gamesPlayed}
+                      {t('sync.conflictWinsTotal', { wins: cloudData.profile.stats.wins, total: cloudData.profile.stats.gamesPlayed })}
                     </div>
                   </div>
                 </div>
 
                 <div className="text-[10px] text-zinc-400 flex items-center gap-1.5 pt-0.5">
                   <Calendar className="w-3 h-3 text-sky-400 shrink-0" />
-                  <span className="truncate">Cập nhật: {formatTime(cloudData.updatedAt)}</span>
+                  <span className="truncate">{t('sync.conflictUpdated', { time: formatTime(cloudData.updatedAt, t('common.unknown')) })}</span>
                 </div>
               </div>
 
@@ -252,7 +254,7 @@ export const MobileSyncConflictView: React.FC<MobileSyncConflictViewProps> = ({
                   leftIcon={<CloudDownload className="w-4 h-4 shrink-0 text-sky-400" />}
                   className="font-bold text-xs py-2 border-sky-500/40 text-sky-300 hover:bg-sky-500/10 shadow-lg"
                 >
-                  Tải Bản Gist Về Máy (Ghi Đè Local)
+                  {t('sync.conflictApplyLocal')}
                 </Button>
               </div>
             </div>
@@ -260,7 +262,7 @@ export const MobileSyncConflictView: React.FC<MobileSyncConflictViewProps> = ({
           </div>
 
           <div className="text-[10px] text-zinc-400 text-center pt-1 leading-relaxed">
-            💡 <em>Mọi lần ghi đè đều được bảo lưu vĩnh viễn trong lịch sử Git của Gist. Bạn có thể mở Cài Đặt ➔ Lịch Sử Gist để khôi phục bất cứ lúc nào.</em>
+            💡 <em>{t('sync.conflictNote')}</em>
           </div>
 
         </div>

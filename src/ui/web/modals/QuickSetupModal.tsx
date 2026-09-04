@@ -4,6 +4,7 @@ import { TableRulesConfigPanel, TableConfigState } from '../../components/TableR
 import { Modal, Button } from '../../primitives';
 import { useQuickSetup, QuickSetupConfig } from '../../hooks/useQuickSetup';
 import { useUserStore } from '../../../stores/useUserStore';
+import { useI18n } from '../../../locales';
 
 export type { QuickSetupConfig };
 
@@ -20,6 +21,7 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
   initialConfig,
   onStartGame
 }) => {
+  const { t } = useI18n();
   const { profile } = useUserStore();
   const playerCoins = profile.coins;
   const {
@@ -41,18 +43,17 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Cấu Hình Bàn Chơi Nhanh"
-      subtitle="Tùy chỉnh tiền cược, luật phạt và vào bàn chơi ngay"
+      title={t('lobby.tableConfigBtn')}
+      subtitle={t('lobby.heroSubtitle')}
       icon={<Sliders className="w-5 h-5 text-[var(--color-gold)]" />}
       maxWidth="2xl"
       height="h-[90vh] sm:h-[680px]"
       footer={
         <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-xs text-[var(--text-muted)] text-center sm:text-left">
-            <span>Tiền cọc an toàn: </span>
-            <strong className="text-[var(--color-gold)] font-bold">{actualDeposit.toLocaleString()} Xu</strong>
+            <span>{t('customGame.depositRequired', { amount: actualDeposit })}</span>
             {depositRequired > actualDeposit && (
-              <span className="text-[10px] text-zinc-500 ml-1">(Tối đa {depositRequired.toLocaleString()} Xu)</span>
+              <span className="text-[10px] text-zinc-500 ml-1">({depositRequired.toLocaleString()} Xu)</span>
             )}
           </div>
 
@@ -63,7 +64,7 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
               onClick={onClose}
               className="flex-1 sm:flex-none"
             >
-              Đóng
+              {t('common.close')}
             </Button>
             <Button
               variant="gold"
@@ -73,7 +74,7 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
               leftIcon={<Play className="w-4 h-4 fill-current" />}
               className="flex-1 sm:flex-none"
             >
-              <span>{isInsufficientCoins ? 'Không Đủ Tiền Cược' : 'Vào Bàn Chơi Ngay'}</span>
+              <span>{isInsufficientCoins ? t('errors.insufficientCoins') : t('lobby.playNowBtn')}</span>
             </Button>
           </div>
         </div>

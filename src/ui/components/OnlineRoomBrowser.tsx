@@ -13,6 +13,7 @@ import { Card, Badge, Button } from '../primitives';
 import { type PublicRoomSummary } from '../../engine/network/network.schema';
 import { getSettlementRuleLabel } from '../../engine/types';
 import { getRankTierByElo } from '../../engine/elo';
+import { useI18n } from '../../locales';
 
 export interface OnlineRoomBrowserProps {
   rooms: readonly PublicRoomSummary[];
@@ -43,6 +44,7 @@ export const OnlineRoomBrowser: React.FC<OnlineRoomBrowserProps> = ({
   onCreateRoomClick,
   onOpenBank
 }) => {
+  const { t } = useI18n();
   const [filter, setFilter] = useState<FilterCategory>('ALL');
 
   const filteredRooms = useMemo(() => {
@@ -73,14 +75,14 @@ export const OnlineRoomBrowser: React.FC<OnlineRoomBrowserProps> = ({
                   onJoinByPin();
                 }
               }}
-              placeholder="Nhập mã PIN 4 số của bạn bè (vd: 8888)..."
+              placeholder={t('online.pinPlaceholder')}
               maxLength={8}
               className="bg-transparent text-xs sm:text-sm font-mono font-bold text-[var(--text-primary)] placeholder:text-[var(--text-muted)] placeholder:font-normal focus:outline-none w-full min-w-0"
             />
             <button
               onClick={onPastePin}
               className="p-1 rounded-lg hover:bg-white/10 text-[var(--text-muted)] hover:text-[var(--text-primary)] active:scale-95 transition-all shrink-0"
-              title="Dán từ Clipboard"
+              title={t('online.pasteFromClipboard')}
             >
               <Clipboard className="w-3.5 h-3.5" />
             </button>
@@ -94,7 +96,7 @@ export const OnlineRoomBrowser: React.FC<OnlineRoomBrowserProps> = ({
             rightIcon={<ArrowRight className="w-3.5 h-3.5 text-slate-950" />}
             className="font-bold text-xs py-2 sm:py-1.5 px-4 shrink-0 shadow-md shadow-amber-500/10 justify-center"
           >
-            Vào Nhanh
+            {t('online.joinByPinBtn')}
           </Button>
         </div>
       </Card>
@@ -106,11 +108,11 @@ export const OnlineRoomBrowser: React.FC<OnlineRoomBrowserProps> = ({
           <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1">
-              <Radio className="w-3 h-3" /> Sảnh Chờ
+              <Radio className="w-3 h-3" /> {t('online.lobbyTitle')}
             </span>
           </div>
           <span className="text-xs font-semibold text-[var(--text-secondary)]">
-            {rooms.length} bàn đang mở
+            {t('online.roomsOpen', { count: rooms.length })}
           </span>
         </div>
 
@@ -119,11 +121,11 @@ export const OnlineRoomBrowser: React.FC<OnlineRoomBrowserProps> = ({
           <div className="flex items-center gap-1 bg-[var(--bg-card)] border border-[var(--border-card)] p-0.5 rounded-xl">
             {(
               [
-                { id: 'ALL', label: 'Tất Cả' },
-                { id: 'COUNT_CARDS', label: 'Đếm Lá' },
-                { id: 'TRADITIONAL', label: 'Truyền Thống' },
-                { id: '2P', label: 'Solo 1v1' },
-                { id: '4P', label: '4 Người' }
+                { id: 'ALL', label: t('online.tabAll') },
+                { id: 'COUNT_CARDS', label: t('modes.countCards') },
+                { id: 'TRADITIONAL', label: t('modes.traditional') },
+                { id: '2P', label: t('online.filterSolo') },
+                { id: '4P', label: t('online.filter4P') }
               ] as const
             ).map(btn => (
               <button
@@ -144,7 +146,7 @@ export const OnlineRoomBrowser: React.FC<OnlineRoomBrowserProps> = ({
             onClick={onRefresh}
             disabled={isLoading}
             className="w-7 h-7 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--border-gold)] flex items-center justify-center text-[var(--color-gold)] active:scale-95 transition-all shrink-0 cursor-pointer shadow-sm"
-            title="Làm mới danh sách bàn"
+            title={t('online.refreshRooms')}
           >
             <RotateCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
@@ -160,20 +162,19 @@ export const OnlineRoomBrowser: React.FC<OnlineRoomBrowserProps> = ({
               <Users className="w-6 h-6" />
             </div>
             <h4 className="text-sm font-bold text-[var(--text-primary)]">
-              Chưa có bàn nào đang mở sảnh
+              {t('online.noRoomsMessage')}
             </h4>
-            <p className="text-xs text-[var(--text-muted)] max-w-sm mt-1 mb-4">
-              Hãy tạo một bàn chơi mới để bạn bè và các đấu thủ khác có thể nhìn thấy và vào tham gia ngay!
-            </p>
-            <Button
-              variant="gold"
-              size="sm"
-              onClick={onCreateRoomClick}
-              leftIcon={<PlusCircle className="w-4 h-4 text-slate-950" />}
-              className="font-bold text-xs py-2 px-4 shadow-lg shadow-amber-500/20"
-            >
-              Tạo Bàn Mới Ngay
-            </Button>
+            <div className="mt-4">
+              <Button
+                variant="gold"
+                size="sm"
+                onClick={onCreateRoomClick}
+                leftIcon={<PlusCircle className="w-4 h-4 text-slate-950" />}
+                className="font-bold text-xs py-2 px-4 shadow-lg shadow-amber-500/20"
+              >
+                {t('online.createRoomBtn')}
+              </Button>
+            </div>
           </div>
         ) : (
           /* LƯỚI DANH SÁCH BÀN CHƠI */
@@ -205,7 +206,7 @@ export const OnlineRoomBrowser: React.FC<OnlineRoomBrowserProps> = ({
                           </span>
                         </div>
                         <span className="text-[9.5px] font-mono text-[var(--text-muted)] block leading-tight">
-                          PIN: <strong className="text-[var(--text-primary)]">{room.roomCode}</strong>
+                          {t('online.roomPinLabel', { pin: room.roomCode })}
                         </span>
                       </div>
                     </div>
@@ -217,26 +218,26 @@ export const OnlineRoomBrowser: React.FC<OnlineRoomBrowserProps> = ({
                       className="font-mono font-bold shrink-0"
                     >
                       <Users className="w-3 h-3 mr-1" />
-                      {room.playerCount}/{room.maxPlayers}
+                      {t('online.roomSlots', { current: room.playerCount, max: room.maxPlayers })}
                     </Badge>
                   </div>
 
                   {/* Middle: Tags Luật & Mức Cược */}
                   <div className="flex flex-wrap items-center gap-1 pt-1.5 border-t border-[var(--border-container)]/60">
                     <Badge variant="gold" size="sm" className="font-semibold text-[9.5px]">
-                      💰 {room.betAmount.toLocaleString()} Xu/lá
+                      💰 {t('online.betPerCard', { amount: room.betAmount.toLocaleString() })}
                     </Badge>
                     <Badge variant="neutral" size="sm" className="text-[9.5px]">
                       📜 {getSettlementRuleLabel(room.settlementRule)}
                     </Badge>
                     {room.choppingMultiplier > 1 && (
                       <Badge variant="neutral" size="sm" className="text-[9.5px] text-amber-300">
-                        ⚡ x{room.choppingMultiplier} Chặt
+                        ⚡ {t('online.chopMultiplierBadge', { count: room.choppingMultiplier, multiplier: room.choppingMultiplier })}
                       </Badge>
                     )}
                     {room.prohibitEndingWithTwo && (
                       <Badge variant="neutral" size="sm" className="text-[9.5px]">
-                        🚫 Cấm 2 Cuối
+                        🚫 {t('online.noEndTwoBadge')}
                       </Badge>
                     )}
                   </div>
@@ -250,7 +251,7 @@ export const OnlineRoomBrowser: React.FC<OnlineRoomBrowserProps> = ({
                         disabled
                         className="w-full text-xs font-bold py-1.5 justify-center opacity-60 cursor-not-allowed"
                       >
-                        Bàn Đã Đầy ({room.playerCount}/{room.maxPlayers})
+                        {t('online.roomFullSlot', { current: room.playerCount, max: room.maxPlayers })}
                       </Button>
                     ) : !isAffordable ? (
                       <div className="flex items-center gap-1.5">
@@ -261,16 +262,16 @@ export const OnlineRoomBrowser: React.FC<OnlineRoomBrowserProps> = ({
                           leftIcon={<ShieldAlert className="w-3.5 h-3.5" />}
                           className="flex-1 text-[11px] font-bold py-1.5 justify-center opacity-80 cursor-not-allowed"
                         >
-                          Cần {room.betAmount.toLocaleString()} Xu
+                          {t('online.needCoins', { amount: room.betAmount.toLocaleString() })}
                         </Button>
                         <Button
                           variant="surface"
                           size="sm"
                           onClick={onOpenBank}
                           className="text-[11px] font-bold py-1.5 px-2.5 text-[var(--color-gold)]"
-                          title="Mở Ngân Hàng để vay vốn"
+                          title={t('online.openBankBorrow')}
                         >
-                          Vay Vốn
+                          {t('online.borrowCoins')}
                         </Button>
                       </div>
                     ) : (
@@ -281,7 +282,7 @@ export const OnlineRoomBrowser: React.FC<OnlineRoomBrowserProps> = ({
                         rightIcon={<ArrowRight className="w-3.5 h-3.5 text-slate-950" />}
                         className="w-full text-xs font-bold py-1.5 justify-center shadow-md shadow-amber-500/10 group-hover:scale-[1.01] transition-transform"
                       >
-                        Vào Bàn Ngay
+                        {t('online.joinRoomNow')}
                       </Button>
                     )}
                   </div>

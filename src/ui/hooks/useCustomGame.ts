@@ -23,6 +23,7 @@ export interface CustomGameModalConfig {
 export type CustomGameTabType = 'MODE_RULES' | 'BOT_ROSTER' | 'ADVANCED_AI';
 
 import { useUserStore } from '../../stores/useUserStore';
+import { t } from '../../locales';
 
 export interface UseCustomGameProps {
   initialConfig?: Partial<CustomGameModalConfig>;
@@ -65,10 +66,10 @@ export interface UseCustomGameReturn {
   handleStartGame: () => void;
 }
 
-const SEAT_LABELS = [
-  'Ghế Trái (Đối thủ 1)',
-  'Ghế Trên (Đối thủ 2)',
-  'Ghế Phải (Đối thủ 3)'
+const getSeatLabels = () => [
+  t('tableConfig.seatLeft'),
+  t('tableConfig.seatTop'),
+  t('tableConfig.seatRight')
 ] as const;
 
 /**
@@ -171,11 +172,14 @@ export function useCustomGame({
 
   const handleStartGame = useCallback(() => {
     if (settings.betAmount <= 0) {
-      alert('Mức cược phải lớn hơn 0 Xu!');
+      alert(t('tableConfig.betInputErrorPositive'));
       return;
     }
     if (isInsufficientCoins) {
-      alert(`Số dư hiện tại (${playerCoins.toLocaleString()} Xu) không đủ mức cược tối thiểu của bàn (${settings.betAmount.toLocaleString()} Xu)!`);
+      alert(t('tableConfig.insufficientCoinsAlert', {
+        coins: playerCoins.toLocaleString(),
+        bet: settings.betAmount.toLocaleString()
+      }));
       return;
     }
 
@@ -220,7 +224,7 @@ export function useCustomGame({
     depositRequired,
     isInsufficientCoins,
     actualDeposit,
-    seatLabels: SEAT_LABELS,
+    seatLabels: getSeatLabels(),
     activeBotCount,
     currentActivePersona,
     currentActiveCustom,

@@ -6,8 +6,8 @@ import { MobileScreenWrapper } from './MobileScreenWrapper';
 import { useNameSetup } from '../../hooks/useNameSetup';
 import { generateRandomCasinoNickname } from '../components/MobileVirtualKeyboard';
 import { MobileVirtualInput } from '../components/MobileVirtualInput';
-
 import { useUserStore } from '../../../stores/useUserStore';
+import { useI18n } from '../../../locales';
 
 export interface MobileNameSetupViewProps {
   isOpen: boolean;
@@ -18,6 +18,7 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
   isOpen,
   onClose = null
 }) => {
+  const { t } = useI18n();
   const { profile } = useUserStore();
   const isFirstTime = !profile.name || profile.name.trim() === '';
   const {
@@ -43,11 +44,11 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
     <MobileScreenWrapper
       isOpen={isOpen}
       onClose={onClose ? onClose : () => {}}
-      title={isFirstTime || !profile.name ? 'Chào Mừng Thần Bài Mới' : 'Cập Nhật Hồ Sơ'}
+      title={isFirstTime || !profile.name ? t('nameSetup.titleFirstTime') : t('nameSetup.titleUpdate')}
       subtitle={
         isFirstTime || !profile.name
-          ? 'Thiết lập biệt danh & đại diện để bước vào sòng bạc'
-          : 'Đổi tên hiển thị & biểu tượng đại diện của bạn'
+          ? t('nameSetup.subFirstTime')
+          : t('nameSetup.subUpdate')
       }
       icon={<Sparkles className="w-5 h-5 text-[var(--color-gold)]" />}
       headerRight={null}
@@ -55,7 +56,7 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
         <div className="w-full flex items-center justify-end gap-2">
           {!isFirstTime && onClose && profile.name.trim() !== '' && (
             <Button variant="surface" size="md" onClick={onClose}>
-              Hủy
+              {t('common.cancel')}
             </Button>
           )}
           <Button
@@ -64,7 +65,7 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
             onClick={() => handleSubmit(null)}
             leftIcon={<Check className="w-4 h-4" />}
           >
-            {isFirstTime || !profile.name ? 'Bắt Đầu Chơi' : 'Lưu Thay Đổi'}
+            {isFirstTime || !profile.name ? t('nameSetup.btnStartPlaying') : t('nameSetup.btnSaveChanges')}
           </Button>
         </div>
       }
@@ -75,10 +76,10 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
         <Card variant="card" className="p-3 space-y-1.5">
           <div className="flex items-center justify-between">
             <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
-              Chọn Biểu Tượng Đại Diện ({avatarOptions.length} Mẫu):
+              {t('nameSetup.avatarLabel')} ({avatarOptions.length}):
             </label>
             <span className="text-[10px] text-[var(--color-gold)] font-bold">
-              Đã chọn: <span className="text-base align-middle">{avatar}</span>
+              {t('nameSetup.selectedAvatar')} <span className="text-base align-middle">{avatar}</span>
             </span>
           </div>
           <div className="grid grid-cols-6 gap-2 sm:gap-2.5 max-h-40 sm:max-h-48 overflow-y-auto pr-1 p-0.5">
@@ -106,11 +107,11 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
         <Card variant="card" className="p-3 space-y-1.5">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
-              Biệt Danh Thần Bài:
+              {t('nameSetup.nameLabel')}:
             </span>
             {isFirstTime && (
               <span className="text-[10px] text-[var(--text-muted)]">
-                Vốn: <strong className="text-[var(--color-gold)] font-bold">{ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS.toLocaleString()} Xu</strong>
+                {t('nameSetup.startingCapitalShort')} <strong className="text-[var(--color-gold)] font-bold">{ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS.toLocaleString()} Xu</strong>
               </span>
             )}
           </div>
@@ -121,7 +122,7 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
               setName(val);
               if (error) setError(null);
             }}
-            placeholder="Chạm để nhập tên..."
+            placeholder={t('nameSetup.namePlaceholder')}
             icon={<User className="w-4 h-4 text-[var(--color-gold)]" />}
             label={null}
             error={error}
@@ -142,7 +143,7 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
                   handleQuickRandom();
                 }}
                 className="p-1 sm:p-1.5 rounded-lg bg-[var(--bg-container)] border border-[var(--border-container)] text-[var(--color-gold)] hover:bg-[var(--bg-card)] active:scale-95 transition-all cursor-pointer"
-                title="Tạo tên ngẫu nhiên"
+                title={t('nameSetup.randomNameTooltip')}
               >
                 <Shuffle className="w-3.5 h-3.5" />
               </button>

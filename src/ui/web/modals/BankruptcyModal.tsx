@@ -72,14 +72,14 @@ export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
       {/* Tình Trạng Tài Chính */}
       <div className="grid grid-cols-2 gap-2.5">
         <Card variant="card" className="p-3">
-          <span className="text-[10px] uppercase font-bold text-[var(--text-muted)]">Số Dư Trong Ví</span>
+          <span className="text-[10px] uppercase font-bold text-[var(--text-muted)]">{t('bank.walletBalance')}</span>
           <div className="text-base font-bold text-[var(--text-primary)] mt-0.5">
             {profile.coins.toLocaleString()} 🪙
           </div>
         </Card>
 
         <Card variant="card" className="p-3">
-          <span className="text-[10px] uppercase font-bold text-[var(--text-muted)]">Dư Nợ Hiện Tại</span>
+          <span className="text-[10px] uppercase font-bold text-[var(--text-muted)]">{t('bank.currentDebt')}</span>
           <div className="text-base font-bold text-[#f87171] mt-0.5">
             {profile.loans.toLocaleString()} 🪙
           </div>
@@ -91,14 +91,14 @@ export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <HeartHandshake className="w-5 h-5 text-emerald-400" />
-            <span className="font-bold text-xs text-[var(--text-primary)]">Cứu Trợ Khẩn Cấp Miễn Phí</span>
+            <span className="font-bold text-xs text-[var(--text-primary)]">{t('bank.emergencyRelief')}</span>
           </div>
           <Badge variant="emerald" size="sm">
-            {remainingReliefCount}/{maxReliefPerDay} Lượt Hôm Nay
+            {t('bank.dailyClaimsRemaining', { remaining: remainingReliefCount, max: maxReliefPerDay })}
           </Badge>
         </div>
         <p className="text-[11px] text-[var(--text-muted)]">
-          Nhận ngay <strong className="text-[var(--color-gold)] font-bold">{reliefAmount.toLocaleString()} Xu</strong> miễn phí không hoàn lại khi số dư dưới {reliefThreshold.toLocaleString()} Xu.
+          {t('bank.reliefDescription', { amount: reliefAmount, threshold: reliefThreshold })}
         </p>
         <Button
           variant={canClaimRelief ? 'emerald' : 'surface'}
@@ -108,7 +108,7 @@ export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
           onClick={handleClaimRelief}
           leftIcon={<ShieldCheck className="w-4 h-4" />}
         >
-          {canClaimRelief ? `Nhận Cứu Trợ ${reliefAmount.toLocaleString()} Xu` : 'Chưa Đủ Điều Kiện Nhận'}
+          {canClaimRelief ? t('bank.claimReliefBtn', { amount: reliefAmount }) : t('bank.notEligibleRelief')}
         </Button>
       </Card>
 
@@ -116,7 +116,7 @@ export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
       <Card variant="card" className="p-3.5 space-y-3">
         <div className="flex items-center gap-2">
           <Landmark className="w-5 h-5 text-[var(--color-gold)]" />
-          <span className="font-bold text-xs text-[var(--text-primary)]">Vay Vốn Ngân Hàng Casino</span>
+          <span className="font-bold text-xs text-[var(--text-primary)]">{t('bank.loanTitle')}</span>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -145,7 +145,7 @@ export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
           fullWidth
           onClick={handleBorrowLoan}
         >
-          Vay Ngay +{loanAmountToBorrow.toLocaleString()} Xu
+          {t('bank.borrowNow', { amount: loanAmountToBorrow })}
         </Button>
       </Card>
 
@@ -153,8 +153,8 @@ export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
       {profile.loans > 0 && (
         <Card variant="card" className="p-3.5 space-y-2 border-[var(--color-ruby-border)]">
           <div className="flex items-center justify-between">
-            <span className="font-bold text-xs text-[#f87171]">Thanh Toán Nợ Gốc</span>
-            <span className="text-xs font-bold text-[#f87171]">Nợ: {profile.loans.toLocaleString()} Xu</span>
+            <span className="font-bold text-xs text-[#f87171]">{t('bank.repayTitle')}</span>
+            <span className="text-xs font-bold text-[#f87171]">{t('bank.debtLabel', { amount: profile.loans })}</span>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -163,7 +163,7 @@ export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
               className="flex-1"
               onClick={() => handleRepayDebt(0.5)}
             >
-              Trả 50%
+              {t('bank.repay50')}
             </Button>
             <Button
               variant="danger"
@@ -171,7 +171,7 @@ export const BankruptcyModal: React.FC<BankruptcyModalProps> = ({
               className="flex-1"
               onClick={() => handleRepayDebt(1)}
             >
-              Tất Toán 100%
+              {t('bank.repay100')}
             </Button>
           </div>
         </Card>

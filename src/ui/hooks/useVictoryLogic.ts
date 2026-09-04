@@ -182,98 +182,98 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
 
   const statBox1Title = t('victory.statPayout');
   const statBox1Value = humanPayout > 0 ? `+${humanPayout.toLocaleString()} 🪙` : `${humanPayout.toLocaleString()} 🪙`;
-  const statBox1Sub = isHumanWinner ? '🥇 Bạn đã về Nhất!' : '💥 Chưa thể giành chiến thắng';
+  const statBox1Sub = isHumanWinner ? t('victory.rankFirstWon') : t('victory.notWonYet');
 
-  let statBox2Title = 'CHẾ ĐỘ CHƠI';
-  let statBox2Value = 'Truyền Thống';
-  let statBox2Sub = `Mức cược: ${betAmount.toLocaleString()} Xu`;
+  let statBox2Title = t('victory.gameModeLabel');
+  let statBox2Value = t('victory.traditionalMode');
+  let statBox2Sub = t('victory.betAmountLabel', { amount: betAmount.toLocaleString() });
 
   if (isOnline) {
     modalIcon = isHumanWinner ? '🏆' : '💥';
-    modalTitle = isHumanWinner ? 'CHIẾN THẮNG TRẬN ĐẤU!' : 'KẾT THÚC VÁN ĐẤU';
-    modalSubtitle = isOnlineHost ? 'Chế độ Chơi Online (Chủ Bàn)' : 'Chế độ Chơi Online (Khách Tham Gia)';
+    modalTitle = isHumanWinner ? t('victory.onlineMatchVictory') : t('victory.onlineMatchEnded');
+    modalSubtitle = isOnlineHost ? t('victory.onlineHostSub') : t('victory.onlineGuestSub');
 
-    statBox2Title = 'CHẾ ĐỘ CHƠI';
-    statBox2Value = 'Chơi Online';
-    statBox2Sub = `Mức cược: ${betAmount.toLocaleString()} Xu`;
+    statBox2Title = t('victory.gameModeLabel');
+    statBox2Value = t('victory.onlineMode');
+    statBox2Sub = t('victory.betAmountLabel', { amount: betAmount.toLocaleString() });
 
     if (!isMyPlayerReady) {
-      primaryBtnText = 'Sẵn Sàng Ván Mới';
+      primaryBtnText = t('victory.onlineReadyBtn');
       primaryBtnIconType = 'CHECK';
       primaryBtnDisabled = false;
       primaryBtnAction = () => voteRematch(true);
     } else {
       primaryBtnText = readyOnlinePlayers === totalOnlinePlayers 
-        ? 'Đang Khởi Tạo...' 
-        : `Đã Sẵn Sàng (${readyOnlinePlayers}/${totalOnlinePlayers})`;
+        ? t('victory.onlineInitializing') 
+        : t('victory.onlineReadyCount', { ready: readyOnlinePlayers, total: totalOnlinePlayers });
       primaryBtnIconType = readyOnlinePlayers === totalOnlinePlayers ? 'SPINNER' : 'CHECK';
       primaryBtnDisabled = true;
       primaryBtnAction = () => {};
     }
 
-    secondaryBtnText = isOnlineHost ? 'Giải Tán Phòng' : 'Rời Phòng';
+    secondaryBtnText = isOnlineHost ? t('victory.onlineDisbandRoom') : t('victory.onlineLeaveRoom');
     secondaryBtnIconType = 'HOME';
     secondaryBtnAction = onReturnToLobby;
   } else if (isTableDismissed) {
     modalIcon = '🚨';
     if (isHumanBankrupt) {
-      modalTitle = 'BẠN ĐÃ HẾT XU!';
-      modalSubtitle = 'Số dư không đủ mức cược tối thiểu để tiếp tục!';
-      statBox2Title = 'TRẠNG THÁI';
-      statBox2Value = 'Cháy Túi';
-      statBox2Sub = 'Cần thêm Xu để tiếp tục chơi';
-      primaryBtnText = 'Mở Ngân Hàng';
+      modalTitle = t('victory.outOfCoinsTitle');
+      modalSubtitle = t('victory.outOfCoinsSub');
+      statBox2Title = t('victory.statusLabel');
+      statBox2Value = t('victory.bankruptStatus');
+      statBox2Sub = t('victory.needMoreCoinsSub');
+      primaryBtnText = t('victory.openBankBtn');
       primaryBtnIconType = 'BANK';
       primaryBtnAction = () => openModal('BANK');
     } else {
-      modalTitle = 'GIẢI TÁN BÀN CHƠI!';
+      modalTitle = t('victory.tableDismissedTitle');
       const botNames = bankruptBots.map(b => b.name).join(', ');
-      modalSubtitle = `Người chơi [${botNames}] đã hết tiền cược! Bàn đấu sẽ tự động giải tán.`;
-      statBox2Title = 'TRẠNG THÁI';
-      statBox2Value = 'Đối Thủ Hết Tiền';
-      statBox2Sub = `${bankruptBots.length} đối thủ không đủ tiền`;
-      primaryBtnText = 'Ghép Bàn Mới';
+      modalSubtitle = t('victory.botBankruptSub', { names: botNames });
+      statBox2Title = t('victory.statusLabel');
+      statBox2Value = t('victory.opponentsOutOfCoins');
+      statBox2Sub = t('victory.bankruptCountSub', { count: bankruptBots.length });
+      primaryBtnText = t('victory.findNewTableBtn');
       primaryBtnIconType = 'ROTATE_CCW';
       primaryBtnAction = onNextGame;
     }
   } else if (isCampaign) {
     modalIcon = isHumanWinner ? '⭐' : '💀';
-    statBox2Title = 'CHƯƠNG CHIẾN DỊCH';
-    statBox2Value = campaignChapter !== null ? `${campaignChapter.name}: ${campaignChapter.subtitle}` : 'Chiến Dịch';
+    statBox2Title = t('victory.campaignChapterLabel');
+    statBox2Value = campaignChapter !== null ? `${campaignChapter.name}: ${campaignChapter.subtitle}` : t('victory.defaultCampaign');
     statBox2Sub = isHumanWinner 
-      ? `Đã thắng ${chapterWins}/${campaignChapter !== null ? campaignChapter.requiredWins : 1} ván` 
-      : 'Thử lại để hoàn thành chương';
+      ? t('victory.campaignWinsProgress', { wins: chapterWins, required: campaignChapter !== null ? campaignChapter.requiredWins : 1 })
+      : t('victory.campaignRetrySub');
 
     if (isHumanWinner) {
       if (isChapterUnlockedNext && nextChapter !== null) {
-        modalTitle = 'HOÀN THÀNH CHƯƠNG!';
-        modalSubtitle = `Xuất sắc! Bạn đã mở khóa ${nextChapter.name}!`;
-        primaryBtnText = 'Chương Tiếp Theo';
+        modalTitle = t('victory.chapterCompletedTitle');
+        modalSubtitle = t('victory.chapterUnlockedSub', { name: nextChapter.name });
+        primaryBtnText = t('victory.campaignNextBtn');
         primaryBtnIconType = 'SWORDS';
         primaryBtnAction = onNextGame;
-        secondaryBtnText = 'Bản Đồ Chiến Dịch';
+        secondaryBtnText = t('victory.campaignMapBtn');
         secondaryBtnIconType = 'MAP';
         secondaryBtnAction = onOpenCampaignMap !== null ? onOpenCampaignMap : onReturnToLobby;
       } else if (isAllCampaignCompleted) {
-        modalTitle = 'VÔ ĐỊCH TOÀN BỘ CHIẾN DỊCH!';
-        modalSubtitle = 'Chúc mừng bạn đã chinh phục toàn bộ 5 chương Chiến Dịch Đỉnh Cao!';
-        primaryBtnText = 'Về Sảnh';
+        modalTitle = t('victory.campaignAllWonTitle');
+        modalSubtitle = t('victory.campaignAllWonSub');
+        primaryBtnText = t('victory.btnBackLobby');
         primaryBtnIconType = 'HOME';
         primaryBtnAction = onReturnToLobby;
       } else {
-        modalTitle = 'CHIẾN THẮNG TRẬN ĐẤU!';
-        modalSubtitle = `Tiến độ chương: ${chapterWins}/${campaignChapter !== null ? campaignChapter.requiredWins : 1} ván thắng`;
-        primaryBtnText = 'Đánh Tiếp';
+        modalTitle = t('victory.onlineMatchVictory');
+        modalSubtitle = t('victory.campaignChapterProgress', { wins: chapterWins, required: campaignChapter !== null ? campaignChapter.requiredWins : 1 });
+        primaryBtnText = t('victory.campaignContinueBtn');
         primaryBtnIconType = 'PLAY';
         primaryBtnAction = onNextGame;
       }
     } else {
-      modalTitle = 'THUA TRẬN CHIẾN DỊCH';
-      modalSubtitle = 'Đối thủ quá mạnh! Hãy điều chỉnh chiến thuật và thử lại!';
-      primaryBtnText = 'Thử Thách Lại';
+      modalTitle = t('victory.campaignDefeatTitle');
+      modalSubtitle = t('victory.campaignDefeatSub');
+      primaryBtnText = t('victory.campaignRetryBtn');
       primaryBtnIconType = 'ROTATE_CCW';
       primaryBtnAction = onNextGame;
-      secondaryBtnText = 'Bản Đồ Chiến Dịch';
+      secondaryBtnText = t('victory.campaignMapBtn');
       secondaryBtnIconType = 'MAP';
       secondaryBtnAction = onOpenCampaignMap !== null ? onOpenCampaignMap : onReturnToLobby;
     }

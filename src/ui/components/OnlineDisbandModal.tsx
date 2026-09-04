@@ -12,7 +12,8 @@ export const OnlineDisbandModal: React.FC = () => {
 
   if (disbandNotice === null) return null;
 
-  const isInsufficientCoins = disbandNotice.title === 'KHÔNG ĐỦ TIỀN CƯỢC';
+  const normalizedTitle = disbandNotice.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+  const isInsufficientCoins = normalizedTitle.includes('KHONG DU') || normalizedTitle.includes('INSUFFICIENT');
 
   const handleOpenBank = () => {
     clearDisbandNotice();

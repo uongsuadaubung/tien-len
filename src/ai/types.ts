@@ -3,8 +3,8 @@ import { OpponentBehaviorProfile } from './opponent-profiler';
 
 export interface BotConfig {
   id: string;
-  name: string | null;
-  avatar: string | null;
+  name: string;
+  avatar: string;
   description: string;
   elo: number;                         // Điểm Elo ước tính (850 -> 2500)
   memoryDepth: number;                 // 0.0 (không nhớ) -> 1.0 (nhớ 100% mọi lá đã ra)

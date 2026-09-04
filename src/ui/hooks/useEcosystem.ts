@@ -3,6 +3,7 @@ import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { useViewStore } from '../../stores/useViewStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { BotActivityStatus, BotEntity, EcosystemNewsItem, getTierFromElo } from '../../engine/ecosystem/ecosystem-types';
+import { t } from '../../locales';
 
 export const PAGE_SIZE = 15;
 
@@ -94,7 +95,7 @@ export function useEcosystem(): UseEcosystemResult {
 
     return {
       id: 'human_player',
-      name: profile.name || 'Bạn',
+      name: profile.name || t('hud.you').replace(/[()]/g, ''),
       avatar: profile.avatar || '🤠',
       elo: profile.elo,
       coins: profile.coins,
@@ -103,8 +104,8 @@ export function useEcosystem(): UseEcosystemResult {
       rankBadge: tierInfo.rankBadge,
       currentStreak: profile.stats.currentStreak || 0,
       highestStreak: profile.stats.highestStreak || 0,
-      title: 'Đại Hiệp',
-      personalityTags: ['Tay Chơi', 'Chiến Thuật'],
+      title: t('ecosystem.humanTitle'),
+      personalityTags: [t('ecosystem.tagPlayer'), t('ecosystem.tagTactical')],
       activityStatus: 'IN_MATCH',
       headToHeadVsHuman: { games: 0, botWins: 0, humanWins: 0, netCoinsEarnedFromHuman: 0 },
       stats: {
@@ -124,16 +125,16 @@ export function useEcosystem(): UseEcosystemResult {
   const humanAsBotEntity: BotEntity = useMemo(() => ({
     id: 'human_player',
     dnaTier: humanPlayerRankEntity.tierNum,
-    name: profile.name || 'Bạn',
+    name: profile.name || t('hud.you').replace(/[()]/g, ''),
     avatar: profile.avatar || '🤠',
     tier: humanPlayerRankEntity.tier,
     tierNum: humanPlayerRankEntity.tierNum,
     rankBadge: humanPlayerRankEntity.rankBadge,
     elo: profile.elo,
     coins: profile.coins,
-    description: 'Đại hiệp giang hồ, bản lĩnh tung hoành khắp các sới bài Tiến Lên Miền Nam.',
-    personalityTags: ['Người Chơi Thật', 'Chiến Thuật', 'Quyết Đoán'],
-    title: 'Đại Hiệp',
+    description: t('ecosystem.humanDescription'),
+    personalityTags: [t('ecosystem.tagRealPlayer'), t('ecosystem.tagTactical'), t('ecosystem.tagDecisive')],
+    title: t('ecosystem.humanTitle'),
     status: 'ACTIVE',
     activityStatus: 'IN_MATCH',
     createdAt: Date.now(),

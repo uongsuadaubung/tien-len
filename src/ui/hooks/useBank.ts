@@ -5,6 +5,7 @@ import { soundManager } from '../audio/sound-manager';
 import confetti from 'canvas-confetti';
 
 import { useUserStore } from '../../stores/useUserStore';
+import { t } from '../../locales';
 
 export interface UseBankResult {
   loanAmountToBorrow: number;
@@ -79,7 +80,7 @@ export function useBank(): UseBankResult {
       origin: { y: 0.6 }
     });
 
-    showNotification(`🎉 Nhận thành công gói Cứu Trợ Khẩn Cấp +${RELIEF_AMOUNT.toLocaleString()} Xu!`);
+    showNotification(t('bank.claimSuccess', { amount: RELIEF_AMOUNT }));
   };
 
   const handleBorrowLoan = () => {
@@ -93,13 +94,13 @@ export function useBank(): UseBankResult {
     onUpdateProfile(updated);
 
     soundManager.playVictory();
-    showNotification(`💸 Đã vay thành công +${loanAmountToBorrow.toLocaleString()} Xu từ Ngân Hàng!`);
+    showNotification(t('bank.borrowSuccess', { amount: loanAmountToBorrow }));
   };
 
   const handleRepayDebt = (portion: number = 1) => {
     if (profile.loans <= 0) return;
     if (profile.coins <= 0) {
-      showNotification('Bạn không có đủ Xu trong ví để trả nợ!', true);
+      showNotification(t('bank.repayNoCoins'), true);
       return;
     }
 
@@ -116,7 +117,7 @@ export function useBank(): UseBankResult {
     onUpdateProfile(updated);
 
     soundManager.playCardDeal();
-    showNotification(`✅ Đã thanh toán thành công ${repayAmount.toLocaleString()} Xu nợ!`);
+    showNotification(t('bank.repaySuccess', { amount: repayAmount }));
   };
 
   return {

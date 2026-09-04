@@ -3,6 +3,7 @@ import { Sparkles, Gift, Flame, Frown, Disc, Trophy, ArrowLeft } from 'lucide-re
 import { Card } from '../../primitives';
 import { useLuckyWheel } from '../../hooks/useLuckyWheel';
 import { useUserStore } from '../../../stores/useUserStore';
+import { useI18n } from '../../../locales';
 import { 
   ECONOMY_CONSTANTS, 
   LUCKY_WHEEL_SLICES 
@@ -17,6 +18,7 @@ export const MobileLuckyWheelView: React.FC<MobileLuckyWheelViewProps> = ({
   isOpen,
   onClose
 }) => {
+  const { t } = useI18n();
   const { profile } = useUserStore();
   const {
     isSpinning,
@@ -39,16 +41,16 @@ export const MobileLuckyWheelView: React.FC<MobileLuckyWheelViewProps> = ({
         <button
           onClick={onClose}
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] text-xs font-bold text-[var(--color-gold)] active:scale-95 transition-transform"
-          title="Quay lại"
+          title={t('common.back')}
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Quay Lại</span>
+          <span>{t('common.back')}</span>
         </button>
 
         <div className="flex items-center gap-1.5">
           <Disc className="w-4 h-4 text-[var(--color-gold)]" />
           <h2 className="text-xs sm:text-sm font-black uppercase text-[var(--text-primary)] tracking-wide">
-            Vòng Quay Thần Bài
+            {t('wheel.modalTitle')}
           </h2>
         </div>
 
@@ -71,10 +73,10 @@ export const MobileLuckyWheelView: React.FC<MobileLuckyWheelViewProps> = ({
         <div className="shrink-0 w-full bg-gradient-to-r from-amber-500/20 via-yellow-500/30 to-amber-500/20 border border-amber-400/40 rounded-2xl px-3 py-2 text-center shadow-md animate-pulse">
           <div className="flex items-center justify-center gap-1.5 text-[var(--color-gold)] font-black text-xs uppercase tracking-wider">
             <Trophy className="w-4 h-4" />
-            <span>NỔ HŨ JACKPOT: {ECONOMY_CONSTANTS.LUCKY_WHEEL_JACKPOT.toLocaleString()} XU</span>
+            <span>{t('wheel.modalSubtitle', { amount: ECONOMY_CONSTANTS.LUCKY_WHEEL_JACKPOT })}</span>
           </div>
           <p className="text-[10px] text-[var(--text-secondary)] mt-0.5">
-            Chạm tâm vòng quay để quay: <strong className="text-[var(--color-gold)] font-bold">{spinCost.toLocaleString()} Xu / lượt</strong>
+            {t('wheel.ticketCost', { cost: spinCost })}
           </p>
         </div>
 
@@ -166,14 +168,14 @@ export const MobileLuckyWheelView: React.FC<MobileLuckyWheelViewProps> = ({
                 ? 'cursor-pointer active:scale-90 hover:scale-105 shadow-[0_0_20px_rgba(229,184,105,0.6)] animate-pulse'
                 : 'opacity-85 cursor-not-allowed'
             }`}
-            title="Chạm để quay thưởng"
+            title={t('wheel.tapToSpin')}
           >
             <Flame className="w-5 h-5 text-[#0a0c0e] fill-[#0a0c0e]" />
             <span className="text-[10px] font-black text-[#0a0c0e] uppercase tracking-tighter leading-none mt-0.5">
-              {isSpinning ? '...' : 'QUAY'}
+              {isSpinning ? '...' : t('wheel.spin')}
             </span>
             <span className="text-[8px] font-bold text-[#0a0c0e]/80 leading-none">
-              10k Xu
+              {spinCost >= 1000 ? `${spinCost / 1000}k` : spinCost} {t('common.coins')}
             </span>
           </button>
         </div>
@@ -189,18 +191,18 @@ export const MobileLuckyWheelView: React.FC<MobileLuckyWheelViewProps> = ({
                 <>
                   <Gift className="w-4 h-4 text-[var(--color-gold)]" />
                   <span className="text-[var(--text-primary)]">
-                    Chúc mừng: <strong className="text-[var(--color-gold)]">+{prizeWon.value.toLocaleString()} Xu</strong>!
+                    {t('wheel.congratsPrefix')}: <strong className="text-[var(--color-gold)]">+{prizeWon.value.toLocaleString()} {t('common.coins')}</strong>!
                   </span>
                 </>
               ) : prizeWon.value === spinCost ? (
-                <span className="text-[#4ade80]">🍀 Nhận lại {spinCost.toLocaleString()} Xu!</span>
+                <span className="text-[#4ade80]">🍀 {t('wheel.refundCoins', { amount: spinCost.toLocaleString() })}</span>
               ) : (
                 <>
                   <Frown className="w-4 h-4 text-[#f87171]" />
                   <span className="text-[var(--text-secondary)]">
                     {prizeWon.value === 0
-                      ? `${prizeWon.label}: Rất tiếc, chúc may mắn!`
-                      : `Nhận ${prizeWon.value.toLocaleString()} Xu`}
+                      ? `${prizeWon.label}: ${t('wheel.betterLuckNextTime')}`
+                      : t('wheel.receivedCoins', { amount: prizeWon.value.toLocaleString() })}
                   </span>
                 </>
               )}
@@ -208,7 +210,7 @@ export const MobileLuckyWheelView: React.FC<MobileLuckyWheelViewProps> = ({
           ) : (
             <div className="flex items-center gap-1 text-[11px] text-[var(--text-muted)] italic text-center">
               <Sparkles className="w-3.5 h-3.5 text-[var(--color-gold)]" />
-              <span>Chạm nút vàng <strong>QUAY</strong> ở tâm vòng tròn để bắt đầu</span>
+              <span>{t('wheel.tapHint')}</span>
             </div>
           )}
         </div>

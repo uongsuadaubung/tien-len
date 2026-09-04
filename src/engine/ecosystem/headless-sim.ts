@@ -33,10 +33,10 @@ export function simulateSingleTableMatch(
   }
 
   // 1. Khởi tạo danh sách 4 người chơi ảo
-  const players: Player[] = tableBots.map((bot, index) =>
+  const players: Player[] = tableBots.map((bot) =>
     createBotPlayer(bot.id, bot.id, {
-      name: bot.name || `Bot ${index + 1}`,
-      avatar: bot.avatar || '🤖',
+      name: bot.name,
+      avatar: bot.avatar,
       score: 0
     })
   );

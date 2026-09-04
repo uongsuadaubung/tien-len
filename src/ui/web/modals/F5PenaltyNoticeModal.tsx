@@ -1,10 +1,12 @@
 import React from 'react';
 import { AlertOctagon, Check } from 'lucide-react';
 import { useViewStore } from '../../../stores/useViewStore';
+import { useI18n } from '../../../locales';
 import { Modal, Card, Button, Badge } from '../../primitives';
 
 export const F5PenaltyNoticeModal: React.FC = () => {
   const { isF5PenaltyNoticeOpen, closeModal, f5PenaltyData } = useViewStore();
+  const { t } = useI18n();
 
   if (!isF5PenaltyNoticeOpen) return null;
 
@@ -15,8 +17,8 @@ export const F5PenaltyNoticeModal: React.FC = () => {
     <Modal
       isOpen={isF5PenaltyNoticeOpen}
       onClose={() => closeModal('F5_PENALTY_NOTICE')}
-      title="Phát Hiện Thoát Ngang / Tải Lại Trang"
-      subtitle="Hệ thống phát hiện ván đấu trước của bạn bị gián đoạn. Bạn đã bị xử thua Bỏ Cuộc."
+      title={t('f5Penalty.modalTitle')}
+      subtitle={t('f5Penalty.modalSubtitle')}
       icon={<AlertOctagon className="w-5 h-5 text-[#f87171]" />}
       maxWidth="md"
       height="auto"
@@ -28,7 +30,7 @@ export const F5PenaltyNoticeModal: React.FC = () => {
           onClick={() => closeModal('F5_PENALTY_NOTICE')}
           leftIcon={<Check className="w-4 h-4 text-[#0a0c0e]" />}
         >
-          Đã Hiểu &amp; Quay Lại Sảnh
+          {t('f5Penalty.btnUnderstood')}
         </Button>
       }
     >
@@ -38,11 +40,11 @@ export const F5PenaltyNoticeModal: React.FC = () => {
             {depositLost > 0 && (
               <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-container)] border border-[var(--border-container)]">
                 <div>
-                  <div className="text-xs font-bold text-[var(--text-primary)]">Tiền Cọc Bàn Bị Tịch Thu</div>
-                  <div className="text-[10px] text-[var(--text-muted)]">Đền bù tiền Cóng cho bàn đấu</div>
+                  <div className="text-xs font-bold text-[var(--text-primary)]">{t('f5Penalty.depositLostLabel')}</div>
+                  <div className="text-[10px] text-[var(--text-muted)]">{t('f5Penalty.depositLostDesc')}</div>
                 </div>
                 <Badge variant="danger" size="md">
-                  -{depositLost.toLocaleString()} Xu
+                  -{depositLost.toLocaleString()} {t('common.coins')}
                 </Badge>
               </div>
             )}
@@ -50,8 +52,8 @@ export const F5PenaltyNoticeModal: React.FC = () => {
             {eloLost > 0 && (
               <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-container)] border border-[var(--border-container)]">
                 <div>
-                  <div className="text-xs font-bold text-[var(--text-primary)]">Điểm Xếp Hạng Bị Trừ</div>
-                  <div className="text-[10px] text-[var(--text-muted)]">Xử thua Hạng 4 Bét Bảng</div>
+                  <div className="text-xs font-bold text-[var(--text-primary)]">{t('f5Penalty.eloLostLabel')}</div>
+                  <div className="text-[10px] text-[var(--text-muted)]">{t('f5Penalty.eloLostDesc')}</div>
                 </div>
                 <Badge variant="danger" size="md">
                   -{eloLost} Elo
@@ -61,8 +63,8 @@ export const F5PenaltyNoticeModal: React.FC = () => {
           </div>
 
           <div className="text-[11px] text-[var(--text-muted)] space-y-1">
-            <p>• Đã ghi nhận <strong>+1 Trận Thua</strong> vào hồ sơ cá nhân.</p>
-            <p>• Chuỗi thắng liên tiếp đã bị thiết lập lại về <strong>0</strong>.</p>
+            <p>{t('f5Penalty.recordLoss')}</p>
+            <p>{t('f5Penalty.resetStreak')}</p>
           </div>
         </Card>
       </div>

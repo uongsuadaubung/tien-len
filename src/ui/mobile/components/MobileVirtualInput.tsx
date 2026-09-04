@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Keyboard } from 'lucide-react';
 import { MobileVirtualKeyboard } from './MobileVirtualKeyboard';
+import { useI18n } from '../../../locales';
 
 export interface MobileVirtualInputProps {
   value: string;
@@ -39,6 +40,7 @@ export const MobileVirtualInput: React.FC<MobileVirtualInputProps> = ({
   clearable,
   renderExtraActions
 }) => {
+  const { t } = useI18n();
   const [isKeyboardOpen, setIsKeyboardOpen] = useState<boolean>(false);
 
   const handleClear = () => {
@@ -94,7 +96,7 @@ export const MobileVirtualInput: React.FC<MobileVirtualInputProps> = ({
                 handleClear();
               }}
               className="p-1.5 rounded-lg text-zinc-400 hover:text-white active:scale-95 transition-transform cursor-pointer"
-              title="Xóa nội dung"
+              title={t('common.clear')}
             >
               <X className="w-4 h-4" />
             </button>
@@ -111,7 +113,7 @@ export const MobileVirtualInput: React.FC<MobileVirtualInputProps> = ({
                 ? 'bg-[var(--color-gold)] text-black border-[var(--color-gold)]'
                 : 'bg-[var(--bg-container)] border-[var(--border-container)] text-[var(--text-secondary)]'
             }`}
-            title={isKeyboardOpen ? 'Ẩn bàn phím' : 'Mở bàn phím ảo'}
+            title={isKeyboardOpen ? t('keyboard.hideKeyboard') : t('keyboard.openKeyboard')}
           >
             <Keyboard className="w-4 h-4" />
           </button>

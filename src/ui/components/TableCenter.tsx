@@ -78,7 +78,7 @@ export const TableCenter: React.FC<TableCenterProps> = ({
           <Flame className="w-6 h-6 text-[#f3e5ab] fill-[#d4af37]" />
           <span>{chopNotification.isCascade ? t('table.chopCascadeTitle', { chain: chopNotification.chainCount || 2 }) : t('table.chopSingleTitle')}</span>
           <span className="text-[#f3e5ab] text-sm font-bold">
-            ({chopNotification.chopperName} +{chopNotification.amount.toLocaleString()} 🪙 từ {chopNotification.targetName})
+            ({chopNotification.chopperName} +{chopNotification.amount.toLocaleString()} 🪙 {t('common.from')} {chopNotification.targetName})
           </span>
         </div>
       )}

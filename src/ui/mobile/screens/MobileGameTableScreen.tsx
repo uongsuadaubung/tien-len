@@ -14,6 +14,7 @@ import { useGameTableScreenLogic } from '../../hooks/useGameTableScreenLogic';
 import { useViewStore } from '../../../stores/useViewStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useGameStore } from '../../../stores/useGameStore';
+import { useI18n } from '../../../locales';
 
 // Icons
 import { 
@@ -44,6 +45,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
   onDealComplete,
   onReturnToLobby
 }) => {
+  const { t } = useI18n();
   const [isMatchHudDrawerOpen, setIsMatchHudDrawerOpen] = useState<boolean>(false);
   const [isReasoningHudOpen, setIsReasoningHudOpen] = useState<boolean>(false);
 
@@ -115,16 +117,16 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
           <div className="w-16 h-16 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 mb-4 animate-spin-slow">
             <RotateCw className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-bold text-amber-300 mb-2">Vui Lòng Xoay Ngang Thiết Bị</h2>
+          <h2 className="text-xl font-bold text-amber-300 mb-2">{t('hud.rotateDeviceTitle')}</h2>
           <p className="text-sm text-slate-300 max-w-xs mb-6">
-            Tiến Lên Miền Nam được tối ưu hóa cho trải nghiệm chơi ngang để hiển thị đầy đủ 13 lá bài và toàn cảnh bàn đấu.
+            {t('hud.rotateDeviceDesc')}
           </p>
           <button
             onClick={() => lockToLandscape()}
             className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold text-sm shadow-lg shadow-amber-500/20 active:scale-95 transition-transform flex items-center gap-2"
           >
             <RotateCw className="w-4 h-4" />
-            Xoay Ngang Ngay
+            {t('hud.rotateDeviceBtn')}
           </button>
         </div>
       )}
@@ -135,15 +137,15 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 font-bold text-xs">
             <Trophy className="w-3.5 h-3.5 text-amber-400" />
-            <span>Ván {gameNumber}</span>
+            <span>{t('hud.gameNumber', { number: gameNumber })}</span>
           </div>
 
           <Badge variant="neutral" size="sm" className="hidden sm:inline-flex text-[11px] font-medium text-slate-300 border-white/10">
-            {gameSettings.mode === 'COUNT_CARDS' ? 'Đếm Lá' : gameSettings.mode === 'WINNER_TAKES_ALL' ? 'Nhất Ăn Tất' : 'Truyền Thống'}
+            {gameSettings.mode === 'COUNT_CARDS' ? t('modes.countCards') : gameSettings.mode === 'WINNER_TAKES_ALL' ? t('modes.winnerTakesAll') : t('modes.traditional')}
           </Badge>
 
           <span className="text-xs font-bold text-amber-400">
-            Cược: {gameSettings.betAmount.toLocaleString('vi-VN')} Xu
+            {t('victory.betAmountLabel', { amount: gameSettings.betAmount.toLocaleString() })}
           </span>
         </div>
 
@@ -153,7 +155,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
           <button
             onClick={() => setIsMatchHudDrawerOpen(true)}
             className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-300 hover:text-white active:scale-95 transition-transform"
-            title="Quân Sư AI & Phân Tích"
+            title={t('header.aiAdvisorTooltip')}
           >
             <BarChart3 className="w-4 h-4 text-emerald-400" />
           </button>
@@ -162,7 +164,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
           <button
             onClick={toggleSound}
             className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-300 hover:text-white active:scale-95 transition-transform"
-            title={soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
+            title={soundEnabled ? t('header.soundOffTooltip') : t('header.soundOnTooltip')}
           >
             {soundEnabled ? <Volume2 className="w-4 h-4 text-amber-400" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
           </button>
@@ -171,7 +173,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
           <button
             onClick={() => openModal('SETTINGS')}
             className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-300 hover:text-white active:scale-95 transition-transform"
-            title="Cài đặt trận đấu"
+            title={t('header.matchSettingsTooltip')}
           >
             <Settings className="w-4 h-4 text-slate-300" />
           </button>
@@ -180,7 +182,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
           <button
             onClick={onReturnToLobby}
             className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 hover:text-rose-200 active:scale-95 transition-transform"
-            title="Rời bàn / Về Sảnh"
+            title={t('header.leaveRoomTooltip')}
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -262,7 +264,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
             <div className="table-inner-felt">
               <div className="table-center-emblem">
                 <span className="text-[#d4af37]/20 font-black text-[9px] sm:text-[11px] uppercase tracking-[0.25em] select-none text-center">
-                  TIẾN LÊN
+                  {t('table.emblem')}
                 </span>
               </div>
             </div>

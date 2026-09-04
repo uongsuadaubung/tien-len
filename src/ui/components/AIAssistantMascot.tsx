@@ -11,6 +11,7 @@ import {
   Bot
 } from 'lucide-react';
 import { MoveHint, HintType } from '../../ai/hint-engine';
+import { useI18n } from '../../locales';
 
 interface AIAssistantMascotProps {
   hint: MoveHint | null;
@@ -24,6 +25,7 @@ export const AIAssistantMascot: React.FC<AIAssistantMascotProps> = ({
   enabled
 }) => {
   const [isOpen, setIsOpen] = useState(true);
+  const { t } = useI18n();
 
   // Tự động mở bong bóng thoại khi đến lượt người chơi và có gợi ý mới
   useEffect(() => {
@@ -91,14 +93,14 @@ export const AIAssistantMascot: React.FC<AIAssistantMascotProps> = ({
       <div 
         onClick={() => setIsOpen(!isOpen)}
         className="relative cursor-pointer flex-shrink-0 transition-transform active:scale-95 group"
-        title="Quân Sư Thần Bài (Bấm để xem/ẩn lời khuyên)"
+        title={t('hud.aiAdvisorTitle')}
       >
         <div className="w-12 h-12 rounded-2xl p-0.5 bg-gradient-to-b from-amber-300 via-amber-500 to-yellow-800 shadow-xl shadow-amber-950/50 group-hover:scale-105 transition-all">
           <div className="w-full h-full rounded-[14px] bg-[#0c1018] flex flex-col items-center justify-center relative overflow-hidden border border-amber-400/30">
             <div className="absolute inset-0 bg-gradient-to-t from-amber-500/20 to-transparent" />
             <Bot className="w-6 h-6 text-amber-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
             <span className="text-[7px] font-black uppercase text-amber-300 tracking-tighter scale-90">
-              Quân Sư
+              {t('hud.aiAdvisor')}
             </span>
           </div>
         </div>
@@ -137,7 +139,7 @@ export const AIAssistantMascot: React.FC<AIAssistantMascotProps> = ({
                 setIsOpen(false);
               }}
               className="p-0.5 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
-              title="Thu nhỏ lời khuyên"
+              title={t('common.close')}
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -152,19 +154,19 @@ export const AIAssistantMascot: React.FC<AIAssistantMascotProps> = ({
           <div className="mt-1.5 pt-1.5 border-t border-white/[0.06] flex items-center justify-between text-[9px] text-zinc-500">
             <span className="flex items-center gap-1 text-amber-400/80 font-medium">
               <MessageSquareQuote className="w-3 h-3" />
-              Trợ Lý AI
+              {t('hud.aiAdvisor')}
             </span>
-            <span className="text-[10px] text-zinc-400 italic">Nhắc nhở chiến thuật</span>
+            <span className="text-[10px] text-zinc-400 italic">{t('hud.aiTacticalReminder')}</span>
           </div>
         </div>
       ) : (
         <div 
           onClick={() => setIsOpen(true)}
           className="flex-1 bg-[#0d121d]/80 hover:bg-[#0d121d] border border-amber-500/30 rounded-xl p-2 cursor-pointer shadow-lg transition-all flex items-center justify-between group self-center"
-          title="Bấm để mở lại lời khuyên Quân Sư"
+          title={t('hud.aiAdviceBubble')}
         >
-          <span className="text-[11px] font-bold text-amber-300">Lời khuyên Quân Sư</span>
-          <span className="text-[10px] text-zinc-400 group-hover:text-amber-300 transition-colors">Xem ▶</span>
+          <span className="text-[11px] font-bold text-amber-300">{t('hud.aiAdviceBubble')}</span>
+          <span className="text-[10px] text-zinc-400 group-hover:text-amber-300 transition-colors">{t('hud.viewAdvice')}</span>
         </div>
       )}
     </div>

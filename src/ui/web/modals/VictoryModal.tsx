@@ -20,6 +20,7 @@ import { MatchLogger } from '../../../engine/match-logger';
 import { Modal, Card, Button } from '../../primitives';
 import { MiniCardView } from '../../components/CardView';
 import { useVictoryLogic, PrimaryBtnIconType, SecondaryBtnIconType } from '../../hooks/useVictoryLogic';
+import { useI18n, type I18nKeyPath } from '../../../locales';
 
 export interface VictoryModalProps {
   isOpen: boolean;
@@ -34,14 +35,7 @@ export interface VictoryModalProps {
   } | null;
 }
 
-export const INSTANT_WIN_TITLES: Record<string, string> = {
-  DRAGON_STRAIGHT: 'Sảnh Rồng',
-  FOUR_TWOS: 'Tứ Quý Heo',
-  SAME_COLOR_13: 'Đồng Màu 13 Lá',
-  FIVE_PAIRS_SEQUENTIAL: '5 Đôi Thông',
-  SIX_PAIRS: '6 Đôi Bất Kỳ',
-  FIRST_ROUND_FOUR_THREES: 'Tứ Quý 3 Ván Đầu'
-};
+export const INSTANT_WIN_TITLES: Record<string, string> = {};
 
 function renderPrimaryIcon(type: PrimaryBtnIconType) {
   switch (type) {
@@ -69,9 +63,16 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   onOpenCampaignMap,
   campaignResultMeta
 }) => {
+  const { t } = useI18n();
   const { githubToken, autoBackupOnMatchEnd } = useSettingsStore();
   const { myPlayerId } = useGameStore();
   const { roomState } = useOnlineStore();
+
+  const getInstantWinTitle = (type: string) => {
+    const key = `victory.instantWinTypes.${type}` as I18nKeyPath;
+    const translated = t(key);
+    return translated !== key ? translated : type;
+  };
 
   const {
     isCampaign,
@@ -175,13 +176,13 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-[var(--color-gold)]" />
                 <span className="text-xs font-bold text-[var(--color-gold)] uppercase tracking-wider">
-                  Bỏ Phiếu Ván Mới ({readyOnlinePlayers}/{totalOnlinePlayers})
+                  {t('victory.onlineVoteBanner', { ready: readyOnlinePlayers, total: totalOnlinePlayers })}
                 </span>
               </div>
               <span className="text-[11px] font-semibold text-[var(--text-muted)]">
                 {readyOnlinePlayers === totalOnlinePlayers 
-                  ? '⚡ Đủ 100% phiếu, ván mới đang khởi tạo...' 
-                  : '⏳ Cần toàn bộ người chơi sẵn sàng'
+                  ? t('victory.onlineAllReadyInitializing')
+                  : t('victory.onlineWaitingReady')
                 }
               </span>
             </div>
@@ -200,15 +201,15 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                   <span className="text-lg">{op.avatar}</span>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-bold truncate text-[var(--text-primary)]">
-                      {op.name} {op.playerId === myPlayerId ? '(Bạn)' : ''}
+                      {op.name} {op.playerId === myPlayerId ? `(${t('hud.you')})` : ''}
                     </div>
                     <div className="text-[10px] font-semibold flex items-center gap-1">
                       {op.isReady ? (
                         <span className="text-emerald-400 flex items-center gap-0.5">
-                          <Check className="w-3 h-3" /> Sẵn sàng
+                          <Check className="w-3 h-3" /> {t('common.ready')}
                         </span>
                       ) : (
-                        <span className="text-amber-400/80">⏳ Đang chờ...</span>
+                        <span className="text-amber-400/80">⏳ {t('online.waitingPlayer')}</span>
                       )}
                     </div>
                   </div>
@@ -222,8 +223,8 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
           <Card variant="active" className="p-3 bg-rose-950/40 border-rose-500/40 flex items-center justify-center gap-2 text-center">
             <span className="text-rose-300 font-bold text-xs sm:text-sm">
               {isHumanBankrupt
-                ? '💸 Số dư của bạn không đủ mức cược cho ván tiếp theo! Bàn chơi giải tán, vui lòng quay về sảnh.'
-                : `🚨 Đối thủ ${bankruptBots.map(b => b.name).join(', ')} không đủ tiền cược cho ván tiếp theo! Bàn chơi giải tán, vui lòng về sảnh để tìm trận mới.`
+                ? t('victory.dismissedHumanBankrupt')
+                : t('victory.dismissedBotBankrupt', { names: bankruptBots.map(b => b.name).join(', ') })
               }
             </span>
           </Card>
@@ -234,7 +235,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
           <Card variant="active" className="p-2.5 flex items-center justify-center gap-2">
             <Sparkles className="w-4 h-4 text-[var(--color-gold)]" />
             <span className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
-              ⚡ Luật Về 3 Bích Kích Hoạt: Thưởng x2 Tiền Cả Làng!
+              {t('victory.threeSpadesRuleActive')}
             </span>
             <Sparkles className="w-4 h-4 text-[var(--color-gold)]" />
           </Card>
@@ -256,7 +257,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
             )}
             {loanDeduction > 0 && (
               <span className="text-[10px] text-[var(--color-gold)] block mt-0.5">
-                (Đã trừ {loanDeduction.toLocaleString()} Xu trả nợ)
+                ({t('victory.loanDeducted', { amount: loanDeduction.toLocaleString() })})
               </span>
             )}
           </Card>
@@ -281,12 +282,12 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
           {displayPlayers.map((p, idx) => {
             const isWinner = idx === 0;
             const rankLabel = isWinner
-              ? (instantWinType ? `⚡ TỚI TRẮNG (${INSTANT_WIN_TITLES[instantWinType] || instantWinType})` : '🥇 VỀ NHẤT')
+              ? (instantWinType ? t('victory.instantWinBadge', { type: getInstantWinTitle(instantWinType) }) : `🥇 ${t('victory.rank1')}`)
               : (instantWinType
-                ? '💥 ĐỀN TỚI TRẮNG'
+                ? t('victory.instantWinPenalty')
                 : (winners.length >= allPlayers.length - 1
-                  ? (idx === 1 ? '🥈 VỀ NHÌ' : idx === 2 ? '🥉 VỀ BA' : '💥 VỀ BÉT')
-                  : '💥 THUA ĐẾM LÁ'));
+                  ? (idx === 1 ? `🥈 ${t('victory.rank2')}` : idx === 2 ? `🥉 ${t('victory.rank3')}` : `💥 ${t('victory.rank4')}`)
+                  : t('victory.lostCountingCards')));
             const netPay = payouts ? payouts[p.id] : undefined;
             const remainingCards = p.hand ? [...p.hand].sort((a, b) => a.weight - b.weight) : [];
             const hasRottenTwo = !isWinner && !instantWinType && remainingCards.some(c => c.rank === 15);
@@ -336,7 +337,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                     )}
                     {isCampaign && (
                       <div className={`text-xs font-bold ${isWinner ? 'text-[var(--color-gold)]' : 'text-[var(--text-muted)]'}`}>
-                        {isWinner ? 'Thắng Trận' : `Còn ${remainingCards.length} lá`}
+                        {isWinner ? t('victory.matchWon') : t('victory.cardsLeftCount', { count: remainingCards.length })}
                       </div>
                     )}
                   </div>
@@ -347,7 +348,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                   {remainingCards.length > 0 ? (
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-[10px] text-zinc-400 font-medium mr-0.5">
-                        Còn {remainingCards.length} lá:
+                        {t('victory.cardsLeftColon', { count: remainingCards.length })}
                       </span>
                       <div className="flex items-center gap-1 flex-wrap">
                         {remainingCards.map((c) => (
@@ -357,7 +358,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                     </div>
                   ) : (
                     <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
-                      👑 Đã xả hết sạch bài
+                      👑 {t('victory.clearedAllCards')}
                     </span>
                   )}
 
@@ -365,22 +366,22 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                   <div className="flex items-center gap-1">
                     {isWinner && instantWinType && (
                       <span className="text-[9px] font-bold text-[var(--color-gold)] bg-[var(--color-gold-bg)] border border-[var(--color-gold-border)] px-1.5 py-0.5 rounded animate-pulse">
-                        ⚡ Tới Trắng ({INSTANT_WIN_TITLES[instantWinType] || instantWinType})
+                        {t('victory.instantWinBadge', { type: getInstantWinTitle(instantWinType) })}
                       </span>
                     )}
                     {!isWinner && instantWinType && (
                       <span className="text-[9px] font-bold text-rose-300 bg-rose-500/20 border border-rose-500/40 px-1.5 py-0.5 rounded">
-                        💥 Đền Tới Trắng (26 lá)
+                        {t('victory.instantWinPenaltyLeaves')}
                       </span>
                     )}
                     {hasRottenTwo && (
                       <span className="text-[9px] font-bold text-amber-300 bg-amber-500/20 border border-amber-400/40 px-1.5 py-0.5 rounded animate-pulse">
-                        ⚠️ Thối Heo
+                        {t('victory.rottenTwoBadge')}
                       </span>
                     )}
                     {isCong && (
                       <span className="text-[9px] font-bold text-rose-300 bg-rose-500/20 border border-rose-500/40 px-1.5 py-0.5 rounded animate-pulse">
-                        🚨 Bị Cóng (13 lá)
+                        {t('victory.congsPenaltyBadge')}
                       </span>
                     )}
                   </div>
@@ -395,7 +396,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
           {githubToken && autoBackupOnMatchEnd ? (
             <span className="inline-flex items-center gap-1.5 text-[11px] text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded-lg">
               <Cloud className="w-3.5 h-3.5 shrink-0" />
-              <span>Tự động sao lưu (Mỗi 5 ván)</span>
+              <span>{t('victory.autoBackupNotice')}</span>
             </span>
           ) : (
             <div />
@@ -409,7 +410,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
               leftIcon={<Download className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
               className="text-xs"
             >
-              Lưu Phân Tích
+              {t('hud.exportAnalysis')}
             </Button>
           )}
         </div>

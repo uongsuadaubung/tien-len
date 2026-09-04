@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { soundManager } from '../audio/sound-manager';
 import { FastForward, Sparkles } from 'lucide-react';
 import { UI_TIMINGS } from '../constants/ui-timings';
+import { useI18n } from '../../locales';
 
 interface DealingDeckAnimationProps {
   isDealing: boolean;
@@ -31,6 +32,7 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
   onDealCard,
   onSkip
 }) => {
+  const { t } = useI18n();
   const actualPlayerCount = Math.min(4, Math.max(2, playerCount));
   const totalDeckCards = actualPlayerCount * 13;
   const [flyingCards, setFlyingCards] = useState<FlyingCard[]>([]);
@@ -230,7 +232,7 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
             {/* Lá trên cùng (Lưng bài Tết đỏ ánh kim) */}
             <div className="absolute inset-0 rounded-lg sm:rounded-xl bg-gradient-to-br from-red-800 via-red-900 to-amber-950 border-2 border-[#d4af37] shadow-2xl flex items-center justify-center overflow-hidden">
               <span className="text-[10px] font-black text-yellow-300 drop-shadow">
-                {isShuffling ? 'XÀO BÀI' : `${remainingDeckCards}`}
+                {isShuffling ? t('table.shuffling') : `${remainingDeckCards}`}
               </span>
             </div>
           </div>
@@ -264,14 +266,14 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
           className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1 rounded-full bg-[#101726]/90 hover:bg-[#1a233a] active:scale-95 text-[#f3e5ab] border border-[#d4af37]/45 hover:border-[#d4af37] text-[11px] font-bold shadow-lg shadow-black/40 transition-all duration-150 cursor-pointer backdrop-blur-md"
         >
           <FastForward className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
-          <span className="leading-none select-none">Bỏ qua</span>
+          <span className="leading-none select-none">{t('common.skip')}</span>
         </button>
       </div>
 
       {/* Trạng thái chia bài */}
       <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#101726]/90 px-3.5 py-1 rounded-full border border-[#d4af37]/35 text-[#f3e5ab] text-[11px] font-bold flex items-center gap-1.5 shadow-lg backdrop-blur-md">
         <Sparkles className="w-3 h-3 text-[#d4af37] shrink-0" />
-        <span className="leading-none select-none">{isShuffling ? 'Đang xào bài...' : `Đang chia bài ${actualPlayerCount} người...`}</span>
+        <span className="leading-none select-none">{isShuffling ? t('table.shufflingCards') : t('table.dealingCards', { count: actualPlayerCount })}</span>
       </div>
     </div>
   );

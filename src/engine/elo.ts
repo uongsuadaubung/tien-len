@@ -185,8 +185,8 @@ export function matchmakeRankedOpponents(playerElo: number): BotConfig[] {
       excludeNames: usedNames,
       excludeAvatars: usedAvatars
     });
-    usedNames.push(dynamicBot.name || '');
-    usedAvatars.push(dynamicBot.avatar || '🤖');
+    usedNames.push(dynamicBot.name);
+    usedAvatars.push(dynamicBot.avatar);
     return dynamicBot;
   });
 }

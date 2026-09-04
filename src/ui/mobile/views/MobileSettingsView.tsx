@@ -5,25 +5,27 @@ import {
   Settings, 
   CheckCircle, 
   Timer, 
-  Crosshair,
-  Wand2,
-  Cloud,
-  CloudUpload,
-  CloudDownload,
-  RefreshCw,
-  LogOut,
-  Key,
-  ExternalLink,
-  History,
-  CheckCircle2,
-  AlertTriangle,
-  Wifi
+  Crosshair, 
+  Wand2, 
+  Cloud, 
+  CloudUpload, 
+  CloudDownload, 
+  RefreshCw, 
+  LogOut, 
+  Key, 
+  ExternalLink, 
+  History, 
+  CheckCircle2, 
+  AlertTriangle, 
+  Wifi,
+  Globe
 } from 'lucide-react';
 import { Button } from '../../primitives';
 import { MobileScreenWrapper } from './MobileScreenWrapper';
 import { MobileVirtualInput } from '../components/MobileVirtualInput';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useSettingsSync } from '../../hooks/useSettingsSync';
+import { useI18n } from '../../../locales';
 
 export interface MobileSettingsViewProps {
   isOpen: boolean;
@@ -46,8 +48,8 @@ const ToggleSwitch: React.FC<{ checked: boolean }> = ({ checked }) => (
   </div>
 );
 
-function formatDateTime(timestamp: number): string {
-  if (!timestamp) return 'Chưa từng đồng bộ';
+function formatDateTime(timestamp: number, neverSyncedText: string = ''): string {
+  if (!timestamp) return neverSyncedText;
   const d = new Date(timestamp);
   const hours = String(d.getHours()).padStart(2, '0');
   const minutes = String(d.getMinutes()).padStart(2, '0');
@@ -86,6 +88,8 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
     clearGithubAuth
   } = useSettingsStore();
 
+  const { t, locale, setLocale } = useI18n();
+
   const {
     tokenInputValue,
     setTokenInputValue,
@@ -113,14 +117,51 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
     <MobileScreenWrapper
       isOpen={isOpen}
       onClose={onClose}
-      title="Cài Đặt Trò Chơi"
-      subtitle="Tùy chỉnh âm thanh, nhịp độ, công cụ bàn đấu và đồng bộ đám mây"
+      title={t('settings.title')}
+      subtitle={t('settings.subtitle')}
       icon={<Settings className="w-5 h-5 text-[var(--color-gold)]" />}
       headerRight={null}
       footer={null}
       className={null}
     >
       <div className="space-y-4 pb-6 select-none">
+        {/* ========================================================================= */}
+        {/* NHÓM NGÔN NGỮ (LANGUAGE SELECTION) */}
+        {/* ========================================================================= */}
+        <div className="rounded-2xl bg-[var(--bg-card)] border border-[var(--border-card)] shadow-md overflow-hidden p-4 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Globe className="w-5 h-5 text-[var(--color-gold)] shrink-0" />
+            <div>
+              <div className="text-xs font-bold text-[var(--text-primary)]">{t('settings.language')}</div>
+              <div className="text-[11px] text-[var(--text-muted)]">
+                {t('settings.interfaceDesc')}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 bg-[var(--bg-container)] p-1 rounded-xl border border-[var(--border-container)]">
+            <button
+              onClick={() => setLocale('vi')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                locale === 'vi'
+                  ? 'bg-gradient-to-r from-[#f0cb64] to-[#d4af37] text-black shadow-md'
+                  : 'text-[var(--text-secondary)] hover:text-white'
+              }`}
+            >
+              🇻🇳 {t('settings.langVi')}
+            </button>
+            <button
+              onClick={() => setLocale('en')}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                locale === 'en'
+                  ? 'bg-gradient-to-r from-[#f0cb64] to-[#d4af37] text-black shadow-md'
+                  : 'text-[var(--text-secondary)] hover:text-white'
+              }`}
+            >
+              🇬🇧 {t('settings.langEn')}
+            </button>
+          </div>
+        </div>
+
         {/* ========================================================================= */}
         {/* NHÓM 1: ĐỒNG BỘ ĐÁM MÂY (GITHUB GIST SYNC) */}
         {/* ========================================================================= */}
@@ -129,13 +170,13 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
             <div className="flex items-center gap-2">
               <Cloud className="w-4 h-4 text-[var(--color-gold)] shrink-0" />
               <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-gold)] leading-none">
-                Đồng Bộ Đám Mây (GitHub Gist)
+                {t('sync.cloudSyncTitle')}
               </span>
             </div>
             {githubToken && (
               <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full inline-flex items-center gap-1.5 font-medium leading-none">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                Đã kết nối
+                {t('sync.connectedBadge')}
               </span>
             )}
           </div>
@@ -145,16 +186,16 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
             {!githubToken ? (
               <div className="space-y-3">
                 <div className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                  Lưu trữ và đồng bộ toàn bộ số Xu, ELO, Nhiệm vụ và Thành tựu của bạn lên <strong className="text-[var(--text-primary)]">GitHub Gist</strong> cá nhân an toàn và bảo mật.
+                  {t('sync.connectTokenDesc')}
                 </div>
 
                 <div className="space-y-1.5">
                   <MobileVirtualInput
                     value={tokenInputValue}
                     onChange={setTokenInputValue}
-                    placeholder="ghp_xxxxxxxxxxxx hoặc github_pat_xxxx"
+                    placeholder={t('sync.tokenPlaceholder')}
                     icon={<Key className="w-4 h-4 text-[var(--color-gold)]" />}
-                    label="GitHub Personal Access Token (Gist Token)"
+                    label={t('sync.tokenLabel')}
                     error={null}
                     maxLength={100}
                     showRandomNameButton={false}
@@ -166,11 +207,11 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                           const txt = await navigator.clipboard.readText();
                           if (txt) {
                             setTokenInputValue(txt.trim());
-                            showNotification('Đã dán token từ bộ nhớ tạm!', 'success');
+                            showNotification(t('sync.notificationPasted'), 'success');
                           }
                         }
                       } catch {
-                        showNotification('Không thể đọc bộ nhớ tạm. Vui lòng cấp quyền trình duyệt.', 'error');
+                        showNotification(t('sync.notificationClipboardError'), 'error');
                       }
                     }}
                     onSubmit={handleConnectToken}
@@ -186,7 +227,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                         leftIcon={isValidatingToken ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : undefined}
                         className="px-3 text-xs font-semibold whitespace-nowrap"
                       >
-                        {isValidatingToken ? 'Đang kết nối...' : 'Kết Nối'}
+                        {isValidatingToken ? t('sync.connectingBtn') : t('sync.connectBtn')}
                       </Button>
                     )}
                   />
@@ -195,19 +236,19 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                 {/* Hướng dẫn tạo token */}
                 <div className="p-3 rounded-xl bg-[var(--bg-container)]/80 border border-[var(--border-container)] text-[11px] text-[var(--text-muted)] space-y-1">
                   <div className="flex items-center justify-between text-[var(--text-secondary)] font-medium">
-                    <span>Chưa có GitHub Token?</span>
+                    <span>{t('sync.noTokenGuide')}</span>
                     <a
                       href="https://github.com/settings/tokens/new?description=Tien%20Len%20Save%20Sync&scopes=gist"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-[var(--color-gold)] hover:underline inline-flex items-center gap-1 text-[11px]"
                     >
-                      <span>Tạo nhanh 1-Click</span>
+                      <span>{t('sync.createTokenLink')}</span>
                       <ExternalLink className="w-3 h-3 shrink-0" />
                     </a>
                   </div>
                   <p className="text-[10px] text-zinc-400">
-                    Chỉ cần tick chọn quyền <code className="bg-zinc-800 text-amber-300 px-1 py-0.5 rounded text-[10px]">gist</code> và nhấn Generate token, sau đó dán mã vào ô trên.
+                    {t('sync.tokenInstruction')}
                   </p>
                 </div>
               </div>
@@ -238,8 +279,8 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                         )}
                       </div>
                       <div className="text-[10px] sm:text-[11px] text-[var(--text-muted)] mt-0.5 flex items-center gap-1">
-                        <span>Lần đồng bộ cuối:</span>
-                        <span className="text-zinc-300 font-medium">{formatDateTime(lastSync)}</span>
+                        <span>{t('sync.lastSyncLabel', { time: '' }).split(':')[0]}:</span>
+                        <span className="text-zinc-300 font-medium">{formatDateTime(lastSync, t('sync.neverSynced'))}</span>
                       </div>
                     </div>
                   </div>
@@ -250,12 +291,12 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                     onClick={() => {
                       clearGithubAuth();
                       setTokenInputValue('');
-                      showNotification('Đã ngắt kết nối tài khoản GitHub.', 'info');
+                      showNotification(t('sync.notificationLoggedOut'), 'info');
                     }}
                     leftIcon={<LogOut className="w-3.5 h-3.5 shrink-0" />}
                     className="text-[11px] text-red-400 hover:text-red-300 border-red-500/20 hover:border-red-500/40 shrink-0"
                   >
-                    Đăng Xuất
+                    {t('sync.btnDisconnect')}
                   </Button>
                 </div>
 
@@ -268,7 +309,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                     className="flex flex-col items-center justify-center py-2.5 px-2 rounded-xl border bg-amber-500/15 border-amber-500/40 text-amber-300 hover:bg-amber-500/25 font-bold text-xs transition-all active:scale-95 disabled:opacity-40 select-none cursor-pointer"
                   >
                     <RefreshCw className={`w-4 h-4 mb-1.5 shrink-0 ${isSyncing ? 'animate-spin' : ''}`} />
-                    <span className="leading-tight">Đồng Bộ Ngay</span>
+                    <span className="leading-tight">{t('sync.btnSyncNow')}</span>
                   </button>
 
                   <button
@@ -278,7 +319,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                     className="flex flex-col items-center justify-center py-2.5 px-2 rounded-xl border bg-[var(--bg-card)] border-[var(--border-card)] text-sky-400 hover:bg-[var(--bg-card-hover)] hover:border-sky-500/30 text-xs font-semibold transition-all active:scale-95 disabled:opacity-40 select-none cursor-pointer"
                   >
                     <CloudUpload className="w-4 h-4 mb-1.5 shrink-0 text-sky-400" />
-                    <span className="text-[var(--text-secondary)] leading-tight">Tải Lên Gist</span>
+                    <span className="text-[var(--text-secondary)] leading-tight">{t('sync.btnUpload')}</span>
                   </button>
 
                   <button
@@ -288,7 +329,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                     className="flex flex-col items-center justify-center py-2.5 px-2 rounded-xl border bg-[var(--bg-card)] border-[var(--border-card)] text-emerald-400 hover:bg-[var(--bg-card-hover)] hover:border-emerald-500/30 text-xs font-semibold transition-all active:scale-95 disabled:opacity-40 select-none cursor-pointer"
                   >
                     <CloudDownload className="w-4 h-4 mb-1.5 shrink-0 text-emerald-400" />
-                    <span className="text-[var(--text-secondary)] leading-tight">Tải Về Máy</span>
+                    <span className="text-[var(--text-secondary)] leading-tight">{t('sync.btnDownload')}</span>
                   </button>
 
                   <button
@@ -298,7 +339,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                     className="flex flex-col items-center justify-center py-2.5 px-2 rounded-xl border bg-[var(--bg-card)] border-[var(--border-card)] text-amber-400 hover:bg-[var(--bg-card-hover)] hover:border-amber-500/30 text-xs font-semibold transition-all active:scale-95 disabled:opacity-40 select-none cursor-pointer"
                   >
                     <History className="w-4 h-4 mb-1.5 shrink-0 text-amber-400" />
-                    <span className="text-[var(--text-secondary)] leading-tight">Lịch Sử Gist</span>
+                    <span className="text-[var(--text-secondary)] leading-tight">{t('sync.btnHistory')}</span>
                   </button>
                 </div>
 
@@ -313,10 +354,10 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                     </div>
                     <div>
                       <div className="text-xs font-semibold text-[var(--text-primary)] leading-tight group-hover:text-[var(--color-gold)] transition-colors">
-                        Tự Động Đồng Bộ Khi Vào Game
+                        {t('sync.autoSyncOnStartup')}
                       </div>
                       <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
-                        Tự động kiểm tra và tải dữ liệu mới nhất từ Gist khi khởi động
+                        {t('sync.autoSyncOnStartupDesc')}
                       </div>
                     </div>
                   </div>
@@ -335,10 +376,10 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                       </div>
                       <div>
                         <div className="text-xs font-semibold text-[var(--text-primary)] leading-tight group-hover:text-[var(--color-gold)] transition-colors">
-                          Tự Động Sao Lưu Đám Mây
+                          {t('sync.autoBackupTitle')}
                         </div>
                         <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
-                          Tự động tải bản lưu mới nhất lên Gist theo chu kỳ ván đấu
+                          {t('sync.autoBackupDesc')}
                         </div>
                       </div>
                     </div>
@@ -349,7 +390,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                   {autoBackupOnMatchEnd && (
                     <div className="pl-8 flex items-center justify-between gap-2 pt-1">
                       <span className="text-[11px] text-[var(--text-muted)] font-medium">
-                        Chu kỳ sao lưu:
+                        {t('sync.backupIntervalLabel')}
                       </span>
                       <div className="flex items-center gap-1">
                         {[1, 3, 5, 10].map((num) => (
@@ -363,7 +404,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                                 : 'bg-[var(--bg-container)] border border-[var(--border-container)] text-zinc-400 hover:text-zinc-200'
                             }`}
                           >
-                            {num === 1 ? 'Mỗi ván' : `${num} ván`}
+                            {num === 1 ? t('sync.backupEveryMatch') : t('sync.backupMatches', { count: num })}
                           </button>
                         ))}
                       </div>
@@ -404,10 +445,10 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
               <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-3">
                 <div className="flex items-center gap-2 text-amber-300 font-bold text-xs">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
-                  <span>Xung Đột Dữ Liệu: Cả hai bên đều có thay đổi mới!</span>
+                  <span>{t('sync.conflictTitleBoth')}</span>
                 </div>
                 <p className="text-[11px] text-zinc-300 leading-relaxed">
-                  Vui lòng lựa chọn giữ lại bản dữ liệu trên máy hiện tại hoặc áp dụng bản lưu từ GitHub Gist:
+                  {t('sync.conflictChoosePrompt')}
                 </p>
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
@@ -415,11 +456,11 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                   <div className="p-2.5 rounded-lg bg-[var(--bg-container)] border border-[var(--border-container)] space-y-1">
                     <div className="font-bold text-[var(--color-gold)] flex items-center gap-1.5">
                       <span>💻</span>
-                      <span>Bản Trên Máy (Local)</span>
+                      <span>{t('sync.conflictLocalCard')}</span>
                     </div>
-                    <div className="text-[11px] text-zinc-300">Xu: {conflictData.localData.profile.coins.toLocaleString()}</div>
-                    <div className="text-[11px] text-zinc-300">ELO: {conflictData.localData.profile.elo}</div>
-                    <div className="text-[11px] text-zinc-300">Thắng: {conflictData.localData.profile.stats.wins} ván</div>
+                    <div className="text-[11px] text-zinc-300">{t('sync.conflictCoins', { coins: conflictData.localData.profile.coins.toLocaleString() })}</div>
+                    <div className="text-[11px] text-zinc-300">{t('sync.conflictElo', { elo: conflictData.localData.profile.elo })}</div>
+                    <div className="text-[11px] text-zinc-300">{t('sync.conflictWins', { wins: conflictData.localData.profile.stats.wins })}</div>
                     <Button
                       variant="gold"
                       size="sm"
@@ -428,7 +469,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                       disabled={isSyncing}
                       className="mt-2 text-[11px]"
                     >
-                      Ghi đè Đám mây
+                      {t('sync.conflictOverwriteCloud')}
                     </Button>
                   </div>
 
@@ -436,11 +477,11 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                   <div className="p-2.5 rounded-lg bg-[var(--bg-container)] border border-[var(--border-container)] space-y-1">
                     <div className="font-bold text-emerald-400 flex items-center gap-1.5">
                       <span>☁️</span>
-                      <span>Bản Đám Mây (Gist)</span>
+                      <span>{t('sync.conflictCloudCard')}</span>
                     </div>
-                    <div className="text-[11px] text-zinc-300">Xu: {conflictData.cloudData.profile.coins.toLocaleString()}</div>
-                    <div className="text-[11px] text-zinc-300">ELO: {conflictData.cloudData.profile.elo}</div>
-                    <div className="text-[11px] text-zinc-300">Thắng: {conflictData.cloudData.profile.stats.wins} ván</div>
+                    <div className="text-[11px] text-zinc-300">{t('sync.conflictCoins', { coins: conflictData.cloudData.profile.coins.toLocaleString() })}</div>
+                    <div className="text-[11px] text-zinc-300">{t('sync.conflictElo', { elo: conflictData.cloudData.profile.elo })}</div>
+                    <div className="text-[11px] text-zinc-300">{t('sync.conflictWins', { wins: conflictData.cloudData.profile.stats.wins })}</div>
                     <Button
                       variant="surface"
                       size="sm"
@@ -449,7 +490,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                       disabled={isSyncing}
                       className="mt-2 text-[11px] text-emerald-400 border-emerald-500/30"
                     >
-                      Áp dụng vào Máy
+                      {t('sync.conflictApplyLocal')}
                     </Button>
                   </div>
                 </div>
@@ -464,20 +505,20 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-xs font-bold text-[var(--color-gold)]">
                 <History className="w-4 h-4 shrink-0" />
-                <span>Lịch Sử 5 Bản Lưu Gần Nhất Trên Gist</span>
+                <span>{t('sync.historyTitle')}</span>
               </div>
               <button
                 onClick={() => setShowHistoryModal(false)}
                 className="text-xs text-[var(--text-muted)] hover:text-white cursor-pointer"
               >
-                ✕ Đóng
+                {t('sync.historyClose')}
               </button>
             </div>
 
             {isLoadingHistory ? (
               <div className="py-4 text-center text-xs text-[var(--text-muted)] flex items-center justify-center gap-2">
                 <RefreshCw className="w-3.5 h-3.5 animate-spin text-[var(--color-gold)] shrink-0" />
-                <span>Đang tải lịch sử commits từ Gist...</span>
+                <span>{t('sync.historyLoading')}</span>
               </div>
             ) : historyItems && historyItems.length > 0 ? (
               <div className="space-y-2">
@@ -488,14 +529,14 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                   >
                     <div>
                       <div className="text-xs font-semibold text-[var(--text-primary)]">
-                        {formatDateTime(new Date(item.committedAt).getTime())}
+                        {formatDateTime(new Date(item.committedAt).getTime(), t('sync.neverSynced'))}
                       </div>
                       {item.saveData?.profile ? (
                         <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                          Tên: <strong className="text-zinc-200">{item.saveData.profile.name || 'Người Chơi'}</strong> | Xu: <strong className="text-amber-400">{item.saveData.profile.coins.toLocaleString()}</strong> | ELO: <strong className="text-sky-400">{item.saveData.profile.elo}</strong>
+                          {t('sync.historyName', { name: item.saveData.profile.name || t('common.player') })} | {t('sync.historyCoins', { coins: item.saveData.profile.coins.toLocaleString() })} | {t('sync.historyElo', { elo: item.saveData.profile.elo })}
                         </div>
                       ) : (
-                        <div className="text-[10px] text-zinc-500">Bản lưu không chứa profile hợp lệ</div>
+                        <div className="text-[10px] text-zinc-500">{t('sync.historyNoProfile')}</div>
                       )}
                     </div>
                     {item.saveData && (
@@ -506,7 +547,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                         disabled={isSyncing}
                         className="text-[11px] text-[var(--color-gold)] border-[var(--color-gold-border)] ml-2 shrink-0"
                       >
-                        Khôi Phục
+                        {t('sync.historyRestore')}
                       </Button>
                     )}
                   </div>
@@ -514,7 +555,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
               </div>
             ) : (
               <div className="py-3 text-center text-xs text-[var(--text-muted)]">
-                Chưa có lịch sử lưu nào trên Gist.
+                {t('sync.historyEmpty')}
               </div>
             )}
           </div>
@@ -527,7 +568,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
           <div className="px-4 py-2.5 bg-[var(--bg-container)]/70 flex items-center gap-2">
             <Volume2 className="w-4 h-4 text-[var(--color-gold)] shrink-0" />
             <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-gold)] leading-none">
-              Âm Thanh Trò Chơi
+              {t('settings.soundSection')}
             </span>
           </div>
 
@@ -542,8 +583,8 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                   {soundEnabled ? <Volume2 className="w-4 h-4 shrink-0" /> : <VolumeX className="w-4 h-4 shrink-0" />}
                 </div>
                 <div>
-                  <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">Âm Thanh Bàn Đấu</div>
-                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">Tiếng chia bài, đập bài, chặt heo và chiến thắng</div>
+                  <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">{t('settings.soundTable')}</div>
+                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">{t('settings.soundTableDesc')}</div>
                 </div>
               </div>
 
@@ -559,15 +600,15 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
           <div className="px-4 py-2.5 bg-[var(--bg-container)]/70 flex items-center gap-2">
             <Timer className="w-4 h-4 text-[var(--color-gold)] shrink-0" />
             <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-gold)] leading-none">
-              Nhịp Độ Ván Đấu
+              {t('settings.speedSection')}
             </span>
           </div>
 
           <div className="p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">Tốc Độ Ra Bài Của Đối Thủ</div>
-                <div className="text-[11px] text-[var(--text-muted)] mt-0.5">Tùy chỉnh tốc độ suy nghĩ và nhịp độ ra bài tại bàn đấu</div>
+                <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">{t('settings.speedOpponent')}</div>
+                <div className="text-[11px] text-[var(--text-muted)] mt-0.5">{t('settings.speedOpponentDesc')}</div>
               </div>
             </div>
 
@@ -583,7 +624,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
               >
                 <span className="text-xs sm:text-sm font-extrabold inline-flex items-center justify-center gap-1.5 leading-none">
                   <span className="shrink-0">⚡</span>
-                  <span>Nhanh</span>
+                  <span>{t('settings.speedFast')}</span>
                 </span>
                 <span className="text-[10px] text-[var(--text-muted)] mt-1">0.4s - 0.6s</span>
               </button>
@@ -599,7 +640,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
               >
                 <span className="text-xs sm:text-sm font-extrabold inline-flex items-center justify-center gap-1.5 leading-none">
                   <span className="shrink-0">🎯</span>
-                  <span>Chân Thực</span>
+                  <span>{t('settings.speedRealistic')}</span>
                 </span>
                 <span className="text-[10px] text-[var(--text-muted)] mt-1">0.8s - 3.0s</span>
               </button>
@@ -615,7 +656,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
               >
                 <span className="text-xs sm:text-sm font-extrabold inline-flex items-center justify-center gap-1.5 leading-none">
                   <span className="shrink-0">🧠</span>
-                  <span>Cân Não</span>
+                  <span>{t('settings.speedDeliberate')}</span>
                 </span>
                 <span className="text-[10px] text-[var(--text-muted)] mt-1">2.5s - 3.5s</span>
               </button>
@@ -630,7 +671,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
           <div className="px-4 py-2.5 bg-[var(--bg-container)]/70 flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-[var(--color-gold)] shrink-0" />
             <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-gold)] leading-none">
-              Hỗ Trợ Thao Tác &amp; Đánh Bài
+              {t('settings.gameplaySection')}
             </span>
           </div>
 
@@ -645,8 +686,8 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                   <CheckCircle className="w-4 h-4 shrink-0" />
                 </div>
                 <div>
-                  <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">Tự Động Gom Bộ &amp; Xếp Bài</div>
-                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">Tự sắp xếp sảnh, đôi, tứ quý ngay sau khi chia bài</div>
+                  <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">{t('settings.autoSortTitle')}</div>
+                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">{t('settings.autoSortDesc')}</div>
                 </div>
               </div>
 
@@ -663,8 +704,8 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                   <Crosshair className="w-4 h-4 shrink-0" />
                 </div>
                 <div>
-                  <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">Hỗ Trợ Bắt Bài Nhanh</div>
-                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">Hiển thị nút chọn nhanh các tổ hợp hợp lệ để chặn đối thủ</div>
+                  <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">{t('settings.quickResponseTitle')}</div>
+                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">{t('settings.quickResponseDesc')}</div>
                 </div>
               </div>
 
@@ -681,8 +722,8 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                   <Wand2 className="w-4 h-4 shrink-0" />
                 </div>
                 <div>
-                  <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">Trợ Lý AI Gợi Ý Nước Đi</div>
-                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">Hiển thị nút tư vấn chiến thuật tối ưu khi đến lượt đánh</div>
+                  <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">{t('settings.aiHintTitle')}</div>
+                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">{t('settings.aiHintDesc')}</div>
                 </div>
               </div>
 
@@ -699,7 +740,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
             <div className="flex items-center gap-2">
               <Wifi className="w-4 h-4 text-[var(--color-gold)] shrink-0" />
               <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-gold)] leading-none">
-                Tính Năng Thử Nghiệm
+                {t('settings.betaSection')}
               </span>
             </div>
             <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">
@@ -717,10 +758,10 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
               </div>
               <div>
                 <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight flex items-center gap-1.5">
-                  <span>Giao lưu bạn hiền (beta)</span>
+                  <span>{t('settings.betaOnlineTitle')}</span>
                 </div>
                 <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                  Mở chế độ Chơi Online P2P kết nối bàn chơi với bạn bè qua mạng
+                  {t('settings.betaOnlineDesc')}
                 </div>
               </div>
             </div>

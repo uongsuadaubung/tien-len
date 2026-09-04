@@ -2,8 +2,8 @@ import { getTierFromElo } from "../engine/ecosystem/ecosystem-types";
 import { BotConfig } from "./types";
 
 type BotPersonaRaw = Omit<BotConfig, 'name' | 'avatar' | 'useMinimaxEndgame' | 'useBayesianInference' | 'useNashEquilibrium' | 'useDynamicRepartitioning'> & {
-  name?: string | null;
-  avatar?: string | null;
+  name?: string;
+  avatar?: string;
   useMinimaxEndgame?: boolean;
   useBayesianInference?: boolean;
   useNashEquilibrium?: boolean;
@@ -589,20 +589,23 @@ export function sanitizeAvatar(avatar: unknown, fallbackSeed: number = 0): strin
 
 export const BOT_PERSONAS: Record<string, BotConfig> = Object.fromEntries(
   Object.entries(RAW_BOT_PERSONAS).map(([k, v]) => {
-    const tierNum = getTierFromElo(v.elo ?? 1000).tierNum;
+    const safeElo = v.elo ?? 1000;
+    const tierInfo = getTierFromElo(safeElo);
+    const tierNum = tierInfo.tierNum;
     const tierPool = GLOBAL_AVATARS_BY_TIER[tierNum] || GLOBAL_AVATARS;
     const defaultAvatar = tierPool[0] || '🤖';
+    const defaultName = `${tierInfo.label} ${safeElo}`;
 
     return [
       k,
       {
-        name: null,
-        avatar: defaultAvatar,
         useMinimaxEndgame: false,
         useBayesianInference: false,
         useNashEquilibrium: false,
         useDynamicRepartitioning: false,
-        ...v
+        ...v,
+        name: v.name || defaultName,
+        avatar: v.avatar || defaultAvatar
       }
     ];
   })
@@ -762,7 +765,7 @@ export function generateRandomBotConfig(
   const availableAvatars = GLOBAL_AVATARS.filter(a => !excludeAvatars.includes(a));
   const chosenAvatar = availableAvatars.length > 0
     ? availableAvatars[Math.floor(Math.random() * availableAvatars.length)]
-    : (baseConfig.avatar || '👤');
+    : baseConfig.avatar;
 
   return {
     ...baseConfig,
@@ -812,8 +815,8 @@ export function getRandomBotConfigsForTable(
       baseId: chosenBaseId
     });
     result.push(bot);
-    usedNames.push(bot.name || '');
-    usedAvatars.push(bot.avatar || '🤖');
+    usedNames.push(bot.name);
+    usedAvatars.push(bot.avatar);
   }
 
   return result;

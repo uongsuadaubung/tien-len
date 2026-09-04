@@ -8,6 +8,7 @@ import {
   restoreHistoryVersion 
 } from '../../engine/sync/sync-service';
 import type { TienLenSaveData, GistHistoryItem } from '../../engine/sync/types';
+import { useI18n } from '../../locales';
 
 export interface UseSettingsSyncResult {
   tokenInputValue: string;
@@ -32,6 +33,7 @@ export interface UseSettingsSyncResult {
 }
 
 export function useSettingsSync(isOpen: boolean): UseSettingsSyncResult {
+  const { t } = useI18n();
   const {
     githubToken,
     setGithubToken,
@@ -66,7 +68,7 @@ export function useSettingsSync(isOpen: boolean): UseSettingsSyncResult {
   const handleConnectToken = async () => {
     const trimmed = tokenInputValue.trim();
     if (!trimmed) {
-      showNotification('Vui lòng nhập GitHub Token.', 'error');
+      showNotification(t('sync.pleaseEnterToken'), 'error');
       return;
     }
 
@@ -74,20 +76,20 @@ export function useSettingsSync(isOpen: boolean): UseSettingsSyncResult {
     try {
       const res = await validateToken(trimmed);
       if (!res.success) {
-        showNotification(res.error || 'Token không hợp lệ.', 'error');
+        showNotification(res.error || t('sync.invalidToken'), 'error');
         return;
       }
 
       setGithubToken(trimmed);
       setCachedGithubUser(res.user);
-      showNotification(`Kết nối thành công tài khoản @${res.user.login}!`, 'success');
+      showNotification(t('sync.connectedSuccess', { user: res.user.login }), 'success');
 
       // Tự động kiểm tra đồng bộ lần đầu
       setTimeout(async () => {
         try {
           const syncRes = await smartSync();
           if (syncRes.type === 'synced') {
-            showNotification(syncRes.detail === 'upload' ? 'Đã sao lưu dữ liệu lên Gist!' : 'Đã tải dữ liệu từ Gist về máy!', 'success');
+            showNotification(syncRes.detail === 'upload' ? t('sync.backedUpGist') : t('sync.downloadedGist'), 'success');
           } else if (syncRes.type === 'conflict') {
             setConflictData(syncRes);
           }
@@ -108,12 +110,12 @@ export function useSettingsSync(isOpen: boolean): UseSettingsSyncResult {
       if (res.type === 'synced') {
         showNotification(
           res.detail === 'upload'
-            ? 'Đã tải lên Gist thành công!'
-            : 'Đã tải về dữ liệu mới nhất từ Gist!',
+            ? t('sync.uploadedGistSuccess')
+            : t('sync.downloadedLatestGist'),
           'success'
         );
       } else if (res.type === 'no_action') {
-        showNotification('Dữ liệu đã được đồng bộ mới nhất.', 'info');
+        showNotification(t('sync.alreadyLatest'), 'info');
       } else if (res.type === 'conflict') {
         setConflictData(res);
       }
@@ -129,7 +131,7 @@ export function useSettingsSync(isOpen: boolean): UseSettingsSyncResult {
     try {
       await forceUploadToCloud();
       setConflictData(null);
-      showNotification('Đã ghi đè dữ liệu lên GitHub Gist thành công!', 'success');
+      showNotification(t('sync.overwroteGistSuccess'), 'success');
     } catch (err: unknown) {
       showNotification(err instanceof Error ? err.message : String(err), 'error');
     } finally {
@@ -142,7 +144,7 @@ export function useSettingsSync(isOpen: boolean): UseSettingsSyncResult {
     try {
       await forceDownloadFromCloud();
       setConflictData(null);
-      showNotification('Đã tải và áp dụng bản lưu từ GitHub Gist thành công!', 'success');
+      showNotification(t('sync.appliedGistSuccess'), 'success');
     } catch (err: unknown) {
       showNotification(err instanceof Error ? err.message : String(err), 'error');
     } finally {
@@ -170,7 +172,7 @@ export function useSettingsSync(isOpen: boolean): UseSettingsSyncResult {
     try {
       await restoreHistoryVersion(item.saveData);
       setShowHistoryModal(false);
-      showNotification('Đã khôi phục thành công phiên bản đã chọn!', 'success');
+      showNotification(t('sync.restoredVersionSuccess'), 'success');
     } catch (err: unknown) {
       showNotification(err instanceof Error ? err.message : String(err), 'error');
     } finally {

@@ -88,16 +88,23 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
   }, [hand, sortMode]);
 
   const currentStrategy = resolveHandSortStrategy(sortMode);
-  // Xác định nhãn và icon của nút Xếp Bài khi xoay vòng
-  let sortButtonLabel = currentStrategy.label;
-  let sortButtonTitle = currentStrategy.description;
-  let isNextSortNatural = sortMode === 'TWO_PRESERVE';
+  // Xác định nhãn và tooltip của nút Xếp Bài khi xoay vòng:
+  // Nếu có nhiều phương án xếp bộ (totalVariants > 1), hiển thị "Bộ 1", "Bộ 2", "Bộ 3",...
+  // Nếu chỉ có 1 phương án xếp bộ, hiển thị "Xếp Bộ"
+  let sortButtonLabel: string;
+  let sortButtonTitle: string;
 
-  if (totalVariants > 1 && isSmartMode) {
-    if (variantIndex < totalVariants - 1) {
-      sortButtonLabel = `Bộ ${variantIndex + 2}`;
-      sortButtonTitle = `Chuyển sang phương án xếp bộ ${variantIndex + 2} (trong ${totalVariants} cách)`;
+  if (isSmartMode) {
+    if (totalVariants > 1) {
+      sortButtonLabel = t('sort.comboVariant', { index: variantIndex + 1 });
+      sortButtonTitle = t('sort.comboVariantTitle', { index: variantIndex + 1, total: totalVariants });
+    } else {
+      sortButtonLabel = t('sort.smartGroupLabel');
+      sortButtonTitle = t('sort.smartGroupDesc');
     }
+  } else {
+    sortButtonLabel = currentStrategy.label;
+    sortButtonTitle = currentStrategy.description;
   }
 
   const hasSelectedCards = selectedCardIds.size > 0;
@@ -192,7 +199,7 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
               className={`flex items-center gap-1 ${isMobileSize ? 'px-1.5 sm:px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px]' : 'px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-xs'} bg-[#1c2438] hover:bg-[#283450] text-slate-300 border border-white/10 hover:scale-105 cursor-pointer font-bold transition-all duration-150`}
               title={sortButtonTitle}
             >
-              {isNextSortNatural ? (
+              {sortMode === 'NATURAL' ? (
                 <>
                   <ArrowUpDown className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-[#d4af37]`} />
                   <span>{sortButtonLabel}</span>
@@ -345,12 +352,12 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
               </span>
               {isLeader && (
                 <span className="bg-gradient-to-r from-amber-400 to-amber-600 text-black text-[8px] font-black px-1.5 py-0.2 rounded-full shadow shrink-0">
-                  CÁI
+                  {t('bot.leader')}
                 </span>
               )}
               {player.isPassedCurrentRound && (
                 <span className="bg-rose-950 text-rose-300 text-[8px] font-bold px-1.5 py-0.2 rounded-full border border-rose-500/60 shrink-0">
-                  ĐÃ BỎ LƯỢT
+                  {t('bot.passed')}
                 </span>
               )}
             </div>

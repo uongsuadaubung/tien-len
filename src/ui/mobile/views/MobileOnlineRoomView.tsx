@@ -20,6 +20,7 @@ import { Card, Badge, Button } from '../../primitives';
 import { useOnlineRoomLogic, SETTLEMENT_MODES } from '../../hooks/useOnlineRoomLogic';
 import { TableRulesConfigPanel } from '../../components/TableRulesConfigPanel';
 import { OnlineRoomBrowser } from '../../components/OnlineRoomBrowser';
+import { useI18n } from '../../../locales';
 
 export interface MobileOnlineRoomViewProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
   isOpen,
   onClose
 }) => {
+  const { t } = useI18n();
   const {
     profile,
     roomState,
@@ -72,8 +74,8 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
     <MobileScreenWrapper
       isOpen={isOpen}
       onClose={onClose || handleClose}
-      title="Chơi Online Cùng Bạn Bè"
-      subtitle="Tìm bàn trong sảnh chờ hoặc tạo phòng riêng với bạn bè"
+      title={t('online.modalTitle')}
+      subtitle={t('online.modalSubtitle')}
       icon={<Wifi className="w-5 h-5 text-[var(--color-gold)] animate-pulse" />}
       className={null}
       headerRight={
@@ -91,7 +93,7 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
               leftIcon={<LogOut className="w-4 h-4 text-rose-400" />}
               className="flex-1 text-rose-300 font-bold border-rose-500/30 hover:bg-rose-950/40 cursor-pointer"
             >
-              {isHost ? 'Giải Tán Phòng' : 'Rời Phòng'}
+              {isHost ? t('online.disbandBtn') : t('online.leaveBtn')}
             </Button>
 
             {isHost && (
@@ -102,7 +104,7 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                 leftIcon={<Play className="w-4 h-4 text-black fill-current" />}
                 className="flex-1 font-black shadow-lg shadow-amber-500/20 cursor-pointer"
               >
-                Bắt Đầu Trận Đấu
+                {t('online.startGameBtn')}
               </Button>
             )}
           </div>
@@ -117,13 +119,13 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                 leftIcon={<Sparkles className="w-4 h-4 text-slate-950" />}
                 className="w-full font-black text-xs sm:text-sm uppercase tracking-wider py-3 shadow-lg shadow-amber-500/20 cursor-pointer"
               >
-                {canAffordBet ? 'Tạo Phòng Ngay' : 'Không Đủ Xu Để Tạo Phòng'}
+                {canAffordBet ? t('online.createRoomBtn') : t('online.cantAffordRoom')}
               </Button>
             </div>
           ) : (
             <div className="w-full flex items-center justify-between gap-2">
               <span className="text-[11px] text-[var(--text-muted)]">
-                Bạn muốn mở bàn với luật riêng?
+                {t('online.createCustomPrompt')}
               </span>
               <Button
                 variant="surface"
@@ -132,7 +134,7 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                 leftIcon={<Plus className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
                 className="font-bold text-xs py-1 px-3 text-[var(--color-gold)] border-[var(--border-gold)]/40 hover:bg-amber-500/10"
               >
-                Tạo Bàn Mới
+                {t('online.createRoomBtn')}
               </Button>
             </div>
           )
@@ -156,7 +158,7 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                 }`}
               >
                 <Radio className="w-3.5 h-3.5" />
-                <span>Sảnh Chờ</span>
+                <span>{t('online.tabAll')}</span>
                 {publicRooms.length > 0 && (
                   <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold ${
                     tab === 'LOBBY' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/20 text-amber-300'
@@ -175,7 +177,7 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>Tạo Phòng</span>
+                <span>{t('online.createRoomBtn')}</span>
               </button>
             </div>
 
@@ -202,7 +204,7 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                 {/* Tùy chọn Quyền Riêng Tư (Public vs Private) */}
                 <Card variant="surface" className="p-2.5 rounded-xl border border-[var(--border-container)] bg-[var(--bg-container)]/80">
                   <div className="text-xs font-bold text-[var(--text-primary)] mb-1.5">
-                    Quyền Riêng Tư Phòng
+                    {t('online.roomPrivacyTitle')}
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <button
@@ -217,10 +219,10 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                       <Globe className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${isPublicRoom ? 'text-[var(--color-gold)]' : 'text-zinc-400'}`} />
                       <div>
                         <span className={`font-bold text-[11px] block ${isPublicRoom ? 'text-[var(--color-gold)]' : 'text-[var(--text-primary)]'}`}>
-                          Công Khai
+                          {t('online.publicRoom')}
                         </span>
                         <span className="text-[9px] text-[var(--text-muted)] block leading-tight mt-0.5">
-                          Hiện ở sảnh chờ cho mọi người cùng vào
+                          {t('online.publicRoomDesc')}
                         </span>
                       </div>
                     </button>
@@ -237,10 +239,10 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                       <Lock className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${!isPublicRoom ? 'text-[var(--color-gold)]' : 'text-zinc-400'}`} />
                       <div>
                         <span className={`font-bold text-[11px] block ${!isPublicRoom ? 'text-[var(--color-gold)]' : 'text-[var(--text-primary)]'}`}>
-                          Riêng Tư
+                          {t('online.privateRoom')}
                         </span>
                         <span className="text-[9px] text-[var(--text-muted)] block leading-tight mt-0.5">
-                          Chỉ ai có mã PIN 4 số mới vào được
+                          {t('online.privateRoomDesc')}
                         </span>
                       </div>
                     </button>
@@ -268,10 +270,10 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
               <div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] text-amber-400/90 font-black uppercase tracking-wider block">
-                    Mã Phòng Bàn Đấu
+                    {t('online.roomCodeTitle')}
                   </span>
                   <Badge variant={roomState?.isPublic ? 'gold' : 'neutral'} size="sm" className="text-[9px] py-0 px-1.5">
-                    {roomState?.isPublic ? '🌐 Công Khai' : '🔒 Riêng Tư'}
+                    {roomState?.isPublic ? `🌐 ${t('online.publicRoom')}` : `🔒 ${t('online.privateRoom')}`}
                   </Badge>
                 </div>
                 <span className="text-xl sm:text-2xl font-mono font-black text-amber-300 tracking-wider">
@@ -285,7 +287,7 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[11px] font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
                 >
                   {copiedPin ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedPin ? 'Đã Chép' : 'Chép PIN'}</span>
+                  <span>{copiedPin ? t('online.copied') : t('online.copyPin')}</span>
                 </button>
 
                 <button
@@ -293,7 +295,7 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-[11px] font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
                 >
                   {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedLink ? 'Đã Chép' : 'Chép Link'}</span>
+                  <span>{copiedLink ? t('online.copied') : t('online.copyLink')}</span>
                 </button>
               </div>
             </Card>
@@ -304,14 +306,14 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                 ⚡ {currentSettlement.label}
               </Badge>
               <Badge variant="neutral" size="sm">
-                👥 {roomState ? roomState.playerCount : 4} Người
+                👥 {t('tableConfig.tablePlayerCount', { count: roomState ? roomState.playerCount : 4 })}
               </Badge>
               <Badge variant="neutral" size="sm">
-                💰 {roomState ? roomState.betAmount.toLocaleString() : '---'} Xu/lá
+                💰 {t('online.betPerCard', { amount: roomState ? roomState.betAmount.toLocaleString() : '---' })}
               </Badge>
               {roomState?.choppingMultiplier && roomState.choppingMultiplier > 1 && (
                 <Badge variant="neutral" size="sm" className="text-amber-300">
-                  ⚡ x{roomState.choppingMultiplier} Chặt
+                  ⚡ {t('online.chopMultiplierBadge', { count: roomState.choppingMultiplier, multiplier: roomState.choppingMultiplier })}
                 </Badge>
               )}
             </div>
@@ -321,11 +323,11 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
               <div className="flex items-center justify-between px-1">
                 <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1">
                   <Users className="w-3.5 h-3.5" />
-                  <span>Danh Sách Đấu Thủ ({roomState?.players.length || 1}/{roomState?.playerCount || 4})</span>
+                  <span>{t('online.playerListTitle', { current: roomState?.players.length || 1, max: roomState?.playerCount || 4 })}</span>
                 </span>
                 {isHost && !isRoomFull && (
                   <span className="text-[9.5px] text-[var(--text-muted)]">
-                    Có thể thêm Bot
+                    {t('online.canAddBot')}
                   </span>
                 )}
               </div>
@@ -374,7 +376,7 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                             <button
                               onClick={() => handleRemoveSlot(idx)}
                               className="p-1 text-zinc-400 hover:text-rose-400 hover:bg-rose-950/30 rounded-xl transition-all cursor-pointer"
-                              title="Xóa khỏi phòng"
+                              title={t('online.removePlayer')}
                             >
                               ✕
                             </button>
@@ -387,7 +389,7 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                               {idx + 1}
                             </div>
                             <span className="text-[10px] font-medium italic">
-                              Chờ người chơi...
+                              {t('online.waitingPlayer')}
                             </span>
                           </div>
 
@@ -398,7 +400,7 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                             >
                               <Plus className="w-2.5 h-2.5" />
                               <Bot className="w-2.5 h-2.5" />
-                              <span>Thêm Bot</span>
+                              <span>{t('online.addBot')}</span>
                             </button>
                           )}
                         </div>

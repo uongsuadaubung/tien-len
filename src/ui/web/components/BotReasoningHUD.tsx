@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { MatchLogger, MatchTurnLogEntry, BotCandidateEvaluation } from '../../../engine/match-logger';
 import { Card as CardType } from '../../../engine/types';
+import { useI18n } from '../../../locales';
 
 interface BotReasoningHUDProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
   betAmount,
   isDealing
 }) => {
+  const { t } = useI18n();
   const [turns, setTurns] = useState<MatchTurnLogEntry[]>([]);
   const [expandedTurnIndex, setExpandedTurnIndex] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -77,11 +79,11 @@ export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
       <button
         onClick={onToggle}
         className="flex flex-col items-center justify-center py-3 px-1.5 bg-[var(--bg-container)] border border-[var(--border-container)] rounded-l-xl shadow-2xl hover:bg-[var(--bg-card-active)] transition-all cursor-pointer select-none text-[var(--color-gold)] group z-50 mr-[-1px]"
-        title={isOpen ? 'Thu gọn Bảng Phân Tích' : 'Mở Bảng Phân Tích Thế Trận'}
+        title={isOpen ? t('hud.collapseHud') : t('hud.expandHud')}
       >
         <BrainCircuit className="w-5 h-5 group-hover:scale-110 transition-transform text-[var(--color-gold)] animate-pulse" />
         <span className="text-[9px] font-extrabold uppercase mt-1 [writing-mode:vertical-lr] tracking-widest text-[var(--text-primary)]">
-          {isOpen ? 'ĐÓNG' : 'PHÂN TÍCH'}
+          {isOpen ? t('hud.collapseHud') : t('hud.expandHud')}
         </span>
         {turns.length > 0 && (
           <span className="mt-1.5 px-1 py-0.5 rounded-full bg-[var(--color-gold)] text-[#0a0c0e] text-[8px] font-black">
@@ -100,20 +102,20 @@ export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
           <div className="flex items-center gap-1.5">
             <BrainCircuit className="w-4 h-4 text-[var(--color-gold)]" />
             <span className="font-bold text-xs text-[var(--text-primary)] uppercase tracking-wider">
-              Suy Luận AI (Live)
+              {t('hud.botReasoningLive')}
             </span>
             <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono font-bold">
-              Ván #{gameNumber}
+              {t('hud.gameNumber', { number: gameNumber })}
             </span>
             <span className="px-1.5 py-0.2 rounded bg-yellow-500/20 text-yellow-300 border border-yellow-500/40 text-[9px] font-mono font-bold">
-              💰 {betAmount.toLocaleString()} Xu
+              💰 {betAmount.toLocaleString()} {t('common.coins')}
             </span>
           </div>
 
           <div className="flex items-center gap-1">
             <button
               onClick={handleExportJson}
-              title="Lưu Phân Tích"
+              title={t('hud.exportAnalysis')}
               className="p-1 rounded hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--color-gold)] transition-colors"
             >
               <Download className="w-3.5 h-3.5" />
@@ -127,17 +129,17 @@ export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
             <div className="flex items-center justify-between text-[10px] text-[var(--color-gold)] font-bold uppercase mb-1">
               <span className="flex items-center gap-1">
                 <Zap className="w-3 h-3 text-[var(--color-gold)] animate-bounce" />
-                Vừa Ra Quyết Định (#{latestTurn.turnNumber}):
+                {t('hud.latestDecision', { turn: latestTurn.turnNumber })}
               </span>
               <span>{latestTurn.playerName}</span>
             </div>
             <div className="text-xs font-semibold text-[var(--text-primary)]">
-              💡 {latestBotDecision.chosenReason || 'Đánh bài theo chiến thuật'}
+              💡 {latestBotDecision.chosenReason || t('game.playCard')}
             </div>
             <div className="mt-1 flex items-center justify-between text-[10px] text-[var(--text-muted)]">
-              <span>Chiến thuật: <strong className="text-[var(--color-gold)]">{latestBotDecision.strategyUsed || 'N/A'}</strong></span>
+              <span>{t('hud.strategyLabel')} <strong className="text-[var(--color-gold)]">{latestBotDecision.strategyUsed || 'N/A'}</strong></span>
               {latestBotDecision.heuristicScore !== null && (
-                <span>Điểm: <strong className="text-emerald-400">+{latestBotDecision.heuristicScore}</strong></span>
+                <span>{t('hud.scoreLabel')} <strong className="text-emerald-400">+{latestBotDecision.heuristicScore}</strong></span>
               )}
             </div>
           </div>
@@ -150,7 +152,7 @@ export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
         >
           {turns.length === 0 ? (
             <div className="py-8 text-center text-xs text-[var(--text-muted)] italic">
-              {isDealing ? 'Đang chia bài...' : 'Chưa có lượt đánh nào. Bắt đầu ván đấu để xem suy luận!'}
+              {isDealing ? t('common.loading') : t('hud.noTurnsYet')}
             </div>
           ) : (
             turns.map((turn: MatchTurnLogEntry, index: number) => {
@@ -188,17 +190,17 @@ export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
                             : 'bg-rose-500/20 text-rose-400 border border-rose-500/40'
                         }`}
                       >
-                        {isPlay ? `[ ${playedCardsText} ]` : 'BỎ LƯỢT'}
+                        {isPlay ? `[ ${playedCardsText} ]` : t('hud.turnPassed').toUpperCase()}
                       </span>
                       {turn.isChop && (
                         <span className="px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[8px] font-bold flex-shrink-0">
-                          ⚔️ Chặt
+                          ⚔️ {t('hud.chopTag')}
                         </span>
                       )}
                     </div>
 
                     <div className="flex items-center gap-1 text-[9px] text-[var(--text-muted)] flex-shrink-0">
-                      <span>Còn {turn.handAfterTurn.length} lá</span>
+                      <span>{t('hud.cardsRemaining', { count: turn.handAfterTurn.length })}</span>
                       {turn.botDecision && (
                         isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
                       )}
@@ -208,7 +210,7 @@ export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
                   {/* Lý do vắn tắt khi đóng */}
                   {turn.botDecision && !isExpanded && (
                     <div className="mt-1 text-[10px] text-[var(--text-muted)] truncate pl-1 border-l-2 border-l-[var(--color-gold)]">
-                      💡 <span className="text-[var(--text-primary)]">{turn.botDecision.chosenReason || 'Đánh bài theo chiến thuật'}</span>
+                      💡 <span className="text-[var(--text-primary)]">{turn.botDecision.chosenReason || t('game.playCard')}</span>
                     </div>
                   )}
 
@@ -216,17 +218,17 @@ export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
                   {turn.botDecision && isExpanded && (
                     <div className="mt-2 pt-2 border-t border-[var(--border-container)] space-y-1.5 text-[10px]">
                       <div>
-                        <span className="text-[var(--text-muted)]">💡 Lý do: </span>
+                        <span className="text-[var(--text-muted)]">💡 {t('hud.reasonLabel')} </span>
                         <span className="font-semibold text-[var(--text-primary)]">{turn.botDecision.chosenReason}</span>
                       </div>
 
                       <div className="grid grid-cols-2 gap-1 text-[9px] bg-[var(--bg-container)] p-1.5 rounded border border-[var(--border-container)]">
                         <div>
-                          <span className="text-[var(--text-muted)] block">Chiến thuật:</span>
+                          <span className="text-[var(--text-muted)] block">{t('hud.strategyLabel')}</span>
                           <span className="font-bold text-[var(--color-gold)] truncate">{turn.botDecision.strategyUsed || 'N/A'}</span>
                         </div>
                         <div>
-                          <span className="text-[var(--text-muted)] block">Điểm Heuristic:</span>
+                          <span className="text-[var(--text-muted)] block">{t('hud.scoreLabel')}</span>
                           <span className="font-bold text-emerald-400">
                             {turn.botDecision.heuristicScore !== null ? `+${turn.botDecision.heuristicScore} pts` : 'N/A'}
                           </span>
@@ -238,9 +240,9 @@ export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
                           </span>
                         </div>
                         <div>
-                          <span className="text-[var(--text-muted)] block">Số lá Heo/Rác:</span>
+                          <span className="text-[var(--text-muted)] block">{t('xray.twoSafetyMeter')}:</span>
                           <span className="font-bold text-[var(--text-primary)]">
-                            {turn.botDecision.handStrengthTwoCount} Heo | {turn.botDecision.handStrengthTrashCount} Rác
+                            {turn.botDecision.handStrengthTwoCount} (2) | {t('hud.trashCount', { count: turn.botDecision.handStrengthTrashCount })}
                           </span>
                         </div>
                       </div>
@@ -249,7 +251,7 @@ export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
                       {turn.botDecision.topCandidates.length > 0 && (
                         <div className="space-y-0.5">
                           <span className="text-[8px] font-bold text-[var(--text-muted)] uppercase block">
-                            Top Nước Đi Đã Đánh Giá:
+                            {t('hud.topCandidatesLabel')}
                           </span>
                           <div className="space-y-0.5">
                             {turn.botDecision.topCandidates.map((cand: BotCandidateEvaluation, cIdx: number) => (
@@ -264,7 +266,7 @@ export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
                                   {cand.reasons.join(', ')}
                                 </span>
                                 <span className={`font-bold ${cand.score > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                  {cand.score > 0 ? `+${cand.score}` : cand.score}đ
+                                  {cand.score > 0 ? `+${cand.score}` : cand.score}pt
                                 </span>
                               </div>
                             ))}
@@ -273,7 +275,7 @@ export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
                       )}
 
                       <div className="text-[9px] text-[var(--text-muted)] flex items-center justify-between pt-1 border-t border-[var(--border-container)]">
-                        <span>Bài trước lượt: [ {turn.handBeforeTurn.map((c: CardType) => c.code).join(' ')} ]</span>
+                        <span>{t('hud.handBeforeTurnLabel')} [ {turn.handBeforeTurn.map((c: CardType) => c.code).join(' ')} ]</span>
                       </div>
                     </div>
                   )}

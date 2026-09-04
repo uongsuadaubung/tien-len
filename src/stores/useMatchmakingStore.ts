@@ -5,7 +5,7 @@ import { useViewStore } from './useViewStore';
 export interface MatchmakingData {
   betAmount: number;
   modeName: string;
-  botConfigs: Partial<BotConfig>[];
+  botConfigs: BotConfig[];
   playerCount: number;
   onStart: () => void;
 }

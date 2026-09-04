@@ -27,7 +27,7 @@ import {
   savePlayerProfile 
 } from '../engine/storage';
 import { matchBotsForPlayerTable } from '../engine/ecosystem/matchmaker';
-import { getRandomBotConfigsForTable } from '../ai/bot-factory';
+import { getRandomBotConfigsForTable, getBotConfig } from '../ai/bot-factory';
 import type { QuickTableConfig } from '../engine/schemas/settings.schema';
 import type { CampaignChapter } from '../engine/campaign';
 import type { CustomGameModalConfig } from '../ui/web/modals/CustomGameModal';
@@ -64,7 +64,7 @@ export class AppFlowCoordinator {
 
     // Ghép Bot từ Ecosystem
     const requiredCount = (config.playerCount || 4) - 1;
-    let botConfigs: Partial<BotConfig>[] = [];
+    let botConfigs: BotConfig[] = [];
     let botIds: string[] = [];
 
     try {
@@ -86,7 +86,7 @@ export class AppFlowCoordinator {
     if (botConfigs.length < requiredCount) {
       const fallbacks = getRandomBotConfigsForTable([1, 2, 3, 4, 5], requiredCount);
       botConfigs = fallbacks;
-      botIds = fallbacks.map(b => b.id || 'BOT_ELO_1150');
+      botIds = fallbacks.map(b => b.id);
     }
 
     // Lưu cấu hình bàn chơi
@@ -201,10 +201,15 @@ export class AppFlowCoordinator {
         ? 'Nhất Ăn Tất Tùy Chỉnh'
         : 'Truyền Thống Tùy Chỉnh';
 
+    const resolvedBotConfigs: BotConfig[] = config.botPersonaIds.map((id, idx) => ({
+      ...getBotConfig(id),
+      ...(config.customBotConfigs[idx] || {})
+    }));
+
     useMatchmakingStore.getState().startMatchmaking({
       betAmount: config.settings.betAmount,
       modeName: modeTitle,
-      botConfigs: config.customBotConfigs,
+      botConfigs: resolvedBotConfigs,
       playerCount: config.playerCount ?? 4,
       onStart: () => {
         const strategy = resolveStrategyForMatch('QUICK', config.settings.mode);

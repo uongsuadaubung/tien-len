@@ -12,9 +12,10 @@ import {
   Edit3, 
   ShieldAlert
 } from 'lucide-react';
-import { Card, Badge } from '../primitives';
+import { Card, Badge, ToggleSwitch } from '../primitives';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { MobileVirtualInput } from '../mobile/components/MobileVirtualInput';
+import { useI18n } from '../../locales';
 
 export interface TableConfigState {
   playerCount: PlayerCount;
@@ -28,18 +29,6 @@ export interface TableConfigState {
   cascadeChopEnabled?: boolean;
   instantWinEnabled?: boolean;
 }
-
-const PLAYER_COUNT_OPTIONS: readonly { count: PlayerCount; label: string; desc: string }[] = [
-  { count: 2, label: 'Solo 1v1 (2 Người)', desc: '1 Bạn vs 1 Đối thủ' },
-  { count: 3, label: 'Bàn 3 Người', desc: '1 Bạn vs 2 Đối thủ' },
-  { count: 4, label: 'Bàn 4 Người (Chuẩn)', desc: '1 Bạn vs 3 Đối thủ' }
-];
-
-const GAME_MODE_TABS: readonly { mode: GameMode; label: string }[] = [
-  { mode: 'COUNT_CARDS', label: '⚡ Đếm Lá' },
-  { mode: 'WINNER_TAKES_ALL', label: '👑 Nhất Ăn Tất' },
-  { mode: 'TRADITIONAL', label: '🎖️ Truyền Thống' }
-];
 
 export interface TableRulesConfigPanelProps {
   playerCoins: number;
@@ -58,10 +47,23 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
   showInstantWin = true,
   showCongOption = false
 }) => {
+  const { t } = useI18n();
   const [isCustomBet, setIsCustomBet] = useState<boolean>(() => !PRESET_BETS.includes(config.betAmount));
   const [customBetInput, setCustomBetInput] = useState<string>(config.betAmount.toString());
   const [betError, setBetError] = useState<string | null>(null);
   const { isMobile } = useIsMobile();
+
+  const playerCountOptions = [
+    { count: 2 as PlayerCount, label: t('tableConfig.playerCount2'), desc: t('tableConfig.playerCount2Desc') },
+    { count: 3 as PlayerCount, label: t('tableConfig.playerCount3'), desc: t('tableConfig.playerCount3Desc') },
+    { count: 4 as PlayerCount, label: t('tableConfig.playerCount4'), desc: t('tableConfig.playerCount4Desc') }
+  ];
+
+  const gameModeTabs = [
+    { mode: 'COUNT_CARDS' as GameMode, label: t('modes.countCards') },
+    { mode: 'WINNER_TAKES_ALL' as GameMode, label: t('modes.winnerTakesAll') },
+    { mode: 'TRADITIONAL' as GameMode, label: t('modes.traditional') }
+  ];
 
   useEffect(() => {
     setCustomBetInput(config.betAmount.toString());
@@ -81,26 +83,33 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
   const maxThoiAmount = config.betAmount * 4 * currentMultiplier;
   const fourPairsRewardAmount = config.betAmount * 4 * currentMultiplier;
 
+  const isProhibitEndingWithTwo = config.prohibitEndingWithTwo !== false;
+  const isAllowFourPairsCutAnytime = config.allowFourPairsCutAnytime !== false;
+  const isThreeSpadesEndingBonus = config.threeSpadesEndingBonus !== false;
+  const isCascadeChopEnabled = config.cascadeChopEnabled !== false;
+  const isCongEnabled = config.congEnabled !== false;
+  const isInstantWinEnabled = config.instantWinEnabled !== false;
+
   let riskBadgeVariant: 'gold' | 'neutral' | 'danger' = 'neutral';
-  let riskBadgeText = '🛡️ Vốn An Toàn';
-  let riskAdvice = 'Mức cược an toàn, số dư ví đủ khả năng chống chịu nhiều ván đấu.';
+  let riskBadgeText = t('tableConfig.depositSafe');
+  let riskAdvice = t('tableConfig.depositSafeAdvice');
 
   if (isInsufficientCoins) {
     riskBadgeVariant = 'danger';
-    riskBadgeText = '🚨 Thiếu Tiền Cọc';
-    riskAdvice = `Số dư ví (${playerCoins.toLocaleString()} Xu) không đủ mức cọc an toàn tối thiểu (${depositRequired.toLocaleString()} Xu)!`;
+    riskBadgeText = t('tableConfig.depositDanger');
+    riskAdvice = t('tableConfig.depositDangerAdvice', { coins: playerCoins.toLocaleString(), deposit: depositRequired.toLocaleString() });
   } else if (depositPercent > 65) {
     riskBadgeVariant = 'danger';
-    riskBadgeText = '🔥 Cược Rất Lớn';
-    riskAdvice = 'Cảnh báo: Tiền cọc chiếm hơn 65% tổng tài sản. Một ván thua Cóng có thể khiến bạn mất nhiều vốn!';
+    riskBadgeText = t('tableConfig.depositHighRisk');
+    riskAdvice = t('tableConfig.depositHighRiskAdvice');
   } else if (depositPercent > 40) {
     riskBadgeVariant = 'gold';
-    riskBadgeText = '⚠️ Cân Nhắc Vốn';
-    riskAdvice = 'Cọc an toàn chiếm gần nửa tài sản ví. Hãy đánh cẩn trọng, tránh giữ Heo quá lâu.';
+    riskBadgeText = t('tableConfig.depositWarning');
+    riskAdvice = t('tableConfig.depositWarningAdvice');
   } else if (depositPercent > 20) {
     riskBadgeVariant = 'gold';
-    riskBadgeText = '⚖️ Hợp Lý';
-    riskAdvice = 'Mức cược hợp lý, quản lý vốn tốt. Phù hợp để chơi lâu dài.';
+    riskBadgeText = t('tableConfig.depositReasonable');
+    riskAdvice = t('tableConfig.depositReasonableAdvice');
   }
 
   const handleSelectPresetBet = (amt: number) => {
@@ -120,19 +129,19 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
     setCustomBetInput(cleanDigits);
 
     if (cleanDigits === '') {
-      setBetError('Vui lòng nhập mức cược ván đấu');
+      setBetError(t('tableConfig.betInputErrorEmpty'));
       return;
     }
 
     const parsed = parseInt(cleanDigits, 10);
     if (isNaN(parsed) || parsed <= 0) {
-      setBetError('Mức cược phải lớn hơn 0 Xu');
+      setBetError(t('tableConfig.betInputErrorPositive'));
       return;
     }
 
     const reqDeposit = 26 * parsed * currentMultiplier;
     if (reqDeposit > playerCoins) {
-      setBetError(`Mức cược này cần ${reqDeposit.toLocaleString()} Xu tiền cọc an toàn, vượt quá khả năng chi trả của ví (${playerCoins.toLocaleString()} Xu)!`);
+      setBetError(t('tableConfig.betInputErrorDeposit', { deposit: reqDeposit.toLocaleString(), coins: playerCoins.toLocaleString() }));
     } else {
       setBetError(null);
     }
@@ -158,9 +167,9 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
           <div className="flex items-center gap-2.5 min-w-0">
             <ShieldAlert className="w-4 h-4 flex-shrink-0 text-[var(--color-gold)]" />
             <div className="text-xs truncate">
-              <span className="text-[var(--text-muted)]">Cọc an toàn: </span>
+              <span className="text-[var(--text-muted)]">{t('tableConfig.depositLabel')}</span>
               <strong className="text-[var(--text-primary)] font-bold">{depositRequired.toLocaleString()} Xu</strong>
-              <span className="text-[var(--text-muted)] text-[11px] ml-1">({depositPercent.toFixed(1)}% ví)</span>
+              <span className="text-[var(--text-muted)] text-[11px] ml-1">{t('tableConfig.depositWalletPercent', { percent: depositPercent.toFixed(1) })}</span>
             </div>
           </div>
 
@@ -194,14 +203,14 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
         <div className="flex items-center justify-between flex-wrap gap-2">
           <label className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
             <Users className="w-4 h-4 text-[var(--color-gold)]" />
-            <span>Số Lượng Người Chơi</span>
+            <span>{t('tableConfig.playerCountLabel')}</span>
           </label>
           <span className="text-[11px] text-[var(--text-muted)]">
-            (1 Bạn + {activeBotCount} Đối thủ)
+            {t('tableConfig.playerCountSummary', { count: activeBotCount })}
           </span>
         </div>
         <div className="grid grid-cols-3 gap-2">
-          {PLAYER_COUNT_OPTIONS.map(item => {
+          {playerCountOptions.map(item => {
             const isSelected = config.playerCount === item.count;
             return (
               <button
@@ -227,16 +236,16 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
         <div className="flex items-center justify-between">
           <label className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
             <Crown className="w-4 h-4 text-[var(--color-gold)]" />
-            <span>Quy Tắc Tính Điểm &amp; Kết Thúc</span>
+            <span>{t('tableConfig.gameModeLabel')}</span>
           </label>
           <span className="text-[11px] text-[var(--text-muted)]">
-            Đối thủ: <strong className="text-[var(--color-gold)]">{activeBotCount} người</strong>
+            {t('tableConfig.opponentsCount', { count: activeBotCount })}
           </span>
         </div>
 
         {/* 3 Nút Chuyển Tab */}
         <div className="grid grid-cols-3 gap-2">
-          {GAME_MODE_TABS.map(tab => {
+          {gameModeTabs.map(tab => {
             const isSelected = config.mode === tab.mode;
             return (
               <button
@@ -265,31 +274,31 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
             maxLoss: string;
           }> = {
             COUNT_CARDS: {
-              title: '⚡ Đếm Lá Sát Phạt',
-              badge: `${(config.betAmount * currentMultiplier).toLocaleString()} Xu/lá`,
-              desc: '1 người về Nhất ván đấu dừng ngay lập tức. Đếm số lá bài còn lại trên tay của tất cả người thua để thu tiền phạt.',
-              maxWin: `+${(activeBotCount * 13 * config.betAmount * currentMultiplier).toLocaleString()} Xu`,
-              maxLoss: `-${congPenaltyAmount.toLocaleString()} Xu (Cóng: 26 lá)`
+              title: t('tableConfig.modeCountCardsTitle'),
+              badge: t('tableConfig.modeCountCardsBadge', { amount: (config.betAmount * currentMultiplier).toLocaleString() }),
+              desc: t('tableConfig.modeCountCardsDesc'),
+              maxWin: t('tableConfig.modeCountCardsMaxWin', { amount: (activeBotCount * 13 * config.betAmount * currentMultiplier).toLocaleString() }),
+              maxLoss: t('tableConfig.modeCountCardsMaxLoss', { amount: congPenaltyAmount.toLocaleString() })
             },
             WINNER_TAKES_ALL: {
-              title: '👑 Nhất Ăn Tất',
-              badge: `${activeBotCount}x cược cả bàn`,
-              desc: '1 người về Nhất gom trọn toàn bộ tiền cược của cả bàn đấu. Người thua chỉ mất đúng 1 lần tiền cược cố định.',
-              maxWin: `+${(activeBotCount * config.betAmount * currentMultiplier).toLocaleString()} Xu`,
-              maxLoss: `-${(config.betAmount * currentMultiplier).toLocaleString()} Xu (Cố định)`
+              title: t('tableConfig.modeWinnerTakesAllTitle'),
+              badge: t('tableConfig.modeWinnerTakesAllBadge', { count: activeBotCount }),
+              desc: t('tableConfig.modeWinnerTakesAllDesc'),
+              maxWin: t('tableConfig.modeWinnerTakesAllMaxWin', { amount: (activeBotCount * config.betAmount * currentMultiplier).toLocaleString() }),
+              maxLoss: t('tableConfig.modeWinnerTakesAllMaxLoss', { amount: (config.betAmount * currentMultiplier).toLocaleString() })
             },
             TRADITIONAL: {
-              title: '🎖️ Truyền Thống (Nhất Nhì Ba Bét)',
-              badge: 'Phân hạng 1-2-3-4',
-              desc: 'Các người chơi đánh tiếp tục cho đến người áp chót để phân định thứ hạng Nhất, Nhì, Ba, Bét và chia tiền cược tương ứng.',
-              maxWin: `+${((activeBotCount >= 3 ? 2 : activeBotCount >= 2 ? 2 : 1) * config.betAmount * currentMultiplier).toLocaleString()} Xu`,
-              maxLoss: `-${((activeBotCount >= 3 ? 2 : activeBotCount >= 2 ? 2 : 1) * config.betAmount * currentMultiplier).toLocaleString()} Xu (Bét)`
+              title: t('tableConfig.modeTraditionalTitle'),
+              badge: t('tableConfig.modeTraditionalBadge'),
+              desc: t('tableConfig.modeTraditionalDesc'),
+              maxWin: t('tableConfig.modeTraditionalMaxWin', { amount: ((activeBotCount >= 3 ? 2 : activeBotCount >= 2 ? 2 : 1) * config.betAmount * currentMultiplier).toLocaleString() }),
+              maxLoss: t('tableConfig.modeTraditionalMaxLoss', { amount: ((activeBotCount >= 3 ? 2 : activeBotCount >= 2 ? 2 : 1) * config.betAmount * currentMultiplier).toLocaleString() })
             },
             CUSTOM: {
-              title: '🛠️ Tùy Chỉnh Nâng Cao',
-              badge: 'Tự do cấu hình',
-              desc: 'Tự do kết hợp các nhóm quy tắc chặt, cóng, tới trắng và vòng chơi theo sở thích riêng.',
-              maxWin: `+${(activeBotCount * 13 * config.betAmount * currentMultiplier).toLocaleString()} Xu`,
+              title: t('tableConfig.modeCustomTitle'),
+              badge: t('tableConfig.modeCustomBadge'),
+              desc: t('tableConfig.modeCustomDesc'),
+              maxWin: t('tableConfig.modeCountCardsMaxWin', { amount: (activeBotCount * 13 * config.betAmount * currentMultiplier).toLocaleString() }),
               maxLoss: `-${congPenaltyAmount.toLocaleString()} Xu`
             }
           };
@@ -304,7 +313,7 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
                   <Badge variant="gold" size="sm">{activeInfo.badge}</Badge>
                 </div>
                 <span className="text-[10px] text-[var(--text-muted)]">
-                  Bàn {config.playerCount} người
+                  {t('tableConfig.tablePlayerCount', { count: config.playerCount })}
                 </span>
               </div>
 
@@ -317,7 +326,7 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
                 <div className="p-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-between">
                   <div className="text-[10px] text-[var(--text-secondary)] font-medium flex items-center gap-1">
                     <span>🏆</span>
-                    <span>Thắng Nhất:</span>
+                    <span>{t('tableConfig.statMaxWin')}</span>
                   </div>
                   <div className="text-xs font-bold text-[#4ade80] font-mono">{activeInfo.maxWin}</div>
                 </div>
@@ -325,7 +334,7 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
                 <div className="p-2 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-between">
                   <div className="text-[10px] text-[var(--text-secondary)] font-medium flex items-center gap-1">
                     <span>💀</span>
-                    <span>Thua Tối Đa:</span>
+                    <span>{t('tableConfig.statMaxLoss')}</span>
                   </div>
                   <div className="text-xs font-bold text-[#f87171] font-mono">{activeInfo.maxLoss}</div>
                 </div>
@@ -340,10 +349,10 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
         <div className="flex items-center justify-between">
           <label className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
             <Coins className="w-4 h-4 text-[var(--color-gold)]" />
-            <span>Mức Cược Ván Đấu (Xu)</span>
+            <span>{t('tableConfig.betStakeLabelXu')}</span>
           </label>
           <div className="text-xs text-[var(--text-muted)]">
-            Số dư ví: <span className="text-[var(--color-gold)] font-bold">{playerCoins.toLocaleString()} Xu</span>
+            {t('tableConfig.walletBalance')} <span className="text-[var(--color-gold)] font-bold">{playerCoins.toLocaleString()} Xu</span>
           </div>
         </div>
 
@@ -360,7 +369,7 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
                 type="button"
                 disabled={isPresetDisabled}
                 onClick={() => handleSelectPresetBet(amt)}
-                title={isPresetDisabled ? `Số dư không đủ mức cọc an toàn (${requiredDepositForPreset.toLocaleString()} Xu)` : `Cược ${amt.toLocaleString()} Xu`}
+                title={isPresetDisabled ? t('tableConfig.presetDepositNotEnough', { amount: requiredDepositForPreset.toLocaleString() }) : t('tableConfig.presetBetTooltip', { amount: amt.toLocaleString() })}
                 className={`py-2.5 px-2 rounded-xl font-bold text-xs transition-all border text-center ${
                   isPresetDisabled
                     ? 'opacity-30 cursor-not-allowed bg-[var(--bg-input)] border-white/5 text-[var(--text-dim)] line-through'
@@ -386,16 +395,16 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
           }`}
         >
           <Edit3 className="w-3.5 h-3.5" />
-          <span>Tùy Chọn Mức Cược Khác (Nhập Tự Do)</span>
+          <span>{t('tableConfig.customBet')}</span>
         </button>
 
         {/* KHUNG NHẬP SỐ TIỀN & CÁC NÚT % KHI CHỌN TÙY CHỌN */}
         {isCustomBet && (
           <div className="pt-1 space-y-2.5 bg-[var(--bg-input)] p-3 rounded-xl border border-[var(--border-container)]">
             <div className="text-[11px] text-[var(--text-secondary)] flex items-center justify-between">
-              <span>✍️ Nhập mức cược mong muốn:</span>
+              <span>{t('tableConfig.inputDesiredBet')}</span>
               <span className="text-[var(--text-muted)]">
-                Đang cược: <strong className="text-[var(--color-gold)]">{config.betAmount.toLocaleString()} Xu</strong>
+                {t('tableConfig.currentBetting')} <strong className="text-[var(--color-gold)]">{config.betAmount.toLocaleString()} Xu</strong>
               </span>
             </div>
 
@@ -404,7 +413,7 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
               <MobileVirtualInput
                 value={customBetInput}
                 onChange={handleCustomBetChange}
-                placeholder="Nhập mức cược mong muốn..."
+                placeholder={t('tableConfig.customBetPlaceholder')}
                 icon={null}
                 label={null}
                 error={null}
@@ -431,7 +440,7 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
                   autoFocus
                   value={customBetInput}
                   onChange={(e) => handleCustomBetChange(e.target.value)}
-                  placeholder="Nhập mức cược mong muốn..."
+                  placeholder={t('tableConfig.customBetPlaceholder')}
                   className={`w-full bg-[var(--bg-card)] border rounded-xl px-3.5 py-2 text-sm font-mono font-bold text-[var(--text-primary)] focus:outline-none transition-all pr-12 ${
                     betError 
                       ? 'border-red-500 focus:border-red-400' 
@@ -450,7 +459,7 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
                 { label: '10%', fraction: 0.1 },
                 { label: '25%', fraction: 0.25 },
                 { label: '50%', fraction: 0.5 },
-                { label: 'Tối Đa', fraction: 1.0 }
+                { label: t('tableConfig.percentMax'), fraction: 1.0 }
               ].map(p => (
                 <button
                   key={p.label}
@@ -481,13 +490,13 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
             <Flame className="w-4 h-4 text-[var(--color-gold)]" />
             <div>
               <div className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
-                <span>Hệ Số Phạt Chặt Bàn Đấu</span>
+                <span>{t('tableConfig.multiplierLabel')}</span>
                 <Badge variant="gold" size="sm">
-                  {currentMultiplier === 1 ? 'Chuẩn (x1)' : `Nhân ${currentMultiplier}x`}
+                  {currentMultiplier === 1 ? t('tableConfig.multiplierStandard') : t('tableConfig.multiplierTimes', { count: currentMultiplier, multiplier: currentMultiplier })}
                 </Badge>
               </div>
               <div className="text-[10px] text-[var(--text-muted)]">
-                Nhân {currentMultiplier}x tiền phạt Đếm lá, Chặt Heo/Hàng và Cóng
+                {t('tableConfig.multiplierDesc', { count: currentMultiplier, multiplier: currentMultiplier })}
               </div>
             </div>
           </div>
@@ -495,11 +504,11 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
 
         <div className="grid grid-cols-5 gap-1.5 pt-1">
           {[
-            { mult: 1, label: 'x1', desc: 'Chuẩn' },
-            { mult: 2, label: 'x2', desc: 'Sát Phạt' },
-            { mult: 3, label: 'x3', desc: 'Khốc Liệt' },
-            { mult: 4, label: 'x4', desc: 'Tử Địa' },
-            { mult: 5, label: 'x5', desc: 'Hủy Diệt' }
+            { mult: 1, label: 'x1', desc: t('tableConfig.multDescStandard') },
+            { mult: 2, label: 'x2', desc: t('tableConfig.multDescHeavy') },
+            { mult: 3, label: 'x3', desc: t('tableConfig.multDescFierce') },
+            { mult: 4, label: 'x4', desc: t('tableConfig.multDescDeadly') },
+            { mult: 5, label: 'x5', desc: t('tableConfig.multDescDestruction') }
           ].map(item => {
             const isSelected = currentMultiplier === item.mult;
             return (
@@ -525,15 +534,15 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
       <Card variant="surface" className="p-3.5 space-y-2.5">
         <label className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-[var(--color-gold)]" />
-          <span>Tùy Chọn Luật Bàn Đấu</span>
+          <span>{t('tableConfig.tableRulesOptions')}</span>
         </label>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           {/* Cấm 2 Cuối Cùng */}
           <div 
-            onClick={() => onChange({ prohibitEndingWithTwo: config.prohibitEndingWithTwo !== false ? false : true })}
+            onClick={() => onChange({ prohibitEndingWithTwo: !isProhibitEndingWithTwo })}
             className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
-              config.prohibitEndingWithTwo !== false 
+              isProhibitEndingWithTwo 
                 ? 'bg-[var(--bg-card)] border-[var(--color-gold-border)] shadow-sm' 
                 : 'bg-[var(--bg-input)] border-[var(--border-container)] opacity-75'
             }`}
@@ -542,27 +551,21 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
               <Ban className="w-3.5 h-3.5 text-[#f87171] mt-0.5 flex-shrink-0" />
               <div>
                 <div className="text-xs font-semibold text-[var(--text-primary)]">
-                  Cấm Đánh 2 Cuối Cùng
+                  {t('tableConfig.ruleNoEndTwo')}
                 </div>
                 <div className="text-[10px] text-[var(--text-muted)] mt-0.5 leading-tight">
-                  Cấm về Heo • Thối phạt từ <strong className="text-[var(--color-gold)]">{minThoiAmount.toLocaleString()}</strong> đến <strong className="text-[var(--color-gold)]">{maxThoiAmount.toLocaleString()} Xu</strong>
+                  {t('tableConfig.ruleNoEndTwoDesc', { min: minThoiAmount.toLocaleString(), max: maxThoiAmount.toLocaleString() })}
                 </div>
               </div>
             </div>
-            <div className={`w-9 h-4.5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
-              config.prohibitEndingWithTwo !== false ? 'bg-[var(--color-gold)]' : 'bg-[var(--bg-container)] border border-[var(--border-container)]'
-            }`}>
-              <div className={`bg-[#0a0c0e] w-3.5 h-3.5 rounded-full shadow transform transition-transform ${
-                config.prohibitEndingWithTwo !== false ? 'translate-x-4.5 bg-white' : 'translate-x-0'
-              }`} />
-            </div>
+            <ToggleSwitch checked={isProhibitEndingWithTwo} size="sm" />
           </div>
 
           {/* 4 Đôi Thông Cắt Tự Do */}
           <div 
-            onClick={() => onChange({ allowFourPairsCutAnytime: !config.allowFourPairsCutAnytime })}
+            onClick={() => onChange({ allowFourPairsCutAnytime: !isAllowFourPairsCutAnytime })}
             className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
-              config.allowFourPairsCutAnytime 
+              isAllowFourPairsCutAnytime 
                 ? 'bg-[var(--bg-card)] border-[var(--color-gold-border)] shadow-sm' 
                 : 'bg-[var(--bg-input)] border-[var(--border-container)] opacity-75'
             }`}
@@ -571,27 +574,21 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
               <Zap className="w-3.5 h-3.5 text-[var(--color-gold)] mt-0.5 flex-shrink-0" />
               <div>
                 <div className="text-xs font-semibold text-[var(--text-primary)]">
-                  4 Đôi Thông Cắt Tự Do
+                  {t('tableConfig.ruleFourPairsCutAnytime')}
                 </div>
                 <div className="text-[10px] text-[var(--text-muted)] mt-0.5 leading-tight">
-                  Chặt bất kỳ lúc nào • Thắng ngay <strong className="text-[var(--color-gold)]">+{fourPairsRewardAmount.toLocaleString()} Xu</strong>
+                  {t('tableConfig.ruleFourPairsCutAnytimeDesc', { reward: fourPairsRewardAmount.toLocaleString(), amount: fourPairsRewardAmount.toLocaleString() })}
                 </div>
               </div>
             </div>
-            <div className={`w-9 h-4.5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
-              config.allowFourPairsCutAnytime ? 'bg-[var(--color-gold)]' : 'bg-[var(--bg-container)] border border-[var(--border-container)]'
-            }`}>
-              <div className={`bg-[#0a0c0e] w-3.5 h-3.5 rounded-full shadow transform transition-transform ${
-                config.allowFourPairsCutAnytime ? 'translate-x-4.5 bg-white' : 'translate-x-0'
-              }`} />
-            </div>
+            <ToggleSwitch checked={isAllowFourPairsCutAnytime} size="sm" />
           </div>
 
           {/* Về 3 Bích Cuối Cùng */}
           <div 
-            onClick={() => onChange({ threeSpadesEndingBonus: config.threeSpadesEndingBonus !== false ? false : true })}
+            onClick={() => onChange({ threeSpadesEndingBonus: !isThreeSpadesEndingBonus })}
             className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
-              config.threeSpadesEndingBonus !== false 
+              isThreeSpadesEndingBonus 
                 ? 'bg-[var(--bg-card)] border-[var(--color-gold-border)] shadow-sm' 
                 : 'bg-[var(--bg-input)] border-[var(--border-container)] opacity-75'
             }`}
@@ -600,27 +597,21 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
               <Sparkles className="w-3.5 h-3.5 text-[var(--color-gold)] mt-0.5 flex-shrink-0" />
               <div>
                 <div className="text-xs font-semibold text-[var(--text-primary)]">
-                  Về 3 Bích Cuối Cùng
+                  {t('tableConfig.ruleThreeSpadesEndingBonus')}
                 </div>
                 <div className="text-[10px] text-[var(--text-muted)] mt-0.5 leading-tight">
-                  Từ ván 2+, dứt điểm bằng 3♠ nhận <strong className="text-[var(--color-gold)]">gấp đôi (2x)</strong> tiền thắng cả bàn
+                  {t('tableConfig.ruleThreeSpadesEndingBonusDesc')}
                 </div>
               </div>
             </div>
-            <div className={`w-9 h-4.5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
-              config.threeSpadesEndingBonus !== false ? 'bg-[var(--color-gold)]' : 'bg-[var(--bg-container)] border border-[var(--border-container)]'
-            }`}>
-              <div className={`bg-[#0a0c0e] w-3.5 h-3.5 rounded-full shadow transform transition-transform ${
-                config.threeSpadesEndingBonus !== false ? 'translate-x-4.5 bg-white' : 'translate-x-0'
-              }`} />
-            </div>
+            <ToggleSwitch checked={isThreeSpadesEndingBonus} size="sm" />
           </div>
 
           {/* Chặt Chồng Tích Lũy */}
           <div 
-            onClick={() => onChange({ cascadeChopEnabled: config.cascadeChopEnabled !== false ? false : true })}
+            onClick={() => onChange({ cascadeChopEnabled: !isCascadeChopEnabled })}
             className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
-              config.cascadeChopEnabled !== false 
+              isCascadeChopEnabled 
                 ? 'bg-[var(--bg-card)] border-[var(--color-gold-border)] shadow-sm' 
                 : 'bg-[var(--bg-input)] border-[var(--border-container)] opacity-75'
             }`}
@@ -629,28 +620,22 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
               <Flame className="w-3.5 h-3.5 text-[var(--color-gold)] mt-0.5 flex-shrink-0" />
               <div>
                 <div className="text-xs font-semibold text-[var(--text-primary)]">
-                  Chặt Chồng Tích Lũy
+                  {t('tableConfig.ruleCascadeChop')}
                 </div>
                 <div className="text-[10px] text-[var(--text-muted)] mt-0.5 leading-tight">
-                  Cộng dồn phạt đè • Người bị chặt cuối đền toàn bộ chuỗi
+                  {t('tableConfig.ruleCascadeChopDesc')}
                 </div>
               </div>
             </div>
-            <div className={`w-9 h-4.5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
-              config.cascadeChopEnabled !== false ? 'bg-[var(--color-gold)]' : 'bg-[var(--bg-container)] border border-[var(--border-container)]'
-            }`}>
-              <div className={`bg-[#0a0c0e] w-3.5 h-3.5 rounded-full shadow transform transition-transform ${
-                config.cascadeChopEnabled !== false ? 'translate-x-4.5 bg-white' : 'translate-x-0'
-              }`} />
-            </div>
+            <ToggleSwitch checked={isCascadeChopEnabled} size="sm" />
           </div>
 
           {/* Phạt Cóng */}
           {showCongOption && (
             <div 
-              onClick={() => onChange({ congEnabled: !config.congEnabled })}
+              onClick={() => onChange({ congEnabled: !isCongEnabled })}
               className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
-                config.congEnabled 
+                isCongEnabled 
                   ? 'bg-[var(--bg-card)] border-[var(--color-gold-border)] shadow-sm' 
                   : 'bg-[var(--bg-input)] border-[var(--border-container)] opacity-75'
               }`}
@@ -659,29 +644,23 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
                 <Snowflake className="w-3.5 h-3.5 text-[#60a5fa] mt-0.5 flex-shrink-0" />
                 <div>
                   <div className="text-xs font-semibold text-[var(--text-primary)]">
-                    Luật Phạt Cóng (Cháy Bài)
+                    {t('tableConfig.ruleCong')}
                   </div>
                   <div className="text-[10px] text-[var(--text-muted)] mt-0.5 leading-tight">
-                    Không ra được lá nào đền <strong className="text-[var(--color-gold)]">{26 * currentMultiplier} lá</strong> ({congPenaltyAmount.toLocaleString()} Xu)
+                    {t('tableConfig.ruleCongDesc', { count: 26 * currentMultiplier, cards: 26 * currentMultiplier, amount: congPenaltyAmount.toLocaleString() })}
                   </div>
                 </div>
               </div>
-              <div className={`w-9 h-4.5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
-                config.congEnabled ? 'bg-[var(--color-gold)]' : 'bg-[var(--bg-container)] border border-[var(--border-container)]'
-              }`}>
-                <div className={`bg-[#0a0c0e] w-3.5 h-3.5 rounded-full shadow transform transition-transform ${
-                  config.congEnabled ? 'translate-x-4.5 bg-white' : 'translate-x-0'
-                }`} />
-              </div>
+              <ToggleSwitch checked={isCongEnabled} size="sm" />
             </div>
           )}
 
           {/* Tới Trắng Tức Thì */}
           {showInstantWin && (
             <div 
-              onClick={() => onChange({ instantWinEnabled: !config.instantWinEnabled })}
+              onClick={() => onChange({ instantWinEnabled: !isInstantWinEnabled })}
               className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
-                config.instantWinEnabled 
+                isInstantWinEnabled 
                   ? 'bg-[var(--bg-card)] border-[var(--color-gold-border)] shadow-sm' 
                   : 'bg-[var(--bg-input)] border-[var(--border-container)] opacity-75'
               }`}
@@ -690,20 +669,14 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
                 <Crown className="w-3.5 h-3.5 text-[var(--color-gold)] mt-0.5 flex-shrink-0" />
                 <div>
                   <div className="text-xs font-semibold text-[var(--text-primary)]">
-                    Tới Trắng Tức Thì
+                    {t('tableConfig.ruleInstantWin')}
                   </div>
                   <div className="text-[10px] text-[var(--text-muted)] mt-0.5 leading-tight">
-                    Sảnh rồng, 5 đôi thông, 6 đôi... ăn trắng ván đấu
+                    {t('tableConfig.ruleInstantWinDesc')}
                   </div>
                 </div>
               </div>
-              <div className={`w-9 h-4.5 flex-shrink-0 flex items-center rounded-full p-0.5 transition-colors ${
-                config.instantWinEnabled ? 'bg-[var(--color-gold)]' : 'bg-[var(--bg-container)] border border-[var(--border-container)]'
-              }`}>
-                <div className={`bg-[#0a0c0e] w-3.5 h-3.5 rounded-full shadow transform transition-transform ${
-                  config.instantWinEnabled ? 'translate-x-4.5 bg-white' : 'translate-x-0'
-                }`} />
-              </div>
+              <ToggleSwitch checked={isInstantWinEnabled} size="sm" />
             </div>
           )}
         </div>

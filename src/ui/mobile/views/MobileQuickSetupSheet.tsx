@@ -5,6 +5,7 @@ import { Badge, Button } from '../../primitives';
 import { MobileScreenWrapper } from './MobileScreenWrapper';
 import { useQuickSetup, QuickSetupConfig } from '../../hooks/useQuickSetup';
 import { useUserStore } from '../../../stores/useUserStore';
+import { useI18n } from '../../../locales';
 
 export interface MobileQuickSetupSheetProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export const MobileQuickSetupSheet: React.FC<MobileQuickSetupSheetProps> = ({
   initialConfig,
   onStartGame
 }) => {
+  const { t } = useI18n();
   const { profile } = useUserStore();
   const playerCoins = profile.coins;
   const {
@@ -40,8 +42,8 @@ export const MobileQuickSetupSheet: React.FC<MobileQuickSetupSheetProps> = ({
     <MobileScreenWrapper
       isOpen={isOpen}
       onClose={onClose}
-      title="Cấu Hình Bàn Chơi Nhanh"
-      subtitle="Tùy chỉnh tiền cược, luật phạt và vào bàn chơi ngay"
+      title={t('lobby.tableConfigBtn')}
+      subtitle={t('lobby.heroSubtitle')}
       icon={<Sliders className="w-5 h-5 text-[var(--color-gold)]" />}
       headerRight={
         <Badge variant="neutral" size="md">
@@ -51,13 +53,10 @@ export const MobileQuickSetupSheet: React.FC<MobileQuickSetupSheetProps> = ({
       footer={
         <div className="w-full flex items-center justify-between gap-2 text-xs">
           <div className="text-xs text-[var(--text-muted)] min-w-0 flex flex-col">
-            <span className="text-[10px] text-[var(--text-muted)] truncate">Tiền cọc an toàn:</span>
-            <span className="text-xs font-bold text-[var(--color-gold)] truncate">
-              {actualDeposit.toLocaleString()} Xu
-              {depositRequired > actualDeposit && (
-                <span className="text-[10px] text-zinc-500 font-normal ml-1">(Tối đa {depositRequired.toLocaleString()} Xu)</span>
-              )}
-            </span>
+            <span className="text-[10px] text-[var(--text-muted)] truncate">{t('customGame.depositRequired', { amount: actualDeposit })}</span>
+            {depositRequired > actualDeposit && (
+              <span className="text-[10px] text-zinc-500 font-normal ml-1">({depositRequired.toLocaleString()} Xu)</span>
+            )}
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -66,7 +65,7 @@ export const MobileQuickSetupSheet: React.FC<MobileQuickSetupSheetProps> = ({
               size="md"
               onClick={onClose}
             >
-              Đóng
+              {t('common.close')}
             </Button>
             <Button
               variant="gold"
@@ -75,7 +74,7 @@ export const MobileQuickSetupSheet: React.FC<MobileQuickSetupSheetProps> = ({
               disabled={isInsufficientCoins}
               leftIcon={<Play className="w-4 h-4 fill-current" />}
             >
-              <span>{isInsufficientCoins ? 'Không Đủ Tiền Cược' : 'Vào Bàn Chơi Ngay'}</span>
+              <span>{isInsufficientCoins ? t('errors.insufficientCoins') : t('lobby.playNowBtn')}</span>
             </Button>
           </div>
         </div>

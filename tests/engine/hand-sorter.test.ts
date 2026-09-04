@@ -61,4 +61,16 @@ describe('Hand Sorter (Xếp Bài Thông Minh Đa Phương Án)', () => {
     expect(groups[0].type).toBe('SINGLE');
     expect(groups[0].cards[0].code).toBe('3S');
   });
+
+  test('Bộ bài có nhiều phương án xếp bộ tạo ra các biến thể độc lập không trùng lặp', () => {
+    // 3S 4D 5S 5D 6S 6D: Có thể xếp thành 2 sảnh (3-4-5, 6-...) hoặc đôi 5, đôi 6, hoặc 3 đôi thông
+    const hand = parseCards('3S 4D 5S 5D 6S 6D');
+    const variants = getAvailableSmartVariants(hand);
+    expect(variants.length).toBeGreaterThanOrEqual(2);
+
+    // Đảm bảo không có 2 phương án nào có cấu trúc tổ hợp giống nhau
+    const signatures = variants.map(v => v.map(g => `${g.type}:${g.cards.map(c => c.code).join(',')}`).join('|'));
+    const uniqueSignatures = new Set(signatures);
+    expect(uniqueSignatures.size).toBe(variants.length);
+  });
 });

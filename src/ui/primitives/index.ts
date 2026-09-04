@@ -4,3 +4,4 @@ export * from './Card';
 export * from './SectionHeader';
 export * from './Tabs';
 export * from './Modal';
+export * from './ToggleSwitch';

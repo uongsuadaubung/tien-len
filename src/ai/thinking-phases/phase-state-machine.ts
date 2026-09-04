@@ -67,6 +67,14 @@ export class BotThinkingPhaseStateMachine {
    * Đánh giá nước đi qua Giai đoạn Suy luận hiện tại
    */
   public evaluate(context: DecisionContext, validMoves: readonly ValidMoveInfo[]): BotDecision | null {
+    // 1. Kiểm tra các Quy Tắc Khẩn Cấp từ CompositeRuleStrategy (Chống Cóng, Đền bài 1 lá, Cấm 2 cuối, Mở màn 3 Bích)
+    const emergencyDecision = this.emergencyState.evaluate(context, validMoves);
+    if (emergencyDecision) {
+      this.currentState = this.emergencyState;
+      return emergencyDecision;
+    }
+
+    // 2. Nếu không có tình huống khẩn cấp, chuyển sang State tương ứng theo cục diện bài
     const activeState = this.transitionToPhase(context);
     return activeState.evaluate(context, validMoves);
   }

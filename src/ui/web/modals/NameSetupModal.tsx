@@ -3,8 +3,8 @@ import { ECONOMY_CONSTANTS } from '../../../engine/constants/economy';
 import { Sparkles, User, Check } from 'lucide-react';
 import { Modal, Card, Button } from '../../primitives';
 import { useNameSetup } from '../../hooks/useNameSetup';
-
 import { useUserStore } from '../../../stores/useUserStore';
+import { useI18n } from '../../../locales';
 
 export interface NameSetupModalProps {
   isOpen: boolean;
@@ -15,6 +15,7 @@ export const NameSetupModal: React.FC<NameSetupModalProps> = ({
   isOpen,
   onClose = null
 }) => {
+  const { t } = useI18n();
   const { profile } = useUserStore();
   const isFirstTime = !profile.name || profile.name.trim() === '';
   const {
@@ -34,11 +35,11 @@ export const NameSetupModal: React.FC<NameSetupModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose ? onClose : () => {}}
-      title={isFirstTime || !profile.name ? 'Chào Mừng Thần Bài Mới' : 'Cập Nhật Hồ Sơ'}
+      title={isFirstTime || !profile.name ? t('nameSetup.titleFirstTime') : t('nameSetup.titleUpdate')}
       subtitle={
         isFirstTime || !profile.name
-          ? 'Thiết lập biệt danh & đại diện để bước vào sòng bạc'
-          : 'Đổi tên hiển thị & biểu tượng đại diện của bạn'
+          ? t('nameSetup.subFirstTime')
+          : t('nameSetup.subUpdate')
       }
       icon={<Sparkles className="w-5 h-5 text-[var(--color-gold)]" />}
       maxWidth="md"
@@ -47,7 +48,7 @@ export const NameSetupModal: React.FC<NameSetupModalProps> = ({
         <div className="w-full flex items-center justify-end gap-2">
           {!isFirstTime && onClose && profile.name.trim() !== '' && (
             <Button variant="surface" size="md" onClick={onClose}>
-              Hủy
+              {t('common.cancel')}
             </Button>
           )}
           <Button
@@ -56,7 +57,7 @@ export const NameSetupModal: React.FC<NameSetupModalProps> = ({
             onClick={() => handleSubmit(null)}
             leftIcon={<Check className="w-4 h-4" />}
           >
-            {isFirstTime || !profile.name ? 'Bắt Đầu Chơi' : 'Lưu Thay Đổi'}
+            {isFirstTime || !profile.name ? t('nameSetup.btnStartPlaying') : t('nameSetup.btnSaveChanges')}
           </Button>
         </div>
       }
@@ -66,10 +67,10 @@ export const NameSetupModal: React.FC<NameSetupModalProps> = ({
         <Card variant="card" className="p-3.5 space-y-2">
           <div className="flex items-center justify-between">
             <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
-              Chọn Biểu Tượng Đại Diện ({avatarOptions.length} Mẫu):
+              {t('nameSetup.avatarLabel')} ({avatarOptions.length}):
             </label>
             <span className="text-xs text-[var(--color-gold)] font-bold">
-              Đã chọn: <span className="text-lg align-middle">{avatar}</span>
+              {t('nameSetup.selectedAvatar')} <span className="text-lg align-middle">{avatar}</span>
             </span>
           </div>
           <div className="grid grid-cols-6 gap-2 max-h-52 overflow-y-auto pr-1 p-0.5">
@@ -96,7 +97,7 @@ export const NameSetupModal: React.FC<NameSetupModalProps> = ({
         {/* 2. Nhập Tên Biệt Danh */}
         <Card variant="card" className="p-3.5 space-y-2">
           <label className="block text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">
-            Biệt Danh Thần Bài:
+            {t('nameSetup.nameLabel')}:
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[var(--text-muted)]">
@@ -109,7 +110,7 @@ export const NameSetupModal: React.FC<NameSetupModalProps> = ({
                 setName(e.target.value);
                 if (error) setError(null);
               }}
-              placeholder="Ví dụ: Thần Bài Sài Gòn..."
+              placeholder={t('nameSetup.namePlaceholder')}
               maxLength={20}
               autoFocus
               className="w-full pl-10 pr-4 py-2.5 bg-[var(--bg-input)] border border-[var(--border-card)] rounded-xl text-sm font-bold text-[var(--text-primary)] placeholder-[var(--text-dim)] focus:outline-none focus:border-[var(--color-gold)] transition-all"
@@ -123,7 +124,7 @@ export const NameSetupModal: React.FC<NameSetupModalProps> = ({
           )}
           {isFirstTime && (
             <p className="text-[11px] text-[var(--text-muted)]">
-              Vốn khởi nghiệp: <strong className="text-[var(--color-gold)] font-bold">{ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS.toLocaleString()} Xu</strong>
+              {t('nameSetup.startingCapital')} <strong className="text-[var(--color-gold)] font-bold">{ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS.toLocaleString()} Xu</strong>
             </p>
           )}
         </Card>

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Button } from './Button';
+import { useI18n } from '../../locales';
 
 export interface ModalProps {
   isOpen: boolean;
@@ -43,6 +44,8 @@ export const Modal: React.FC<ModalProps> = ({
   preventClose = false,
   showCloseButton = true
 }) => {
+  const { t } = useI18n();
+
   useEffect(() => {
     if (preventClose) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -60,19 +63,21 @@ export const Modal: React.FC<ModalProps> = ({
   const heightClass = height || 'h-[85vh] sm:h-[620px]';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 select-none backdrop-blur-sm animate-fade-in">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={() => {
+        if (!preventClose && onClose) onClose();
+      }}
+    >
       <div 
-        className={`
-          relative w-full ${widthClass} ${heightClass} max-h-[90vh] 
-          bg-[var(--bg-container)] border border-[var(--border-container)] rounded-2xl shadow-2xl flex flex-col text-[var(--text-primary)] overflow-hidden
-          ${className || ''}
-        `}
+        className={`w-full ${widthClass} ${heightClass} max-h-[90vh] flex flex-col bg-[var(--bg-canvas)] border border-[var(--border-container)] rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 ${className}`}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* HEADER MODAL DESKTOP (Tier 1) */}
+        {/* HEADER MODAL (Tier 1 Container) */}
         <div className="flex items-center justify-between px-6 py-4 bg-[var(--bg-container)] border-b border-[var(--border-container)] flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             {icon && (
-              <div className="p-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] text-[var(--color-gold)] shadow-sm shrink-0">
+              <div className="p-2 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] text-[var(--color-gold)] flex-shrink-0">
                 {icon}
               </div>
             )}
@@ -95,7 +100,7 @@ export const Modal: React.FC<ModalProps> = ({
                 variant="surface"
                 size="icon"
                 onClick={onClose}
-                title="Đóng cửa sổ (ESC)"
+                title={t('common.closeWindow')}
               >
                 <X className="w-5 h-5 text-[var(--text-secondary)]" />
               </Button>
@@ -104,7 +109,7 @@ export const Modal: React.FC<ModalProps> = ({
         </div>
 
         {/* NỘI DUNG BODY CUỘN ĐỘC LẬP (Tier 0 Canvas) */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4 text-xs sm:text-sm custom-scrollbar bg-[var(--bg-canvas)]">
+        <div className="flex-1 min-h-0 overflow-y-auto p-6 space-y-4 text-xs sm:text-sm custom-scrollbar bg-[var(--bg-canvas)]">
           {children}
         </div>
 

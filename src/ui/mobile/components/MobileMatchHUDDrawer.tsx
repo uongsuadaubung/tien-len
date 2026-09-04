@@ -7,6 +7,7 @@ import { BotConfig } from '../../../ai/types';
 import { useUserStore } from '../../../stores/useUserStore';
 import { useEcosystemStore } from '../../../stores/useEcosystemStore';
 import { useGameStore } from '../../../stores/useGameStore';
+import { useI18n } from '../../../locales';
 
 export interface MobileMatchHUDDrawerProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
   dealtCounts,
   customBotConfigs
 }) => {
+  const { t } = useI18n();
   const { profile } = useUserStore();
   const ecosystemBots = useEcosystemStore(state => state.bots);
   const { myPlayerId } = useGameStore();
@@ -53,10 +55,10 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
             </div>
             <div>
               <h3 className="text-sm font-black text-white uppercase tracking-wider">
-                Ván #{gameNumber}
+                {t('hud.gameNumber', { number: gameNumber })}
               </h3>
               <span className="text-[10px] text-zinc-400 font-semibold">
-                Cược: {betAmount.toLocaleString()} Xu
+                {t('victory.betAmountLabel', { amount: betAmount.toLocaleString() })}
               </span>
             </div>
           </div>
@@ -74,9 +76,9 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-[#141b2b] text-zinc-300 text-[9px] font-bold uppercase tracking-wider border-b border-[#2a3449]">
-                <th className="py-1.5 px-2.5 border-r border-[#2a3449]">Người Chơi</th>
-                <th className="py-1.5 px-2 text-center border-r border-[#2a3449] w-16">Bài Còn</th>
-                <th className="py-1.5 px-2.5 text-right w-20">Điểm / Xu</th>
+                <th className="py-1.5 px-2.5 border-r border-[#2a3449]">{t('hud.colPlayer')}</th>
+                <th className="py-1.5 px-2 text-center border-r border-[#2a3449] w-16">{t('hud.colCards')}</th>
+                <th className="py-1.5 px-2.5 text-right w-20">{t('hud.colScore')}</th>
               </tr>
             </thead>
             <tbody className="text-xs font-semibold divide-y divide-white/5">
@@ -128,16 +130,16 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
                               isMe ? 'text-[#d4af37] font-bold' : 'text-zinc-100'
                             }`}
                           >
-                            {isMe ? `${p.name} (Bạn)` : p.name}
+                            {isMe ? `${p.name} ${t('hud.you')}` : p.name}
                           </span>
 
                           <span className="text-[9px] text-zinc-400 font-medium leading-tight">
                             {p.isPassedCurrentRound ? (
-                              <span className="text-rose-400 font-bold">Bỏ Lượt</span>
+                              <span className="text-rose-400 font-bold">{t('hud.turnPassed')}</span>
                             ) : p.rankPosition ? (
-                              <span className="text-amber-400 font-bold">Về #{p.rankPosition}</span>
+                              <span className="text-amber-400 font-bold">{t('hud.rankBadge', { rank: p.rankPosition })}</span>
                             ) : isTurn ? (
-                              <span className="text-amber-300 font-bold">Đang Đánh</span>
+                              <span className="text-amber-300 font-bold">{t('hud.turnPlaying')}</span>
                             ) : (
                               `${displayElo} Elo`
                             )}
@@ -154,7 +156,7 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
                         </Badge>
                       ) : isOneCardLeft ? (
                         <span className="bg-red-600 text-white font-bold px-1 py-0.2 rounded text-[9px] animate-pulse">
-                          1 Lá
+                          {t('hud.oneCardAlert')}
                         </span>
                       ) : (
                         <span

@@ -17,8 +17,8 @@ export const BotHeadToHeadSchema = z.object({
 
 export const BotEntitySchema = z.object({
   id: z.string(),
-  name: z.string().nullable().default('Đấu thủ'),
-  avatar: z.string().nullable().default('👤'),
+  name: z.string().default('Đấu thủ'),
+  avatar: z.string().default('👤'),
   description: z.string().default(''),
   elo: z.number().default(1000),
   dnaTier: z.number().int().min(1).max(9).default(2),

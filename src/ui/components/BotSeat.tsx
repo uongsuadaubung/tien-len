@@ -75,12 +75,12 @@ export const BotSeat: React.FC<BotSeatProps> = ({
               }
               ${player.isPassedCurrentRound ? 'opacity-60 grayscale' : ''}
             `}
-            title={`Bấm để xem căn cước & lịch sử đối đầu của ${botConfig?.name || player.name}`}
+            title={t('bot.inspectTitle', { name: player.name })}
           >
             {/* Avatar nhỏ */}
             <div className="relative shrink-0">
               <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#141b2b] border border-[#2a3449] flex items-center justify-center text-lg sm:text-xl leading-none shadow-inner">
-                <span className="emoji-avatar">{botConfig?.avatar || player.avatar || '🤖'}</span>
+                <span className="emoji-avatar">{player.avatar}</span>
               </div>
 
               {isLeader && (
@@ -99,7 +99,7 @@ export const BotSeat: React.FC<BotSeatProps> = ({
             {/* Tên & Số lá bài (nằm ngang) */}
             <div className="flex flex-col min-w-0 pr-0.5 text-left">
               <span className="text-[10px] font-bold text-zinc-100 truncate max-w-[60px] sm:max-w-[70px] leading-tight">
-                {botConfig?.name || player.name}
+                {player.name}
               </span>
 
               {player.isPassedCurrentRound ? (
@@ -126,7 +126,7 @@ export const BotSeat: React.FC<BotSeatProps> = ({
               className={`flex items-center -space-x-2.5 sm:-space-x-3 pointer-events-none transition-transform px-0.5 ${
                 isCurrentTurn ? 'scale-105 drop-shadow-[0_0_6px_rgba(212,175,55,0.4)]' : ''
               }`}
-              title={`${botConfig?.name || player.name} đang cầm ${cardCount} lá bài`}
+              title={t('bot.holdingCards', { name: player.name, count: cardCount })}
             >
               {Array.from({ length: visibleCards }).map((_, i) => {
                 const rot = (i - (visibleCards - 1) / 2) * 3;
@@ -166,7 +166,7 @@ export const BotSeat: React.FC<BotSeatProps> = ({
       <div 
         onClick={handleInspectBot}
         className="relative group cursor-pointer"
-        title={`Bấm để xem căn cước & lịch sử đối đầu của ${botConfig?.name || player.name}`}
+        title={t('bot.inspectTitle', { name: player.name })}
       >
         <div
           className={`
@@ -180,7 +180,7 @@ export const BotSeat: React.FC<BotSeatProps> = ({
             ${player.isPassedCurrentRound ? 'opacity-50 grayscale' : ''}
           `}
         >
-          <span className="emoji-avatar">{botConfig?.avatar || player.avatar || '🤖'}</span>
+          <span className="emoji-avatar">{player.avatar}</span>
         </div>
 
         {/* Huy hiệu Cái */}
@@ -225,7 +225,7 @@ export const BotSeat: React.FC<BotSeatProps> = ({
           className={`bot-hand-fan ${
             isCurrentTurn ? 'scale-105 drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]' : ''
           }`}
-          title={`${botConfig?.name || player.name} đang cầm ${cardCount} lá bài`}
+          title={t('bot.holdingCards', { name: player.name, count: cardCount })}
         >
           {Array.from({ length: visibleCards }).map((_, i) => {
             const rot = (i - (visibleCards - 1) / 2) * 4;
@@ -247,7 +247,7 @@ export const BotSeat: React.FC<BotSeatProps> = ({
       {/* Tên Bot & Số Lá - Nền đặc */}
       <div className="flex flex-col items-center mt-0.5 text-center">
         <span className="text-xs font-bold text-[#f3e5ab] drop-shadow leading-tight truncate max-w-[80px]">
-          {botConfig?.name || player.name}
+          {player.name}
         </span>
       </div>
     </div>

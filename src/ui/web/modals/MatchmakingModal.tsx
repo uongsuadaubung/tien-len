@@ -5,6 +5,7 @@ import { soundManager } from '../../audio/sound-manager';
 import { Modal, Card, Button, Badge } from '../../primitives';
 import { Swords, Check, X, Loader2, Sparkles } from 'lucide-react';
 import { useUserStore } from '../../../stores/useUserStore';
+import { useI18n } from '../../../locales';
 
 export interface MatchmakingModalProps {
   isOpen: boolean;
@@ -12,7 +13,7 @@ export interface MatchmakingModalProps {
   onMatchReady: () => void;
   betAmount: number;
   modeName: string;
-  matchedBots: Partial<BotConfig>[];
+  matchedBots: BotConfig[];
   playerCount?: number;
 }
 
@@ -25,6 +26,7 @@ export const MatchmakingModal: React.FC<MatchmakingModalProps> = ({
   matchedBots,
   playerCount = 4
 }) => {
+  const { t } = useI18n();
   const { profile: playerProfile } = useUserStore();
   const [stage, setStage] = useState<'SEARCHING' | 'FOUND'>('SEARCHING');
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -38,13 +40,13 @@ export const MatchmakingModal: React.FC<MatchmakingModalProps> = ({
 
   const searchingTips = [
     actualPlayerCount === 2 
-      ? '🔍 Đang quét tìm 1 đối thủ cùng trình độ Elo (Solo 1v1)...'
+      ? t('matchmaking.tipSolo')
       : actualPlayerCount === 3
-        ? '🔍 Đang quét tìm 2 đối thủ cùng trình độ Elo (Bàn 3 người)...'
-        : '🔍 Đang quét tìm 3 đấu thủ cùng trình độ Elo (Bàn 4 người)...',
-    '⚡ Đang kiểm tra điều kiện bàn cược...',
-    '🌐 Đang kết nối vào phòng thi đấu...',
-    '🃏 Chuẩn bị bộ bài 52 lá tiêu chuẩn...'
+        ? t('matchmaking.tip3P')
+        : t('matchmaking.tip4P'),
+    t('matchmaking.tipDeposit'),
+    t('matchmaking.tipConnecting'),
+    t('matchmaking.tipDeck')
   ];
 
   useEffect(() => {
@@ -100,16 +102,16 @@ export const MatchmakingModal: React.FC<MatchmakingModalProps> = ({
   const allSlots = [
     {
       id: 'p0',
-      name: playerProfile.name || 'Bạn',
+      name: playerProfile.name || t('hud.you').replace(/[()]/g, ''),
       avatar: playerProfile.avatar || '🤠',
       elo: playerProfile.elo,
       isHuman: true
     },
     ...matchedBots.slice(0, requiredBotCount).map((b, idx) => ({
-      id: `bot_${idx}`,
-      name: b.name || `Đối thủ ${idx + 1}`,
-      avatar: b.avatar || '🤖',
-      elo: b.elo ?? 1000,
+      id: b.id || `bot_${idx}`,
+      name: b.name,
+      avatar: b.avatar,
+      elo: b.elo,
       isHuman: false
     }))
   ];
@@ -118,8 +120,8 @@ export const MatchmakingModal: React.FC<MatchmakingModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={stage === 'SEARCHING' ? onCancel : () => {}}
-      title={stage === 'SEARCHING' ? 'ĐANG TÌM KIẾM TRẬN ĐẤU' : 'ĐÃ TÌM THẤY PHÒNG ĐẤU!'}
-      subtitle={`${modeName} • Mức cược: ${betAmount.toLocaleString()} Xu/lá • ${actualPlayerCount} Người Chơi`}
+      title={stage === 'SEARCHING' ? t('matchmaking.modalTitle') : t('matchmaking.matchFound')}
+      subtitle={t('matchmaking.subtitle', { mode: modeName, bet: betAmount.toLocaleString(), players: actualPlayerCount })}
       icon={<Swords className="w-5 h-5 text-[var(--color-gold)]" />}
       maxWidth="2xl"
       height="auto"
@@ -133,14 +135,14 @@ export const MatchmakingModal: React.FC<MatchmakingModalProps> = ({
               leftIcon={<X className="w-4 h-4 text-rose-400" />}
               className="hover:bg-rose-500/20 hover:border-rose-500/40 text-rose-300"
             >
-              Hủy Tìm Trận
+              {t('matchmaking.cancelSearch')}
             </Button>
           </div>
         ) : (
           <div className="w-full flex items-center justify-center py-1">
             <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs sm:text-sm animate-pulse">
               <Sparkles className="w-4 h-4" />
-              <span>Tất cả đã sẵn sàng ({actualPlayerCount}/{actualPlayerCount})! Đang vào bàn...</span>
+              <span>{t('matchmaking.allReadyEntering', { count: actualPlayerCount })}</span>
             </div>
           </div>
         )
@@ -181,14 +183,14 @@ export const MatchmakingModal: React.FC<MatchmakingModalProps> = ({
                 <span className="text-2xl">{playerProfile.avatar || '🤠'}</span>
                 <div>
                   <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)]">
-                    {playerProfile.name || 'Bạn'}
+                    {playerProfile.name || t('hud.you').replace(/[()]/g, '')}
                   </div>
                   <div className="text-[10px] text-[var(--text-muted)]">
                     {playerTier.badge} {playerTier.name} ({playerProfile.elo} Elo)
                   </div>
                 </div>
               </div>
-              <Badge variant="gold" size="sm">Đang Tìm...</Badge>
+              <Badge variant="gold" size="sm">{t('matchmaking.searching')}</Badge>
             </Card>
           </div>
         )}
@@ -203,8 +205,8 @@ export const MatchmakingModal: React.FC<MatchmakingModalProps> = ({
               <Sparkles className="w-4 h-4 text-[var(--color-gold)] animate-spin" />
               <span className="font-extrabold text-xs sm:text-sm text-[var(--color-gold)] tracking-wide uppercase">
                 {actualPlayerCount === 2
-                  ? '⚔️ Đã tìm thấy đối thủ Solo 1v1 xứng tầm!'
-                  : `⚔️ Đã tìm thấy ${requiredBotCount} đối thủ xứng tầm!`}
+                  ? t('matchmaking.foundSolo')
+                  : t('matchmaking.foundOpponents', { count: requiredBotCount })}
               </span>
               <Sparkles className="w-4 h-4 text-[var(--color-gold)] animate-spin" />
             </Card>
@@ -226,7 +228,7 @@ export const MatchmakingModal: React.FC<MatchmakingModalProps> = ({
                         <span className="text-2xl sm:text-3xl">{slot.avatar}</span>
                         {slot.isHuman && (
                           <span className="absolute -bottom-1 -right-1 text-[9px] bg-amber-500 text-black font-extrabold px-1 rounded-full">
-                            BẠN
+                            {t('hud.you').replace(/[()]/g, '').toUpperCase()}
                           </span>
                         )}
                       </div>
@@ -245,7 +247,7 @@ export const MatchmakingModal: React.FC<MatchmakingModalProps> = ({
 
                     <div className="flex items-center gap-1 text-emerald-400 font-bold text-[11px] bg-emerald-500/15 border border-emerald-400/30 px-2 py-1 rounded-lg">
                       <Check className="w-3.5 h-3.5" />
-                      <span>SẴN SÀNG</span>
+                      <span>{t('common.ready')}</span>
                     </div>
                   </Card>
                 );

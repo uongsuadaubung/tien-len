@@ -27,6 +27,8 @@ import {
 } from 'lucide-react';
 import { Button, Badge, Card, SectionHeader } from '../../primitives';
 import { isFullScreen, toggleFullScreen } from '../../utils/fullscreen';
+import { useI18n } from '../../../locales';
+import { GameMode, GameSettlementRule } from '../../../engine/types';
 export interface WebLobbyScreenProps {
   onPlayNow: (() => void) | null;
   onOpenQuickSetup: () => void;
@@ -52,12 +54,22 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
   onOpenRules,
   onOpenNameSetup
 }) => {
+  const { t } = useI18n();
   const { profile } = useUserStore();
   const { openModal } = useViewStore();
   const { newsfeed, initEcosystem } = useEcosystemStore();
   const { quickTableConfig } = useGameStore();
   const { onlineMultiplayerBetaEnabled } = useSettingsStore();
   const [isFullscreenState, setIsFullscreenState] = useState(isFullScreen());
+
+  const getSettlementLabel = (rule?: GameSettlementRule | GameMode) => {
+    switch (rule) {
+      case 'WINNER_TAKES_ALL': return t('modes.winnerTakesAll');
+      case 'TRADITIONAL': return t('modes.traditional');
+      case 'COUNT_CARDS':
+      default: return t('modes.countCards');
+    }
+  };
 
   useEffect(() => {
     initEcosystem();
@@ -106,7 +118,7 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
         <div 
           onClick={onOpenNameSetup}
           className="flex items-center gap-2.5 cursor-pointer group shrink-0"
-          title="Bấm để đổi tên và avatar"
+          title={t('lobby.profileEditTooltip')}
         >
           {/* Avatar (Tier 2 Card) */}
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-lg sm:text-xl shadow-sm group-hover:border-[var(--border-gold)] transition-colors shrink-0">
@@ -116,7 +128,7 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <h2 className="font-bold text-xs sm:text-sm text-[var(--text-primary)] tracking-wide group-hover:text-[var(--color-gold)] inline-flex items-center gap-1.5 transition-colors truncate max-w-[140px]">
-                <span>{profile.name || 'Chưa Đặt Tên'}</span>
+                <span>{profile.name || t('lobby.defaultName')}</span>
                 <Edit2 className="w-3 h-3 text-[var(--text-muted)] group-hover:text-[var(--color-gold)] shrink-0" />
               </h2>
             </div>
@@ -150,13 +162,13 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
           <div 
             onClick={onOpenBank}
             className="flex items-center gap-1.5 bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--border-gold)] px-2.5 py-1 rounded-xl cursor-pointer shadow-sm transition-colors"
-            title="Bấm để vào Ngân Hàng"
+            title={t('lobby.bankTooltip')}
           >
             <span className="text-sm">🪙</span>
             <div className="flex flex-col leading-tight">
-              <span className="text-[8px] text-[var(--text-muted)] font-semibold uppercase">Tài Sản</span>
+              <span className="text-[8px] text-[var(--text-muted)] font-semibold uppercase">{t('lobby.assetsLabel')}</span>
               <span className="font-bold text-xs text-[var(--color-gold)] font-mono">
-                {profile.coins.toLocaleString()} <span className="text-[9px] font-normal text-[var(--text-muted)]">Xu</span>
+                {profile.coins.toLocaleString()} <span className="text-[9px] font-normal text-[var(--text-muted)]">{t('common.coins')}</span>
               </span>
             </div>
           </div>
@@ -169,7 +181,7 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
               onClick={onOpenBank}
               leftIcon={<AlertCircle className="w-3.5 h-3.5 text-red-400" />}
             >
-              Nợ: {profile.loans.toLocaleString()}
+              {t('lobby.debtLabel', { amount: profile.loans.toLocaleString() })}
             </Button>
           )}
 
@@ -179,9 +191,9 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
             size="sm"
             onClick={onOpenBank}
             leftIcon={<Landmark className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
-            title="Quỹ Cứu Trợ & Vay Vốn Sòng Bạc"
+            title={t('bank.title')}
           >
-            <span>Ngân Hàng</span>
+            <span>{t('lobby.bankBtn')}</span>
           </Button>
 
           {/* Nút Nhiệm Vụ & Thành Tựu */}
@@ -192,7 +204,7 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
               onClick={onOpenQuests}
               leftIcon={<Target className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
             >
-              <span>Nhiệm Vụ</span>
+              <span>{t('lobby.questsBtn')}</span>
             </Button>
             {claimableQuestsCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[9px] font-bold w-3.5 h-3.5 rounded-full flex items-center justify-center pointer-events-none shadow">
@@ -208,7 +220,7 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
             onClick={onOpenLuckyWheel}
             leftIcon={<Disc className="w-3.5 h-3.5 text-[#0a0c0e]" />}
           >
-            <span>Vòng Quay</span>
+            <span>{t('lobby.wheelBtn')}</span>
           </Button>
 
           {/* Nút Bảng Vàng Danh Vọng */}
@@ -217,10 +229,10 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
             size="sm"
             onClick={() => openModal('ECOSYSTEM')}
             leftIcon={<Trophy className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
-            title="Bảng Vàng Danh Vọng & Xếp Hạng Toàn Server"
+            title={t('lobby.leaderboardBtn')}
             className="border-[var(--color-gold-border)]/50 text-[var(--color-gold)] hover:text-white"
           >
-            <span>Bảng Vàng</span>
+            <span>{t('lobby.leaderboardBtn')}</span>
           </Button>
 
           {/* Nhóm Nút Tiện Ích Gọn Gàng */}
@@ -230,7 +242,7 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
               <button
                 onClick={onOpenRules}
                 className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--border-gold)] flex items-center justify-center text-[var(--color-gold)] active:scale-95 transition-all cursor-pointer shadow-sm"
-                title="Hướng dẫn luật chơi & bảng khắc chế bài"
+                title={t('lobby.rulesTooltip')}
               >
                 <BookOpen className="w-3.5 h-3.5" />
               </button>
@@ -243,7 +255,7 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
                 setIsFullscreenState(fs);
               }}
               className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--border-gold)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer shadow-sm"
-              title={isFullscreenState ? 'Thoát Toàn Màn Hình' : 'Bật Toàn Màn Hình (Full Screen)'}
+              title={isFullscreenState ? t('lobby.fullScreenExit') : t('lobby.fullScreenEnter')}
             >
               {isFullscreenState ? (
                 <Minimize className="w-3.5 h-3.5 text-[var(--color-gold)]" />
@@ -256,7 +268,7 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
             <button
               onClick={onOpenSettings}
               className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--border-gold)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer shadow-sm"
-              title="Cài đặt âm thanh và hiệu ứng"
+              title={t('lobby.settingsTooltip')}
             >
               <Settings className="w-3.5 h-3.5" />
             </button>
@@ -272,14 +284,14 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
         >
           <div className="flex items-center gap-2 overflow-hidden text-xs">
             <span className="flex items-center gap-1 text-amber-400 font-bold uppercase text-[9px] tracking-wider bg-amber-500/20 px-1.5 py-0.5 rounded border border-amber-500/30 flex-shrink-0">
-              <Newspaper className="w-2.5 h-2.5" /> Bảng Tin
+              <Newspaper className="w-2.5 h-2.5" /> {t('lobby.newsfeedTag')}
             </span>
             <span className="text-[var(--text-secondary)] text-[11px] truncate group-hover:text-[var(--text-primary)] transition-colors">
               {newsfeed[0]?.message}
             </span>
           </div>
           <span className="text-[9px] text-amber-400 font-semibold flex-shrink-0 ml-2 flex items-center gap-0.5 group-hover:underline">
-            Xem Bảng Vàng <ArrowRight className="w-2.5 h-2.5" />
+            {t('lobby.viewLeaderboard')} <ArrowRight className="w-2.5 h-2.5" />
           </span>
         </div>
       )}
@@ -293,8 +305,8 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
         <section className="space-y-1.5 sm:space-y-2">
           <SectionHeader
             icon={<Flame className="w-4 h-4" />}
-            title="Sòng Bạc Chơi Nhanh & Đấu Hạng"
-            subtitle="Ghép đối thủ tự động theo Bậc Rank • Thắng cược Xu & Tăng hạng Elo"
+            title={t('lobby.heroTitle')}
+            subtitle={t('lobby.heroSubtitle')}
             action={null}
             className={null}
           />
@@ -316,12 +328,16 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] group-hover:text-white transition-colors">
-                      Chơi Nhanh &amp; Đấu Hạng
+                      {t('lobby.heroCardTitle')}
                     </h3>
-                    <Badge variant="gold" size="sm">Cốt Lõi</Badge>
+                    <Badge variant="gold" size="sm">{t('lobby.coreBadge')}</Badge>
                   </div>
                   <p className="text-xs text-[var(--text-muted)] mt-0.5 leading-relaxed">
-                    Tự động ghép {quickTableConfig.playerCount - 1} đối thủ theo bậc <strong className="text-[var(--color-gold)]">{currentRank.badge} {currentRank.name} ({profile.elo} Elo)</strong>. Ăn thua tiền cược Xu và tích lũy điểm Elo leo hạng!
+                    {t('lobby.heroCardDesc', {
+                      count: quickTableConfig.playerCount - 1,
+                      rank: `${currentRank.badge} ${currentRank.name}`,
+                      elo: profile.elo
+                    })}
                   </p>
                 </div>
               </div>
@@ -334,16 +350,16 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
                   {currentRank.badge} {currentRank.name} ({profile.elo} Elo)
                 </Badge>
                 <Badge variant="neutral" size="sm">
-                  💰 Cược: {quickTableConfig.betAmount.toLocaleString()} Xu / Lá
+                  {t('lobby.betPerCard', { amount: quickTableConfig.betAmount.toLocaleString() })}
                 </Badge>
                 <Badge variant="neutral" size="sm">
-                  ⚡ Phạt Chặt: x{quickTableConfig.choppingMultiplier}
+                  {t('lobby.chopMultiplier', { multiplier: quickTableConfig.choppingMultiplier })}
                 </Badge>
                 <Badge variant="neutral" size="sm">
-                  👥 Bàn: {quickTableConfig.playerCount} Người
+                  {t('lobby.tablePlayers', { count: quickTableConfig.playerCount })}
                 </Badge>
                 <Badge variant="neutral" size="sm">
-                  📜 {getSettlementRuleLabel(quickTableConfig.settlementRule)}
+                  📜 {getSettlementLabel(quickTableConfig.settlementRule)}
                 </Badge>
               </div>
 
@@ -357,9 +373,9 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
                     onOpenQuickSetup();
                   }}
                   leftIcon={<Sliders className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
-                  title="Tùy chỉnh tiền cược và luật phạt"
+                  title={t('lobby.quickSetupConfigTooltip')}
                 >
-                  <span>Cấu Hình Bàn</span>
+                  <span>{t('lobby.tableConfigBtn')}</span>
                 </Button>
 
                 <Button
@@ -373,7 +389,7 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
                   rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
                   className="shadow-md shadow-amber-500/20"
                 >
-                  Chơi Ngay
+                  {t('lobby.playNowBtn')}
                 </Button>
               </div>
             </div>
@@ -386,8 +402,8 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
         <section className="space-y-1.5 sm:space-y-2">
           <SectionHeader
             icon={<Trophy className="w-4 h-4" />}
-            title="Chế Độ Mở Rộng"
-            subtitle="Hành trình cốt truyện • Tùy chỉnh bàn chơi nâng cao"
+            title={t('lobby.extendedModes')}
+            subtitle={t('lobby.extendedSubtitle')}
             action={null}
             className={null}
           />
@@ -412,21 +428,21 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
 
                 <div className="my-2 sm:my-2.5">
                   <h3 className="text-base sm:text-lg font-bold text-amber-200 group-hover:text-yellow-300 transition-colors">
-                    Chơi Online Cùng Bạn Bè
+                    {t('lobby.onlineCardTitle')}
                   </h3>
                   <p className="text-xs text-[var(--text-muted)] mt-1 leading-relaxed line-clamp-2">
-                    Tạo phòng riêng hoặc nhập mã PIN 4 số để cùng chơi với bạn bè qua mạng. Đầy đủ các luật chơi hấp dẫn.
+                    {t('lobby.onlineCardDesc')}
                   </p>
                 </div>
 
                 <div className="pt-2.5 border-t border-[var(--border-container)] flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-amber-300/80">Mã PIN 4 số • Đấu trực tiếp</span>
+                  <span className="text-[11px] font-semibold text-amber-300/80">{t('lobby.onlinePinBadge')}</span>
                   <Button
                     variant="gold"
                     size="sm"
                     rightIcon={<ArrowRight className="w-3 h-3 text-slate-950" />}
                   >
-                    Vào Phòng
+                    {t('lobby.joinRoomBtn')}
                   </Button>
                 </div>
               </Card>
@@ -444,26 +460,26 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
                 <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--color-gold)] shadow-sm group-hover:border-[var(--border-gold)] transition-colors">
                   <MapPin className="w-5 h-5" />
                 </div>
-                <Badge variant="neutral" size="sm">9 Chương Cốt Truyện</Badge>
+                <Badge variant="neutral" size="sm">{t('lobby.campaignBadge')}</Badge>
               </div>
 
               <div className="my-2 sm:my-2.5">
                 <h3 className="text-base sm:text-lg font-bold text-[var(--text-primary)] group-hover:text-white transition-colors">
-                  Chiến Dịch Cốt Truyện
+                  {t('lobby.campaignCardTitle')}
                 </h3>
                 <p className="text-xs text-[var(--text-muted)] mt-1 leading-relaxed line-clamp-2">
-                  Hành trình từ Sới Bạc Xóm đến Sòng Bạc Đỉnh Cao. Chinh phục từng chương, đánh bại các Trùm Sòng để mở khóa danh hiệu độc quyền.
+                  {t('lobby.campaignCardDesc')}
                 </p>
               </div>
 
               <div className="pt-2.5 border-t border-[var(--border-container)] flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-[var(--text-secondary)]">Nhận Danh Hiệu &amp; Xu Thưởng</span>
+                <span className="text-[11px] font-semibold text-[var(--text-secondary)]">{t('lobby.campaignRewardsBadge')}</span>
                 <Button
                   variant="surface"
                   size="sm"
                   rightIcon={<ArrowRight className="w-3 h-3 text-[var(--color-gold)]" />}
                 >
-                  Bản Đồ Chiến Dịch
+                  {t('lobby.campaignMapBtn')}
                 </Button>
               </div>
             </Card>
@@ -480,26 +496,26 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
                 <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--color-gold)] shadow-sm group-hover:border-[var(--border-gold)] transition-colors">
                   <Sliders className="w-5 h-5" />
                 </div>
-                <Badge variant="neutral" size="sm">Sandbox</Badge>
+                <Badge variant="neutral" size="sm">{t('lobby.customGameBadge')}</Badge>
               </div>
 
               <div className="my-2 sm:my-2.5">
                 <h3 className="text-base sm:text-lg font-bold text-[var(--text-primary)] group-hover:text-white transition-colors">
-                  Tùy Chỉnh Nâng Cao
+                  {t('lobby.customGameCardTitle')}
                 </h3>
                 <p className="text-xs text-[var(--text-muted)] mt-1 leading-relaxed line-clamp-2">
-                  Tự do chọn đối thủ, tinh chỉnh phong cách đánh, luật đếm lá, cóng, phạt chặt và mức cược.
+                  {t('lobby.customGameCardDesc')}
                 </p>
               </div>
 
               <div className="pt-2.5 border-t border-[var(--border-container)] flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-[var(--text-secondary)]">Tùy Biến 100% Luật &amp; Đối Thủ</span>
+                <span className="text-[11px] font-semibold text-[var(--text-secondary)]">{t('lobby.customGameCustomBadge')}</span>
                 <Button
                   variant="surface"
                   size="sm"
                   rightIcon={<ArrowRight className="w-3 h-3 text-[var(--color-gold)]" />}
                 >
-                  Tùy Chỉnh
+                  {t('lobby.customGameBtn')}
                 </Button>
               </div>
             </Card>

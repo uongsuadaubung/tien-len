@@ -1,4 +1,4 @@
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect, beforeEach } from 'bun:test';
 import { useOnlineStore } from '../../src/stores/useOnlineStore';
 import type { 
   OnlineSessionState, 
@@ -9,6 +9,24 @@ import type {
 import type { OnlineRoomState } from '../../src/engine/network/network.schema';
 
 describe('OnlineSessionState & State Pattern (P2P Multiplayer Online Room Session)', () => {
+  beforeEach(() => {
+    useOnlineStore.setState({
+      sessionState: {
+        status: 'IDLE',
+        publicRooms: []
+      },
+      isOnlineMatch: false,
+      isHost: false,
+      roomCode: null,
+      roomState: null,
+      myPlayerId: 'p0',
+      connectionStatus: 'IDLE',
+      disbandNotice: null,
+      publicRooms: [],
+      isBrowsingLobby: false,
+      isLobbyLoading: false
+    });
+  });
   const dummyRoomState: OnlineRoomState = {
     roomCode: 'TL-9999',
     hostPeerId: 'peer_host_1',

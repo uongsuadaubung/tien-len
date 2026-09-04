@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { lockToLandscape } from '../utils/fullscreen';
 import { soundManager } from '../audio/sound-manager';
 import { useIsMobile } from '../hooks/useIsMobile';
+import { useI18n } from '../../locales';
 
 export interface SplashScreenProps {
   message?: string;
@@ -12,12 +13,15 @@ export interface SplashScreenProps {
 }
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({
-  message = 'Đang nạp dữ liệu bàn đấu...',
-  subMessage = 'SỚI BẠC ĐÃ SẴN SÀNG',
+  message,
+  subMessage,
   isMobile: isMobileProp,
   isHydrated = true,
   onStart
 }) => {
+  const { t } = useI18n();
+  const displayMessage = message ?? t('splash.loadingData');
+  const displaySubMessage = subMessage ?? t('splash.ready');
   const deviceInfo = useIsMobile();
   const isMobile = isMobileProp !== undefined ? isMobileProp : deviceInfo.isMobile;
   const [progress, setProgress] = useState(10);
@@ -74,10 +78,10 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
         {/* Tiêu đề & Subtitle */}
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-amber-200 uppercase">
-            TIẾN LÊN MIỀN NAM
+            {t('table.emblem')}
           </h1>
           <p className="text-xs text-[var(--text-muted)] tracking-widest font-medium uppercase">
-            {message}
+            {displayMessage}
           </p>
         </div>
 
@@ -90,7 +94,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             />
           </div>
           <div className="flex justify-between w-full text-[10px] text-amber-400/80 font-mono font-bold tracking-wider">
-            <span>{isReady ? 'HOÀN TẤT' : 'KHỞI ĐỘNG'}</span>
+            <span>{isReady ? t('splash.complete') : t('splash.startup')}</span>
             <span>{progress}%</span>
           </div>
         </div>
@@ -105,12 +109,12 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-400 text-black font-black text-xs sm:text-sm uppercase tracking-widest shadow-[0_0_25px_rgba(245,158,11,0.6)] animate-pulse active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer mt-1"
           >
             <span>♠</span>
-            <span>VÀO GAME</span>
+            <span>{t('splash.enterGame')}</span>
             <span>♠</span>
           </button>
         ) : (
           <span className="text-[10px] text-amber-400/60 font-mono tracking-widest">
-            {subMessage}
+            {displaySubMessage}
           </span>
         )}
       </div>
