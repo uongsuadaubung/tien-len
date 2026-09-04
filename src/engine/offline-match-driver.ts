@@ -86,6 +86,7 @@ export class OfflineMatchDriver implements IMatchDriver {
   public chopNotification: ChopNotificationData | null = null;
   public botThinkingThought: { botId: string; text: string } | null = null;
   public instantWinType: InstantWinType | null = null;
+  public instantWinner: Player | null = null;
 
   // Runtime control
   private isDisposed: boolean = false;
@@ -182,7 +183,7 @@ export class OfflineMatchDriver implements IMatchDriver {
     }
 
     if (this.instantWinType) {
-      const winner = this.engine.instantWinner || this.engine.players.find(p => p.instantWinType) || this.engine.players[0];
+      const winner = this.instantWinner || this.engine.instantWinner || this.engine.players[0];
       return {
         status: 'INSTANT_WIN',
         gameNumber: this.engine.gameNumber,
@@ -224,13 +225,12 @@ export class OfflineMatchDriver implements IMatchDriver {
       };
     }
 
-    const currentId = this.engine.getCurrentPlayer()?.id || this.engine.currentRound.currentTurnPlayerId;
     return {
       status: 'PLAYING',
       gameNumber: this.engine.gameNumber,
       roundNumber: this.engine.roundNumber,
       players: [...this.engine.players],
-      currentTurnPlayerId: currentId,
+      currentTurnPlayerId: this.engine.currentRound.currentTurnPlayerId,
       leadPlayerId: this.engine.currentRound.leadPlayerId,
       roundMoves: [...this.engine.currentRound.moves],
       leadingMove: this.engine.getLeadingMove(),
@@ -307,6 +307,7 @@ export class OfflineMatchDriver implements IMatchDriver {
     this.isDisposed = false;
     this.gameNumber = roundNumber;
     this.instantWinType = null;
+    this.instantWinner = null;
     this.botThinkingThought = null;
     this.chopNotification = null;
 
@@ -343,12 +344,11 @@ export class OfflineMatchDriver implements IMatchDriver {
     this.dealBanner = null;
 
     // Xử lý Tới Trắng (Instant Win)
-    if (startResult.instantWin && startResult.instantWinType) {
+    if (startResult.instantWin) {
       this.instantWinType = startResult.instantWinType;
+      this.instantWinner = startResult.instantWinner;
       this.isDealing = false;
-      const winnerId = typeof startResult.instantWinner === 'object' && startResult.instantWinner !== null && 'id' in startResult.instantWinner
-        ? String(startResult.instantWinner.id)
-        : (typeof startResult.instantWinner === 'string' ? startResult.instantWinner : (this.engine ? this.engine.players[0].id : ''));
+      const winnerId = startResult.instantWinner.id;
 
       GameEventBus.getInstance().emit({
         type: 'INSTANT_WIN',
@@ -794,5 +794,6 @@ export class OfflineMatchDriver implements IMatchDriver {
     this.rules = null;
     this.settings = null;
     this.instantWinType = null;
+    this.instantWinner = null;
   }
 }

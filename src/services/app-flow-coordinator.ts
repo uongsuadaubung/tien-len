@@ -539,8 +539,7 @@ export class AppFlowCoordinator {
     }
 
     if (!this.driver || !this.driver.engine) return false;
-    const targetPlayerId = gameStore.myPlayerId || 'p0';
-    const player = this.driver.engine.getPlayer(targetPlayerId) || this.driver.engine.getPlayer('p0');
+    const player = this.driver.engine.getPlayer(gameStore.myPlayerId);
     if (!player) return false;
 
     const cardsToPlay = player.hand.filter(c => selectedIds.has(c.id));
@@ -563,8 +562,7 @@ export class AppFlowCoordinator {
     }
 
     if (!this.driver || !this.driver.engine) return false;
-    const targetPlayerId = gameStore.myPlayerId || 'p0';
-    const res = this.driver.passTurn(targetPlayerId);
+    const res = this.driver.passTurn(gameStore.myPlayerId);
     if (res.success) {
       gameStore.clearCardSelection();
       return true;

@@ -46,7 +46,20 @@ export interface BotTurnResult {
   chopChainCount: number | null;
   chopChainTotalAmount: number | null;
   isGameOver: boolean | null;
+  botDecisionDetails?: BotDecisionTelemetry | null;
 }
+
+export type StartGameResult =
+  | {
+      readonly instantWin: true;
+      readonly instantWinner: Player;
+      readonly instantWinType: InstantWinType;
+    }
+  | {
+      readonly instantWin: false;
+      readonly instantWinner?: never;
+      readonly instantWinType?: never;
+    };
 
 export class GameEngine {
   public players: Player[];
@@ -118,7 +131,7 @@ export class GameEngine {
     gameNumber = 1,
     previousWinnerId?: string,
     seedOrRng?: number | (() => number)
-  ): { instantWin: boolean; instantWinner?: Player; instantWinType?: InstantWinType } {
+  ): StartGameResult {
     this.gameNumber = gameNumber;
     this.isFirstMoveOfGame = this.gameNumber === 1;
     this.isGameOver = false;

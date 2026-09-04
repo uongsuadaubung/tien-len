@@ -103,13 +103,14 @@ export class HostEngineDriver implements IMatchDriver {
     });
 
     // 3. Initialize Engine
-    this.engine = new GameEngine(players, rules);
-    this.engine.startNewGame(this.gameNumber, this.lastWinnerId || undefined);
+    const engine = new GameEngine(players, rules);
+    this.engine = engine;
+    engine.startNewGame(this.gameNumber, this.lastWinnerId || undefined);
     this.cardTracker = new CardTracker();
 
     // 4. Fog of War: Dispatch private hands
     this.roomState.players.forEach((op: OnlinePlayer) => {
-      const p = this.engine?.players.find(pl => pl.id === op.playerId);
+      const p = engine.players.find(pl => pl.id === op.playerId);
       if (!p) return;
 
       if (op.isHost) {
@@ -120,11 +121,11 @@ export class HostEngineDriver implements IMatchDriver {
         const dealPacket: DealHandPacket = {
           playerId: p.id,
           cards: p.hand.map(c => ({ rank: c.rank, suit: c.suit, id: c.id })),
-          leadPlayerId: this.engine?.currentRound.leadPlayerId || 'p0',
-          firstTurnPlayerId: this.engine?.currentRound.currentTurnPlayerId || 'p0',
+          leadPlayerId: engine.currentRound.leadPlayerId,
+          firstTurnPlayerId: engine.currentRound.currentTurnPlayerId,
           gameNumber: this.gameNumber,
-          isFirstMoveOfGame: this.engine?.isFirstMoveOfGame ?? false,
-          isLeadMove: this.engine?.isRoundLeadMove() ?? true
+          isFirstMoveOfGame: engine.isFirstMoveOfGame,
+          isLeadMove: engine.isRoundLeadMove()
         };
         void this.p2pClient.sendPrivateDealHand(dealPacket, op.peerId);
       }
@@ -404,7 +405,11 @@ export class HostEngineDriver implements IMatchDriver {
     });
 
     const totalPlayers = this.engine.players.length;
-    const winnerId = this.engine.winners[0]?.id || 'p0';
+    const winner = this.engine.winners[0];
+    if (!winner) {
+      throw new Error('[HostEngineDriver] Không thể kết toán ván đấu khi danh sách winners rỗng!');
+    }
+    const winnerId = winner.id;
     const eloDeltas: Record<string, number> = {};
     this.engine.players.forEach(p => {
       const rank = this.engine?.winners.findIndex(w => w.id === p.id) ?? -1;

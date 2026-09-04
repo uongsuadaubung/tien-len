@@ -258,6 +258,8 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
 
     // Giả lập ván 1 kết thúc -> HostEngineDriver handleGameOver reset isReady của tất cả người chơi về false
     const driver = useOnlineStore.getState().hostDriver!;
+    driver.engine!.winners = [driver.engine!.players[0]];
+    driver.engine!.isGameOver = true;
     (driver as any).handleGameOver();
 
     const stateAfterEnd = useOnlineStore.getState();
@@ -331,6 +333,8 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
 
     // Kết thúc ván 1 và kích hoạt Rematch
     const driver = useOnlineStore.getState().hostDriver!;
+    driver.engine!.winners = [driver.engine!.players[0]];
+    driver.engine!.isGameOver = true;
     (driver as any).handleGameOver();
     useOnlineStore.getState().voteRematch(true);
     driver.handleRematchVote('p1', true);

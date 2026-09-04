@@ -54,7 +54,10 @@ export function settleCompletedMatch(engine: GameEngine): void {
   gameStore.setInstantWinType(resolvedInstantWinType || undefined);
 
   const winner = engine.winners[0];
-  const isPlayerWin = winner?.id === 'p0';
+  if (!winner) {
+    throw new Error('[MatchSettlementService] Không thể kết toán khi engine.winners rỗng!');
+  }
+  const isPlayerWin = winner.id === 'p0';
 
   const currentProfile = userStore.profile;
   const currentCoins = currentProfile.coins;
@@ -154,7 +157,7 @@ export function settleCompletedMatch(engine: GameEngine): void {
   const matchCompletedEvent: MatchCompletedEvent = {
     type: 'MATCH_COMPLETED',
     activeGameType,
-    winnerPlayerId: winner?.id || 'p0',
+    winnerPlayerId: winner.id,
     isHumanWinner: isPlayerWin,
     winners: engine.winners,
     allPlayers: engine.players,

@@ -319,7 +319,10 @@ export class CountCardsModeStrategy implements GameModeStrategy {
   }
 
   settleMatch(context: MatchSettlementContext): MatchSettlementResult {
-    const winnerFirst = context.winners[0] || context.players[0];
+    const winnerFirst = context.winners[0];
+    if (!winnerFirst) {
+      throw new Error(`[${this.id}] Không thể kết toán ván đấu khi danh sách winners rỗng!`);
+    }
     const payouts = calculateCountCardsSettlement(
       context.players,
       winnerFirst.id,
@@ -433,7 +436,10 @@ export class WinnerTakesAllModeStrategy implements GameModeStrategy {
   }
 
   settleMatch(context: MatchSettlementContext): MatchSettlementResult {
-    const winnerFirst = context.winners[0] || context.players[0];
+    const winnerFirst = context.winners[0];
+    if (!winnerFirst) {
+      throw new Error(`[${this.id}] Không thể kết toán ván đấu khi danh sách winners rỗng!`);
+    }
     const payouts = calculateWinnerTakesAllSettlement(
       context.players,
       winnerFirst.id,
