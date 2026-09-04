@@ -1,5 +1,5 @@
 import type { Card, Suit } from '../types';
-import { sortCards, isTwo, compareCards } from '../card';
+import { sortCards, isTwo } from '../card';
 import { partitionHand } from '../../ai/hand-partitioner';
 import { t } from '../../locales';
 

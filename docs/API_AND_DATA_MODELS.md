@@ -405,3 +405,53 @@ export const ECOSYSTEM_CONSTANTS = {
   DB_VERSION: 1
 } as const;
 ```
+
+---
+
+## 11. HỢP ĐỒNG ĐIỀU KHIỂN BÀN ĐẤU & STATE PATTERN (`IMatchDriver` & `MatchState`)
+
+### 11.1. `IMatchDriver` ([`src/engine/match-driver.interface.ts`](../src/engine/match-driver.interface.ts))
+Hợp đồng trừu tượng hóa điều khiển bàn đấu thống nhất cho cả `OfflineMatchDriver` và `HostEngineDriver`:
+
+```typescript
+export interface DriverActionResult {
+  success: boolean;
+  reason?: string;
+  error?: string;
+}
+
+export interface IMatchDriver {
+  readonly gameNumber: number;
+  playCards(playerId: string, cards: Card[]): DriverActionResult;
+  passTurn(playerId: string): DriverActionResult;
+  cleanup(): void;
+}
+```
+
+### 11.2. State Pattern: `MatchState` Discriminated Union ([`src/engine/state-machine/types.ts`](../src/engine/state-machine/types.ts))
+Kiến trúc State Pattern chuẩn hóa toàn bộ vòng đời ván đấu (cho cả Offline và Online):
+
+```typescript
+export type MatchStatus =
+  | 'WAITING'
+  | 'DEALING'
+  | 'PLAYING'
+  | 'INSTANT_WIN'
+  | 'ROUND_ENDED'
+  | 'GAME_OVER';
+
+export type MatchState =
+  | WaitingMatchState
+  | DealingMatchState
+  | PlayingTurnMatchState
+  | InstantWinMatchState
+  | RoundEndedMatchState
+  | GameOverMatchState;
+```
+- **`WaitingMatchState` (`status: 'WAITING'`)**: Trạng thái phòng chờ, chưa chia bài.
+- **`DealingMatchState` (`status: 'DEALING'`)**: Đang chạy animation chia bài và banner mở màn. Cấm đánh bài / bỏ lượt.
+- **`PlayingTurnMatchState` (`status: 'PLAYING'`)**: Trạng thái đánh lượt bài thông thường. Bảo đảm 100% `currentTurnPlayerId`, `leadPlayerId`, `isLeadMove`, `isFirstMoveOfGame` tồn tại hợp lệ.
+- **`InstantWinMatchState` (`status: 'INSTANT_WIN'`)**: Tới trắng ngay sau khi chia bài.
+- **`RoundEndedMatchState` (`status: 'ROUND_ENDED'`)**: Vòng chơi kết thúc khi tất cả người chơi khác đã bỏ lượt (`nextLeadPlayerId`, `roundWinnerId`).
+- **`GameOverMatchState` (`status: 'GAME_OVER'`)**: Ván bài kết thúc hoàn toàn, có danh sách xếp hạng `winners`, bảng kết toán tiền `matchPayouts` và `eloDeltas`.
+

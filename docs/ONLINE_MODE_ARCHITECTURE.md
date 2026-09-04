@@ -13,10 +13,11 @@ Chế độ **Chơi Online Cùng Bạn Bè** được xây dựng dựa trên ki
 │                                                                                          │
 │           ┌──────────────────────────────────────────────────────────────────┐           │
 │           │                   Chủ Phòng (Host Authoritative)                 │           │
-│           │   - Nắm giữ GameEngine & HostEngineDriver (Headless Server)      │           │
+│           │   - Nắm giữ GameEngine & HostEngineDriver (implement IMatchDriver) │           │
 │           │   - Chia bài riêng tư (Fog of War) cho từng máy khách            │           │
 │           │   - Điều phối lượt đánh, kiểm tra tính hợp lệ của nước đi        │           │
 │           │   - Tính toán kết toán (Settlement), thưởng phạt, cộng trừ Xu    │           │
+│           │   - Đồng bộ MatchState: WAITING, PLAYING, GAME_OVER chuẩn hóa    │           │
 │           └────────────────────────┬───────────────────┬─────────────────────┘           │
 │                                    │                   │                                 │
 │                Encrypted P2P Data  │                   │  Encrypted P2P Data             │
@@ -55,7 +56,7 @@ src/stores/
 ### Phân công trách nhiệm của từng Slice:
 - **`types.ts`**: Chứa các interface `CreateRoomOptions`, `OnlineDisbandNotice`, `RoomSliceState`, `MatchSliceState`, `ChatSliceState`. Tuân thủ **Strict Typing Policy**: Tuyệt đối không dùng `prop?: Type` mà luôn dùng `prop: Type | null`.
 - **`roomSlice.ts`**: Xử lý sinh mã PIN `TL-XXXX`, khởi tạo phòng cho Host, kết nối phòng cho Guest, lắng nghe sự kiện thoát phòng (`onPeerLeave`), xử lý thêm/xóa Bot ghế trống.
-- **`matchSlice.ts`**: Xử lý bắt đầu ván `startMatch` (lấp đầy Bot vào ghế trống nếu thiếu người, khởi tạo `HostEngineDriver`), gửi nước đi lạc quan `sendMoveAction`, gửi bỏ lượt `sendPassAction`, bỏ phiếu ván mới `voteRematch`.
+- **`matchSlice.ts`**: Xử lý bắt đầu ván `startMatch` (lấp đầy Bot vào ghế trống nếu thiếu người, khởi tạo `HostEngineDriver` triển khai `IMatchDriver`), thiết lập `PlayingTurnMatchState` và `GameOverMatchState` vào `useGameStore`, gửi nước đi lạc quan `sendMoveAction`, gửi bỏ lượt `sendPassAction`, bỏ phiếu ván mới `voteRematch`. Kết hợp cùng `AppFlowCoordinator` tạo cổng dispatch đồng nhất cho cả Offline và Online.
 - **`chatSlice.ts`**: Quản lý hàng đợi 50 tin nhắn gần nhất và phát tán gói tin chat qua mạng P2P.
 
 ---
@@ -147,13 +148,14 @@ Tất cả các gói tin mạng đều được định nghĩa và kiểm địn
 
 ## 7. KIỂM THỬ TỰ ĐỘNG & BẢO ĐẢM CHẤT LƯỢNG (TESTING & QA)
 
-Hệ thống mạng Online được bảo vệ bởi **23 bài test tự động chuyên sâu** tại thư mục `tests/network/`:
+Hệ thống mạng Online được bảo vệ bởi **26 bài test tự động chuyên sâu** tại thư mục `tests/network/`:
 
-1. **`tests/network/online-match-flow.test.ts` (10 tests):**
+1. **`tests/network/online-match-flow.test.ts` (13 tests):**
    - Tạo phòng, bắt đầu trận đấu, lấp đầy Bot tự động, dọn dẹp state khi rời phòng.
    - Sắp xếp bài thông minh trên máy Host & Khách.
    - Bỏ phiếu Rematch Ready Check và chuyển tiếp Ván 2 mượt mà.
    - Xử lý các kịch bản thoát phòng, ngắt mạng khi chờ và giữa trận.
+   - **Bàn 2 người chơi Online (Tests 11, 12, 13)**: Khởi động mượt mà với 3 Bích cho Host/Khách, kích hoạt `PlayingTurnMatchState`, xử lý trường hợp không ai có 3 Bích (26 lá chia).
 2. **`tests/network/online-settlement.test.ts` (6 tests):**
    - Kết toán Xu cho Host và Khách theo các mức cược và chế độ (Đếm Lá, Nhất Ăn Tất).
    - Mở bài đối thủ khi kết thúc ván (thối 2, cóng).

@@ -337,7 +337,7 @@ export const useGameStore = create<GameState>((set) => ({
   setAllEloDeltas: (deltas) => set({ allEloDeltas: deltas }),
   setMatchLogReport: (report) => set({ matchLogReport: report }),
   setMatchState: (matchState) => set({ matchState }),
-  applyMatchState: (matchState) => set((prev) => {
+  applyMatchState: (matchState) => set(() => {
     switch (matchState.status) {
       case 'WAITING':
         return {

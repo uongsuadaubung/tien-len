@@ -19,7 +19,6 @@ interface BotSeatProps {
 
 export const BotSeat: React.FC<BotSeatProps> = ({
   player,
-  botConfig,
   isCurrentTurn,
   position = 'top',
   isLeader,

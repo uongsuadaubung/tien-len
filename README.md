@@ -11,9 +11,10 @@
   1. ⚡ **Chơi Nhanh & Đấu Hạng (Quick Play & Ranked Elo)**: Tự động ghép trận với các đối thủ cùng trình độ Elo, tùy chọn luật (Đếm Lá, Nhất Ăn Tất, Truyền Thống, Solo 1v1), tính biến động điểm Elo chuẩn FIDE và tích lũy Xu thưởng.
   2. 🗺️ **Hành Trình Sự Nghiệp (Campaign Story)**: Chinh phục 5 chương cốt truyện độc đáo, mở khóa danh hiệu và phần thưởng đặc biệt.
   3. 🛠️ **Tùy Biến Bàn Chơi (Custom Sandbox)**: Tự do tinh chỉnh số người (2-4), mức cược, phạt chặt, cóng, về 3 bích cuối và chiến thuật đối thủ.
-* 🔄 **Unidirectional Flow & App Flow Coordinator**:
-  - **Cổng Tập Trung Duy Nhất (`AppFlowCoordinator`)**: Quản lý tập trung toàn bộ luồng vào trận, cọc tiền, về sảnh, đầu hàng, chơi lại.
-  - **Tách Game Loop Khỏi React (`OfflineMatchDriver`)**: Vòng lặp ván đấu, bot AI và animation chia bài chạy hoàn toàn bằng TypeScript Class độc lập với React DOM $\to$ triệt tiêu hoàn toàn race conditions, ghost timers và stale closures.
+* 🔄 **Unidirectional Flow, IMatchDriver & App Flow Coordinator**:
+  - **Cổng Tập Trung Duy Nhất (`AppFlowCoordinator`)**: Quản lý tập trung toàn bộ luồng vào trận, cọc tiền, đánh bài, bỏ lượt, về sảnh, đầu hàng cho cả chế độ Offline và Online P2P.
+  - **Hợp Đồng Điều Khiển Bàn Đấu Thống Nhất (`IMatchDriver`)**: `OfflineMatchDriver` và `HostEngineDriver` đều implement chung `IMatchDriver`, tách rời 100% logic ván đấu ra khỏi React DOM $\to$ triệt tiêu hoàn toàn race conditions, ghost timers và stale closures.
+  - **State Pattern Thống Nhất (`MatchState`)**: Giao diện UI hoàn toàn thuần khiết, nhận dữ liệu trực tiếp từ `matchState` (Discriminated Union: `WAITING`, `DEALING`, `PLAYING`, `ROUND_ENDED`, `GAME_OVER`), loại bỏ hoàn toàn mã phân mảnh `isOnline`.
   - **Modal State Machine (`useViewStore`)**: Discriminated Union đảm bảo chỉ có tối đa 1 Popup hiển thị, loại bỏ 100% nguy cơ kẹt giao diện.
   - **Atomic Snapshotting**: Đồng bộ dữ liệu bàn đấu nguyên tử qua `applyMatchSnapshot()`, giảm thiểu tối đa số lần re-render.
 * 🤖 **Hệ Sinh Thái 200 Đối Thủ Sống Động & AI Engine**:
@@ -43,7 +44,7 @@
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
 │                               1. PRESENTATION LAYER (UI / UX)                            │
 │  - React 19 Components (WebApp, MobileApp, LobbyHub, GameTable, HandView, BotSeat)       │
-│  - Dumb Components: Chỉ nhận Props hiển thị và phát Intent hành động người dùng          │
+│  - Dumb Components: Nhận MatchState thuần khiết, không phân biệt Online/Offline          │
 │  - Hardware-Accelerated CSS, Web Audio API Sound Manager                                 │
 └───────────────────────────────────────────┬──────────────────────────────────────────────┘
                                             │ User Intents (Chơi nhanh, Đánh bài, Bỏ lượt)
@@ -57,10 +58,11 @@
                                       │                   │ Starts / Controls Driver
          Emits Single Atomic Snapshot │                   ▼
                                       │ ┌──────────────────────────────────────────────────┐
-                                      │ │    3. ENGINE DRIVER LAYER (Pure TypeScript Class)│
+                                      │ │    3. ENGINE DRIVER LAYER (IMatchDriver Contract)│
+                                      │ │  - IMatchDriver: Hợp đồng điều khiển thống nhất   │
                                       │ │  - OfflineMatchDriver: Vòng lặp ván đấu ngoài DOM│
                                       │ │  - HostEngineDriver: Vòng lặp Host P2P WebRTC    │
-                                      │ │  - Quản lý Bot turn delay, animation chia bài    │
+                                      │ │  - Đồng bộ MatchState (State Pattern) nguyên tử  │
                                       │ │  - cleanup() ngắt 100% ghost timers khi rời bàn  │
                                       │ └─────────────────┬────────────────────────────────┘
                                       ▼                   │

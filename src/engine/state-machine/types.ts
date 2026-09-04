@@ -1,4 +1,4 @@
-import type { Card, Player, PlayedMove, InstantWinType, GameRules } from '../types';
+import type { Player, PlayedMove, InstantWinType, GameRules } from '../types';
 import type { MatchLogReport } from '../match-logger';
 
 export type MatchStatus =

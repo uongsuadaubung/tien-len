@@ -53,16 +53,16 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
   const [betError, setBetError] = useState<string | null>(null);
   const { isMobile } = useIsMobile();
 
-  const playerCountOptions = [
-    { count: 2 as PlayerCount, label: t('tableConfig.playerCount2'), desc: t('tableConfig.playerCount2Desc') },
-    { count: 3 as PlayerCount, label: t('tableConfig.playerCount3'), desc: t('tableConfig.playerCount3Desc') },
-    { count: 4 as PlayerCount, label: t('tableConfig.playerCount4'), desc: t('tableConfig.playerCount4Desc') }
+  const playerCountOptions: Array<{ count: PlayerCount; label: string; desc: string }> = [
+    { count: 2, label: t('tableConfig.playerCount2'), desc: t('tableConfig.playerCount2Desc') },
+    { count: 3, label: t('tableConfig.playerCount3'), desc: t('tableConfig.playerCount3Desc') },
+    { count: 4, label: t('tableConfig.playerCount4'), desc: t('tableConfig.playerCount4Desc') }
   ];
 
-  const gameModeTabs = [
-    { mode: 'COUNT_CARDS' as GameMode, label: t('modes.countCards') },
-    { mode: 'WINNER_TAKES_ALL' as GameMode, label: t('modes.winnerTakesAll') },
-    { mode: 'TRADITIONAL' as GameMode, label: t('modes.traditional') }
+  const gameModeTabs: Array<{ mode: GameMode; label: string }> = [
+    { mode: 'COUNT_CARDS', label: t('modes.countCards') },
+    { mode: 'WINNER_TAKES_ALL', label: t('modes.winnerTakesAll') },
+    { mode: 'TRADITIONAL', label: t('modes.traditional') }
   ];
 
   useEffect(() => {

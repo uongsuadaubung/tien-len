@@ -1,6 +1,5 @@
 import React from 'react';
 import { CampaignChapter } from '../../../engine/campaign';
-import { getTierFromElo } from '../../../engine/ecosystem/ecosystem-types';
 import { Lock, CheckCircle2, Award, Swords, MapPin, Eye } from 'lucide-react';
 import { Card, Badge, Button } from '../../primitives';
 import { MobileScreenWrapper } from './MobileScreenWrapper';

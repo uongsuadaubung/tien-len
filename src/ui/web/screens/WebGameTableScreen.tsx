@@ -49,7 +49,6 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
   const {
     players,
     gameNumber,
-    matchState,
     gameSettings,
     activeGameType,
     selectedCardIds,
@@ -60,39 +59,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     clearCardSelection
   } = useGameStore();
 
-  const isOnline = activeGameType === 'ONLINE';
-  const isDealing = isOnline ? useGameStore.getState().isDealing : matchState.status === 'DEALING';
-  const isPlaying = isOnline
-    ? (matchState.status === 'PLAYING' || (!useGameStore.getState().isGameOver && !isDealing && players.length > 0))
-    : matchState.status === 'PLAYING';
-  const isRoundEnded = matchState.status === 'ROUND_ENDED';
-  const storeDealtCounts = useGameStore(s => s.dealtCounts);
-  const dealtCounts = matchState.status === 'DEALING' ? matchState.dealtCounts : storeDealtCounts;
-  const dealBanner = isDealing ? (matchState.status === 'DEALING' ? matchState.dealBanner : useGameStore.getState().dealBanner) : null;
-  const currentTurnPlayerId = isPlaying
-    ? (matchState.status === 'PLAYING' ? matchState.currentTurnPlayerId : useGameStore.getState().currentTurnPlayerId)
-    : (isRoundEnded ? matchState.nextLeadPlayerId : null);
-  const leadPlayerId = isPlaying
-    ? (matchState.status === 'PLAYING' ? matchState.leadPlayerId : useGameStore.getState().leadPlayerId)
-    : (isRoundEnded ? matchState.nextLeadPlayerId : null);
-  const currentMove = isPlaying
-    ? (matchState.status === 'PLAYING' ? matchState.leadingMove : useGameStore.getState().currentMove)
-    : null;
-  const chopNotification = (isPlaying || isRoundEnded)
-    ? (matchState.status === 'PLAYING' || matchState.status === 'ROUND_ENDED' ? matchState.chopNotification : useGameStore.getState().chopNotification)
-    : null;
-  const botThinkingThought = isPlaying
-    ? (matchState.status === 'PLAYING' ? matchState.botThinkingThought : useGameStore.getState().botThinkingThought)
-    : null;
-  const isLeadMove = isPlaying
-    ? (matchState.status === 'PLAYING' ? matchState.isLeadMove : (currentMove === null))
-    : true;
-  const isFirstMoveOfGame = isPlaying
-    ? (matchState.status === 'PLAYING' ? matchState.isFirstMoveOfGame : useGameStore.getState().isFirstMoveOfGame)
-    : false;
-
   const {
-    isOnlineMatch,
     p0,
     isMyTurn,
     isValidPlaySelection,
@@ -110,7 +77,17 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     activeAiHint,
     handleQuickSelect,
     handlePlayCards,
-    handlePassTurnAction
+    handlePassTurnAction,
+    isDealing,
+    dealtCounts,
+    dealBanner,
+    currentTurnPlayerId,
+    leadPlayerId,
+    currentMove,
+    chopNotification,
+    botThinkingThought,
+    isLeadMove,
+    isFirstMoveOfGame
   } = useGameTableScreenLogic({
     onPlaySelectedCards,
     onPassTurn
@@ -220,7 +197,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
               <DealingDeckAnimation
                 isDealing={isDealing}
                 playerCount={playerCount}
-                players={matchState.players}
+                players={players}
                 onDealCard={onDealCard}
                 onDealComplete={onDealComplete}
                 onSkip={onDealComplete}

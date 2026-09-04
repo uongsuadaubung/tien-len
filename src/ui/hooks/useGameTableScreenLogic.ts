@@ -8,13 +8,13 @@ import {
   QuickSelectCandidate 
 } from '../../engine/quick-response-finder';
 import { soundManager } from '../audio/sound-manager';
-import { Player, Card } from '../../engine/types';
+import { Player, Card, PlayedMove } from '../../engine/types';
 import { BotConfig } from '../../ai/types';
+import type { ChopNotificationInfo, BotThinkingInfo } from '../../engine/state-machine/types';
 
 // Stores
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useGameStore } from '../../stores/useGameStore';
-import { useOnlineStore } from '../../stores/useOnlineStore';
 
 export interface UseGameTableScreenLogicProps {
   onPlaySelectedCards: () => void;
@@ -22,7 +22,6 @@ export interface UseGameTableScreenLogicProps {
 }
 
 export interface GameTableScreenLogicResult {
-  isOnlineMatch: boolean;
   myPlayerIndex: number;
   p0: Player | null;
   isMyTurn: boolean;
@@ -45,6 +44,18 @@ export interface GameTableScreenLogicResult {
   handleQuickSelect: () => void;
   handlePlayCards: () => void;
   handlePassTurnAction: () => void;
+  // MatchState derived properties
+  isDealing: boolean;
+  isPlaying: boolean;
+  dealtCounts: Readonly<Record<string, number>>;
+  dealBanner: string | null;
+  currentTurnPlayerId: string | null;
+  leadPlayerId: string | null;
+  currentMove: PlayedMove | null;
+  chopNotification: ChopNotificationInfo | null;
+  botThinkingThought: BotThinkingInfo | null;
+  isLeadMove: boolean;
+  isFirstMoveOfGame: boolean;
 }
 
 export function useGameTableScreenLogic({
@@ -56,7 +67,6 @@ export function useGameTableScreenLogic({
   } = useSettingsStore();
 
   const {
-    activeGameType,
     myPlayerId,
     playerCount,
     botPersonaIds,
@@ -66,47 +76,39 @@ export function useGameTableScreenLogic({
     selectedCardIds,
     currentHint,
     gameRules,
-    setSelectedCardIds,
-    clearCardSelection
+    dealtCounts: storeDealtCounts,
+    setSelectedCardIds
   } = useGameStore();
-
-  const isOnlineMatch = activeGameType === 'ONLINE';
 
   // Xác định người chơi cục bộ theo perspective
   const myPlayerIndex = Math.max(0, players.findIndex(p => p.id === myPlayerId));
   const p0 = players[myPlayerIndex] || (players.length > 0 ? players[0] : null);
 
-  // Trích xuất thuộc tính bảo đảm tồn tại từ State Pattern (Discriminated Union), có hỗ trợ fallback cho online
-  const isPlaying = isOnlineMatch
-    ? (matchState.status === 'PLAYING' || (!useGameStore.getState().isGameOver && !useGameStore.getState().isDealing && players.length > 0))
-    : matchState.status === 'PLAYING';
+  // Trích xuất thuộc tính bảo đảm tồn tại từ State Pattern (Discriminated Union)
+  const isDealing = matchState.status === 'DEALING';
+  const isPlaying = matchState.status === 'PLAYING';
+  const isRoundEnded = matchState.status === 'ROUND_ENDED';
+
+  const dealtCounts = isDealing ? matchState.dealtCounts : storeDealtCounts;
+  const dealBanner = isDealing ? matchState.dealBanner : null;
 
   const currentTurnPlayerId = isPlaying
-    ? (matchState.status === 'PLAYING' ? matchState.currentTurnPlayerId : useGameStore.getState().currentTurnPlayerId)
-    : null;
+    ? matchState.currentTurnPlayerId
+    : (isRoundEnded ? matchState.nextLeadPlayerId : null);
 
   const leadPlayerId = isPlaying
-    ? (matchState.status === 'PLAYING' ? matchState.leadPlayerId : useGameStore.getState().leadPlayerId)
-    : null;
+    ? matchState.leadPlayerId
+    : (isRoundEnded ? matchState.nextLeadPlayerId : null);
 
-  const currentMove = isPlaying
-    ? (matchState.status === 'PLAYING' ? matchState.leadingMove : useGameStore.getState().currentMove)
-    : null;
-
-  const isLeadMove = isPlaying
-    ? (matchState.status === 'PLAYING' ? matchState.isLeadMove : (currentMove === null))
-    : true;
-
-  const isFirstMoveOfGame = isPlaying
-    ? (matchState.status === 'PLAYING' ? matchState.isFirstMoveOfGame : useGameStore.getState().isFirstMoveOfGame)
-    : false;
+  const currentMove = isPlaying ? matchState.leadingMove : null;
+  const chopNotification = (isPlaying || isRoundEnded) ? matchState.chopNotification : null;
+  const botThinkingThought = isPlaying ? matchState.botThinkingThought : null;
+  const isLeadMove = isPlaying ? matchState.isLeadMove : true;
+  const isFirstMoveOfGame = isPlaying ? matchState.isFirstMoveOfGame : false;
 
   // Lượt của tôi: chỉ có thể xảy ra khi trận đấu đang ở trạng thái PLAYING
   const isMyTurn = isPlaying && currentTurnPlayerId === myPlayerId;
   const selectedCards = p0 !== null ? p0.hand.filter(c => selectedCardIds.has(c.id)) : [];
-
-  const effectiveIsFirstMove = isFirstMoveOfGame;
-  const effectiveIsLeadMove = isLeadMove;
 
   const isValidPlaySelection =
     isMyTurn &&
@@ -114,8 +116,8 @@ export function useGameTableScreenLogic({
     isValidMove({
       cards: selectedCards,
       target: currentMove !== null ? currentMove.combination : null,
-      isFirstMoveOfGame: effectiveIsFirstMove,
-      isLeadMove: effectiveIsLeadMove,
+      isFirstMoveOfGame,
+      isLeadMove,
       hasPassedRound: p0 !== null ? p0.isPassedCurrentRound : false,
       allowFourPairsCutAnytime: gameRules.chopping.allowFourPairsCutAnytime,
       isFinishingMove: selectedCards.length === (p0 !== null ? p0.hand.length : 0),
@@ -125,7 +127,7 @@ export function useGameTableScreenLogic({
   // Không cần kiểm tra !isDealing vì isMyTurn đã bảo đảm trận đấu ở trạng thái PLAYING
   const canP0Pass =
     isMyTurn &&
-    !effectiveIsLeadMove &&
+    !isLeadMove &&
     currentMove !== null &&
     currentMove.playerId !== myPlayerId;
 
@@ -135,12 +137,12 @@ export function useGameTableScreenLogic({
     return getSortedQuickSelectCandidates({
       hand: p0.hand,
       leadingMove: currentMove,
-      isLeadMove: effectiveIsLeadMove,
-      isFirstMoveOfGame: effectiveIsFirstMove,
+      isLeadMove,
+      isFirstMoveOfGame,
       allowFourPairsCutAnytime: gameRules.chopping.allowFourPairsCutAnytime,
       prohibitEndingWithTwo: gameRules.gameFlow.prohibitEndingWithTwo
     });
-  }, [isMyTurn, p0, currentMove, effectiveIsLeadMove, effectiveIsFirstMove, gameRules]);
+  }, [isMyTurn, p0, currentMove, isLeadMove, isFirstMoveOfGame, gameRules]);
 
   // Phản hồi nhận xét chiến thuật thời gian thực của Quân Sư
   const activeAiHint = useMemo(() => {
@@ -153,15 +155,15 @@ export function useGameTableScreenLogic({
       selectedCards,
       hand: p0.hand,
       leadingMove: currentMove,
-      isFirstMoveOfGame: effectiveIsFirstMove,
-      isLeadMove: effectiveIsLeadMove,
+      isFirstMoveOfGame,
+      isLeadMove,
       tracker,
       optimalHint: currentHint,
       prohibitEndingWithTwo: gameRules.gameFlow.prohibitEndingWithTwo
     });
 
     return feedback !== null ? feedback : currentHint;
-  }, [aiHintEnabled, isMyTurn, p0, selectedCards, currentHint, currentMove, effectiveIsFirstMove, effectiveIsLeadMove, gameRules]);
+  }, [aiHintEnabled, isMyTurn, p0, selectedCards, currentHint, currentMove, isFirstMoveOfGame, isLeadMove, gameRules]);
 
   const canQuickSelect = isMyTurn && quickSelectCandidates.length > 0;
 
@@ -172,8 +174,8 @@ export function useGameTableScreenLogic({
       {
         hand: p0.hand,
         leadingMove: currentMove,
-        isLeadMove: effectiveIsLeadMove,
-        isFirstMoveOfGame: effectiveIsFirstMove,
+        isLeadMove,
+        isFirstMoveOfGame,
         allowFourPairsCutAnytime: gameRules.chopping.allowFourPairsCutAnytime,
         prohibitEndingWithTwo: gameRules.gameFlow.prohibitEndingWithTwo
       },
@@ -184,7 +186,7 @@ export function useGameTableScreenLogic({
       setSelectedCardIds(new Set(nextCards.map(c => c.id)));
       soundManager.playCardDeal();
     }
-  }, [isMyTurn, p0, currentMove, effectiveIsLeadMove, effectiveIsFirstMove, gameRules, selectedCardIds, setSelectedCardIds]);
+  }, [isMyTurn, p0, currentMove, isLeadMove, isFirstMoveOfGame, gameRules, selectedCardIds, setSelectedCardIds]);
 
   // Phân bổ ghế tương đối theo chiều kim đồng hồ quanh bàn
   const isSolo1v1 = playerCount === 2;
@@ -199,25 +201,14 @@ export function useGameTableScreenLogic({
   const topBotCustomConfig = isSolo1v1 ? (customBotConfigs[0] || null) : (customBotConfigs[1] || null);
 
   const handlePlayCards = useCallback(() => {
-    if (isOnlineMatch) {
-      useOnlineStore.getState().sendMoveAction(Array.from(selectedCardIds));
-      clearCardSelection();
-    } else {
-      onPlaySelectedCards();
-    }
-  }, [isOnlineMatch, selectedCardIds, clearCardSelection, onPlaySelectedCards]);
+    onPlaySelectedCards();
+  }, [onPlaySelectedCards]);
 
   const handlePassTurnAction = useCallback(() => {
-    if (isOnlineMatch) {
-      useOnlineStore.getState().sendPassAction();
-      clearCardSelection();
-    } else {
-      onPassTurn();
-    }
-  }, [isOnlineMatch, clearCardSelection, onPassTurn]);
+    onPassTurn();
+  }, [onPassTurn]);
 
   return {
-    isOnlineMatch,
     myPlayerIndex,
     p0,
     isMyTurn,
@@ -239,6 +230,17 @@ export function useGameTableScreenLogic({
     activeAiHint,
     handleQuickSelect,
     handlePlayCards,
-    handlePassTurnAction
+    handlePassTurnAction,
+    isDealing,
+    isPlaying,
+    dealtCounts,
+    dealBanner,
+    currentTurnPlayerId,
+    leadPlayerId,
+    currentMove,
+    chopNotification,
+    botThinkingThought,
+    isLeadMove,
+    isFirstMoveOfGame
   };
 }

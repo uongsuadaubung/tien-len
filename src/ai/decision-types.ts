@@ -36,7 +36,7 @@ export {
   type PassBotDecision,
   type BotThinkingPhaseStatus 
 } from './thinking-phases';
-import type { PlayBotDecision, PassBotDecision, BotDecision } from './thinking-phases';
+import type { BotDecision } from './thinking-phases';
 
 export interface BuildBotDecisionOptions {
   cards: Card[] | null;

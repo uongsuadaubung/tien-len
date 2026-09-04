@@ -27,6 +27,7 @@ import type { CampaignChapter } from './campaign';
 import { getOptimalMoveHint, type MoveHint } from '../ai/hint-engine';
 import { getSortedQuickSelectCandidates } from './quick-response-finder';
 import { assertValidSnapshot } from './invariants/match-invariants';
+import type { IMatchDriver } from './match-driver.interface';
 
 export interface TableSessionConfig {
   gameType: 'QUICK' | 'CAMPAIGN' | 'CUSTOM';
@@ -66,7 +67,7 @@ export type SnapshotListener = (snapshot: MatchSnapshot) => void;
 export type MatchStateListener = (state: MatchState) => void;
 export type CompletionListener = (result: MatchCompletionResult) => void;
 
-export class OfflineMatchDriver {
+export class OfflineMatchDriver implements IMatchDriver {
   public tableConfig: TableSessionConfig | null = null;
   public engine: GameEngine | null = null;
   public trackers: Record<string, CardTracker> = {};
@@ -345,8 +346,8 @@ export class OfflineMatchDriver {
     if (startResult.instantWin && startResult.instantWinType) {
       this.instantWinType = startResult.instantWinType;
       this.isDealing = false;
-      const winnerId = typeof startResult.instantWinner === 'object' && startResult.instantWinner !== null
-        ? (startResult.instantWinner as any).id
+      const winnerId = typeof startResult.instantWinner === 'object' && startResult.instantWinner !== null && 'id' in startResult.instantWinner
+        ? String(startResult.instantWinner.id)
         : (typeof startResult.instantWinner === 'string' ? startResult.instantWinner : (this.engine ? this.engine.players[0].id : ''));
 
       GameEventBus.getInstance().emit({

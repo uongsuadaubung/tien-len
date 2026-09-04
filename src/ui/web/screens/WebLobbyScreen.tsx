@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { getRankTierByElo, RANK_TIERS } from '../../../engine/elo';
-import { getSettlementRuleLabel } from '../../../engine/types';
 import { useViewStore } from '../../../stores/useViewStore';
 import { useEcosystemStore } from '../../../stores/useEcosystemStore';
 import { useGameStore } from '../../../stores/useGameStore';

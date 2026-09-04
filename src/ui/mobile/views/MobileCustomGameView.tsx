@@ -18,7 +18,22 @@ import {
   CustomGameTabType 
 } from '../../hooks/useCustomGame';
 import { useUserStore } from '../../../stores/useUserStore';
-import { useI18n } from '../../../locales';
+import { useI18n, type I18nKeyPath } from '../../../locales';
+import type { BotPersonaIdTuple } from '../../../engine/types';
+
+interface BotPreset {
+  readonly id: string;
+  readonly nameKey: I18nKeyPath;
+  readonly descKey: I18nKeyPath;
+  readonly botIds: BotPersonaIdTuple;
+}
+
+const BOT_PRESETS: readonly BotPreset[] = [
+  { id: 'NEWBIE_TABLE', nameKey: 'customGame.presetNewbieName', descKey: 'customGame.presetNewbieDesc', botIds: ['BOT_ELO_700', 'BOT_ELO_750', 'BOT_ELO_850'] },
+  { id: 'CASUAL_STREET', nameKey: 'customGame.presetCasualName', descKey: 'customGame.presetCasualDesc', botIds: ['BOT_ELO_950', 'BOT_ELO_1000', 'BOT_ELO_1150'] },
+  { id: 'MID_TIER_PRO', nameKey: 'customGame.presetProName', descKey: 'customGame.presetProDesc', botIds: ['BOT_ELO_1500', 'BOT_ELO_1750', 'BOT_ELO_1800'] },
+  { id: 'ELITE_CLUB', nameKey: 'customGame.presetEliteName', descKey: 'customGame.presetEliteDesc', botIds: ['BOT_ELO_2000', 'BOT_ELO_2300', 'BOT_ELO_2500'] }
+];
 
 export interface MobileCustomGameViewProps {
   isOpen: boolean;
@@ -176,22 +191,17 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {([
-                  { id: 'NEWBIE_TABLE', nameKey: 'customGame.presetNewbieName', descKey: 'customGame.presetNewbieDesc', botIds: ['BOT_ELO_700', 'BOT_ELO_750', 'BOT_ELO_850'] as const },
-                  { id: 'CASUAL_STREET', nameKey: 'customGame.presetCasualName', descKey: 'customGame.presetCasualDesc', botIds: ['BOT_ELO_950', 'BOT_ELO_1000', 'BOT_ELO_1150'] as const },
-                  { id: 'MID_TIER_PRO', nameKey: 'customGame.presetProName', descKey: 'customGame.presetProDesc', botIds: ['BOT_ELO_1500', 'BOT_ELO_1750', 'BOT_ELO_1800'] as const },
-                  { id: 'ELITE_CLUB', nameKey: 'customGame.presetEliteName', descKey: 'customGame.presetEliteDesc', botIds: ['BOT_ELO_2000', 'BOT_ELO_2300', 'BOT_ELO_2500'] as const }
-                ] as const).map((preset) => (
+                {BOT_PRESETS.map((preset) => (
                   <button
                     key={preset.id}
-                    onClick={() => handleApplyBotPreset([preset.botIds[0], preset.botIds[1], preset.botIds[2]])}
+                    onClick={() => handleApplyBotPreset(preset.botIds)}
                     className="p-2.5 rounded-xl bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border border-[var(--border-card)] hover:border-[var(--border-gold)] text-left transition-all group cursor-pointer shadow-sm"
                   >
                     <div className="text-xs font-bold text-[var(--text-primary)] group-hover:text-[var(--color-gold)]">
-                      {t(preset.nameKey as any)}
+                      {t(preset.nameKey)}
                     </div>
                     <div className="text-[10px] text-[var(--text-muted)] mt-0.5 line-clamp-1">
-                      {t(preset.descKey as any)}
+                      {t(preset.descKey)}
                     </div>
                   </button>
                 ))}

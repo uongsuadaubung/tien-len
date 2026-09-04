@@ -419,6 +419,11 @@ export class AppFlowCoordinator {
    * Bỏ cuộc giữa trận (Forfeit)
    */
   public forfeitMatch(): void {
+    if (useGameStore.getState().activeGameType === 'ONLINE') {
+      useOnlineStore.getState().leaveRoom();
+      return;
+    }
+
     if (this.driver) {
       this.driver.cleanup();
       this.driver = null;
@@ -523,27 +528,45 @@ export class AppFlowCoordinator {
   // =========================================================================
 
   public playSelectedCards(): boolean {
-    if (!this.driver || !this.driver.engine) return false;
-    const p0 = this.driver.engine.getPlayer('p0');
-    if (!p0) return false;
+    const gameStore = useGameStore.getState();
+    const selectedIds = gameStore.selectedCardIds;
+    if (selectedIds.size === 0) return false;
 
-    const selectedIds = useGameStore.getState().selectedCardIds;
-    const cardsToPlay = p0.hand.filter(c => selectedIds.has(c.id));
+    if (gameStore.activeGameType === 'ONLINE') {
+      useOnlineStore.getState().sendMoveAction(Array.from(selectedIds));
+      gameStore.clearCardSelection();
+      return true;
+    }
+
+    if (!this.driver || !this.driver.engine) return false;
+    const targetPlayerId = gameStore.myPlayerId || 'p0';
+    const player = this.driver.engine.getPlayer(targetPlayerId) || this.driver.engine.getPlayer('p0');
+    if (!player) return false;
+
+    const cardsToPlay = player.hand.filter(c => selectedIds.has(c.id));
     if (cardsToPlay.length === 0) return false;
 
-    const res = this.driver.playCards('p0', cardsToPlay);
+    const res = this.driver.playCards(player.id, cardsToPlay);
     if (res.success) {
-      useGameStore.getState().clearCardSelection();
+      gameStore.clearCardSelection();
       return true;
     }
     return false;
   }
 
   public passTurn(): boolean {
+    const gameStore = useGameStore.getState();
+    if (gameStore.activeGameType === 'ONLINE') {
+      useOnlineStore.getState().sendPassAction();
+      gameStore.clearCardSelection();
+      return true;
+    }
+
     if (!this.driver || !this.driver.engine) return false;
-    const res = this.driver.passTurn('p0');
+    const targetPlayerId = gameStore.myPlayerId || 'p0';
+    const res = this.driver.passTurn(targetPlayerId);
     if (res.success) {
-      useGameStore.getState().clearCardSelection();
+      gameStore.clearCardSelection();
       return true;
     }
     return false;

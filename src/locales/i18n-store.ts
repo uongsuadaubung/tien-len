@@ -26,7 +26,7 @@ function resolveKeyPath(dict: LocaleDictionary, path: string): string {
   let current: unknown = dict;
   for (const part of parts) {
     if (current && typeof current === 'object' && part in current) {
-      current = (current as Record<string, unknown>)[part];
+      current = Reflect.get(current, part);
     } else {
       return path;
     }

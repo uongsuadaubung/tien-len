@@ -25,10 +25,11 @@ Hệ thống được thiết kế theo mô hình kiến trúc phân lớp sạc
                                       │                   │ Starts / Controls Driver
          Emits Single Atomic Snapshot │                   ▼
                                       │ ┌──────────────────────────────────────────────────┐
-                                      │ │    3. ENGINE DRIVER LAYER (Pure TypeScript Class)│
+                                      │ │    3. ENGINE DRIVER LAYER (IMatchDriver Contract)│
+                                      │ │  - IMatchDriver: Hợp đồng điều khiển thống nhất   │
                                       │ │  - OfflineMatchDriver: Vòng lặp ván đấu ngoài DOM│
                                       │ │  - HostEngineDriver: Vòng lặp Host P2P WebRTC    │
-                                      │ │  - Quản lý Bot turn delay, animation chia bài    │
+                                      │ │  - Đồng bộ MatchState (State Pattern) nguyên tử  │
                                       │ │  - cleanup() ngắt 100% ghost timers khi rời bàn  │
                                       │ └─────────────────┬────────────────────────────────┘
                                       ▼                   │
@@ -107,20 +108,23 @@ Triển khai tại [`src/engine/evaluators/progress-evaluators.ts`](../src/engin
 
 ---
 
-### 2.6. App Flow Coordinator & Offline Match Driver Pattern (Decoupled Game Loop & Unidirectional Flow)
-Triển khai tại [`src/services/app-flow-coordinator.ts`](../src/services/app-flow-coordinator.ts), [`src/engine/offline-match-driver.ts`](../src/engine/offline-match-driver.ts) và [`src/stores/useViewStore.ts`](../src/stores/useViewStore.ts):
-1. **Cổng Điều Phối Chuyển Cảnh Duy Nhất (`AppFlowCoordinator`)**:
-   - Loại bỏ hoàn toàn việc gọi `setCurrentScreen` hay set state rời rạc trong các Component / Hook.
+### 2.6. App Flow Coordinator, IMatchDriver & State Pattern (Unified Zero-Fragmentation Architecture)
+Triển khai tại [`src/services/app-flow-coordinator.ts`](../src/services/app-flow-coordinator.ts), [`src/engine/match-driver.interface.ts`](../src/engine/match-driver.interface.ts), [`src/engine/offline-match-driver.ts`](../src/engine/offline-match-driver.ts), [`src/engine/network/host-engine-driver.ts`](../src/engine/network/host-engine-driver.ts) và [`src/stores/useViewStore.ts`](../src/stores/useViewStore.ts):
+1. **Cổng Điều Phối Chuyển Cảnh & Hành Động Duy Nhất (`AppFlowCoordinator`)**:
+   - Loại bỏ hoàn toàn sự phân mảnh giữa Online và Offline: `playSelectedCards()`, `passTurn()`, `forfeitMatch()`, `returnToLobby()` được xử lý tập trung, tự động dispatch đúng kênh (Online P2P actions vs Offline driver calls).
    - Quản lý toàn bộ vòng đời ván đấu qua đường ống tuần tự: Kiểm tra số dư Xu $\to$ Khóa cọc $\to$ Tạo Driver $\to$ Đóng Popups $\to$ Chuyển `GAME_TABLE` $\to$ Chia bài.
-   - Quản lý an toàn cổng về sảnh (`returnToLobby`): Hủy Driver, ngắt 100% timers, dọn dẹp active session (chống phạt F5 oan) và đưa màn hình về `LOBBY`.
-2. **Vòng Lặp Ván Đấu Độc Lập Khỏi React (`OfflineMatchDriver`)**:
-   - Tách rời toàn bộ logic nhịp đánh Bot, đếm giây, animation chia bài ra khỏi React `useEffect`.
-   - Vận hành bằng Pure TypeScript Class, không phụ thuộc vào chu kỳ render của DOM $\to$ triệt tiêu hoàn toàn Stale Closures và Race Conditions.
+   - Quản lý an toàn cổng về sảnh (`returnToLobby`): Hủy Driver, ngắt 100% timers, ngắt kết nối P2P (nếu online), dọn dẹp active session (chống phạt F5 oan) và đưa màn hình về `LOBBY`.
+2. **Hợp Đồng Điều Khiển Bàn Đấu Thống Nhất (`IMatchDriver`)**:
+   - Giao diện chuẩn mực đóng gói thao tác chơi bài: `playCards(playerId, cards)`, `passTurn(playerId)`, `cleanup()`, `gameNumber`.
+   - Cả `OfflineMatchDriver` (chơi đơn với Bot) và `HostEngineDriver` (chơi mạng P2P) đều tuân thủ chặt chẽ `IMatchDriver`, tách rời 100% logic ván đấu ra khỏi chu kỳ render của React DOM $\to$ triệt tiêu hoàn toàn Stale Closures và Race Conditions.
    - Cơ chế `cleanup()` hủy tức thì 100% `setTimeout` trong RAM khi người chơi rời bàn hoặc đầu hàng.
-3. **Modal State Machine (`useViewStore`)**:
+3. **State Pattern Thống Nhất Không Phân Mảnh (`MatchState`)**:
+   - Toàn bộ ván đấu (cả Offline lẫn Online) đều vận hành qua Discriminated Union `MatchState`: `WAITING`, `DEALING`, `PLAYING`, `INSTANT_WIN`, `ROUND_ENDED`, `GAME_OVER`.
+   - Các màn hình UI (`WebGameTableScreen.tsx`, `MobileGameTableScreen.tsx`, `useGameTableScreenLogic.ts`) hoàn toàn không cần phân nhánh `if (isOnlineMatch)` hay toán tử ba ngôi `isOnline ? ... : ...`. Toàn bộ thông tin lượt đánh, người dẫn đầu, nước bài hiện tại, cờ 3 Bích mở màn đều được trích xuất an toàn từ `MatchState`.
+4. **Modal State Machine (`useViewStore`)**:
    - Quản lý `currentScreen` và `activeModal` dưới dạng **Discriminated Union**.
    - Đảm bảo tính loại trừ lẫn nhau (Mutually Exclusive): Tối đa duy nhất 1 popup được mở tại một thời điểm, loại bỏ triệt để lỗi kẹt giao diện và xung đột z-index.
-4. **Atomic Snapshotting (`useGameStore.applyMatchSnapshot`)**:
+5. **Atomic Snapshotting (`useGameStore.applyMatchSnapshot`)**:
    - Driver phát ra 1 gói dữ liệu duy nhất (`MatchSnapshot`) mỗi khi trạng thái bàn thay đổi, thay thế hơn 15 setters vụn vặt trước đây $\to$ tối ưu hóa vượt trội hiệu năng render.
 
 ---

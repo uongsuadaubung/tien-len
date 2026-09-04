@@ -28,13 +28,14 @@ import { savePlayerProfile, type PlayerProfile } from '../storage';
 import { type MatchCompletedEvent, GameEventBus } from '../events/game-event-bus';
 import { evaluateDailyQuests, evaluateAchievements } from '../evaluators/progress-evaluators';
 import { type PlayingTurnMatchState, type GameOverMatchState } from '../state-machine/types';
+import type { IMatchDriver, DriverActionResult } from '../match-driver.interface';
 
 export interface HostEngineDriverCallbacks {
   onRoomStateChange: ((updatedRoomState: OnlineRoomState) => void) | null;
   onAutoStartMatch: (() => void) | null;
 }
 
-export class HostEngineDriver {
+export class HostEngineDriver implements IMatchDriver {
   public engine: GameEngine | null = null;
   public cardTracker: CardTracker = new CardTracker();
   private p2pClient: P2PClient;
@@ -205,6 +206,25 @@ export class HostEngineDriver {
         }
       }
     }
+  }
+
+  public playCards(playerId: string, cards: Card[]): DriverActionResult {
+    this.handlePlayerAction({
+      type: 'PLAY',
+      playerId,
+      cardIds: cards.map(c => c.id),
+      timestamp: Date.now()
+    });
+    return { success: true };
+  }
+
+  public passTurn(playerId: string): DriverActionResult {
+    this.handlePlayerAction({
+      type: 'PASS',
+      playerId,
+      timestamp: Date.now()
+    });
+    return { success: true };
   }
 
   private checkAndExecuteBotTurn(): void {
