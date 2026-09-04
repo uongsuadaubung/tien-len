@@ -27,6 +27,7 @@ import { resolveStrategyForMatch } from '../strategies/game-mode-strategy';
 import { savePlayerProfile, type PlayerProfile } from '../storage';
 import { type MatchCompletedEvent, GameEventBus } from '../events/game-event-bus';
 import { evaluateDailyQuests, evaluateAchievements } from '../evaluators/progress-evaluators';
+import { type PlayingTurnMatchState, type GameOverMatchState } from '../state-machine/types';
 
 export interface HostEngineDriverCallbacks {
   onRoomStateChange: ((updatedRoomState: OnlineRoomState) => void) | null;
@@ -116,10 +117,13 @@ export class HostEngineDriver {
       } else if (!op.isBot) {
         // Remote human peer
         const dealPacket: DealHandPacket = {
+          playerId: p.id,
           cards: p.hand.map(c => ({ rank: c.rank, suit: c.suit, id: c.id })),
           leadPlayerId: this.engine?.currentRound.leadPlayerId || 'p0',
           firstTurnPlayerId: this.engine?.currentRound.currentTurnPlayerId || 'p0',
-          gameNumber: this.gameNumber
+          gameNumber: this.gameNumber,
+          isFirstMoveOfGame: this.engine?.isFirstMoveOfGame ?? false,
+          isLeadMove: this.engine?.isRoundLeadMove() ?? true
         };
         void this.p2pClient.sendPrivateDealHand(dealPacket, op.peerId);
       }
@@ -308,28 +312,58 @@ export class HostEngineDriver {
       id: c.id
     }));
 
+    const currentTurnId = this.engine.currentRound.currentTurnPlayerId;
+    const leadId = this.engine.currentRound.leadPlayerId;
+    const isFirstMoveOfGame = this.engine.isFirstMoveOfGame;
+    const isLeadMove = this.engine.isRoundLeadMove();
+
     const packet: TableStateSyncPacket = {
-      currentTurnPlayerId: this.engine.currentRound.currentTurnPlayerId,
-      leadPlayerId: this.engine.currentRound.leadPlayerId,
+      currentTurnPlayerId: currentTurnId,
+      leadPlayerId: leadId,
       currentMoveCards,
       currentMovePlayerId: lastMove?.playerId,
       remainingCardCounts,
       winners: this.engine.winners.map(w => w.id),
       isGameOver: this.engine.isGameOver,
       lastActionMessage: message,
-      gameNumber: this.gameNumber
+      gameNumber: this.gameNumber,
+      isFirstMoveOfGame,
+      isLeadMove
     };
 
     // Đồng bộ trực tiếp vào GameStore của Host
     const gameStore = useGameStore.getState();
+    const leadingMove = this.engine.getLeadingMove();
     gameStore.setGameNumber(this.gameNumber);
     gameStore.setPlayers(this.engine.players.map(p => ({ ...p })));
-    gameStore.setCurrentTurnPlayerId(this.engine.currentRound.currentTurnPlayerId);
-    gameStore.setLeadPlayerId(this.engine.currentRound.leadPlayerId);
-    gameStore.setCurrentMove(this.engine.getLeadingMove());
+    gameStore.setCurrentTurnPlayerId(currentTurnId);
+    gameStore.setLeadPlayerId(leadId);
+    gameStore.setCurrentMove(leadingMove);
+    gameStore.setIsFirstMoveOfGame(isFirstMoveOfGame);
+    gameStore.setIsLeadMove(isLeadMove);
     gameStore.setWinners([...this.engine.winners]);
     gameStore.setIsGameOver(this.engine.isGameOver);
     gameStore.setDealtCounts(remainingCardCounts);
+
+    if (!this.engine.isGameOver && currentTurnId && leadId) {
+      const playingState: PlayingTurnMatchState = {
+        status: 'PLAYING',
+        gameNumber: this.gameNumber,
+        roundNumber: this.engine.roundNumber,
+        players: this.engine.players.map(p => ({ ...p })),
+        currentTurnPlayerId: currentTurnId,
+        leadPlayerId: leadId,
+        roundMoves: this.engine.currentRound.moves,
+        leadingMove,
+        isLeadMove,
+        isFirstMoveOfGame,
+        passedPlayerIds: this.engine.currentRound.passedPlayerIds,
+        chopNotification: null,
+        botThinkingThought: null,
+        rules: this.engine.rules
+      };
+      gameStore.setMatchState(playingState);
+    }
 
     void this.p2pClient.broadcastTableSync(packet);
   }
@@ -465,6 +499,20 @@ export class HostEngineDriver {
     gameStore.setAllEloDeltas(eloDeltas);
     gameStore.setIsGameOver(true);
     gameStore.setWinners([...this.engine.winners]);
+
+    const gameOverState: GameOverMatchState = {
+      status: 'GAME_OVER',
+      gameNumber: this.gameNumber,
+      players: this.engine.players.map(p => ({ ...p })),
+      winners: [...this.engine.winners],
+      isThreeSpadesWin: this.engine.isThreeSpadesWin,
+      matchPayouts: settlement.payouts,
+      eloDeltas,
+      matchLogReport: null,
+      rules: this.engine.rules
+    };
+    gameStore.setMatchState(gameOverState);
+
     useViewStore.getState().openModal('VICTORY');
 
     const packet: GameEndPacket = {

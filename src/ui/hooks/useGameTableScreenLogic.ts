@@ -76,22 +76,37 @@ export function useGameTableScreenLogic({
   const myPlayerIndex = Math.max(0, players.findIndex(p => p.id === myPlayerId));
   const p0 = players[myPlayerIndex] || (players.length > 0 ? players[0] : null);
 
-  // Trích xuất thuộc tính bảo đảm tồn tại từ State Pattern (Discriminated Union)
-  const isPlaying = matchState.status === 'PLAYING';
-  const currentTurnPlayerId = isPlaying ? matchState.currentTurnPlayerId : null;
-  const leadPlayerId = isPlaying ? matchState.leadPlayerId : null;
-  const currentMove = isPlaying ? matchState.leadingMove : null;
-  const isLeadMove = isPlaying ? matchState.isLeadMove : true;
-  const isFirstMoveOfGame = isPlaying ? matchState.isFirstMoveOfGame : false;
+  // Trích xuất thuộc tính bảo đảm tồn tại từ State Pattern (Discriminated Union), có hỗ trợ fallback cho online
+  const isPlaying = isOnlineMatch
+    ? (matchState.status === 'PLAYING' || (!useGameStore.getState().isGameOver && !useGameStore.getState().isDealing && players.length > 0))
+    : matchState.status === 'PLAYING';
+
+  const currentTurnPlayerId = isPlaying
+    ? (matchState.status === 'PLAYING' ? matchState.currentTurnPlayerId : useGameStore.getState().currentTurnPlayerId)
+    : null;
+
+  const leadPlayerId = isPlaying
+    ? (matchState.status === 'PLAYING' ? matchState.leadPlayerId : useGameStore.getState().leadPlayerId)
+    : null;
+
+  const currentMove = isPlaying
+    ? (matchState.status === 'PLAYING' ? matchState.leadingMove : useGameStore.getState().currentMove)
+    : null;
+
+  const isLeadMove = isPlaying
+    ? (matchState.status === 'PLAYING' ? matchState.isLeadMove : (currentMove === null))
+    : true;
+
+  const isFirstMoveOfGame = isPlaying
+    ? (matchState.status === 'PLAYING' ? matchState.isFirstMoveOfGame : useGameStore.getState().isFirstMoveOfGame)
+    : false;
 
   // Lượt của tôi: chỉ có thể xảy ra khi trận đấu đang ở trạng thái PLAYING
   const isMyTurn = isPlaying && currentTurnPlayerId === myPlayerId;
   const selectedCards = p0 !== null ? p0.hand.filter(c => selectedCardIds.has(c.id)) : [];
 
-  const effectiveIsFirstMove = isOnlineMatch ? false : isFirstMoveOfGame;
-  const effectiveIsLeadMove = isOnlineMatch
-    ? (currentMove === null || leadPlayerId === myPlayerId)
-    : isLeadMove;
+  const effectiveIsFirstMove = isFirstMoveOfGame;
+  const effectiveIsLeadMove = isLeadMove;
 
   const isValidPlaySelection =
     isMyTurn &&

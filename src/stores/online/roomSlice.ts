@@ -26,6 +26,7 @@ import { type PlayerProfile, savePlayerProfile } from '../../engine/storage';
 import { createPlayer, createBotPlayer } from '../../engine/player-factory';
 import { type MatchCompletedEvent } from '../../engine/events/game-event-bus';
 import { evaluateDailyQuests, evaluateAchievements } from '../../engine/evaluators/progress-evaluators';
+import { type PlayingTurnMatchState, type GameOverMatchState } from '../../engine/state-machine/types';
 import { type RoomSlice, type OnlineSliceCreator } from './types';
 
 export function generateRoomPin(existingRooms: readonly PublicRoomSummary[] = []): string {
@@ -450,8 +451,11 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
     // Client lắng nghe gói tin chia 13 lá riêng tư
     globalP2PClient.onDealHand((dealPacket: DealHandPacket) => {
       const gameStore = useGameStore.getState();
-      const myId = get().myPlayerId;
       const room = get().roomState;
+      const selfPeerId = globalP2PClient.selfPeerId;
+      const me = room?.players.find(p => p.peerId === selfPeerId);
+      const myId = dealPacket.playerId || (me ? me.playerId : (get().myPlayerId !== 'p0' ? get().myPlayerId : 'p1'));
+      set({ myPlayerId: myId });
 
       const cards = dealPacket.cards.map(c => createCard(c.rank, c.suit));
 
@@ -474,6 +478,10 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         return { ...p, hand: [] };
       });
 
+      const isFirstMoveOfGame = dealPacket.isFirstMoveOfGame ?? false;
+      const isLeadMove = dealPacket.isLeadMove ?? true;
+
+      gameStore.setMyPlayerId(myId);
       gameStore.setPlayers(currentPlayers);
       const validatedCount: 2 | 3 | 4 = room?.playerCount === 2 ? 2 : room?.playerCount === 3 ? 3 : 4;
       gameStore.setPlayerCount(validatedCount);
@@ -482,6 +490,8 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       }
       gameStore.setCurrentTurnPlayerId(dealPacket.firstTurnPlayerId);
       gameStore.setLeadPlayerId(dealPacket.leadPlayerId);
+      gameStore.setIsFirstMoveOfGame(isFirstMoveOfGame);
+      gameStore.setIsLeadMove(isLeadMove);
       gameStore.setWinners([]);
       gameStore.setIsGameOver(false);
       gameStore.setIsDealing(false);
@@ -490,6 +500,24 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       gameStore.setCurrentHint(null);
       gameStore.setActiveGameType('ONLINE');
       gameStore.setCurrentScreen('GAME_TABLE');
+
+      const playingState: PlayingTurnMatchState = {
+        status: 'PLAYING',
+        gameNumber: dealPacket.gameNumber || 1,
+        roundNumber: 1,
+        players: currentPlayers,
+        currentTurnPlayerId: dealPacket.firstTurnPlayerId,
+        leadPlayerId: dealPacket.leadPlayerId,
+        roundMoves: [],
+        leadingMove: null,
+        isLeadMove,
+        isFirstMoveOfGame,
+        passedPlayerIds: [],
+        chopNotification: null,
+        botThinkingThought: null,
+        rules: gameStore.gameRules
+      };
+      gameStore.setMatchState(playingState);
 
       const counts: Record<string, number> = {};
       currentPlayers.forEach(p => {
@@ -539,6 +567,13 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         gameStore.setCurrentMove(null);
       }
 
+      if (sync.isFirstMoveOfGame !== undefined) {
+        gameStore.setIsFirstMoveOfGame(sync.isFirstMoveOfGame);
+      }
+      if (sync.isLeadMove !== undefined) {
+        gameStore.setIsLeadMove(sync.isLeadMove);
+      }
+
       if (sync.lastActionMessage && sync.lastActionMessage.includes('bỏ lượt')) {
         GameEventBus.getInstance().emit({
           type: 'TURN_PASSED',
@@ -553,6 +588,31 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       if (!sync.isGameOver) {
         useViewStore.getState().closeModal('VICTORY');
         useViewStore.getState().closeModal('ONLINE_ROOM');
+
+        const currentTurnId = sync.currentTurnPlayerId || '';
+        const leadId = sync.leadPlayerId || '';
+        const isFirstMove = sync.isFirstMoveOfGame ?? (gameStore.matchState.status === 'PLAYING' ? gameStore.matchState.isFirstMoveOfGame : gameStore.isFirstMoveOfGame);
+        const isLead = sync.isLeadMove ?? (gameStore.currentMove === null);
+
+        if (currentTurnId && leadId) {
+          const playingState: PlayingTurnMatchState = {
+            status: 'PLAYING',
+            gameNumber: sync.gameNumber || gameStore.gameNumber,
+            roundNumber: gameStore.matchState.status === 'PLAYING' ? gameStore.matchState.roundNumber : 1,
+            players: gameStore.players,
+            currentTurnPlayerId: currentTurnId,
+            leadPlayerId: leadId,
+            roundMoves: [],
+            leadingMove: gameStore.currentMove,
+            isLeadMove: isLead,
+            isFirstMoveOfGame: isFirstMove,
+            passedPlayerIds: [],
+            chopNotification: null,
+            botThinkingThought: null,
+            rules: gameStore.gameRules
+          };
+          gameStore.setMatchState(playingState);
+        }
       }
 
       if (sync.isGameOver) {
@@ -597,12 +657,28 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         gameStore.setPlayers(updatedPlayers);
       }
 
-      if (endPacket.winners.length > 0) {
-        const winningPlayers = endPacket.winners
-          .map(id => updatedPlayers.find(p => p.id === id))
-          .filter((p): p is Player => p !== undefined && p !== null);
+      const winningPlayers = endPacket.winners.length > 0
+        ? endPacket.winners
+            .map(id => updatedPlayers.find(p => p.id === id))
+            .filter((p): p is Player => p !== undefined && p !== null)
+        : [];
+
+      if (winningPlayers.length > 0) {
         gameStore.setWinners(winningPlayers);
       }
+
+      const gameOverState: GameOverMatchState = {
+        status: 'GAME_OVER',
+        gameNumber: gameStore.gameNumber,
+        players: updatedPlayers,
+        winners: winningPlayers,
+        isThreeSpadesWin: false,
+        matchPayouts: endPacket.payouts,
+        eloDeltas: endPacket.eloDeltas,
+        matchLogReport: null,
+        rules: gameStore.gameRules
+      };
+      gameStore.setMatchState(gameOverState);
 
       useViewStore.getState().openModal('VICTORY');
 

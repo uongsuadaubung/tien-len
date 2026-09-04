@@ -4,6 +4,8 @@ import { useGameStore } from '../../src/stores/useGameStore';
 import { useViewStore } from '../../src/stores/useViewStore';
 import { loadPlayerProfile } from '../../src/engine/storage';
 import { globalP2PClient } from '../../src/engine/network/p2p-client';
+import { createCard } from '../../src/engine/card';
+import { isValidMove } from '../../src/engine/validator';
 
 describe('Online P2P Match Flow & State Transition Tests', () => {
   beforeEach(() => {
@@ -530,6 +532,214 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     expect(guestState.isOnlineMatch).toBe(false);
     expect(guestState.disbandNotice?.message).toContain('Chủ phòng đã thoát');
     expect(useGameStore.getState().currentScreen).toBe('LOBBY');
+  });
+
+  it('11. Trận đấu Online 2 người: Bắt đầu mượt mà, State Pattern PLAYING kích hoạt, kiểm tra quyền đi đầu với 3 Bích', () => {
+    const profileHost = { ...loadPlayerProfile(), name: 'Host Player' };
+
+    // Host tạo bàn 2 người
+    useOnlineStore.getState().createRoom(profileHost, {
+      playerCount: 2,
+      betAmount: 2000,
+      settlementRule: 'TRADITIONAL',
+      choppingMultiplier: 1,
+      congEnabled: true,
+      prohibitEndingWithTwo: true,
+      allowFourPairsCutAnytime: true,
+      threeSpadesEndingBonus: true,
+      cascadeChopEnabled: true,
+      isPublic: true
+    });
+
+    // Giả lập Khách gửi join request vào phòng
+    const onJoinReqFn = (globalP2PClient as any).onJoinRequestCallbacks?.[0];
+    expect(onJoinReqFn).toBeDefined();
+    onJoinReqFn({
+      peerId: 'guest_peer_2p',
+      playerId: 'p1',
+      name: 'Guest Player',
+      avatar: '🤠',
+      elo: 1000,
+      coins: 50000,
+      isHost: false,
+      isReady: true,
+      isBot: false
+    }, 'guest_peer_2p');
+
+    const roomBeforeStart = useOnlineStore.getState().roomState;
+    expect(roomBeforeStart?.players.length).toBe(2);
+    expect(roomBeforeStart?.playerCount).toBe(2);
+
+    // Host bắt đầu trận đấu 2 người
+    useOnlineStore.getState().startMatch();
+
+    const gameState = useGameStore.getState();
+    const onlineState = useOnlineStore.getState();
+
+    // 1. Kiểm tra trạng thái trận đấu
+    expect(onlineState.roomState?.status).toBe('PLAYING');
+    expect(onlineState.roomState?.players.length).toBe(2); // Đúng 2 người, không thêm bot thừa
+    expect(gameState.activeGameType).toBe('ONLINE');
+    expect(gameState.players.length).toBe(2);
+    expect(gameState.players[0].hand.length).toBe(13); // Host nhận 13 lá
+    expect(gameState.dealtCounts['p0']).toBe(13);
+    expect(gameState.dealtCounts['p1']).toBe(13);
+
+    // 2. State Pattern: matchState BẢO ĐẢM chuyển sang status PLAYING (Không bị treo ở WAITING)
+    expect(gameState.matchState.status).toBe('PLAYING');
+    if (gameState.matchState.status === 'PLAYING') {
+      expect(gameState.matchState.currentTurnPlayerId).toBeDefined();
+      expect(gameState.matchState.leadPlayerId).toBeDefined();
+    }
+
+    const hostDriver = useOnlineStore.getState().hostDriver;
+    expect(hostDriver).not.toBeNull();
+    const firstTurnId = hostDriver?.engine?.currentRound.currentTurnPlayerId;
+    const isFirstMoveOfGame = hostDriver?.engine?.isFirstMoveOfGame;
+
+    expect(gameState.currentTurnPlayerId).toBe(firstTurnId ?? null);
+    expect(gameState.isFirstMoveOfGame).toBe(isFirstMoveOfGame ?? false);
+
+    // 3. Nếu Host giữ 3 Bích: Host có lượt đánh, 3 Bích hợp lệ
+    const hostHand = gameState.players[0].hand;
+    const hostHas3S = hostHand.some(c => c.rank === 3 && c.suit === 'SPADES');
+
+    if (hostHas3S) {
+      expect(firstTurnId).toBe('p0');
+      expect(isFirstMoveOfGame).toBe(true);
+
+      const card3S = hostHand.find(c => c.rank === 3 && c.suit === 'SPADES')!;
+      const validation = isValidMove({
+        cards: [card3S],
+        target: null,
+        isFirstMoveOfGame: true,
+        isLeadMove: true,
+        hasPassedRound: false,
+        allowFourPairsCutAnytime: true,
+        isFinishingMove: false,
+        prohibitEndingWithTwo: true
+      });
+      expect(validation.valid).toBe(true);
+
+      // Host thực hiện đánh 3 Bích
+      useOnlineStore.getState().sendMoveAction([card3S.id]);
+
+      const stateAfterPlay = useGameStore.getState();
+      expect(stateAfterPlay.currentMove).not.toBeNull();
+      expect(stateAfterPlay.currentMove?.playerId).toBe('p0');
+      // Lượt chuyển sang Khách (p1)
+      expect(stateAfterPlay.currentTurnPlayerId).toBe('p1');
+      // isFirstMoveOfGame đã chuyển thành false
+      expect(stateAfterPlay.isFirstMoveOfGame).toBe(false);
+    }
+  });
+
+  it('12. Khách nhận gói tin chia bài chứa 3 Bích: matchState chuyển PLAYING và có lượt đánh đầu tiên', () => {
+    const profileGuest = { ...loadPlayerProfile(), name: 'Guest Tester', coins: 50000 };
+    useOnlineStore.getState().joinRoom(profileGuest, 'TL-2222');
+
+    const card3S = createCard(3, 'SPADES');
+    const dummyHand = [card3S];
+    for (let r = 4; r <= 15; r++) {
+      dummyHand.push(createCard(r as any, 'HEARTS'));
+    }
+
+    // Giả lập Khách nhận gói tin onDealHand từ Host
+    const onDealHandFn = (globalP2PClient as any).onDealHandCallbacks?.[0];
+    expect(onDealHandFn).toBeDefined();
+
+    onDealHandFn({
+      playerId: 'p1',
+      cards: dummyHand.map(c => ({ rank: c.rank, suit: c.suit, id: c.id })),
+      leadPlayerId: 'p1',
+      firstTurnPlayerId: 'p1',
+      gameNumber: 1,
+      isFirstMoveOfGame: true,
+      isLeadMove: true
+    });
+
+    const guestGameStore = useGameStore.getState();
+
+    // Xác nhận State Pattern trên máy Khách đã chuyển sang PLAYING
+    expect(guestGameStore.matchState.status).toBe('PLAYING');
+    expect(guestGameStore.currentTurnPlayerId).toBe('p1');
+    expect(guestGameStore.leadPlayerId).toBe('p1');
+    expect(guestGameStore.isFirstMoveOfGame).toBe(true);
+    expect(guestGameStore.isLeadMove).toBe(true);
+
+    // Khách có quân 3 Bích trên tay
+    const guestHand = guestGameStore.players.find(p => p.id === 'p1')?.hand || [];
+    expect(guestHand.length).toBe(13);
+    expect(guestHand.some(c => c.rank === 3 && c.suit === 'SPADES')).toBe(true);
+
+    // Lượt đầu tiên: Đánh 3 Bích là hợp lệ
+    const valid3S = isValidMove({
+      cards: [card3S],
+      target: null,
+      isFirstMoveOfGame: guestGameStore.isFirstMoveOfGame,
+      isLeadMove: guestGameStore.isLeadMove,
+      hasPassedRound: false,
+      allowFourPairsCutAnytime: true,
+      isFinishingMove: false,
+      prohibitEndingWithTwo: true
+    });
+    expect(valid3S.valid).toBe(true);
+
+    // Đánh quân khác (không chứa 3 Bích) ở lượt đầu tiên sẽ bị từ chối
+    const invalidCard = guestHand.find(c => !(c.rank === 3 && c.suit === 'SPADES'))!;
+    const invalidPlay = isValidMove({
+      cards: [invalidCard],
+      target: null,
+      isFirstMoveOfGame: guestGameStore.isFirstMoveOfGame,
+      isLeadMove: guestGameStore.isLeadMove,
+      hasPassedRound: false,
+      allowFourPairsCutAnytime: true,
+      isFinishingMove: false,
+      prohibitEndingWithTwo: true
+    });
+    expect(invalidPlay.valid).toBe(false);
+    expect(invalidPlay.reason).toContain('3 Bích');
+  });
+
+  it('13. Bàn 2 người không ai có 3 Bích: Người giữ bài nhỏ nhất được đi trước và không bắt buộc 3 Bích', () => {
+    const profileGuest = { ...loadPlayerProfile(), name: 'Guest Smallest', coins: 50000 };
+    useOnlineStore.getState().joinRoom(profileGuest, 'TL-3333');
+
+    // Giả lập bài Khách có lá nhỏ nhất là 4 Bích (không có 3 Bích)
+    const card4S = createCard(4, 'SPADES');
+    const guestHand = [card4S];
+    for (let r = 5; r <= 16; r++) {
+      guestHand.push(createCard(Math.min(15, r) as any, 'CLUBS'));
+    }
+
+    const onDealHandFn = (globalP2PClient as any).onDealHandCallbacks?.[0];
+    onDealHandFn({
+      playerId: 'p1',
+      cards: guestHand.map(c => ({ rank: c.rank, suit: c.suit, id: c.id })),
+      leadPlayerId: 'p1',
+      firstTurnPlayerId: 'p1',
+      gameNumber: 1,
+      isFirstMoveOfGame: false, // Không ai có 3 Bích nên không bắt buộc 3 Bích
+      isLeadMove: true
+    });
+
+    const store = useGameStore.getState();
+    expect(store.matchState.status).toBe('PLAYING');
+    expect(store.currentTurnPlayerId).toBe('p1');
+    expect(store.isFirstMoveOfGame).toBe(false);
+
+    // Đánh 4 Bích hoàn toàn hợp lệ mà không bị báo lỗi thiếu 3 Bích
+    const validation = isValidMove({
+      cards: [card4S],
+      target: null,
+      isFirstMoveOfGame: store.isFirstMoveOfGame,
+      isLeadMove: store.isLeadMove,
+      hasPassedRound: false,
+      allowFourPairsCutAnytime: true,
+      isFinishingMove: false,
+      prohibitEndingWithTwo: true
+    });
+    expect(validation.valid).toBe(true);
   });
 });
 

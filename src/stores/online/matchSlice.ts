@@ -13,6 +13,7 @@ import {
   type TableRulesBuilder 
 } from '../../engine/types';
 import { createPlayer, createBotPlayer } from '../../engine/player-factory';
+import { type PlayingTurnMatchState } from '../../engine/state-machine/types';
 import { type MatchSlice, type OnlineSliceCreator } from './types';
 
 export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
@@ -151,15 +152,40 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
         }
         return p;
       });
+      const currentTurnId = driver.engine?.currentRound.currentTurnPlayerId || 'p0';
+      const leadId = driver.engine?.currentRound.leadPlayerId || 'p0';
+      const isFirstMoveOfGame = driver.engine?.isFirstMoveOfGame ?? false;
+      const isLeadMove = driver.engine?.isRoundLeadMove() ?? true;
+
       gameStore.setGameNumber(driver.gameNumber);
       gameStore.setPlayers(currentPlayers);
-      gameStore.setCurrentTurnPlayerId(driver.engine?.currentRound.currentTurnPlayerId || 'p0');
-      gameStore.setLeadPlayerId(driver.engine?.currentRound.leadPlayerId || 'p0');
+      gameStore.setCurrentTurnPlayerId(currentTurnId);
+      gameStore.setLeadPlayerId(leadId);
+      gameStore.setIsFirstMoveOfGame(isFirstMoveOfGame);
+      gameStore.setIsLeadMove(isLeadMove);
       gameStore.setWinners([]);
       gameStore.setIsGameOver(false);
       gameStore.setCurrentMove(null);
       gameStore.setSelectedCardIds(new Set<string>());
       gameStore.setCurrentHint(null);
+
+      const playingState: PlayingTurnMatchState = {
+        status: 'PLAYING',
+        gameNumber: driver.gameNumber,
+        roundNumber: driver.engine?.roundNumber || 1,
+        players: currentPlayers,
+        currentTurnPlayerId: currentTurnId,
+        leadPlayerId: leadId,
+        roundMoves: [],
+        leadingMove: null,
+        isLeadMove,
+        isFirstMoveOfGame,
+        passedPlayerIds: [],
+        chopNotification: null,
+        botThinkingThought: null,
+        rules: customRules
+      };
+      gameStore.setMatchState(playingState);
 
       const counts: Record<string, number> = {};
       currentPlayers.forEach(p => {

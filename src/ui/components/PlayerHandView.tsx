@@ -110,7 +110,7 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
   const hasSelectedCards = selectedCardIds.size > 0;
 
   return (
-    <div id="seat-p0" className="relative flex flex-col items-center justify-end w-full pb-0.5 z-30 select-none overflow-visible">
+    <div id={`seat-${player.id}`} className="relative flex flex-col items-center justify-end w-full pb-0.5 z-30 select-none overflow-visible">
       {/* Thông báo hướng dẫn nước đi đầu tiên ván 1 */}
       {!isDealing && isCurrentTurn && isFirstMoveOfGame && has3S && (
         <div className="mb-1 animate-fade-in">

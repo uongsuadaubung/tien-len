@@ -90,10 +90,13 @@ export type PlayerActionPacket = z.infer<typeof PlayerActionPacketSchema>;
 
 // Gói tin chia bài riêng tư từ Host cho từng Client (Fog of War)
 export const DealHandPacketSchema = z.object({
+  playerId: z.string().optional(),
   cards: z.array(NetworkCardSchema),
   leadPlayerId: z.string(),
   firstTurnPlayerId: z.string(),
-  gameNumber: z.number().default(1)
+  gameNumber: z.number().default(1),
+  isFirstMoveOfGame: z.boolean().optional(),
+  isLeadMove: z.boolean().optional()
 });
 
 export type DealHandPacket = z.infer<typeof DealHandPacketSchema>;
@@ -108,7 +111,9 @@ export const TableStateSyncPacketSchema = z.object({
   winners: z.array(z.string()),
   isGameOver: z.boolean(),
   lastActionMessage: z.string().optional(),
-  gameNumber: z.number().default(1)
+  gameNumber: z.number().default(1),
+  isFirstMoveOfGame: z.boolean().optional(),
+  isLeadMove: z.boolean().optional()
 });
 
 export type TableStateSyncPacket = z.infer<typeof TableStateSyncPacketSchema>;

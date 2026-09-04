@@ -7,6 +7,7 @@ import { useI18n } from '../../locales';
 interface DealingDeckAnimationProps {
   isDealing: boolean;
   playerCount?: number;
+  players?: readonly { id: string }[];
   onDealComplete: () => void;
   onDealCard: (playerIndex: number, currentCardCount: number) => void;
   onSkip?: () => void;
@@ -28,12 +29,16 @@ interface FlyingCardStyle extends React.CSSProperties {
 export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
   isDealing,
   playerCount = 4,
+  players,
   onDealComplete,
   onDealCard,
   onSkip
 }) => {
   const { t } = useI18n();
-  const actualPlayerCount = Math.min(4, Math.max(2, playerCount));
+  const actualPlayerCount = Math.min(
+    4,
+    Math.max(2, (players && players.length > 0) ? players.length : (playerCount ?? 4))
+  );
   const totalDeckCards = actualPlayerCount * 13;
   const [flyingCards, setFlyingCards] = useState<FlyingCard[]>([]);
   const [remainingDeckCards, setRemainingDeckCards] = useState<number>(totalDeckCards);
@@ -70,7 +75,9 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
     const startDealingTimeout = setTimeout(() => {
       setIsShuffling(false);
 
-      const seatIds = actualPlayerCount === 2 
+      const seatIds = (players && players.length >= actualPlayerCount)
+        ? players.slice(0, actualPlayerCount).map(p => `seat-${p.id}`)
+        : actualPlayerCount === 2 
         ? ['seat-p0', 'seat-p1']
         : actualPlayerCount === 3
         ? ['seat-p0', 'seat-p1', 'seat-p2']
@@ -93,7 +100,7 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
 
           // Đo đạc tọa độ thực tế giữa tâm cỗ bài và ghế người nhận
           const deckEl = deckRef.current || document.getElementById('dealing-center-deck');
-          const targetEl = document.getElementById(targetSeatId);
+          const targetEl = document.getElementById(targetSeatId) || document.getElementById(`seat-p${playerIndex}`);
 
           if (deckEl && targetEl) {
             const dR = deckEl.getBoundingClientRect();
@@ -174,7 +181,7 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
     return () => {
       clearAllTimeouts();
     };
-  }, [isDealing]);
+  }, [isDealing, actualPlayerCount, players]);
 
   const handleSkip = () => {
     isFinishedRef.current = true;
@@ -182,7 +189,7 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
     setFlyingCards([]);
     setRemainingDeckCards(0);
     // Cập nhật đủ 13 lá cho tất cả
-    for (let p = 0; p < 4; p++) {
+    for (let p = 0; p < actualPlayerCount; p++) {
       onDealCard(p, 13);
     }
     if (onSkip) {

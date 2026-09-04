@@ -126,6 +126,8 @@ interface GameState {
   setInstantWinType: (type?: InstantWinType) => void;
   setIsThreeSpadesWin: (win: boolean) => void;
   setBotThinkingThought: (thought: { botId: string; text: string } | null) => void;
+  setIsFirstMoveOfGame: (isFirst: boolean) => void;
+  setIsLeadMove: (isLead: boolean) => void;
 
   setSelectedCardIds: (idsOrUpdater: Set<string> | ((prev: Set<string>) => Set<string>)) => void;
   toggleCardSelect: (cardId: string) => void;
@@ -303,6 +305,8 @@ export const useGameStore = create<GameState>((set) => ({
   setInstantWinType: (type) => set({ instantWinType: type }),
   setIsThreeSpadesWin: (win) => set({ isThreeSpadesWin: win }),
   setBotThinkingThought: (thought) => set({ botThinkingThought: thought }),
+  setIsFirstMoveOfGame: (isFirst) => set({ isFirstMoveOfGame: isFirst }),
+  setIsLeadMove: (isLead) => set({ isLeadMove: isLead }),
 
   setSelectedCardIds: (idsOrUpdater) => set((state) => ({
     selectedCardIds: typeof idsOrUpdater === 'function' ? idsOrUpdater(state.selectedCardIds) : idsOrUpdater

@@ -60,18 +60,36 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     clearCardSelection
   } = useGameStore();
 
-  const isDealing = matchState.status === 'DEALING';
-  const isPlaying = matchState.status === 'PLAYING';
+  const isOnline = activeGameType === 'ONLINE';
+  const isDealing = isOnline ? useGameStore.getState().isDealing : matchState.status === 'DEALING';
+  const isPlaying = isOnline
+    ? (matchState.status === 'PLAYING' || (!useGameStore.getState().isGameOver && !isDealing && players.length > 0))
+    : matchState.status === 'PLAYING';
   const isRoundEnded = matchState.status === 'ROUND_ENDED';
-  const dealtCounts = isDealing ? matchState.dealtCounts : {};
-  const dealBanner = isDealing ? matchState.dealBanner : null;
-  const currentTurnPlayerId = isPlaying ? matchState.currentTurnPlayerId : (isRoundEnded ? matchState.nextLeadPlayerId : null);
-  const leadPlayerId = isPlaying ? matchState.leadPlayerId : (isRoundEnded ? matchState.nextLeadPlayerId : null);
-  const currentMove = isPlaying ? matchState.leadingMove : null;
-  const chopNotification = (isPlaying || isRoundEnded) ? matchState.chopNotification : null;
-  const botThinkingThought = isPlaying ? matchState.botThinkingThought : null;
-  const isLeadMove = isPlaying ? matchState.isLeadMove : true;
-  const isFirstMoveOfGame = isPlaying ? matchState.isFirstMoveOfGame : false;
+  const storeDealtCounts = useGameStore(s => s.dealtCounts);
+  const dealtCounts = matchState.status === 'DEALING' ? matchState.dealtCounts : storeDealtCounts;
+  const dealBanner = isDealing ? (matchState.status === 'DEALING' ? matchState.dealBanner : useGameStore.getState().dealBanner) : null;
+  const currentTurnPlayerId = isPlaying
+    ? (matchState.status === 'PLAYING' ? matchState.currentTurnPlayerId : useGameStore.getState().currentTurnPlayerId)
+    : (isRoundEnded ? matchState.nextLeadPlayerId : null);
+  const leadPlayerId = isPlaying
+    ? (matchState.status === 'PLAYING' ? matchState.leadPlayerId : useGameStore.getState().leadPlayerId)
+    : (isRoundEnded ? matchState.nextLeadPlayerId : null);
+  const currentMove = isPlaying
+    ? (matchState.status === 'PLAYING' ? matchState.leadingMove : useGameStore.getState().currentMove)
+    : null;
+  const chopNotification = (isPlaying || isRoundEnded)
+    ? (matchState.status === 'PLAYING' || matchState.status === 'ROUND_ENDED' ? matchState.chopNotification : useGameStore.getState().chopNotification)
+    : null;
+  const botThinkingThought = isPlaying
+    ? (matchState.status === 'PLAYING' ? matchState.botThinkingThought : useGameStore.getState().botThinkingThought)
+    : null;
+  const isLeadMove = isPlaying
+    ? (matchState.status === 'PLAYING' ? matchState.isLeadMove : (currentMove === null))
+    : true;
+  const isFirstMoveOfGame = isPlaying
+    ? (matchState.status === 'PLAYING' ? matchState.isFirstMoveOfGame : useGameStore.getState().isFirstMoveOfGame)
+    : false;
 
   const {
     isOnlineMatch,
@@ -79,6 +97,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     isMyTurn,
     isValidPlaySelection,
     canP0Pass,
+    playerCount,
     botPersonaIds,
     customBotConfigs,
     topBot,
@@ -200,6 +219,8 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
             {isDealing && (
               <DealingDeckAnimation
                 isDealing={isDealing}
+                playerCount={playerCount}
+                players={matchState.players}
                 onDealCard={onDealCard}
                 onDealComplete={onDealComplete}
                 onSkip={onDealComplete}
@@ -210,7 +231,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
             <div className="relative z-30 w-full flex justify-center">
               <TableCenter
                 currentMove={currentMove}
-                isLeadMove={isOnlineMatch ? (currentMove === null || leadPlayerId === myPlayerId) : isLeadMove}
+                isLeadMove={isLeadMove}
                 chopNotification={chopNotification}
                 isDealing={isDealing}
                 cardSize="table"
@@ -255,7 +276,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
               isLeader={leadPlayerId === myPlayerId}
               isDealing={isDealing}
               dealtCardsCount={dealtCounts[myPlayerId]}
-              isFirstMoveOfGame={isOnlineMatch ? false : isFirstMoveOfGame}
+              isFirstMoveOfGame={isFirstMoveOfGame}
               sortMode={handSortMode}
               variantIndex={smartVariantIndex}
             />
