@@ -2,10 +2,10 @@ import React from 'react';
 
 export interface SectionHeaderProps {
   title: React.ReactNode;
-  subtitle: string | null;
-  icon: React.ReactNode | null;
-  action: React.ReactNode | null;
-  className: string | null;
+  subtitle?: string;
+  icon?: React.ReactNode;
+  action?: React.ReactNode;
+  className?: string;
 }
 
 export const SectionHeader: React.FC<SectionHeaderProps> = ({

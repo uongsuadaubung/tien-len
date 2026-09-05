@@ -11,7 +11,12 @@ import {
   calculateWinnerTakesAllSettlement, 
   calculateTraditionalSettlement 
 } from '../economy';
-import { calculateEloDelta, matchmakeRankedOpponents } from '../elo';
+import { 
+  computeTableEloSettlement, 
+  matchmakeRankedOpponents, 
+  EloDeltaResult, 
+  TableEloSettlementResult 
+} from '../elo';
 import { generateRandomBotConfig, getBotConfig, getRandomBotConfigsForTable, generateRealisticBotBankroll, sanitizeAvatar } from '../../ai/bot-factory';
 import { BotConfig } from '../../ai/types';
 import { CampaignChapter } from '../campaign';
@@ -24,12 +29,12 @@ import { createPlayer, createBotPlayer } from '../player-factory';
  */
 export interface MatchSetupContext {
   profile: PlayerProfile;
-  customRules: DeepPartial<GameRules> | null;
-  customSettings: Partial<GameSettings> | null;
-  customBotPersonaIds: string[] | null;
-  customBotConfigs: Partial<BotConfig>[] | null;
-  campaignChapter: CampaignChapter | null;
-  playerCount: number | null;
+  customRules?: DeepPartial<GameRules>;
+  customSettings?: Partial<GameSettings>;
+  customBotPersonaIds?: string[];
+  customBotConfigs?: Partial<BotConfig>[];
+  campaignChapter?: CampaignChapter;
+  playerCount?: number;
 }
 
 /**
@@ -46,28 +51,38 @@ export interface MatchSetupResult {
 
 /**
  * Ngữ cảnh kết toán ván đấu (Match Settlement Context)
+ * Tuân thủ State-Driven Non-Nullable Architecture Policy:
+ * Toàn bộ dữ liệu tại thời điểm kết toán phải là non-nullable, không fallback.
  */
 export interface MatchSettlementContext {
-  players: Player[];
-  winners: Player[];
-  betAmount: number;
-  playerElo: number | null;
-  isBankLoanActive: boolean | null;
-  campaignReward: number | null;
-  penaltyMultiplier: number | null;
-  isThreeSpadesWin: boolean | null;
+  readonly players: readonly Player[];
+  readonly winners: readonly Player[];
+  readonly betAmount: number;
+  readonly subjectPlayerId: string; // ✅ Non-nullable: ID cụ thể của người chơi được kết toán
+  readonly playerElos: Readonly<Record<string, number>>;
+  readonly chopsByPlayer: Readonly<Record<string, number>>;
+  readonly gotChoppedByPlayer: Readonly<Record<string, number>>;
+  readonly streaksByPlayer: Readonly<Record<string, number>>;
+  readonly isBankLoanActive: boolean;
+  readonly campaignReward?: number;
+  readonly penaltyMultiplier: number;
+  readonly isThreeSpadesWin: boolean;
+  readonly isInstantWin: boolean;
 }
 
 /**
  * Kết quả kết toán ván đấu chuẩn hóa
  */
 export interface MatchSettlementResult {
-  strategyId: string;
-  payouts: Record<string, number>;
-  eloDelta: number;
-  loanDeduction: number;
-  isVictoryModalRanked: boolean;
-  campaignReward: number | null;
+  readonly strategyId: string;
+  readonly payouts: Readonly<Record<string, number>>;
+  readonly eloDelta: number;
+  readonly eloBreakdown: EloDeltaResult['breakdown'] | null;
+  readonly allEloDeltas: Readonly<Record<string, number>>;
+  readonly allEloBreakdowns: Readonly<Record<string, EloDeltaResult['breakdown']>>;
+  readonly loanDeduction: number;
+  readonly isVictoryModalRanked: boolean;
+  readonly campaignReward?: number;
 }
 
 /**
@@ -82,7 +97,7 @@ function buildInitialPlayers(
 ): Player[] {
   const players: Player[] = [
     createPlayer({
-      id: 'p0',
+      id: profile.id,
       name: profile.name || 'Bạn (Người Chơi)',
       avatar: profile.avatar || '🤠',
       score: profile.coins
@@ -209,24 +224,23 @@ export interface GameModeStrategy {
 
 /**
  * Hàm trợ giúp tính toán biến động điểm Elo sau mỗi ván đấu dựa trên thứ hạng và Elo đối thủ
+ * Tính toán đồng nhất cho toàn bộ người chơi (người chơi chính, bot, online peers) bằng cùng 1 công thức.
  */
-function computeMatchEloDelta(context: MatchSettlementContext): number {
-  const p0Index = context.winners.findIndex(p => p.id === 'p0');
-  const playerRank = p0Index !== -1 ? p0Index + 1 : context.players.length;
-  const playerElo = context.playerElo ?? 1000;
-
-  const opponentBots = context.players.filter(p => p.id !== 'p0');
-  const opponentsAvgElo = opponentBots.length > 0
-    ? Math.round(
-        opponentBots.reduce((sum, p) => {
-          const config = getBotConfig(p.botPersonaId || 'BOT_ELO_1150');
-          return sum + (config.elo ?? 1000);
-        }, 0) / opponentBots.length
-      )
-    : 1000;
-
-  const eloRes = calculateEloDelta(playerRank, playerElo, opponentsAvgElo, context.players.length);
-  return eloRes.delta;
+/**
+ * Hàm trợ giúp tính toán biến động điểm Elo sau mỗi ván đấu dựa trên thứ hạng và Elo đối thủ
+ * Tính toán đồng nhất cho toàn bộ người chơi (người chơi chính, bot, online peers) bằng cùng 1 công thức.
+ */
+function computeMatchEloDelta(context: MatchSettlementContext): TableEloSettlementResult {
+  return computeTableEloSettlement({
+    players: context.players,
+    winners: context.winners,
+    playerElos: context.playerElos,
+    chopsByPlayer: context.chopsByPlayer,
+    gotChoppedByPlayer: context.gotChoppedByPlayer,
+    streaksByPlayer: context.streaksByPlayer,
+    isThreeSpadesWin: context.isThreeSpadesWin,
+    isInstantWin: context.isInstantWin
+  });
 }
 
 // ============================================================================
@@ -264,19 +278,26 @@ export class TraditionalModeStrategy implements GameModeStrategy {
       context.players,
       context.winners,
       context.betAmount,
-      context.penaltyMultiplier || 1,
-      context.isThreeSpadesWin || false
+      context.penaltyMultiplier,
+      context.isThreeSpadesWin
     );
 
-    const eloDelta = computeMatchEloDelta(context);
+    const eloRes = computeMatchEloDelta(context);
+    const primaryDelta = eloRes.allEloDeltas[context.subjectPlayerId];
+    const primaryBreakdown = eloRes.allEloBreakdowns[context.subjectPlayerId];
+    if (primaryDelta === undefined) {
+      throw new Error(`[${this.id}] Không tìm thấy Elo delta cho người chơi ${context.subjectPlayerId} trong bảng kết toán!`);
+    }
 
     return {
       strategyId: this.id,
       payouts,
-      eloDelta,
+      eloDelta: primaryDelta,
+      eloBreakdown: primaryBreakdown ?? null,
+      allEloDeltas: eloRes.allEloDeltas,
+      allEloBreakdowns: eloRes.allEloBreakdowns,
       loanDeduction: 0,
-      isVictoryModalRanked: true,
-      campaignReward: null
+      isVictoryModalRanked: true
     };
   }
 }
@@ -327,19 +348,26 @@ export class CountCardsModeStrategy implements GameModeStrategy {
       context.players,
       winnerFirst.id,
       context.betAmount,
-      context.penaltyMultiplier || 1,
-      context.isThreeSpadesWin || false
+      context.penaltyMultiplier,
+      context.isThreeSpadesWin
     );
 
-    const eloDelta = computeMatchEloDelta(context);
+    const eloRes = computeMatchEloDelta(context);
+    const primaryDelta = eloRes.allEloDeltas[context.subjectPlayerId];
+    const primaryBreakdown = eloRes.allEloBreakdowns[context.subjectPlayerId];
+    if (primaryDelta === undefined) {
+      throw new Error(`[${this.id}] Không tìm thấy Elo delta cho người chơi ${context.subjectPlayerId} trong bảng kết toán!`);
+    }
 
     return {
       strategyId: this.id,
       payouts,
-      eloDelta,
+      eloDelta: primaryDelta,
+      eloBreakdown: primaryBreakdown ?? null,
+      allEloDeltas: eloRes.allEloDeltas,
+      allEloBreakdowns: eloRes.allEloBreakdowns,
       loanDeduction: 0,
-      isVictoryModalRanked: true,
-      campaignReward: null
+      isVictoryModalRanked: true
     };
   }
 }
@@ -367,8 +395,8 @@ export class CampaignModeStrategy implements GameModeStrategy {
     const defaultBots = chapter ? Array.from(chapter.bots) : getRandomBotConfigsForTable([1, 2, 3], 3);
     const campaignContext: MatchSetupContext = {
       ...context,
-      customBotPersonaIds: chapter ? [chapter.bots[0].id, chapter.bots[1].id, chapter.bots[2].id] : null,
-      customBotConfigs: chapter ? [chapter.bots[0], chapter.bots[1], chapter.bots[2]] : null
+      customBotPersonaIds: chapter ? [chapter.bots[0].id, chapter.bots[1].id, chapter.bots[2].id] : undefined,
+      customBotConfigs: chapter ? [chapter.bots[0], chapter.bots[1], chapter.bots[2]] : undefined
     };
     return createMatchSetupResult(campaignContext, rules, defaultBots);
   }
@@ -380,17 +408,20 @@ export class CampaignModeStrategy implements GameModeStrategy {
     }
 
     const winnerFirst = context.winners[0];
-    const isPlayerWin = winnerFirst?.id === 'p0';
+    const isPlayerWin = winnerFirst?.id === context.subjectPlayerId;
     const reward = (isPlayerWin && context.campaignReward) ? context.campaignReward : 0;
 
     if (reward > 0) {
-      payouts['p0'] = reward;
+      payouts[context.subjectPlayerId] = reward;
     }
 
     return {
       strategyId: this.id,
       payouts,
       eloDelta: 0,
+      eloBreakdown: null,
+      allEloDeltas: {},
+      allEloBreakdowns: {},
       loanDeduction: 0,
       isVictoryModalRanked: false,
       campaignReward: reward
@@ -444,19 +475,26 @@ export class WinnerTakesAllModeStrategy implements GameModeStrategy {
       context.players,
       winnerFirst.id,
       context.betAmount,
-      context.penaltyMultiplier || 1,
-      context.isThreeSpadesWin || false
+      context.penaltyMultiplier,
+      context.isThreeSpadesWin
     );
 
-    const eloDelta = computeMatchEloDelta(context);
+    const eloRes = computeMatchEloDelta(context);
+    const primaryDelta = eloRes.allEloDeltas[context.subjectPlayerId];
+    const primaryBreakdown = eloRes.allEloBreakdowns[context.subjectPlayerId];
+    if (primaryDelta === undefined) {
+      throw new Error(`[${this.id}] Không tìm thấy Elo delta cho người chơi ${context.subjectPlayerId} trong bảng kết toán!`);
+    }
 
     return {
       strategyId: this.id,
       payouts,
-      eloDelta,
+      eloDelta: primaryDelta,
+      eloBreakdown: primaryBreakdown ?? null,
+      allEloDeltas: eloRes.allEloDeltas,
+      allEloBreakdowns: eloRes.allEloBreakdowns,
       loanDeduction: 0,
-      isVictoryModalRanked: true,
-      campaignReward: null
+      isVictoryModalRanked: true
     };
   }
 }

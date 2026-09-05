@@ -7,6 +7,7 @@ import { type OnlineRoomState, type PublicRoomSummary } from '../../engine/netwo
 import { type PlayerProfile } from '../../engine/storage';
 import { type TableConfigState } from '../components/TableRulesConfigPanel';
 import { t } from '../../locales';
+import { calculateRequiredDeposit } from '../../engine/constants/economy';
 
 export interface SettlementModeOption {
   id: GameSettlementRule;
@@ -42,8 +43,16 @@ export const BET_PRESETS: number[] = [500, 1000, 2000, 5000, 10000];
 
 export const PLAYER_COUNTS: Array<2 | 3 | 4> = [2, 3, 4];
 
+export interface ActiveOnlineRoom {
+  readonly roomCode: string;
+  readonly roomState: OnlineRoomState;
+  readonly isHost: boolean;
+  readonly myPlayerId: string;
+}
+
 export interface UseOnlineRoomLogicResult {
   profile: PlayerProfile;
+  activeRoom: ActiveOnlineRoom | null;
   roomState: OnlineRoomState | null;
   roomCode: string | null;
   isHost: boolean;
@@ -90,6 +99,7 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
   const { openModal, closeModal } = useViewStore();
   const profile = useUserStore(s => s.profile);
 
+  const sessionState = useOnlineStore(s => s.sessionState);
   const {
     roomState,
     roomCode,
@@ -107,6 +117,18 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
     stopBrowsingLobby,
     refreshLobbyRooms
   } = useOnlineStore();
+
+  const activeRoom: ActiveOnlineRoom | null = useMemo(() => {
+    if (sessionState.status === 'IN_ROOM_WAITING' || sessionState.status === 'IN_ROOM_PLAYING') {
+      return {
+        roomCode: sessionState.roomCode,
+        roomState: sessionState.roomState,
+        isHost: sessionState.isHost,
+        myPlayerId: sessionState.myPlayerId
+      };
+    }
+    return null;
+  }, [sessionState]);
 
   const [tab, setTab] = useState<'LOBBY' | 'CREATE'>('LOBBY');
   const [inputPin, setInputPin] = useState<string>('');
@@ -144,10 +166,9 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
     return inputPin.replace(/^TL-/i, '').replace(/[^0-9A-Z]/gi, '').slice(0, 4);
   }, [inputPin]);
 
-  const currentMultiplier = tableConfig.choppingMultiplier || 1;
-  const depositRequired = 26 * tableConfig.betAmount * currentMultiplier;
+  const depositRequired = calculateRequiredDeposit(tableConfig.betAmount);
   const canAffordBet = profile.coins >= depositRequired || profile.coins >= tableConfig.betAmount;
-  const isRoomFull = roomState !== null ? roomState.players.length >= roomState.playerCount : false;
+  const isRoomFull = activeRoom !== null ? activeRoom.roomState.players.length >= activeRoom.roomState.playerCount : false;
 
   const handleTableConfigChange = useCallback((updated: Partial<TableConfigState>) => {
     setTableConfig(prev => ({ ...prev, ...updated }));
@@ -288,6 +309,7 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
 
   return {
     profile,
+    activeRoom,
     roomState,
     roomCode,
     isHost,

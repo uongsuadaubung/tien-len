@@ -17,7 +17,8 @@ import {
   evaluateChoppingScore,
   evaluateTwoManagementScore,
   evaluateComboIntegrityCost,
-  evaluatePositionalAndAdaptationModifiers
+  evaluatePositionalAndAdaptationModifiers,
+  calculateTurnsToClearHand
 } from './heuristic-evaluators';
 
 /**
@@ -29,12 +30,18 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
       return this.passToNext(context, validMoves);
     }
 
-    const { hand, tracker, config, remainingPlayerCards, currentRoundLeadingMove, mctsMap } = context;
+    const { hand, tracker, config, remainingPlayerCards, nextPlayerId, currentRoundLeadingMove, mctsMap } = context;
     const targetCombo = currentRoundLeadingMove?.combination || null;
     const partition = partitionHand(hand, config.handPartitioningOptimality);
     const twoSafety = tracker.getTwoSafetyReport();
     const isEmergencyAntiLeader = Object.values(remainingPlayerCards).some(c => c === 1);
+    const isNextPlayerOneCard = context.isNextPlayerOneCard ?? (remainingPlayerCards[nextPlayerId] === 1);
     const activeOpponentsCount = Object.entries(remainingPlayerCards).filter(([id, cnt]) => id !== config.id && cnt > 0).length;
+
+    const validSingleMoves = validMoves.filter(m => m.combination.type === 'SINGLE');
+    const maxSingleWeight = validSingleMoves.length > 0
+      ? Math.max(...validSingleMoves.map(m => m.combination.highestCard.weight))
+      : 0;
 
     const compositeStrategy = context.compositeRuleStrategy;
     const choppingRiskFactor = compositeStrategy ? compositeStrategy.getChoppingRiskFactor() : 1.0;
@@ -159,8 +166,22 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
       // 5. Kiểm soát nhịp độ & Lợi thế bài thường
       if (config.tempoControl > 0.2 && !containsTwo) {
         score += leadValueRatio * AI_HEURISTIC_WEIGHTS.LEAD_TEMPO_FACTOR * config.tempoControl;
-        if (leadValueRatio > 0.35 && move.combination.highestCard.rank >= 13) {
-          score += AI_HEURISTIC_WEIGHTS.HIGH_CARD_TEMPO_BONUS * config.tempoControl;
+
+        // Chỉ thưởng điểm cướp cái bằng bài to (K, A) khi:
+        // - Cờ tàn (hand.length <= 5 hoặc đánh xong còn <= 3 lá), HOẶC
+        // - Đối phương đánh bài đã là bài to (targetCombo.highestCard.rank >= 11), HOẶC
+        // - Bài còn lại có khả năng dứt điểm ngay (turns to clear <= 2).
+        // Tuyệt đối không quăng K, A vào rác nhỏ (3..8) ở đầu ván khi còn nhiều bài!
+        const isLateGameOrSprint = hand.length <= 5 || (hand.length - move.cards.length <= 3);
+        const isTargetHighCard = targetCombo !== null && targetCombo.highestCard.rank >= 11;
+        const turnsToClear = calculateTurnsToClearHand(hand, partition);
+        const canFinishSoon = turnsToClear <= 2;
+
+        if (move.combination.highestCard.rank >= 13 && (isLateGameOrSprint || isTargetHighCard || canFinishSoon)) {
+          if (leadValueRatio > 0.35) {
+            score += AI_HEURISTIC_WEIGHTS.HIGH_CARD_TEMPO_BONUS * config.tempoControl;
+            reasons.push('Kiểm soát nhịp độ bài to (K/A)');
+          }
         }
       }
 
@@ -200,6 +221,19 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
         reasons.push('Khẩn cấp chặn người 1 lá');
       }
 
+      // 9b. Chặn đầu người kế tiếp báo 1 lá (chống đền bài sinh tử)
+      if (isNextPlayerOneCard && move.combination.type === 'SINGLE') {
+        if (move.combination.highestCard.weight === maxSingleWeight) {
+          score += AI_HEURISTIC_WEIGHTS.ANTI_ONE_CARD_INTERCEPT_BONUS;
+          reasons.push('Chặn đầu người kế tiếp 1 lá bằng lá bài to nhất (chống đền bài)');
+        } else {
+          const weightGap = maxSingleWeight - move.combination.highestCard.weight;
+          const penalty = weightGap * AI_HEURISTIC_WEIGHTS.FEEDING_ONE_CARD_PENALTY_FACTOR;
+          score -= penalty;
+          reasons.push(`Nguy cơ mớm bài cho người 1 lá (-${Math.round(penalty)})`);
+        }
+      }
+
       // 10. Chi phí xé bài / bảo vệ cấu trúc bài
       const integrityCost = evaluateComboIntegrityCost(
         move,
@@ -222,8 +256,26 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
         reasons.push('Tẩu rác lẻ');
       }
 
-      // 12. Cờ tàn tăng tốc dứt điểm
-      if (hand.length <= 3 || hand.length - move.cards.length <= 2) {
+      // 12. Cờ tàn tăng tốc dứt điểm & Chống cạn kiệt lực cờ tàn (Endgame Trash Exhaustion)
+      const moveCardIds = new Set(move.cards.map(c => c.id));
+      const remainingAfterMove = hand.filter(c => !moveCardIds.has(c.id));
+      const isExhaustedTrash =
+        remainingAfterMove.length > 0 &&
+        remainingAfterMove.length <= 3 &&
+        !remainingAfterMove.some(isTwo) &&
+        remainingAfterMove.every(c => c.rank <= 7) &&
+        !containsTwo &&
+        !move.isChop &&
+        (move.cards.length > 1 || !tracker.isStrongestRemainingSingle(move.cards[0])) &&
+        !isEmergencyAntiLeader &&
+        !isNextPlayerOneCard;
+
+      if (isExhaustedTrash) {
+        // Phạt nặng hành vi "tự sát cờ tàn": đốt bài to để rồi kẹt lại toàn rác nhỏ hạt tiêu không có lối thoát
+        const exhaustionPenalty = AI_HEURISTIC_WEIGHTS.ENDGAME_EXHAUSTION_PENALTY + (3 - remainingAfterMove.length) * 30;
+        score -= exhaustionPenalty;
+        reasons.push(`Nguy cơ cạn kiệt lực cờ tàn (-${Math.round(exhaustionPenalty)})`);
+      } else if (hand.length <= 3 || hand.length - move.cards.length <= 2) {
         score += AI_HEURISTIC_WEIGHTS.ENDGAME_SPRINT_BONUS;
         reasons.push('Tăng tốc cờ tàn');
       }
@@ -237,7 +289,8 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
       }
 
       // 14. Minimum Sufficient Beat (Đè bằng lá nhỏ nhất vừa đủ, bảo toàn bài to)
-      if (targetCombo && !move.cards.some(isTwo)) {
+      // KHÔNG áp dụng hình phạt này khi người kế tiếp đang báo 1 lá (vì đang cần đè bằng lá to nhất để chống đền bài)!
+      if (targetCombo && !move.cards.some(isTwo) && !(isNextPlayerOneCard && move.combination.type === 'SINGLE')) {
         const weightDiff = move.combination.highestCard.weight - targetCombo.highestCard.weight;
         score -= weightDiff * 0.75 * config.handPartitioningOptimality;
       }
@@ -307,7 +360,7 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
     return buildBotDecision('PASS', {
       reason: 'Chủ động bỏ lượt để giữ thế bài (các nước đi đều có điểm đánh giá <= 0)',
       strategyUsed: 'HEURISTIC_EVALUATION_PASS',
-      evaluationScore: bestMoveScore > -9000 ? Math.round(bestMoveScore) : null,
+      evaluationScore: bestMoveScore > -9000 ? Math.round(bestMoveScore) : undefined,
       candidatesEvaluated: sortedCandidates
     });
   }

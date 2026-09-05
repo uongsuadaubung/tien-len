@@ -120,9 +120,6 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
       title={t('settings.title')}
       subtitle={t('settings.subtitle')}
       icon={<Settings className="w-5 h-5 text-[var(--color-gold)]" />}
-      headerRight={null}
-      footer={null}
-      className={null}
     >
       <div className="space-y-4 pb-6 select-none">
         {/* ========================================================================= */}
@@ -196,11 +193,9 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                     placeholder={t('sync.tokenPlaceholder')}
                     icon={<Key className="w-4 h-4 text-[var(--color-gold)]" />}
                     label={t('sync.tokenLabel')}
-                    error={null}
                     maxLength={100}
                     showRandomNameButton={false}
                     showPasteButton={true}
-                    onRandomName={null}
                     onPaste={async () => {
                       try {
                         if (navigator.clipboard && navigator.clipboard.readText) {
@@ -215,7 +210,6 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                       }
                     }}
                     onSubmit={handleConnectToken}
-                    className={null}
                     inputClassName="border-[var(--border-container)]"
                     clearable={true}
                     renderExtraActions={() => (
@@ -527,28 +521,37 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
                     key={item.version}
                     className="p-2.5 rounded-xl bg-[var(--bg-container)] border border-[var(--border-container)] flex items-center justify-between gap-2"
                   >
-                    <div>
-                      <div className="text-xs font-semibold text-[var(--text-primary)]">
-                        {formatDateTime(new Date(item.committedAt).getTime(), t('sync.neverSynced'))}
-                      </div>
-                      {item.saveData?.profile ? (
-                        <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                          {t('sync.historyName', { name: item.saveData.profile.name || t('common.player') })} | {t('sync.historyCoins', { coins: item.saveData.profile.coins.toLocaleString() })} | {t('sync.historyElo', { elo: item.saveData.profile.elo })}
+                    {item.success ? (
+                      <>
+                        <div>
+                          <div className="text-xs font-semibold text-[var(--text-primary)]">
+                            {formatDateTime(new Date(item.committedAt).getTime(), t('sync.neverSynced'))}
+                          </div>
+                          {item.saveData.profile ? (
+                            <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                              {t('sync.historyName', { name: item.saveData.profile.name || t('common.player') })} | {t('sync.historyCoins', { coins: item.saveData.profile.coins.toLocaleString() })} | {t('sync.historyElo', { elo: item.saveData.profile.elo })}
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-zinc-500">{t('sync.historyNoProfile')}</div>
+                          )}
                         </div>
-                      ) : (
-                        <div className="text-[10px] text-zinc-500">{t('sync.historyNoProfile')}</div>
-                      )}
-                    </div>
-                    {item.saveData && (
-                      <Button
-                        variant="surface"
-                        size="sm"
-                        onClick={() => handleRestoreCommit(item)}
-                        disabled={isSyncing}
-                        className="text-[11px] text-[var(--color-gold)] border-[var(--color-gold-border)] ml-2 shrink-0"
-                      >
-                        {t('sync.historyRestore')}
-                      </Button>
+                        <Button
+                          variant="surface"
+                          size="sm"
+                          onClick={() => handleRestoreCommit(item)}
+                          disabled={isSyncing}
+                          className="text-[11px] text-[var(--color-gold)] border-[var(--color-gold-border)] ml-2 shrink-0"
+                        >
+                          {t('sync.historyRestore')}
+                        </Button>
+                      </>
+                    ) : (
+                      <div>
+                        <div className="text-xs font-semibold text-[var(--text-primary)]">
+                          {formatDateTime(new Date(item.committedAt).getTime(), t('sync.neverSynced'))}
+                        </div>
+                        <div className="text-[10px] text-red-400">{item.error}</div>
+                      </div>
                     )}
                   </div>
                 ))}

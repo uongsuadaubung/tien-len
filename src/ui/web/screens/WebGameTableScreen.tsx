@@ -54,16 +54,15 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     selectedCardIds,
     handSortMode,
     smartVariantIndex,
-    myPlayerId,
     toggleCardSelect,
     clearCardSelection
   } = useGameStore();
 
   const {
-    p0,
+    localPlayer,
     isMyTurn,
     isValidPlaySelection,
-    canP0Pass,
+    canPassTurn,
     playerCount,
     botPersonaIds,
     customBotConfigs,
@@ -78,6 +77,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     handleQuickSelect,
     handlePlayCards,
     handlePassTurnAction,
+    handleOpenXRay,
     isDealing,
     dealtCounts,
     dealBanner,
@@ -105,10 +105,9 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
         playerElo={profile.elo}
         soundEnabled={soundEnabled}
         onToggleSound={toggleSound}
-        onOpenCustomGameModal={null}
         onOpenRules={() => openModal('RULES')}
         onOpenSettings={() => openModal('SETTINGS')}
-        onOpenXRay={() => openModal('XRAY')}
+        onOpenXRay={handleOpenXRay}
         onReturnToLobby={onReturnToLobby}
         xrayEnabled={xrayEnabled}
       />
@@ -123,8 +122,8 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
       {/* HUD GÓC TRÁI: QUÂN SƯ AI & THỐNG KÊ CHIẾN THUẬT */}
       <LeftMatchHUD
         players={players}
-        currentTurnPlayerId={currentTurnPlayerId || ''}
-        leadPlayerId={leadPlayerId || ''}
+        currentTurnPlayerId={currentTurnPlayerId}
+        leadPlayerId={leadPlayerId}
         gameNumber={gameNumber}
         betAmount={gameSettings.betAmount}
         isDealing={isDealing}
@@ -160,6 +159,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
               isDealing={isDealing}
               displayCardCount={dealtCounts[topBot.id]}
               thoughtText={botThinkingThought?.botId === topBot.id ? botThinkingThought.text : null}
+              size="normal"
             />
           )}
         </div>
@@ -178,12 +178,13 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
                 isDealing={isDealing}
                 displayCardCount={dealtCounts[leftBot.id]}
                 thoughtText={botThinkingThought?.botId === leftBot.id ? botThinkingThought.text : null}
+                size="normal"
               />
             )}
           </div>
 
           {/* BÀN TRÒN TRUNG TÂM */}
-          <div className="round-table relative z-30 flex items-center justify-center p-4 sm:p-6 shadow-2xl shrink-0">
+          <div className="round-table relative z-30 flex items-center justify-center p-4 sm:p-6 shadow-2xl shrink-0 overflow-visible">
             <div className="table-inner-felt">
               <div className="table-center-emblem">
                 <span className="text-[#d4af37]/25 font-black text-[11px] sm:text-[13px] uppercase tracking-[0.35em] select-none text-center">
@@ -205,7 +206,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
             )}
 
             {/* Trung Tâm Bàn Tròn: Bài đã đánh & Thông báo chặt đẹp */}
-            <div className="relative z-30 w-full flex justify-center">
+            <div className="relative z-30 w-full flex justify-center overflow-visible">
               <TableCenter
                 currentMove={currentMove}
                 isLeadMove={isLeadMove}
@@ -228,36 +229,36 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
                 isDealing={isDealing}
                 displayCardCount={dealtCounts[rightBot.id]}
                 thoughtText={botThinkingThought?.botId === rightBot.id ? botThinkingThought.text : null}
+                size="normal"
               />
             )}
           </div>
         </div>
 
-        {/* GHẾ DƯỚI: TAY BÀI VÀ CÁC NÚT ĐIỀU KHIỂN CỦA NGƯỜI CHƠI (P0) */}
+        {/* GHẾ DƯỚI: TAY BÀI VÀ CÁC NÚT ĐIỀU KHIỂN CỦA NGƯỜI CHƠI */}
         <div className="w-full flex justify-center z-30 mb-1">
-          {p0 && (
-            <PlayerHandView
-              player={p0}
-              selectedCardIds={selectedCardIds}
-              onToggleCardSelect={toggleCardSelect}
-              onClearCardSelection={clearCardSelection}
-              onPlaySelectedCards={handlePlayCards}
-              onPassTurn={handlePassTurnAction}
-              onAutoSort={onAutoSort}
-              onQuickSelect={quickResponseAssistEnabled ? handleQuickSelect : null}
-              canQuickSelect={quickResponseAssistEnabled ? canQuickSelect : false}
-              quickSelectCandidatesCount={quickSelectCandidates.length}
-              isCurrentTurn={isMyTurn}
-              canPlay={isValidPlaySelection}
-              canPass={canP0Pass}
-              isLeader={leadPlayerId === myPlayerId}
-              isDealing={isDealing}
-              dealtCardsCount={dealtCounts[myPlayerId]}
-              isFirstMoveOfGame={isFirstMoveOfGame}
-              sortMode={handSortMode}
-              variantIndex={smartVariantIndex}
-            />
-          )}
+          <PlayerHandView
+            player={localPlayer}
+            selectedCardIds={selectedCardIds}
+            onToggleCardSelect={toggleCardSelect}
+            onClearCardSelection={clearCardSelection}
+            onPlaySelectedCards={handlePlayCards}
+            onPassTurn={handlePassTurnAction}
+            onAutoSort={onAutoSort}
+            onQuickSelect={quickResponseAssistEnabled ? handleQuickSelect : null}
+            canQuickSelect={quickResponseAssistEnabled ? canQuickSelect : false}
+            quickSelectCandidatesCount={quickSelectCandidates.length}
+            isCurrentTurn={isMyTurn}
+            canPlay={isValidPlaySelection}
+            canPass={canPassTurn}
+            isLeader={leadPlayerId === localPlayer.id}
+            isDealing={isDealing}
+            dealtCardsCount={dealtCounts[localPlayer.id]}
+            isFirstMoveOfGame={isFirstMoveOfGame}
+            sortMode={handSortMode}
+            variantIndex={smartVariantIndex}
+            cardSize="md"
+          />
         </div>
       </main>
     </div>

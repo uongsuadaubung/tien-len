@@ -51,11 +51,11 @@ export function getSortedQuickSelectCandidates(context: QuickSelectContext): Qui
       prohibitEndingWithTwo
     });
 
-    if (valResult.valid && valResult.combination) {
+    if (valResult.valid) {
       validCandidates.push({
         cards,
         combination: valResult.combination,
-        isChop: valResult.isChop || false
+        isChop: valResult.isChop
       });
     }
   }

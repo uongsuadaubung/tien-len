@@ -1,29 +1,31 @@
 import React from 'react';
 import { Skull, ShieldAlert, AlertTriangle } from 'lucide-react';
-import { useViewStore } from '../../../stores/useViewStore';
 import { useUserStore } from '../../../stores/useUserStore';
 import { Modal, Card, Button, Badge } from '../../primitives';
 import { useI18n } from '../../../locales';
 
+import type { ForfeitData } from '../../../stores/useViewStore';
+
 interface ConfirmForfeitModalProps {
+  data: ForfeitData;
   onConfirmForfeit: () => void;
+  onClose: () => void;
 }
 
-export const ConfirmForfeitModal: React.FC<ConfirmForfeitModalProps> = ({ onConfirmForfeit }) => {
+export const ConfirmForfeitModal: React.FC<ConfirmForfeitModalProps> = ({
+  data,
+  onConfirmForfeit,
+  onClose
+}) => {
   const { t } = useI18n();
-  const { isConfirmForfeitOpen, closeModal, forfeitData } = useViewStore();
   const { profile } = useUserStore();
 
-  if (!isConfirmForfeitOpen) return null;
-
-  const depositAmount = forfeitData?.depositAmount ?? 0;
-  const isRanked = forfeitData?.isRanked ?? false;
-  const eloPenalty = forfeitData?.eloPenalty ?? 30;
+  const { depositAmount, isRanked, eloPenalty } = data;
 
   return (
     <Modal
-      isOpen={isConfirmForfeitOpen}
-      onClose={() => closeModal('CONFIRM_FORFEIT')}
+      isOpen={true}
+      onClose={onClose}
       title={t('forfeit.title')}
       subtitle={t('forfeit.message')}
       icon={<Skull className="w-5 h-5 text-[#f87171]" />}
@@ -34,7 +36,7 @@ export const ConfirmForfeitModal: React.FC<ConfirmForfeitModalProps> = ({ onConf
           <Button
             variant="surface"
             size="md"
-            onClick={() => closeModal('CONFIRM_FORFEIT')}
+            onClick={onClose}
           >
             {t('forfeit.cancel')}
           </Button>
@@ -42,7 +44,7 @@ export const ConfirmForfeitModal: React.FC<ConfirmForfeitModalProps> = ({ onConf
             variant="danger"
             size="md"
             onClick={() => {
-              closeModal('CONFIRM_FORFEIT');
+              onClose();
               onConfirmForfeit();
             }}
           >

@@ -37,6 +37,7 @@ describe('Edge Cases & Advanced Tien Len Rules', () => {
     // p2 dù đã bỏ lượt trước đó nhưng có 4 đôi thông -> được phép chặt 2H tự do!
     const chopRes = game.playMove('p2', parseCards('4S 4D 5S 5D 6S 6D 7S 7D'));
     expect(chopRes.success).toBe(true);
+    if (!chopRes.success) return;
     expect(chopRes.isChop).toBe(true);
     // p2 được khôi phục quyền tham gia
     expect(game.getPlayer('p2')!.isPassedCurrentRound).toBe(false);

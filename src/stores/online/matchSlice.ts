@@ -13,7 +13,7 @@ import {
   type TableRulesBuilder 
 } from '../../engine/types';
 import { createPlayer, createBotPlayer } from '../../engine/player-factory';
-import { type PlayingTurnMatchState } from '../../engine/state-machine/types';
+import { type PlayingTurnMatchState, createPlayingTurnMatchState } from '../../engine/state-machine/types';
 import { type MatchSlice, type OnlineSliceCreator } from './types';
 
 export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
@@ -152,10 +152,14 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
         }
         return p;
       });
-      const currentTurnId = driver.engine?.currentRound.currentTurnPlayerId || 'p0';
-      const leadId = driver.engine?.currentRound.leadPlayerId || 'p0';
-      const isFirstMoveOfGame = driver.engine?.isFirstMoveOfGame ?? false;
-      const isLeadMove = driver.engine?.isRoundLeadMove() ?? true;
+      const engine = driver.engine;
+      if (!engine) {
+        throw new Error('[OnlineMatchSlice] driver.engine không được null khi bắt đầu ván đấu!');
+      }
+      const currentTurnId = engine.currentRound.currentTurnPlayerId;
+      const leadId = engine.currentRound.leadPlayerId;
+      const isFirstMoveOfGame = engine.isFirstMoveOfGame;
+      const isLeadMove = engine.isRoundLeadMove();
 
       gameStore.setGameNumber(driver.gameNumber);
       gameStore.setPlayers(currentPlayers);
@@ -164,15 +168,16 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
       gameStore.setIsFirstMoveOfGame(isFirstMoveOfGame);
       gameStore.setIsLeadMove(isLeadMove);
       gameStore.setWinners([]);
+      gameStore.setInstantWinType(undefined);
       gameStore.setIsGameOver(false);
       gameStore.setCurrentMove(null);
       gameStore.setSelectedCardIds(new Set<string>());
       gameStore.setCurrentHint(null);
 
-      const playingState: PlayingTurnMatchState = {
+      const playingState: PlayingTurnMatchState = createPlayingTurnMatchState({
         status: 'PLAYING',
         gameNumber: driver.gameNumber,
-        roundNumber: driver.engine?.roundNumber || 1,
+        roundNumber: engine.roundNumber,
         players: currentPlayers,
         currentTurnPlayerId: currentTurnId,
         leadPlayerId: leadId,
@@ -184,7 +189,7 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
         chopNotification: null,
         botThinkingThought: null,
         rules: customRules
-      };
+      });
       gameStore.setMatchState(playingState);
 
       const counts: Record<string, number> = {};
@@ -256,10 +261,10 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
 
     if (isHost) {
       if (hostDriver) {
-        hostDriver.handleRematchVote('p0', isReady);
+        hostDriver.handleRematchVote(myPlayerId, isReady);
       } else {
         const updatedPlayers = roomState.players.map(p => {
-          if (p.isHost || p.playerId === 'p0') {
+          if (p.isHost || p.playerId === myPlayerId) {
             return { ...p, isReady };
           }
           return p;

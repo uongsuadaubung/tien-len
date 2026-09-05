@@ -94,6 +94,7 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
   test('5. Ghép Trận Đấu Hạng (Ranked Matchmaking): Tự động sinh đối thủ Bot theo Elo', () => {
     const strategy = new CountCardsModeStrategy();
     const mockProfile: PlayerProfile = {
+      id: 'usr_test',
       name: 'Người Chơi',
       avatar: '🤠',
       coins: 5000,
@@ -120,21 +121,11 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
 
     const match1 = strategy.setupMatch({
       profile: mockProfile,
-      playerCount: 4,
-      customRules: null,
-      customSettings: null,
-      customBotPersonaIds: null,
-      customBotConfigs: null,
-      campaignChapter: null
+      playerCount: 4
     });
     const match2 = strategy.setupMatch({
       profile: mockProfile,
-      playerCount: 4,
-      customRules: null,
-      customSettings: null,
-      customBotPersonaIds: null,
-      customBotConfigs: null,
-      campaignChapter: null
+      playerCount: 4
     });
 
     expect(match1.initialPlayers.length).toBe(4);

@@ -10,7 +10,7 @@ import {
   type CustomBotConfigTuple,
   createDefaultGameRules
 } from './types';
-import { mapMatchStateToSnapshot, type MatchState } from './state-machine';
+import { mapMatchStateToSnapshot, type MatchState, createPlayingTurnMatchState } from './state-machine';
 import type { BotConfig } from '../ai/types';
 import { CardTracker } from '../ai/card-tracker';
 import { getBotConfig } from '../ai/bot-factory';
@@ -22,12 +22,12 @@ import { resolveStrategyForMatch, type MatchSetupContext } from './strategies/ga
 import { generateRealisticBotBankroll } from '../ai/bot-factory';
 import { OpponentProfiler } from '../ai/opponent-profiler';
 import type { ChopNotificationData } from '../stores/useGameStore';
-import type { PlayerProfile } from './storage';
+import { type PlayerProfile, loadPlayerProfile } from './storage';
 import type { CampaignChapter } from './campaign';
 import { getOptimalMoveHint, type MoveHint } from '../ai/hint-engine';
 import { getSortedQuickSelectCandidates } from './quick-response-finder';
 import { assertValidSnapshot } from './invariants/match-invariants';
-import type { IMatchDriver } from './match-driver.interface';
+import type { IMatchDriver, DriverActionResult } from './match-driver.interface';
 
 export interface TableSessionConfig {
   gameType: 'QUICK' | 'CAMPAIGN' | 'CUSTOM';
@@ -47,7 +47,7 @@ export interface MatchSnapshot {
   currentMove: PlayedMove | null;
   winners: Player[];
   isGameOver: boolean;
-  instantWinType?: InstantWinType | null;
+  instantWinType: InstantWinType | null;
   isDealing: boolean;
   dealtCounts: Record<string, number>;
   dealBanner: string | null;
@@ -60,7 +60,7 @@ export interface MatchSnapshot {
 export interface MatchCompletionResult {
   engine: GameEngine;
   instantWin: boolean;
-  instantWinType?: InstantWinType;
+  instantWinType: InstantWinType | null;
 }
 
 export type SnapshotListener = (snapshot: MatchSnapshot) => void;
@@ -78,6 +78,7 @@ export class OfflineMatchDriver implements IMatchDriver {
   public botPersonaIds: BotPersonaIdTuple = ['BOT_ELO_850', 'BOT_ELO_1150', 'BOT_ELO_1450'];
   public customBotConfigs: CustomBotConfigTuple<BotConfig> = [{}, {}, {}];
   public playerCount: number = 4;
+  public localPlayerId: string = loadPlayerProfile().id;
 
   // Visual & State properties
   public isDealing: boolean = false;
@@ -86,7 +87,6 @@ export class OfflineMatchDriver implements IMatchDriver {
   public chopNotification: ChopNotificationData | null = null;
   public botThinkingThought: { botId: string; text: string } | null = null;
   public instantWinType: InstantWinType | null = null;
-  public instantWinner: Player | null = null;
 
   // Runtime control
   private isDisposed: boolean = false;
@@ -137,6 +137,13 @@ export class OfflineMatchDriver implements IMatchDriver {
     };
   }
 
+  private getEngine(): GameEngine {
+    if (!this.engine) {
+      throw new Error('[OfflineMatchDriver] GameEngine is not initialized.');
+    }
+    return this.engine;
+  }
+
   private emitSnapshot(): void {
     if (this.isDisposed) return;
     const snapshot = this.getSnapshot();
@@ -183,7 +190,10 @@ export class OfflineMatchDriver implements IMatchDriver {
     }
 
     if (this.instantWinType) {
-      const winner = this.instantWinner || this.engine.instantWinner || this.engine.players[0];
+      const winner = this.engine.instantWinner;
+      if (!winner) {
+        throw new Error('[OfflineMatchDriver] Trạng thái INSTANT_WIN nhưng engine.instantWinner là null!');
+      }
       return {
         status: 'INSTANT_WIN',
         gameNumber: this.engine.gameNumber,
@@ -225,7 +235,7 @@ export class OfflineMatchDriver implements IMatchDriver {
       };
     }
 
-    return {
+    return createPlayingTurnMatchState({
       status: 'PLAYING',
       gameNumber: this.engine.gameNumber,
       roundNumber: this.engine.roundNumber,
@@ -240,7 +250,7 @@ export class OfflineMatchDriver implements IMatchDriver {
       chopNotification: this.chopNotification ? { ...this.chopNotification } : null,
       botThinkingThought: this.botThinkingThought ? { ...this.botThinkingThought } : null,
       rules: this.engine.rules
-    };
+    });
   }
 
   public getSnapshot(): MatchSnapshot {
@@ -277,19 +287,20 @@ export class OfflineMatchDriver implements IMatchDriver {
       customSettings: config.settings,
       customBotPersonaIds: config.botPersonaIds,
       customBotConfigs: config.customBotConfigs,
-      campaignChapter: config.campaignChapter,
+      campaignChapter: config.campaignChapter || undefined,
       playerCount: config.playerCount
     });
 
     const engine = new GameEngine(setup.initialPlayers, config.rules);
     this.engine = engine;
+    this.localPlayerId = setup.initialPlayers[0]?.id ?? loadPlayerProfile().id;
 
     const newTrackers: Record<string, CardTracker> = {};
     for (const player of engine.players) {
-      if (player.isBot) {
-        const botConfig = getBotConfig(player.botPersonaId || 'BOT_ELO_1150');
-        newTrackers[player.id] = new CardTracker(player.hand, botConfig.memoryDepth);
-      }
+      const memoryDepth = player.isBot
+        ? getBotConfig(player.botPersonaId || 'BOT_ELO_1150').memoryDepth
+        : 1.0;
+      newTrackers[player.id] = new CardTracker(player.hand, memoryDepth);
     }
     this.trackers = newTrackers;
   }
@@ -298,7 +309,7 @@ export class OfflineMatchDriver implements IMatchDriver {
    * Bắt đầu một ván đấu trong bàn (Ván 1, Ván 2, Ván 3...)
    * Luồng đơn nhất: Tái sử dụng 100% cấu hình bàn đã khởi tạo, không đoán mò fallback.
    */
-  public startRound(roundNumber: number, preserveWinnerId?: string | null): MatchSnapshot {
+  public startRound(roundNumber: number, preserveWinnerId: string | null = null): MatchSnapshot {
     if (!this.engine || !this.tableConfig) {
       throw new Error('[OfflineMatchDriver] Không thể bắt đầu ván đấu khi bàn chưa được khởi tạo!');
     }
@@ -307,7 +318,6 @@ export class OfflineMatchDriver implements IMatchDriver {
     this.isDisposed = false;
     this.gameNumber = roundNumber;
     this.instantWinType = null;
-    this.instantWinner = null;
     this.botThinkingThought = null;
     this.chopNotification = null;
 
@@ -323,15 +333,15 @@ export class OfflineMatchDriver implements IMatchDriver {
       }
     }
 
-    const winnerToPreserve = preserveWinnerId || (roundNumber > 1 ? this.lastWinnerId || undefined : undefined);
+    const winnerToPreserve = preserveWinnerId ?? (roundNumber > 1 ? this.lastWinnerId : null);
     const startResult = this.engine.startNewGame(roundNumber, winnerToPreserve);
 
     // Cập nhật card trackers với bài mới
     for (const player of this.engine.players) {
-      if (player.isBot && this.trackers[player.id]) {
-        const botConfig = getBotConfig(player.botPersonaId || 'BOT_ELO_1150');
-        this.trackers[player.id] = new CardTracker(player.hand, botConfig.memoryDepth);
-      }
+      const memoryDepth = player.isBot
+        ? getBotConfig(player.botPersonaId || 'BOT_ELO_1150').memoryDepth
+        : 1.0;
+      this.trackers[player.id] = new CardTracker(player.hand, memoryDepth);
     }
 
     // Hoạt ảnh chia bài
@@ -346,7 +356,6 @@ export class OfflineMatchDriver implements IMatchDriver {
     // Xử lý Tới Trắng (Instant Win)
     if (startResult.instantWin) {
       this.instantWinType = startResult.instantWinType;
-      this.instantWinner = startResult.instantWinner;
       this.isDealing = false;
       const winnerId = startResult.instantWinner.id;
 
@@ -381,7 +390,7 @@ export class OfflineMatchDriver implements IMatchDriver {
   public startMatch(
     gameNumber: number = 1,
     context: Partial<MatchSetupContext> & { profile: PlayerProfile },
-    options?: { preserveWinnerId?: string }
+    options: { preserveWinnerId: string | null } | null = null
   ): MatchSnapshot {
     if (gameNumber === 1 || !this.tableConfig) {
       const gameType = context.campaignChapter ? 'CAMPAIGN' : 'QUICK';
@@ -389,12 +398,12 @@ export class OfflineMatchDriver implements IMatchDriver {
       const strategy = resolveStrategyForMatch(gameType, mode);
       const setup = strategy.setupMatch({
         profile: context.profile,
-        customRules: context.customRules ?? null,
-        customSettings: context.customSettings ?? null,
-        customBotPersonaIds: context.customBotPersonaIds ?? null,
-        customBotConfigs: context.customBotConfigs ?? null,
-        campaignChapter: context.campaignChapter ?? null,
-        playerCount: context.playerCount ?? null
+        customRules: context.customRules,
+        customSettings: context.customSettings,
+        customBotPersonaIds: context.customBotPersonaIds,
+        customBotConfigs: context.customBotConfigs,
+        campaignChapter: context.campaignChapter,
+        playerCount: context.playerCount
       });
 
       this.setupTable({
@@ -416,9 +425,9 @@ export class OfflineMatchDriver implements IMatchDriver {
     this.isDealing = false;
 
     if (this.autoSortEnabled) {
-      const p0 = this.engine.getPlayer('p0');
-      if (p0) {
-        p0.hand = sortCards(p0.hand);
+      const localPlayer = this.engine.getPlayer(this.localPlayerId);
+      if (localPlayer) {
+        localPlayer.hand = sortCards(localPlayer.hand);
       }
     }
 
@@ -454,61 +463,64 @@ export class OfflineMatchDriver implements IMatchDriver {
   }
 
   public dealCardStep(playerIndex: number, currentCardCount: number): void {
-    const playerId = 'p' + playerIndex;
+    const player = this.engine?.players[playerIndex];
+    const playerId = player ? player.id : `player_${playerIndex}`;
     this.dealtCounts[playerId] = currentCardCount;
     this.emitSnapshot();
   }
 
-  public autoSort(playerId: string = 'p0'): Card[] {
-    if (!this.engine) return [];
-    const player = this.engine.getPlayer(playerId);
+  public autoSort(playerId: string): Card[] {
+    const engine = this.getEngine();
+    const player = engine.getPlayer(playerId);
     if (!player) return [];
     player.hand = sortCards(player.hand);
     this.emitSnapshot();
     return [...player.hand];
   }
 
-  public playCards(playerId: string, cards: Card[]): { success: boolean; error?: string } {
-    if (!this.engine || this.isDealing || this.engine.isGameOver) {
+  public playCards(playerId: string, cards: Card[]): DriverActionResult {
+    if (this.isDealing) {
       return { success: false, error: 'Trận đấu chưa sẵn sàng.' };
     }
+    const engine = this.getEngine();
+    if (engine.isGameOver) {
+      return { success: false, error: 'Trận đấu đã kết thúc.' };
+    }
 
-    const player = this.engine.getPlayer(playerId);
+    const player = engine.getPlayer(playerId);
     if (!player) return { success: false, error: 'Không tìm thấy người chơi.' };
 
-    const moveRes = this.engine.playMove(playerId, cards);
+    const moveRes = engine.playMove(playerId, cards);
     if (!moveRes.success) {
-      return { success: false, error: moveRes.error || 'Nước đi không hợp lệ' };
+      return { success: false, error: moveRes.error };
     }
 
     this.dealtCounts[playerId] = player.hand.length;
-    if (moveRes.playedMove) {
-      GameEventBus.getInstance().emit({
-        type: 'CARD_PLAYED',
-        playerId,
-        cards: [...moveRes.playedMove.combination.cards],
-        combination: moveRes.playedMove.combination,
-        remainingCardsCount: player.hand.length
-      });
-    }
+    GameEventBus.getInstance().emit({
+      type: 'CARD_PLAYED',
+      playerId,
+      cards: [...moveRes.playedMove.combination.cards],
+      combination: moveRes.playedMove.combination,
+      remainingCardsCount: player.hand.length
+    });
 
     // Xử lý chặt heo / hàng
     if (moveRes.isChop && moveRes.choppedPlayerId) {
-      const chopped = this.engine.getPlayer(moveRes.choppedPlayerId);
-      const penalty = moveRes.penaltyAmount || 0;
+      const chopped = engine.getPlayer(moveRes.choppedPlayerId);
+      const penalty = moveRes.penaltyAmount;
       this.triggerChopAlert(
         player.name,
         chopped?.name || 'Đối thủ',
         penalty,
-        moveRes.isCascadeChop || false,
-        moveRes.chopChainCount || 1,
+        moveRes.isCascadeChop,
+        moveRes.chopChainCount,
         playerId,
         moveRes.choppedPlayerId,
         [...cards]
       );
     }
 
-    const lastMove = this.engine.getLeadingMove();
+    const lastMove = engine.getLeadingMove();
     if (lastMove) {
       for (const t of Object.values(this.trackers)) {
         t.recordMove(lastMove);
@@ -517,7 +529,7 @@ export class OfflineMatchDriver implements IMatchDriver {
 
     this.emitSnapshot();
 
-    if (this.engine.isGameOver) {
+    if (engine.isGameOver) {
       this.handleGameOver();
     } else {
       this.triggerBotTurnIfNeeded();
@@ -526,14 +538,18 @@ export class OfflineMatchDriver implements IMatchDriver {
     return { success: true };
   }
 
-  public passTurn(playerId: string): { success: boolean; error?: string } {
-    if (!this.engine || this.isDealing || this.engine.isGameOver) {
+  public passTurn(playerId: string): DriverActionResult {
+    if (this.isDealing) {
       return { success: false, error: 'Trận đấu chưa sẵn sàng.' };
     }
+    const engine = this.getEngine();
+    if (engine.isGameOver) {
+      return { success: false, error: 'Trận đấu đã kết thúc.' };
+    }
 
-    const passRes = this.engine.passTurn(playerId);
+    const passRes = engine.passTurn(playerId);
     if (!passRes.success) {
-      return { success: false, error: passRes.error || 'Không thể bỏ lượt lúc này.' };
+      return { success: false, error: passRes.error };
     }
 
     GameEventBus.getInstance().emit({
@@ -541,7 +557,7 @@ export class OfflineMatchDriver implements IMatchDriver {
       playerId
     });
 
-    const leadingMove = this.engine.getLeadingMove();
+    const leadingMove = engine.getLeadingMove();
     if (leadingMove) {
       for (const t of Object.values(this.trackers)) {
         t.recordPassWithDetails(playerId, leadingMove.combination);
@@ -550,7 +566,7 @@ export class OfflineMatchDriver implements IMatchDriver {
 
     this.emitSnapshot();
 
-    if (this.engine.isGameOver) {
+    if (engine.isGameOver) {
       this.handleGameOver();
     } else {
       this.triggerBotTurnIfNeeded();
@@ -606,36 +622,37 @@ export class OfflineMatchDriver implements IMatchDriver {
       this.botThinkingThought = null;
 
       const botConfig = getBotConfig(currentPlayer.botPersonaId || 'BOT_ELO_1150');
-      const tracker = this.trackers[currentPlayer.id] || new CardTracker(currentPlayer.hand, botConfig.memoryDepth);
+      const tracker = this.trackers[currentPlayer.id];
+      if (!tracker) {
+        throw new Error(`[OfflineMatchDriver] Tracker không tồn tại cho bot: ${currentPlayer.id}`);
+      }
 
       const result = this.engine.executeBotTurn(botConfig, tracker);
 
       if (result.action === 'PLAY') {
-        if (result.playedMove) {
-          GameEventBus.getInstance().emit({
-            type: 'CARD_PLAYED',
-            playerId: currentPlayer.id,
-            cards: [...result.playedMove.combination.cards],
-            combination: result.playedMove.combination,
-            remainingCardsCount: currentPlayer.hand.length
-          });
-          for (const t of Object.values(this.trackers)) {
-            t.recordMove(result.playedMove);
-          }
+        GameEventBus.getInstance().emit({
+          type: 'CARD_PLAYED',
+          playerId: currentPlayer.id,
+          cards: [...result.playedMove.combination.cards],
+          combination: result.playedMove.combination,
+          remainingCardsCount: currentPlayer.hand.length
+        });
+        for (const t of Object.values(this.trackers)) {
+          t.recordMove(result.playedMove);
         }
 
         if (result.isChop && result.choppedPlayerId) {
           const chopped = this.engine.getPlayer(result.choppedPlayerId);
-          const penalty = result.penaltyAmount || 0;
+          const penalty = result.penaltyAmount;
           this.triggerChopAlert(
             currentPlayer.name,
             chopped?.name || 'Đối thủ',
             penalty,
-            result.isCascadeChop || false,
-            result.chopChainCount || 1,
+            result.isCascadeChop,
+            result.chopChainCount,
             currentPlayer.id,
             result.choppedPlayerId,
-            result.playedMove ? [...result.playedMove.combination.cards] : null
+            [...result.playedMove.combination.cards]
           );
         }
       } else {
@@ -710,7 +727,8 @@ export class OfflineMatchDriver implements IMatchDriver {
     for (const listener of this.completionListeners) {
       listener({
         engine: this.engine,
-        instantWin: false
+        instantWin: false,
+        instantWinType: null
       });
     }
   }
@@ -731,43 +749,50 @@ export class OfflineMatchDriver implements IMatchDriver {
   }
 
   public getTracker(playerId: string): CardTracker | null {
-    return this.trackers[playerId] || null;
+    return this.trackers[playerId] ?? null;
   }
 
-  public getAiHint(playerId: string = 'p0'): MoveHint | null {
+  public getAiHint(playerId: string): MoveHint | null {
     if (!this.engine) return null;
-    const player = this.engine.getPlayer(playerId);
+    const engine = this.engine;
+    const player = engine.getPlayer(playerId);
     if (!player || player.hand.length === 0) return null;
-    const tracker = this.getTracker(playerId) || new CardTracker(player.hand, 1.0);
-    const remainingCounts = this.engine.players.reduce((acc, p) => ({ ...acc, [p.id]: p.hand.length }), {});
-    const nextPlayerId = this.engine.getNextActivePlayerId(playerId);
-    const nextPlayer = nextPlayerId ? this.engine.getPlayer(nextPlayerId) : null;
+    const tracker = this.getTracker(playerId);
+    if (!tracker) return null;
+    const remainingCounts = engine.players.reduce((acc, p) => ({ ...acc, [p.id]: p.hand.length }), {});
+    const nextPlayerId = engine.getNextActivePlayerId(playerId);
+    const nextPlayer = nextPlayerId ? engine.getPlayer(nextPlayerId) : null;
     const isNextPlayerOneCard = nextPlayer ? nextPlayer.hand.length === 1 : false;
 
     return getOptimalMoveHint(
       player.hand,
-      this.engine.getLeadingMove(),
-      this.engine.isFirstMoveOfGame,
-      this.engine.isRoundLeadMove(),
+      engine.getLeadingMove(),
+      engine.isFirstMoveOfGame,
+      engine.isRoundLeadMove(),
       tracker,
       remainingCounts,
       nextPlayerId,
       isNextPlayerOneCard,
-      this.engine.rules.gameFlow.prohibitEndingWithTwo
+      engine.rules.gameFlow.prohibitEndingWithTwo,
+      undefined,
+      undefined,
+      player.hasPlayedFirstCard,
+      playerId
     );
   }
 
-  public getValidMoves(playerId: string = 'p0'): Card[][] {
+  public getValidMoves(playerId: string): Card[][] {
     if (!this.engine) return [];
-    const player = this.engine.getPlayer(playerId);
+    const engine = this.engine;
+    const player = engine.getPlayer(playerId);
     if (!player || player.hand.length === 0) return [];
     return getSortedQuickSelectCandidates({
       hand: player.hand,
-      leadingMove: this.engine.getLeadingMove(),
-      isLeadMove: this.engine.isRoundLeadMove(),
-      isFirstMoveOfGame: this.engine.isFirstMoveOfGame,
-      allowFourPairsCutAnytime: this.engine.rules.chopping.allowFourPairsCutAnytime,
-      prohibitEndingWithTwo: this.engine.rules.gameFlow.prohibitEndingWithTwo
+      leadingMove: engine.getLeadingMove(),
+      isLeadMove: engine.isRoundLeadMove(),
+      isFirstMoveOfGame: engine.isFirstMoveOfGame,
+      allowFourPairsCutAnytime: engine.rules.chopping.allowFourPairsCutAnytime,
+      prohibitEndingWithTwo: engine.rules.gameFlow.prohibitEndingWithTwo
     }).map(c => c.cards);
   }
 
@@ -794,6 +819,5 @@ export class OfflineMatchDriver implements IMatchDriver {
     this.rules = null;
     this.settings = null;
     this.instantWinType = null;
-    this.instantWinner = null;
   }
 }

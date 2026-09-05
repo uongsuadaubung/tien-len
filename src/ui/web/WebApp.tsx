@@ -6,15 +6,10 @@ import { QuickSetupConfig } from './modals/QuickSetupModal';
 import { CustomGameModalConfig } from './modals/CustomGameModal';
 import { CampaignChapter } from '../../engine/campaign';
 import { useViewStore } from '../../stores/useViewStore';
-import { appFlowCoordinator } from '../../services/app-flow-coordinator';
+import type { CampaignResultMeta } from '../../stores/useGameStore';
 
 export interface WebAppProps {
-  campaignResultMeta: {
-    isUnlockedNext: boolean;
-    isAllCompleted: boolean;
-    nextChapter: CampaignChapter | null;
-    currentWins: number;
-  } | null;
+  campaignResultMeta?: CampaignResultMeta | null;
   handleNextGame: () => void;
   handlePlaySelectedCards: () => void;
   handlePassTurn: () => void;
@@ -24,6 +19,7 @@ export interface WebAppProps {
   handleDealComplete: () => void;
   handleForfeitMatch: () => void;
   handleReturnToLobby: () => void;
+  handleRequestExitTable?: () => void;
   handlePlayNowDefault: () => void;
   handleStartQuickGame: (config: QuickSetupConfig) => void;
   handleStartCustomGameWithConfig: (config: CustomGameModalConfig) => void;
@@ -40,6 +36,7 @@ export const WebApp: React.FC<WebAppProps> = ({
   handleDealComplete,
   handleForfeitMatch,
   handleReturnToLobby,
+  handleRequestExitTable,
   handlePlayNowDefault,
   handleStartQuickGame,
   handleStartCustomGameWithConfig,
@@ -70,13 +67,12 @@ export const WebApp: React.FC<WebAppProps> = ({
           onAutoSort={handleAutoSort}
           onDealCard={handleDealCard}
           onDealComplete={handleDealComplete}
-          onReturnToLobby={handleReturnToLobby}
+          onReturnToLobby={handleRequestExitTable || handleReturnToLobby}
         />
       )}
 
       {/* 2. MODALS TẬP TRUNG CHO WEB DESKTOP */}
       <WebGameModals
-        player0Tracker={appFlowCoordinator.getPlayerTracker('p0')}
         onStartQuickGame={handleStartQuickGame}
         onStartCustomGame={handleStartCustomGameWithConfig}
         onSelectCampaignChapter={handleStartCampaignChapter}

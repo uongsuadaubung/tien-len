@@ -61,10 +61,9 @@ export interface CardMemoryState {
   playedCards: Card[];
   remainingCardsCount: number;
   seenTwos: Card[];
-  unseenTwos: Card[];
   possibleDangerousRanks: Rank[];     // Các rank chưa xuất hiện lá nào (nguy cơ tứ quý)
   opponentPassedOnTypes: Record<string, CombinationType[]>; // Ghi nhớ đối thủ từng bỏ lượt ở loại bài nào
-  opponentBlindspots: Record<string, string[]> | null;
-  opponentProfiles: Record<string, OpponentBehaviorProfile> | null;
+  opponentBlindspots: Record<string, string[]>;
+  opponentProfiles: Record<string, OpponentBehaviorProfile>;
 }
 

@@ -3,7 +3,8 @@ import { isTwo } from '../engine/card';
 import { 
   saveHumanBehaviorProfile, 
   loadHumanBehaviorProfile, 
-  clearHumanBehaviorProfile 
+  clearHumanBehaviorProfile,
+  loadPlayerProfile 
 } from '../engine/storage';
 
 import {
@@ -36,6 +37,7 @@ export function isOpponentBehaviorProfile(value: unknown): value is OpponentBeha
  */
 export class OpponentProfiler {
   private static instance: OpponentProfiler | null = null;
+  private primaryPlayerId: string = loadPlayerProfile().id;
   private profiles = new Map<string, OpponentBehaviorProfile>();
   private sessionActions = new Map<string, PlayerActionRecord[]>();
 
@@ -50,10 +52,18 @@ export class OpponentProfiler {
     return OpponentProfiler.instance;
   }
 
+  public setPrimaryPlayerId(id: string): void {
+    this.primaryPlayerId = id;
+  }
+
+  public getPrimaryPlayerId(): string {
+    return this.primaryPlayerId;
+  }
+
   private loadPersistentProfiles(): void {
     const savedHuman = loadHumanBehaviorProfile();
     if (savedHuman && isOpponentBehaviorProfile(savedHuman)) {
-      this.profiles.set('p0', savedHuman);
+      this.profiles.set(this.primaryPlayerId, savedHuman);
     }
   }
 
@@ -62,10 +72,10 @@ export class OpponentProfiler {
     if (existing) {
       return existing;
     }
-    if (playerId === 'p0') {
+    if (playerId === this.primaryPlayerId) {
       const savedHuman = loadHumanBehaviorProfile();
       if (savedHuman && isOpponentBehaviorProfile(savedHuman)) {
-        this.profiles.set('p0', savedHuman);
+        this.profiles.set(this.primaryPlayerId, savedHuman);
         return savedHuman;
       }
     }
@@ -217,7 +227,7 @@ export class OpponentProfiler {
     };
 
     this.profiles.set(playerId, updatedProfile);
-    if (playerId === 'p0') {
+    if (playerId === this.primaryPlayerId) {
       saveHumanBehaviorProfile(updatedProfile);
     }
     return updatedProfile;
@@ -250,7 +260,7 @@ export class OpponentProfiler {
   /**
    * Đặt lại bộ nhớ phiên (xóa hành vi của các bot đối thủ khi đổi bàn, nhưng bảo toàn hồ sơ người chơi dài hạn)
    */
-  public reset(keepPlayerId: string = 'p0'): void {
+  public reset(keepPlayerId: string = this.primaryPlayerId): void {
     this.sessionActions.clear();
     const humanProf = this.profiles.get(keepPlayerId) || loadHumanBehaviorProfile();
     this.profiles.clear();

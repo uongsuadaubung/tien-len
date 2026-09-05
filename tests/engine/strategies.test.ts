@@ -55,11 +55,15 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       players,
       winners,
       betAmount: BET,
-      playerElo: 1000,
+      subjectPlayerId: 'p0',
+      playerElos: { p0: 1000, p1: 1000, p2: 1000, p3: 1000 },
+      chopsByPlayer: {},
+      gotChoppedByPlayer: {},
+      streaksByPlayer: {},
       isBankLoanActive: false,
-      campaignReward: null,
       penaltyMultiplier: 1,
-      isThreeSpadesWin: false
+      isThreeSpadesWin: false,
+      isInstantWin: false
     });
 
     // 4 người: Nhất (+1,500) + thối heo Bot 2 (500) + cóng Bot 3 (13,000) + thối heo Bot 3 (1,000) = +16,000
@@ -80,11 +84,15 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       players,
       winners,
       betAmount: BET,
-      playerElo: 1000,
+      subjectPlayerId: 'p0',
+      playerElos: { p0: 1000, p1: 1000, p2: 1000, p3: 1000 },
+      chopsByPlayer: {},
+      gotChoppedByPlayer: {},
+      streaksByPlayer: {},
       isBankLoanActive: false,
-      campaignReward: null,
       penaltyMultiplier: 1,
-      isThreeSpadesWin: false
+      isThreeSpadesWin: false,
+      isInstantWin: false
     });
 
     // Bot 1: 2 lá x 500 = -1,000
@@ -108,11 +116,16 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       players,
       winners,
       betAmount: BET,
-      playerElo: 1000,
+      subjectPlayerId: 'p0',
+      playerElos: { p0: 1000, p1: 1000, p2: 1000, p3: 1000 },
+      chopsByPlayer: {},
+      gotChoppedByPlayer: {},
+      streaksByPlayer: {},
       isBankLoanActive: false,
       campaignReward: 5000,
       penaltyMultiplier: 1,
-      isThreeSpadesWin: false
+      isThreeSpadesWin: false,
+      isInstantWin: false
     });
 
     // Các bot không bị trừ tiền đếm lá
@@ -133,11 +146,15 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       players,
       winners,
       betAmount: BET,
-      playerElo: 1000,
+      subjectPlayerId: 'p0',
+      playerElos: { p0: 1000, p1: 1000, p2: 1000, p3: 1000 },
+      chopsByPlayer: {},
+      gotChoppedByPlayer: {},
+      streaksByPlayer: {},
       isBankLoanActive: false,
-      campaignReward: null,
       penaltyMultiplier: 1,
-      isThreeSpadesWin: false
+      isThreeSpadesWin: false,
+      isInstantWin: false
     });
 
     expect(result.isVictoryModalRanked).toBe(true);
@@ -162,6 +179,7 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
 
   test('6. Strategy Setup Match: Khởi tạo chính xác cấu hình, bot và người chơi cho từng chế độ', () => {
     const mockProfile = {
+      id: 'usr_test',
       name: 'Cao Thủ Sài Gòn',
       avatar: '🤠',
       coins: 50000,
@@ -199,12 +217,7 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
     const tradStrat = new TraditionalModeStrategy();
     const tradSetup = tradStrat.setupMatch({
       profile: mockProfile,
-      customRules: null,
-      customSettings: { betAmount: 2000 },
-      customBotPersonaIds: null,
-      customBotConfigs: null,
-      campaignChapter: null,
-      playerCount: null
+      customSettings: { betAmount: 2000 }
     });
     expect(tradSetup.settings.mode).toBe('TRADITIONAL');
     expect(tradSetup.settings.betAmount).toBe(2000);
@@ -217,12 +230,8 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
     const countCardsStrat = new CountCardsModeStrategy();
     const ccSetup = countCardsStrat.setupMatch({
       profile: mockProfile,
-      customRules: null,
       playerCount: 2,
-      customSettings: { betAmount: 1000 },
-      customBotPersonaIds: null,
-      customBotConfigs: null,
-      campaignChapter: null
+      customSettings: { betAmount: 1000 }
     });
     expect(ccSetup.settings.mode).toBe('COUNT_CARDS');
     expect(ccSetup.settings.betAmount).toBe(1000);

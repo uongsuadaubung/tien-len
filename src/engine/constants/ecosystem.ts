@@ -74,7 +74,7 @@ export const ECOSYSTEM_CONSTANTS: EcosystemConfig = {
   // Hệ số gia tăng tâm lý cay cú gỡ gạc (Tilt) khi dính chuỗi thua
   TILT_RISK_BOOST: 0.35,
 
-  // Tên cơ sở dữ liệu IndexedDB & Phiên bản Hợp Nhất Toàn Bộ Game
-  DB_NAME: 'TIEN_LEN_DEXIE_DB_V1',
+  // Tên cơ sở dữ liệu IndexedDB & Phiên bản Hợp Nhất Toàn Bộ Game (Bản mới tinh khôi)
+  DB_NAME: 'TIEN_LEN_GAME_DB',
   DB_VERSION: 1
 };

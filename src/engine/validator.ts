@@ -2,12 +2,21 @@ import { Card, Combination } from './types';
 import { compareCards, isTwo } from './card';
 import { identifyCombination } from './combinations';
 
-export interface ValidationResult {
-  valid: boolean;
-  combination: Combination | null;
-  isChop: boolean | null;
-  reason: string | null;
+export interface ValidValidationResult {
+  readonly valid: true;
+  readonly combination: Combination;
+  readonly isChop: boolean;
+  readonly reason?: undefined;
 }
+
+export interface InvalidValidationResult {
+  readonly valid: false;
+  readonly combination?: undefined;
+  readonly isChop?: undefined;
+  readonly reason: string;
+}
+
+export type ValidationResult = ValidValidationResult | InvalidValidationResult;
 
 /**
  * Kiểm tra xem tổ hợp `candidate` có đè / chặt được tổ hợp `target` hay không
@@ -24,11 +33,10 @@ export function canBeat(candidate: Combination, target: Combination): Validation
       return {
         valid: true,
         combination: candidate,
-        isChop: isChopSpecial,
-        reason: null
+        isChop: isChopSpecial
       };
     }
-    return { valid: false, combination: null, isChop: null, reason: 'Bài đánh ra nhỏ hơn bài trên bàn' };
+    return { valid: false, reason: 'Bài đánh ra nhỏ hơn bài trên bàn' };
   }
 
   // 2. Chặt 1 Heo (Single 2)
@@ -41,8 +49,7 @@ export function canBeat(candidate: Combination, target: Combination): Validation
       return {
         valid: true,
         combination: candidate,
-        isChop: true,
-        reason: null
+        isChop: true
       };
     }
   }
@@ -56,15 +63,12 @@ export function canBeat(candidate: Combination, target: Combination): Validation
       return {
         valid: true,
         combination: candidate,
-        isChop: true,
-        reason: null
+        isChop: true
       };
     }
     if (candidate.type === 'THREE_PAIRS_SEQUENTIAL') {
       return {
         valid: false,
-        combination: null,
-        isChop: null,
         reason: '3 Đôi thông không chặt được đôi Heo (cần Tứ quý hoặc 4 đôi thông)'
       };
     }
@@ -79,8 +83,7 @@ export function canBeat(candidate: Combination, target: Combination): Validation
       return {
         valid: true,
         combination: candidate,
-        isChop: true,
-        reason: null
+        isChop: true
       };
     }
   }
@@ -91,16 +94,13 @@ export function canBeat(candidate: Combination, target: Combination): Validation
       return {
         valid: true,
         combination: candidate,
-        isChop: true,
-        reason: null
+        isChop: true
       };
     }
   }
 
   return {
     valid: false,
-    combination: null,
-    isChop: null,
     reason: 'Tổ hợp bài không phù hợp để đè bộ bài hiện tại'
   };
 }
@@ -133,13 +133,13 @@ export function isValidMove(context: IsValidMoveContext): ValidationResult {
   } = context;
 
   if (!cards || cards.length === 0) {
-    return { valid: false, combination: null, isChop: null, reason: 'Chưa chọn lá bài nào' };
+    return { valid: false, reason: 'Chưa chọn lá bài nào' };
   }
 
   // Nhận diện tổ hợp
   const combination = identifyCombination(cards);
   if (!combination) {
-    return { valid: false, combination: null, isChop: null, reason: 'Tổ hợp các lá bài không hợp lệ theo luật' };
+    return { valid: false, reason: 'Tổ hợp các lá bài không hợp lệ theo luật' };
   }
 
   // Ràng buộc luật cấm đánh 2 cuối cùng (Cấm về Heo)
@@ -148,8 +148,6 @@ export function isValidMove(context: IsValidMoveContext): ValidationResult {
     if (hasTwo) {
       return {
         valid: false,
-        combination: null,
-        isChop: null,
         reason: 'Luật cấm về bằng lá Heo (2) cuối cùng! Bạn không thể đánh 2 để hết bài.'
       };
     }
@@ -161,8 +159,6 @@ export function isValidMove(context: IsValidMoveContext): ValidationResult {
     if (!has3Spades) {
       return {
         valid: false,
-        combination: null,
-        isChop: null,
         reason: 'Lượt đánh đầu tiên của ván đầu bắt buộc phải chứa quân 3 Bích (3♠)'
       };
     }
@@ -173,8 +169,7 @@ export function isValidMove(context: IsValidMoveContext): ValidationResult {
     return {
       valid: true,
       combination,
-      isChop: false,
-      reason: null
+      isChop: false
     };
   }
 
@@ -184,7 +179,7 @@ export function isValidMove(context: IsValidMoveContext): ValidationResult {
     if (allowFourPairsCutAnytime && combination.type === 'FOUR_PAIRS_SEQUENTIAL') {
       return canBeat(combination, target);
     }
-    return { valid: false, combination: null, isChop: null, reason: 'Bạn đã bỏ lượt trong vòng này' };
+    return { valid: false, reason: 'Bạn đã bỏ lượt trong vòng này' };
   }
 
   // Kiểm tra luật đè bài bình thường & chặt heo/hàng

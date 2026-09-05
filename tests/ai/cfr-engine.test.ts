@@ -100,12 +100,7 @@ describe('CFR & Regret Matching Engine (Lý Thuyết Trò Chơi & Cân Bằng Na
       playerId: 'player_1',
       combination: identifyCombination([nineSpades])!,
       timestamp: Date.now(),
-      isChop: null,
-      choppedPlayerId: null,
-      penaltyAmount: null,
-      isCascadeChop: null,
-      chopChainCount: null,
-      chopChainTotalAmount: null
+      isChop: false
     };
     const targetProfile = createDefaultOpponentProfile('player_1');
 
@@ -120,12 +115,7 @@ describe('CFR & Regret Matching Engine (Lý Thuyết Trò Chơi & Cân Bằng Na
       playerId: 'player_greedy',
       combination: identifyCombination([tenSpades])!,
       timestamp: Date.now(),
-      isChop: null,
-      choppedPlayerId: null,
-      penaltyAmount: null,
-      isCascadeChop: null,
-      chopChainCount: null,
-      chopChainTotalAmount: null
+      isChop: false
     };
     const greedyProfile = {
       ...createDefaultOpponentProfile('player_greedy'),

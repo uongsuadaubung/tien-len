@@ -159,41 +159,47 @@ class SoundManager {
     osc.stop(this.ctx.currentTime + 0.045);
   }
 
-  // Âm thanh Xào bài / Rung xốc bộ bài "Rạt rạt"
+  // Âm thanh Xào bài / Riffle xốp bài mượt mà
   public playShuffle() {
     if (!this.enabled) return;
     this.initCtx();
     if (!this.ctx) return;
 
-    for (let i = 0; i < 6; i++) {
-      setTimeout(() => {
-        if (!this.ctx) return;
-        const bufferSize = this.ctx.sampleRate * 0.035;
-        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let j = 0; j < bufferSize; j++) {
-          data[j] = Math.random() * 2 - 1;
-        }
-
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = buffer;
-
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'bandpass';
-        filter.frequency.setValueAtTime(1400 + Math.random() * 600, this.ctx.currentTime);
-        filter.Q.setValueAtTime(2.5, this.ctx.currentTime);
-
-        const gain = this.ctx.createGain();
-        gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.005, this.ctx.currentTime + 0.035);
-
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.ctx.destination);
-
-        noise.start();
-      }, i * 45);
+    const duration = 0.32;
+    const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let b0 = 0;
+    let b1 = 0;
+    let b2 = 0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      b0 = 0.99886 * b0 + white * 0.0555179;
+      b1 = 0.99332 * b1 + white * 0.0750759;
+      b2 = 0.96900 * b2 + white * 0.1538520;
+      data[i] = (b0 + b1 + b2 + white * 0.5362) * 0.12;
     }
+
+    const source = this.ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(800, this.ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(2000, this.ctx.currentTime + 0.16);
+    filter.frequency.exponentialRampToValueAtTime(1000, this.ctx.currentTime + duration);
+    filter.Q.setValueAtTime(2.0, this.ctx.currentTime);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.01, this.ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.18, this.ctx.currentTime + 0.06);
+    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    source.start();
   }
 
   // Âm thanh Chiến Thắng / Tết Hoan Ca

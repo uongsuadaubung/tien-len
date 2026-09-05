@@ -39,7 +39,7 @@ export type { CustomGameModalConfig };
 interface CustomGameModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialConfig?: Partial<CustomGameModalConfig>;
+  initialConfig: Partial<CustomGameModalConfig> | null;
   onStartCustomGame: (config: CustomGameModalConfig) => void;
 }
 

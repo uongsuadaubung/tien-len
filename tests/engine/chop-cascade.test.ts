@@ -65,6 +65,7 @@ describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạ
       // B chặt bằng 3 Đôi Thông (Heo Đen = 1000 * 1 = 1000)
       const resB = game.playMove('p1', [...threePairs]);
       expect(resB.success).toBe(true);
+      if (!resB.success) return;
       expect(resB.isChop).toBe(true);
       expect(resB.isCascadeChop).toBe(false);
       expect(resB.chopChainCount).toBe(1);
@@ -103,6 +104,7 @@ describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạ
       // Tổng hũ tích lũy = 1000 (Heo) + 3000 (Tứ quý) = 4000
       const resC = game.playMove('p2', [...fourOfAKind]);
       expect(resC.success).toBe(true);
+      if (!resC.success) return;
       expect(resC.isChop).toBe(true);
       expect(resC.isCascadeChop).toBe(true);
       expect(resC.chopChainCount).toBe(2);
@@ -148,6 +150,7 @@ describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạ
       // Tổng hũ tích lũy = 4000 + 4000 = 8000
       const resD = game.playMove('p3', [...fourPairs]);
       expect(resD.success).toBe(true);
+      if (!resD.success) return;
       expect(resD.isChop).toBe(true);
       expect(resD.isCascadeChop).toBe(true);
       expect(resD.chopChainCount).toBe(3);
@@ -211,11 +214,11 @@ describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạ
         combination: { type: 'THREE_PAIRS_SEQUENTIAL' as const, cards: threePairs, highestCard: threePairs[5], length: 6 },
         timestamp: Date.now(),
         isChop: true,
-        choppedPlayerId: null,
-        penaltyAmount: null,
-        isCascadeChop: null,
-        chopChainCount: null,
-        chopChainTotalAmount: null
+        choppedPlayerId: 'p0',
+        penaltyAmount: 1000,
+        isCascadeChop: false,
+        chopChainCount: 1,
+        chopChainTotalAmount: 1000
       };
 
       // targetMove.isChop = true -> Counter chop!

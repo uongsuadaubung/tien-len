@@ -29,20 +29,13 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     useOnlineStore.getState().createRoom(profile, {
       playerCount: 4,
       betAmount: 5000,
-      settlementRule: 'COUNT_CARDS',
-      choppingMultiplier: null,
-      congEnabled: null,
-      prohibitEndingWithTwo: null,
-      allowFourPairsCutAnytime: null,
-      threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null,
-      isPublic: true
+      settlementRule: 'COUNT_CARDS',      isPublic: true
     });
 
     const state = useOnlineStore.getState();
     expect(state.isOnlineMatch).toBe(true);
     expect(state.isHost).toBe(true);
-    expect(state.myPlayerId).toBe('p0');
+    expect(state.myPlayerId).toBe(profile.id);
     expect(state.roomCode).toStartWith('TL-');
     expect(state.roomState?.players.length).toBe(1);
     expect(state.roomState?.players[0].name).toBe('Host Pro');
@@ -57,14 +50,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     useOnlineStore.getState().createRoom(profile, {
       playerCount: 4,
       betAmount: 5000,
-      settlementRule: 'COUNT_CARDS',
-      choppingMultiplier: null,
-      congEnabled: null,
-      prohibitEndingWithTwo: null,
-      allowFourPairsCutAnytime: null,
-      threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null,
-      isPublic: true
+      settlementRule: 'COUNT_CARDS',      isPublic: true
     });
 
     useOnlineStore.getState().startMatch();
@@ -77,7 +63,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     expect(onlineState.roomState?.players.length).toBe(4);
     expect(gameState.currentScreen).toBe('GAME_TABLE');
     expect(gameState.activeGameType).toBe('ONLINE');
-    expect(gameState.myPlayerId).toBe('p0');
+    expect(gameState.myPlayerId).toBe(profile.id);
     expect(gameState.players.length).toBe(4);
     expect(gameState.players[0].hand.length).toBe(13);
     expect(modalState.isOnlineRoomOpen).toBe(false);
@@ -88,14 +74,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     useOnlineStore.getState().createRoom(profile, {
       playerCount: 4,
       betAmount: 1000,
-      settlementRule: 'COUNT_CARDS',
-      choppingMultiplier: null,
-      congEnabled: null,
-      prohibitEndingWithTwo: null,
-      allowFourPairsCutAnytime: null,
-      threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null,
-      isPublic: true
+      settlementRule: 'COUNT_CARDS',      isPublic: true
     });
 
     useOnlineStore.getState().startMatch();
@@ -173,20 +152,13 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     useOnlineStore.getState().createRoom(profile, {
       betAmount: 1000,
       playerCount: 4,
-      settlementRule: 'COUNT_CARDS',
-      choppingMultiplier: null,
-      congEnabled: null,
-      prohibitEndingWithTwo: null,
-      allowFourPairsCutAnytime: null,
-      threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null,
-      isPublic: true
+      settlementRule: 'COUNT_CARDS',      isPublic: true
     });
 
     // Ván 1 bắt đầu
     useOnlineStore.getState().startMatch();
     expect(useGameStore.getState().activeGameType).toBe('ONLINE');
-    expect(useGameStore.getState().myPlayerId).toBe('p0');
+    expect(useGameStore.getState().myPlayerId).toBe(profile.id);
 
     // Kết thúc Ván 1 và mở VICTORY modal
     useViewStore.getState().openModal('VICTORY');
@@ -222,14 +194,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     useOnlineStore.getState().createRoom(profile, {
       betAmount: 1000,
       playerCount: 2,
-      settlementRule: 'COUNT_CARDS',
-      choppingMultiplier: null,
-      congEnabled: null,
-      prohibitEndingWithTwo: null,
-      allowFourPairsCutAnytime: null,
-      threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null,
-      isPublic: true
+      settlementRule: 'COUNT_CARDS',      isPublic: true
     });
 
     // Thêm guest p1 vào phòng
@@ -299,14 +264,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     useOnlineStore.getState().createRoom(profile, {
       betAmount: 1000,
       playerCount: 2,
-      settlementRule: 'COUNT_CARDS',
-      choppingMultiplier: null,
-      congEnabled: null,
-      prohibitEndingWithTwo: null,
-      allowFourPairsCutAnytime: null,
-      threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null,
-      isPublic: true
+      settlementRule: 'COUNT_CARDS',      isPublic: true
     });
 
     const guestPlayer = {
@@ -345,14 +303,14 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     expect(gameStore.activeGameType).toBe('ONLINE');
     expect(gameStore.gameNumber).toBe(2);
     expect(gameStore.players.length).toBe(2);
-    expect(gameStore.players[0].id).toBe('p0');
+    expect(gameStore.players[0].id).toBe(profile.id);
     expect(gameStore.players[1].id).toBe('p1');
-    expect(gameStore.dealtCounts['p0']).toBe(13);
+    expect(gameStore.dealtCounts[profile.id]).toBe(13);
     expect(gameStore.dealtCounts['p1']).toBe(13);
 
     // Người có lượt đánh bài
     const turnPlayerId = gameStore.currentTurnPlayerId!;
-    expect(['p0', 'p1']).toContain(turnPlayerId);
+    expect([profile.id, 'p1']).toContain(turnPlayerId);
 
     const activePlayerInEngine = activeDriver.engine?.players.find(p => p.id === turnPlayerId)!;
     const cardToPlay = activePlayerInEngine.hand[0];
@@ -383,14 +341,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     useOnlineStore.getState().createRoom(profile, {
       betAmount: 1000,
       playerCount: 3,
-      settlementRule: 'COUNT_CARDS',
-      choppingMultiplier: null,
-      congEnabled: null,
-      prohibitEndingWithTwo: null,
-      allowFourPairsCutAnytime: null,
-      threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null,
-      isPublic: true
+      settlementRule: 'COUNT_CARDS',      isPublic: true
     });
 
     const guestPlayer = {
@@ -446,14 +397,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     useOnlineStore.getState().createRoom(profile, {
       betAmount: 1000,
       playerCount: 2,
-      settlementRule: 'COUNT_CARDS',
-      choppingMultiplier: null,
-      congEnabled: null,
-      prohibitEndingWithTwo: null,
-      allowFourPairsCutAnytime: null,
-      threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null,
-      isPublic: true
+      settlementRule: 'COUNT_CARDS',      isPublic: true
     });
 
     const guestPlayer = {
@@ -586,7 +530,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     expect(gameState.activeGameType).toBe('ONLINE');
     expect(gameState.players.length).toBe(2);
     expect(gameState.players[0].hand.length).toBe(13); // Host nhận 13 lá
-    expect(gameState.dealtCounts['p0']).toBe(13);
+    expect(gameState.dealtCounts[profileHost.id]).toBe(13);
     expect(gameState.dealtCounts['p1']).toBe(13);
 
     // 2. State Pattern: matchState BẢO ĐẢM chuyển sang status PLAYING (Không bị treo ở WAITING)
@@ -609,7 +553,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     const hostHas3S = hostHand.some(c => c.rank === 3 && c.suit === 'SPADES');
 
     if (hostHas3S) {
-      expect(firstTurnId).toBe('p0');
+      expect(firstTurnId).toBe(profileHost.id);
       expect(isFirstMoveOfGame).toBe(true);
 
       const card3S = hostHand.find(c => c.rank === 3 && c.suit === 'SPADES')!;
@@ -630,7 +574,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
 
       const stateAfterPlay = useGameStore.getState();
       expect(stateAfterPlay.currentMove).not.toBeNull();
-      expect(stateAfterPlay.currentMove?.playerId).toBe('p0');
+      expect(stateAfterPlay.currentMove?.playerId).toBe(profileHost.id);
       // Lượt chuyển sang Khách (p1)
       expect(stateAfterPlay.currentTurnPlayerId).toBe('p1');
       // isFirstMoveOfGame đã chuyển thành false

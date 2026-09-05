@@ -127,11 +127,11 @@ export function calculateRottenPenalty(hand: Card[], betAmount: number, penaltyM
 
 /**
  * Tính toán tiền phạt Cóng (Cháy bài)
+ * - Cóng đền cố định 26 mức cược (13 lá x 2 theo luật Tiến Lên Miền Nam chuẩn).
+ * - Hệ số nhân Chặt/Thối (choppingMultiplier) KHÔNG áp dụng cho số lá đếm bài và Cóng.
  */
-export function calculateCongPenalty(betAmount: number, penaltyMultiplier: number = 1): number {
-  const mult = getMultiplier(penaltyMultiplier);
-  // Cóng đền 26 mức cược (hoặc 52, 78, 104... mức cược tùy theo multiplier)
-  return 26 * betAmount * mult;
+export function calculateCongPenalty(betAmount: number): number {
+  return 26 * betAmount;
 }
 
 /**
@@ -142,7 +142,7 @@ export function calculateCongPenalty(betAmount: number, penaltyMultiplier: numbe
  * - Người về Nhất ăn trọn số tiền phạt này.
  */
 export function calculateCountCardsSettlement(
-  players: Player[],
+  players: readonly Player[],
   winnerId: string,
   betAmount: number,
   penaltyMultiplier: number = 1,
@@ -160,12 +160,13 @@ export function calculateCountCardsSettlement(
       let lossAmount = 0;
       // Kiểm tra Cóng (13 lá và chưa đánh ra được lá nào)
       if (player.hand.length === 13 && !player.hasPlayedFirstCard) {
-        lossAmount += calculateCongPenalty(betAmount, mult);
+        lossAmount += calculateCongPenalty(betAmount);
       } else {
-        lossAmount += player.hand.length * betAmount * mult;
+        // Tiền đếm lá rác bình thường: Số lá x Mức cược (KHÔNG nhân multiplier!)
+        lossAmount += player.hand.length * betAmount;
       }
 
-      // Thối heo / thối hàng
+      // Thối heo / thối hàng (áp dụng multiplier)
       const rotten = calculateRottenPenalty(player.hand, betAmount, mult);
       lossAmount += rotten;
 
@@ -183,12 +184,12 @@ export function calculateCountCardsSettlement(
 
 /**
  * Tính toán kết quả cho chế độ Nhất Ăn Tất (Winner-Takes-All)
- * - Mỗi người thua mất 1 mức cược cơ bản × mult + Thối heo/hàng + Cóng.
+ * - Mỗi người thua mất 1 mức cược cơ bản + Thối heo/hàng + Cóng.
  * - Nếu Về 3 Bích (isThreeSpadesWin), toàn bộ tiền phạt từ người thua được nhân 2.
  * - Người về Nhất ăn trọn.
  */
 export function calculateWinnerTakesAllSettlement(
-  players: Player[],
+  players: readonly Player[],
   winnerId: string,
   betAmount: number,
   penaltyMultiplier: number = 1,
@@ -203,10 +204,11 @@ export function calculateWinnerTakesAllSettlement(
 
   for (const player of players) {
     if (player.id !== winnerId) {
-      let lossAmount = betAmount * mult;
+      // Mỗi người thua mất 1 mức cược cơ bản (KHÔNG nhân multiplier)
+      let lossAmount = betAmount;
 
       if (player.hand.length === 13 && !player.hasPlayedFirstCard) {
-        lossAmount += calculateCongPenalty(betAmount, mult);
+        lossAmount += calculateCongPenalty(betAmount);
       }
 
       const rotten = calculateRottenPenalty(player.hand, betAmount, mult);
@@ -228,8 +230,8 @@ export function calculateWinnerTakesAllSettlement(
  * Tính toán kết quả cho chế độ Truyền Thống (Rank-Based: Nhất Nhì Ba Bét)
  */
 export function calculateTraditionalSettlement(
-  players: Player[],
-  winners: Player[],
+  players: readonly Player[],
+  winners: readonly Player[],
   betAmount: number,
   penaltyMultiplier: number = 1,
   isThreeSpadesWin: boolean = false
@@ -240,17 +242,17 @@ export function calculateTraditionalSettlement(
   const threeSpadesMultiplier = isThreeSpadesWin ? 2 : 1;
 
   if (winners.length === 4) {
-    payouts[winners[0].id] = betAmount * 3 * mult * threeSpadesMultiplier;
-    payouts[winners[1].id] = betAmount * 1 * mult;
-    payouts[winners[2].id] = -betAmount * 1 * mult;
-    payouts[winners[3].id] = -betAmount * 3 * mult * threeSpadesMultiplier;
+    payouts[winners[0].id] = betAmount * 3 * threeSpadesMultiplier;
+    payouts[winners[1].id] = betAmount * 1;
+    payouts[winners[2].id] = -betAmount * 1;
+    payouts[winners[3].id] = -betAmount * 3 * threeSpadesMultiplier;
   } else if (winners.length === 3) {
-    payouts[winners[0].id] = betAmount * 2 * mult * threeSpadesMultiplier;
+    payouts[winners[0].id] = betAmount * 2 * threeSpadesMultiplier;
     payouts[winners[1].id] = 0;
-    payouts[winners[2].id] = -betAmount * 2 * mult * threeSpadesMultiplier;
+    payouts[winners[2].id] = -betAmount * 2 * threeSpadesMultiplier;
   } else if (winners.length === 2) {
-    payouts[winners[0].id] = betAmount * 1 * mult * threeSpadesMultiplier;
-    payouts[winners[1].id] = -betAmount * 1 * mult * threeSpadesMultiplier;
+    payouts[winners[0].id] = betAmount * 1 * threeSpadesMultiplier;
+    payouts[winners[1].id] = -betAmount * 1 * threeSpadesMultiplier;
   }
 
   // Thối heo / thối hàng cho những người không về Nhất
@@ -267,7 +269,7 @@ export function calculateTraditionalSettlement(
       }
 
       if (player.hand.length === 13 && !player.hasPlayedFirstCard) {
-        let cong = calculateCongPenalty(betAmount, mult);
+        let cong = calculateCongPenalty(betAmount);
         cong *= threeSpadesMultiplier;
         payouts[player.id] = (payouts[player.id] || 0) - cong;
         if (winnerFirst) {

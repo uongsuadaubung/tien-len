@@ -19,8 +19,8 @@ export interface ChapterStatusInfo {
 }
 
 export interface UseCampaignProps {
-  onSelectChapter?: (chapter: CampaignChapter) => void;
-  initialChapterId?: number;
+  onSelectChapter: ((chapter: CampaignChapter) => void) | null;
+  initialChapterId: number | null;
 }
 
 export interface UseCampaignReturn {
@@ -35,7 +35,7 @@ export interface UseCampaignReturn {
   isCompleted: boolean;
   getChapterStatus: (chapterId: number) => ChapterStatusInfo;
   handleOpenBossProfile: (botConfig: CampaignBotConfig) => void;
-  handleStartChapter: (chapter?: CampaignChapter) => void;
+  handleStartChapter: (chapter: CampaignChapter | null) => void;
 }
 
 /**
@@ -48,10 +48,10 @@ export function convertBotConfigToEntity(botConfig: CampaignBotConfig, ecosystem
 /**
  * Hook dùng chung cho Bản Đồ Chiến Dịch Cốt Truyện 9 Chương (Web Modal & Mobile View)
  */
-export function useCampaign(props?: UseCampaignProps): UseCampaignReturn {
+export function useCampaign(props: UseCampaignProps | null = null): UseCampaignReturn {
   const { profile } = useUserStore();
-  const onSelectChapter = props?.onSelectChapter;
-  const initialChapterId = props?.initialChapterId;
+  const onSelectChapter = props?.onSelectChapter ?? null;
+  const initialChapterId = props?.initialChapterId ?? null;
 
   const [selectedChapterId, setSelectedChapterId] = useState<number>(
     initialChapterId || profile.campaignUnlockedChapter || 1
@@ -86,13 +86,15 @@ export function useCampaign(props?: UseCampaignProps): UseCampaignReturn {
   const handleOpenBossProfile = useCallback((botConfig: CampaignBotConfig) => {
     const botEntity = convertBotConfigToEntity(botConfig, ecosystemBots);
     setSelectedBot(botEntity);
-    openModal('BOT_PROFILE');
+    openModal({ type: 'BOT_PROFILE', bot: botEntity });
   }, [ecosystemBots, openModal, setSelectedBot]);
 
-  const handleStartChapter = useCallback((chapter?: CampaignChapter) => {
+  const handleStartChapter = useCallback((chapter: CampaignChapter | null) => {
     const targetChapter = chapter || currentChapter;
     if (targetChapter.id <= (profile.campaignUnlockedChapter || 1)) {
-      onSelectChapter?.(targetChapter);
+      if (onSelectChapter !== null) {
+        onSelectChapter(targetChapter);
+      }
     }
   }, [currentChapter, onSelectChapter, profile.campaignUnlockedChapter]);
 

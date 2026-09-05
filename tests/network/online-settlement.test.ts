@@ -48,14 +48,7 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     useOnlineStore.getState().createRoom(profile, {
       playerCount: 4,
       betAmount,
-      settlementRule: 'COUNT_CARDS',
-      choppingMultiplier: null,
-      congEnabled: null,
-      prohibitEndingWithTwo: null,
-      allowFourPairsCutAnytime: null,
-      threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null,
-      isPublic: true
+      settlementRule: 'COUNT_CARDS',      isPublic: true
     });
 
     useOnlineStore.getState().startMatch();
@@ -64,8 +57,8 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     expect(hostDriver).not.toBeNull();
     if (!hostDriver || !hostDriver.engine) return;
 
-    // Giả lập Host (p0) đánh hết bài và về Nhất
-    const p0 = hostDriver.engine.players.find(p => p.id === 'p0')!;
+    // Giả lập Host đánh hết bài và về Nhất
+    const p0 = hostDriver.engine.players.find(p => p.id === profile.id)!;
     p0.hand = [];
     hostDriver.engine.winners = [p0];
     hostDriver.engine.isGameOver = true;
@@ -78,7 +71,7 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     const onlineStore = useOnlineStore.getState();
 
     // 1. Host phải có payout dương (thắng tiền)
-    const hostPayout = gameStore.matchPayouts['p0'];
+    const hostPayout = gameStore.matchPayouts[profile.id];
     expect(hostPayout).toBeGreaterThan(0);
     expect(updatedProfile.coins).toBe(50000 + hostPayout);
     expect(updatedProfile.stats.gamesPlayed).toBe(11);
@@ -86,7 +79,7 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     expect(updatedProfile.stats.currentStreak).toBe(3);
 
     // 2. RoomState.players phải được cập nhật số dư Xu mới
-    const hostRoomPlayer = onlineStore.roomState?.players.find(p => p.playerId === 'p0');
+    const hostRoomPlayer = onlineStore.roomState?.players.find(p => p.playerId === profile.id);
     expect(hostRoomPlayer?.coins).toBe(50000 + hostPayout);
 
     // 3. Modal Victory phải được mở
@@ -100,14 +93,7 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     useOnlineStore.getState().createRoom(profile, {
       playerCount: 4,
       betAmount,
-      settlementRule: 'COUNT_CARDS',
-      choppingMultiplier: null,
-      congEnabled: null,
-      prohibitEndingWithTwo: null,
-      allowFourPairsCutAnytime: null,
-      threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null,
-      isPublic: true
+      settlementRule: 'COUNT_CARDS',      isPublic: true
     });
 
     useOnlineStore.getState().startMatch();
@@ -115,9 +101,9 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     const hostDriver = useOnlineStore.getState().hostDriver;
     if (!hostDriver || !hostDriver.engine) return;
 
-    // Giả lập Bot 1 (p1) về Nhất, Host (p0) còn 5 lá bài
+    // Giả lập Bot 1 (p1) về Nhất, Host còn 5 lá bài
     const p1 = hostDriver.engine.players.find(p => p.id === 'p1')!;
-    const p0 = hostDriver.engine.players.find(p => p.id === 'p0')!;
+    const p0 = hostDriver.engine.players.find(p => p.id === profile.id)!;
     p1.hand = [];
     p0.hand = [
       createCard(3, 'SPADES'),
@@ -134,7 +120,7 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     const updatedProfile = useUserStore.getState().profile;
     const gameStore = useGameStore.getState();
 
-    const hostPayout = gameStore.matchPayouts['p0'];
+    const hostPayout = gameStore.matchPayouts[profile.id];
     expect(hostPayout).toBeLessThan(0);
     // 5 lá * 5000 = -25000
     expect(hostPayout).toBe(-25000);
@@ -203,14 +189,7 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     useOnlineStore.getState().createRoom(profile, {
       playerCount: 4,
       betAmount,
-      settlementRule: 'WINNER_TAKES_ALL',
-      choppingMultiplier: null,
-      congEnabled: null,
-      prohibitEndingWithTwo: null,
-      allowFourPairsCutAnytime: null,
-      threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null,
-      isPublic: true
+      settlementRule: 'WINNER_TAKES_ALL',      isPublic: true
     });
 
     useOnlineStore.getState().startMatch();
@@ -218,12 +197,12 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     const hostDriver = useOnlineStore.getState().hostDriver;
     if (!hostDriver || !hostDriver.engine) return;
 
-    // Giả lập p0 về Nhất, các đối thủ đã đánh bài (không cóng) và không giữ heo thối
-    const p0 = hostDriver.engine.players.find(p => p.id === 'p0')!;
+    // Giả lập Host về Nhất, các đối thủ đã đánh bài (không cóng) và không giữ heo thối
+    const p0 = hostDriver.engine.players.find(p => p.id === profile.id)!;
     p0.hand = [];
     hostDriver.engine.players.forEach(p => {
       p.hasPlayedFirstCard = true;
-      if (p.id !== 'p0') {
+      if (p.id !== profile.id) {
         p.hand = [createCard(3, 'SPADES')]; // 1 lá không phải 2
       }
     });
@@ -234,7 +213,7 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     (hostDriver as unknown as { handleGameOver: () => void }).handleGameOver();
 
     const gameStore = useGameStore.getState();
-    const hostPayout = gameStore.matchPayouts['p0'];
+    const hostPayout = gameStore.matchPayouts[profile.id];
 
     // 3 người thua x 10.000 Xu = +30.000 Xu
     expect(hostPayout).toBe(30000);
@@ -250,14 +229,7 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     useOnlineStore.getState().createRoom(profile, {
       playerCount: 4,
       betAmount,
-      settlementRule: 'COUNT_CARDS',
-      choppingMultiplier: null,
-      congEnabled: null,
-      prohibitEndingWithTwo: null,
-      allowFourPairsCutAnytime: null,
-      threeSpadesEndingBonus: null,
-      cascadeChopEnabled: null,
-      isPublic: true
+      settlementRule: 'COUNT_CARDS',      isPublic: true
     });
 
     const brokeGuest = {

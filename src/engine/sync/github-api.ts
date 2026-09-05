@@ -68,8 +68,8 @@ export async function validateToken(token: string): Promise<SyncResponse<{ user:
 
     const raw = await githubRequest<{
       login: string;
-      name?: string | null;
-      bio?: string | null;
+      name: string | null;
+      bio: string | null;
       avatar_url: string;
     }>(trimmed, '/user');
 
@@ -107,7 +107,7 @@ export async function findGistId(token: string): Promise<string> {
 /**
  * Lấy Gist ID đã lưu hoặc tìm kiếm trên tài khoản GitHub
  */
-export async function getOrFindGistId(token: string, cachedId?: string): Promise<string> {
+export async function getOrFindGistId(token: string, cachedId: string | null = null): Promise<string> {
   if (cachedId) return cachedId;
   const found = await findGistId(token);
   return found;
@@ -161,7 +161,7 @@ async function updateGist(token: string, gistId: string, content: string): Promi
 export async function uploadToGist(
   token: string,
   data: TienLenSaveData,
-  cachedGistId?: string
+  cachedGistId: string | null = null
 ): Promise<SyncResponse<{ gistId: string }>> {
   try {
     let gistId = cachedGistId || (await findGistId(token));
@@ -188,7 +188,7 @@ export async function uploadToGist(
  */
 export async function downloadFromGist(
   token: string,
-  cachedGistId?: string
+  cachedGistId: string | null = null
 ): Promise<SyncResponse<{ data: TienLenSaveData; gistId: string; updatedAt: number }>> {
   try {
     const gistId = cachedGistId || (await findGistId(token));
@@ -226,7 +226,7 @@ export async function downloadFromGist(
  */
 export async function fetchGistHistory(
   token: string,
-  cachedGistId?: string
+  cachedGistId: string | null = null
 ): Promise<GistHistoryItem[]> {
   const gistId = cachedGistId || (await findGistId(token));
   if (!gistId) return [];
@@ -246,9 +246,9 @@ export async function fetchGistHistory(
           const file = detail.files[GIST_FILE_NAME];
           if (!file) {
             return {
+              success: false,
               version: commit.version,
               committedAt: commit.committed_at,
-              saveData: null,
               error: 'Không có file dữ liệu'
             };
           }
@@ -260,16 +260,26 @@ export async function fetchGistHistory(
               : '');
 
           const saveData = await parseGistContent(rawContent || '');
+          if (!saveData) {
+            return {
+              success: false,
+              version: commit.version,
+              committedAt: commit.committed_at,
+              error: 'Dữ liệu không thể giải mã'
+            };
+          }
+
           return {
+            success: true,
             version: commit.version,
             committedAt: commit.committed_at,
             saveData
           };
         } catch (err: unknown) {
           return {
+            success: false,
             version: commit.version,
             committedAt: commit.committed_at,
-            saveData: null,
             error: err instanceof Error ? err.message : String(err)
           };
         }

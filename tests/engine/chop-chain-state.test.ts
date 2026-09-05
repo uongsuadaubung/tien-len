@@ -60,12 +60,7 @@ describe('ChopChainStateMachine & RoundChopState (Kiểm Thử State Pattern Chu
       playerId: 'p0',
       combination: twoComb,
       timestamp: Date.now(),
-      isChop: false,
-      choppedPlayerId: null,
-      penaltyAmount: null,
-      isCascadeChop: null,
-      chopChainCount: null,
-      chopChainTotalAmount: null
+      isChop: false
     };
 
     const res = fsm.evaluateMove({

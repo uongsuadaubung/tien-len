@@ -28,7 +28,7 @@ export interface UseSettingsSyncResult {
   handleForceUpload: () => Promise<void>;
   handleForceDownload: () => Promise<void>;
   handleOpenHistory: () => Promise<void>;
-  handleRestoreCommit: (item: GistHistoryItem) => Promise<void>;
+  handleRestoreCommit: (item: Extract<GistHistoryItem, { success: true }>) => Promise<void>;
   showNotification: (text: string, type?: 'success' | 'error' | 'info') => void;
 }
 
@@ -166,8 +166,7 @@ export function useSettingsSync(isOpen: boolean): UseSettingsSyncResult {
     }
   };
 
-  const handleRestoreCommit = async (item: GistHistoryItem) => {
-    if (!item.saveData) return;
+  const handleRestoreCommit = async (item: Extract<GistHistoryItem, { success: true }>) => {
     setIsSyncing(true);
     try {
       await restoreHistoryVersion(item.saveData);

@@ -242,7 +242,7 @@ export function useEcosystem(): UseEcosystemResult {
 
   const handleOpenBotDetail = (bot: BotEntity) => {
     setSelectedBot(bot);
-    openModal('BOT_PROFILE');
+    openModal({ type: 'BOT_PROFILE', bot });
   };
 
   const handleJumpToMyRank = () => {

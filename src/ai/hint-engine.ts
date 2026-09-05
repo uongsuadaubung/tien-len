@@ -15,35 +15,64 @@ export type HintType =
   | 'BEAT_MOVE'           // Đè bài / Chặn lượt
   | 'WIN_OPPORTUNITY';    // Cơ hội về Nhất (đánh hết bài trên tay)
 
-export interface MoveHint {
-  action: 'PLAY' | 'PASS';
-  cards: Card[] | null;
-  type: HintType;
-  title: string;          // vd: "⚠️ Cảnh Báo Hàng Nóng", "💡 Nhẫn Nhịn Giữ Sảnh", "🚫 Tạm Bỏ Lượt"
-  message: string;        // Lời thoại sinh động của Quân Sư (hiển thị ký hiệu bài trực quan: 3♠ 4♣ A♥ 2♥)
-  explanation: string | null;    // Giữ cho backwards compatibility
-  details: string | null;       // Phân tích kỹ thuật chi tiết
-}
+export type MoveHint =
+  | {
+      readonly action: 'PLAY';
+      readonly cards: readonly Card[];
+      readonly type: HintType;
+      readonly title: string;
+      readonly message: string;
+      readonly explanation: string;
+      readonly details: string | null;
+    }
+  | {
+      readonly action: 'PASS';
+      readonly type: HintType;
+      readonly title: string;
+      readonly message: string;
+      readonly explanation: string;
+      readonly details: string | null;
+    };
 
 /**
  * Trợ giúp tạo MoveHint object hoàn chỉnh với details và explanation
  */
-export function createMoveHint(data: {
-  action: 'PLAY' | 'PASS';
-  cards: Card[] | null;
-  type: HintType;
-  title: string;
-  message: string;
-  explanation?: string | null;
-  details?: string | null;
-}): MoveHint {
+export function createMoveHint(data: 
+  | {
+      action: 'PLAY';
+      cards: readonly Card[];
+      type: HintType;
+      title: string;
+      message: string;
+      explanation?: string;
+      details?: string | null;
+    }
+  | {
+      action: 'PASS';
+      type: HintType;
+      title: string;
+      message: string;
+      explanation?: string;
+      details?: string | null;
+    }
+): MoveHint {
+  if (data.action === 'PLAY') {
+    return {
+      action: 'PLAY',
+      cards: data.cards,
+      type: data.type,
+      title: data.title,
+      message: data.message,
+      explanation: data.explanation ?? data.message,
+      details: data.details ?? null
+    };
+  }
   return {
-    action: data.action,
-    cards: data.cards,
+    action: 'PASS',
     type: data.type,
     title: data.title,
     message: data.message,
-    explanation: data.explanation ?? null,
+    explanation: data.explanation ?? data.message,
     details: data.details ?? null
   };
 }
@@ -192,12 +221,13 @@ export function getOptimalMoveHint(
   isLeadMove: boolean,
   tracker: CardTracker,
   remainingPlayerCards: Record<string, number>,
-  nextPlayerId: string = 'p1',
+  nextPlayerId: string = '',
   isNextPlayerOneCard?: boolean,
   prohibitEndingWithTwo?: boolean,
   gameMode?: string,
   rules?: GameRules,
-  hasPlayedFirstCard: boolean = true
+  hasPlayedFirstCard: boolean = true,
+  playerId?: string
 ): MoveHint {
   // 1. Kiểm tra kịch bản BẮT BUỘC BỎ LƯỢT (Không có bất kỳ quân nào đè được)
   if (!isLeadMove && leadingMove) {
@@ -212,7 +242,6 @@ export function getOptimalMoveHint(
     if (candidates.length === 0) {
       return {
         action: 'PASS',
-        cards: null,
         type: 'FORCED_PASS',
         title: '🚫 Tạm Nhường Lượt',
         message: pickDialogue(DIALOGUES.FORCED_PASS),
@@ -222,7 +251,8 @@ export function getOptimalMoveHint(
     }
   }
 
-  const resolvedNextPlayerId = nextPlayerId || Object.keys(remainingPlayerCards)[0] || 'p1';
+  const playerIds = Object.keys(remainingPlayerCards);
+  const resolvedNextPlayerId = nextPlayerId || (playerIds.length > 1 ? playerIds[1] : (playerIds[0] ?? ''));
   const resolvedIsNextPlayerOneCard = isNextPlayerOneCard ?? (remainingPlayerCards[resolvedNextPlayerId] === 1);
 
   const decision = makeBotDecision({
@@ -249,8 +279,9 @@ export function getOptimalMoveHint(
   const twoSafety = tracker.getTwoSafetyReport ? tracker.getTwoSafetyReport() : null;
 
   // 2. Kịch bản CẢNH BÁO NGUY CƠ BỊ CÓNG / CHÁY BÀI (Chưa đánh được lá nào mà có đối thủ sắp về)
-  const anyOpponentNearWin = Object.entries(remainingPlayerCards).some(([id, count]) => id !== 'p0' && count <= 2);
-  if (!hasPlayedFirstCard && anyOpponentNearWin && decision.type === 'PLAY' && decision.cards) {
+  const subjectId = playerId ?? playerIds[0] ?? '';
+  const anyOpponentNearWin = Object.entries(remainingPlayerCards).some(([id, count]) => id !== subjectId && count <= 2);
+  if (!hasPlayedFirstCard && anyOpponentNearWin && decision.type === 'PLAY' && decision.cards && decision.cards.length > 0) {
     return {
       action: 'PLAY',
       cards: decision.cards,
@@ -265,9 +296,19 @@ export function getOptimalMoveHint(
   // 2b. Kịch bản CẢNH BÁO THỐI HEO CHÓT (Khi tay bài còn <= 3 lá mà ôm Heo trong luật cấm về Heo)
   if (prohibitEndingWithTwo && hand.length <= 3 && hasTwosInHand) {
     const twoCards = hand.filter(c => c.rank === 15);
+    if (decision.type === 'PLAY' && decision.cards && decision.cards.length > 0) {
+      return {
+        action: 'PLAY',
+        cards: decision.cards,
+        type: 'DANGER_WARNING',
+        title: '⚠️ Cảnh Báo Thối Heo!',
+        message: pickDialogue(DIALOGUES.DANGER_THOI_HEO(formatCards(twoCards))),
+        explanation: 'Luật cấm về bằng Heo đang bật, hãy cẩn thận xả bài để tránh bị thối Heo.',
+        details: null
+      };
+    }
     return {
-      action: decision.type === 'PLAY' && decision.cards ? 'PLAY' : 'PASS',
-      cards: decision.type === 'PLAY' ? decision.cards : null,
+      action: 'PASS',
       type: 'DANGER_WARNING',
       title: '⚠️ Cảnh Báo Thối Heo!',
       message: pickDialogue(DIALOGUES.DANGER_THOI_HEO(formatCards(twoCards))),
@@ -277,7 +318,7 @@ export function getOptimalMoveHint(
   }
 
   // 3. Kịch bản CẢNH BÁO CHẶN ĐẦU (Người kế bên chỉ còn 1 lá)
-  if (resolvedIsNextPlayerOneCard && !isLeadMove && decision.type === 'PLAY' && decision.cards) {
+  if (resolvedIsNextPlayerOneCard && !isLeadMove && decision.type === 'PLAY' && decision.cards && decision.cards.length > 0) {
     return {
       action: 'PLAY',
       cards: decision.cards,
@@ -295,9 +336,10 @@ export function getOptimalMoveHint(
     (leadingMove.combination.type === 'PAIR' && isTwo(leadingMove.combination.highestCard))
   );
   if (isTargetTwo && (decision.combination?.type === 'THREE_PAIRS_SEQUENTIAL' || decision.combination?.type === 'FOUR_OF_A_KIND' || decision.combination?.type === 'FOUR_PAIRS_SEQUENTIAL')) {
+    const playCards = decision.cards && decision.cards.length > 0 ? decision.cards : [hand[0]];
     return {
       action: 'PLAY',
-      cards: decision.cards || null,
+      cards: playCards,
       type: 'BEAT_MOVE',
       title: '💥 Cơ Hội Bắt Heo!',
       message: pickDialogue(DIALOGUES.CHOP_HEO(cardCodes)),
@@ -313,9 +355,10 @@ export function getOptimalMoveHint(
     leadingMove.combination.type === 'FOUR_PAIRS_SEQUENTIAL'
   );
   if (isLeadingSpecialBomb && (decision.combination?.type === 'FOUR_OF_A_KIND' || decision.combination?.type === 'FOUR_PAIRS_SEQUENTIAL')) {
+    const playCards = decision.cards && decision.cards.length > 0 ? decision.cards : [hand[0]];
     return {
       action: 'PLAY',
-      cards: decision.cards || null,
+      cards: playCards,
       type: 'BEAT_MOVE',
       title: '💥 Chặt Chồng Đỉnh Cao!',
       message: pickDialogue(DIALOGUES.OVER_CHOP(cardCodes)),
@@ -329,7 +372,6 @@ export function getOptimalMoveHint(
     if (decision.type === 'PASS') {
       return {
         action: 'PASS',
-        cards: null,
         type: 'DANGER_WARNING',
         title: '⚠️ Cẩn Thận Hàng Nóng',
         message: pickDialogue(DIALOGUES.DANGER_HOT_BOMBS),
@@ -343,7 +385,6 @@ export function getOptimalMoveHint(
   if (decision.type === 'PASS') {
     return {
       action: 'PASS',
-      cards: null,
       type: 'TACTICAL_PASS',
       title: '💡 Nhẫn Nhịn Giữ Bài',
       message: pickDialogue(DIALOGUES.TACTICAL_PASS(decision.reason)),
@@ -352,11 +393,13 @@ export function getOptimalMoveHint(
     };
   }
 
+  const playCards = decision.cards && decision.cards.length > 0 ? decision.cards : [hand[0]];
+
   // 7. Kịch bản CƠ HỘI VỀ NHẤT (Đánh hết toàn bộ bài trên tay)
-  if (decision.cards && decision.cards.length === hand.length) {
+  if (playCards.length === hand.length) {
     return {
       action: 'PLAY',
-      cards: decision.cards,
+      cards: playCards,
       type: 'WIN_OPPORTUNITY',
       title: '👑 Cơ Hội Về Nhất!',
       message: pickDialogue(DIALOGUES.WIN_OPPORTUNITY(cardCodes)),
@@ -369,7 +412,7 @@ export function getOptimalMoveHint(
   if (decision.combination?.type === 'THREE_PAIRS_SEQUENTIAL' || decision.combination?.type === 'FOUR_OF_A_KIND' || decision.combination?.type === 'FOUR_PAIRS_SEQUENTIAL') {
     return {
       action: 'PLAY',
-      cards: decision.cards || null,
+      cards: playCards,
       type: 'BEAT_MOVE',
       title: '💥 Tung Hàng Bắt Đè!',
       message: pickDialogue(DIALOGUES.CHOP_HEO(cardCodes)),
@@ -382,7 +425,7 @@ export function getOptimalMoveHint(
   if (isFirstMoveOfGame) {
     return {
       action: 'PLAY',
-      cards: decision.cards || null,
+      cards: playCards,
       type: 'LEAD_OPENING',
       title: '🎯 Khởi Đầu 3 Bích (3♠)',
       message: pickDialogue(DIALOGUES.FIRST_MOVE_3S(cardCodes)),
@@ -397,7 +440,7 @@ export function getOptimalMoveHint(
     if (hasManyTwos) {
       return {
         action: 'PLAY',
-        cards: decision.cards || null,
+        cards: playCards,
         type: 'LEAD_OPENING',
         title: '👑 Thế Bài Cực Đẹp!',
         message: pickDialogue(DIALOGUES.OPENING_GOD_HAND(cardCodes)),
@@ -407,7 +450,7 @@ export function getOptimalMoveHint(
     }
     return {
       action: 'PLAY',
-      cards: decision.cards || null,
+      cards: playCards,
       type: 'LEAD_OPENING',
       title: '🎯 Mở Màn Thế Trận',
       message: pickDialogue(DIALOGUES.LEAD_OPENING(cardCodes)),
@@ -419,7 +462,7 @@ export function getOptimalMoveHint(
   // 11. Kịch bản ĐÈ BÀI BÌNH THƯỜNG
   return {
     action: 'PLAY',
-    cards: decision.cards || null,
+    cards: playCards,
     type: 'BEAT_MOVE',
     title: '⚔️ Đè Bài Tranh Lượt',
     message: pickDialogue(DIALOGUES.BEAT_NORMAL(cardCodes)),

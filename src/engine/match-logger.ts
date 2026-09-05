@@ -31,7 +31,7 @@ export interface BotDecisionTelemetry {
 /**
  * Bản ghi chi tiết của một lượt đánh trong trận đấu
  */
-export interface MatchTurnLogEntry {
+export interface BaseTurnLogEntry {
   turnNumber: number;
   roundNumber: number;
   timestamp: number;
@@ -39,18 +39,35 @@ export interface MatchTurnLogEntry {
   playerName: string;
   isBot: boolean;
   botPersonaId: string | null;
-  action: 'PLAY' | 'PASS';
-  cardsPlayed: Card[] | null;
-  combination: Combination | null;
   handBeforeTurn: Card[];
   handAfterTurn: Card[];
   leadingMoveBeforeTurn: PlayedMove | null;
   isLeadMove: boolean;
+  botDecision: BotDecisionTelemetry | null;
+}
+
+export interface PlayTurnLogEntry extends BaseTurnLogEntry {
+  action: 'PLAY';
+  cardsPlayed: Card[];
+  combination: Combination;
   isChop: boolean;
   choppedPlayerId: string | null;
   penaltyAmount: number | null;
-  botDecision: BotDecisionTelemetry | null;
 }
+
+export interface PassTurnLogEntry extends BaseTurnLogEntry {
+  action: 'PASS';
+  cardsPlayed?: undefined;
+  combination?: undefined;
+  isChop: false;
+  choppedPlayerId?: undefined;
+  penaltyAmount?: undefined;
+}
+
+/**
+ * Bản ghi chi tiết của một lượt đánh trong trận đấu (Discriminated Union)
+ */
+export type MatchTurnLogEntry = PlayTurnLogEntry | PassTurnLogEntry;
 
 /**
  * Thông tin tổng kết người chơi trong trận đấu
@@ -199,26 +216,43 @@ export class MatchLogger {
     this.currentTurnCounter++;
     this.currentRoundCounter = entry.roundNumber;
 
-    const turnRecord: MatchTurnLogEntry = {
-      turnNumber: this.currentTurnCounter,
-      roundNumber: entry.roundNumber,
-      timestamp: Date.now(),
-      playerId: entry.playerId,
-      playerName: entry.playerName,
-      isBot: entry.isBot,
-      botPersonaId: entry.botPersonaId,
-      action: entry.action,
-      cardsPlayed: entry.cardsPlayed ? [...entry.cardsPlayed] : null,
-      combination: entry.combination,
-      handBeforeTurn: [...entry.handBeforeTurn],
-      handAfterTurn: [...entry.handAfterTurn],
-      leadingMoveBeforeTurn: entry.leadingMoveBeforeTurn,
-      isLeadMove: entry.isLeadMove,
-      isChop: entry.isChop,
-      choppedPlayerId: entry.choppedPlayerId,
-      penaltyAmount: entry.penaltyAmount,
-      botDecision: entry.botDecision
-    };
+    const turnRecord: MatchTurnLogEntry = entry.action === 'PLAY'
+      ? {
+          turnNumber: this.currentTurnCounter,
+          roundNumber: entry.roundNumber,
+          timestamp: Date.now(),
+          playerId: entry.playerId,
+          playerName: entry.playerName,
+          isBot: entry.isBot,
+          botPersonaId: entry.botPersonaId,
+          action: 'PLAY',
+          cardsPlayed: entry.cardsPlayed ? [...entry.cardsPlayed] : [],
+          combination: entry.combination!,
+          handBeforeTurn: [...entry.handBeforeTurn],
+          handAfterTurn: [...entry.handAfterTurn],
+          leadingMoveBeforeTurn: entry.leadingMoveBeforeTurn,
+          isLeadMove: entry.isLeadMove,
+          isChop: entry.isChop,
+          choppedPlayerId: entry.choppedPlayerId,
+          penaltyAmount: entry.penaltyAmount,
+          botDecision: entry.botDecision
+        }
+      : {
+          turnNumber: this.currentTurnCounter,
+          roundNumber: entry.roundNumber,
+          timestamp: Date.now(),
+          playerId: entry.playerId,
+          playerName: entry.playerName,
+          isBot: entry.isBot,
+          botPersonaId: entry.botPersonaId,
+          action: 'PASS',
+          handBeforeTurn: [...entry.handBeforeTurn],
+          handAfterTurn: [...entry.handAfterTurn],
+          leadingMoveBeforeTurn: entry.leadingMoveBeforeTurn,
+          isLeadMove: entry.isLeadMove,
+          isChop: false,
+          botDecision: entry.botDecision
+        };
 
     this.turns.push(turnRecord);
     this.notifyListeners();

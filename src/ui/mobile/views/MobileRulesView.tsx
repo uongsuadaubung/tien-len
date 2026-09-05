@@ -42,9 +42,6 @@ export const MobileRulesView: React.FC<MobileRulesViewProps> = ({ isOpen, onClos
       title={t('rules.modalTitle')}
       subtitle={t('rules.modalSubtitle')}
       icon={<BookOpen className="w-5 h-5 text-[var(--color-gold)]" />}
-      headerRight={null}
-      footer={null}
-      className={null}
     >
       <div className="space-y-4 pb-6 select-none">
         {/* TABS NAVIGATION */}

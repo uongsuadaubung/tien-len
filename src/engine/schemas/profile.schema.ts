@@ -37,7 +37,10 @@ export const PlayerStatsSchema = z.object({
   currentStreak: z.number().default(0)
 });
 
+export type PlayerStats = z.infer<typeof PlayerStatsSchema>;
+
 export const PlayerProfileSchema = z.object({
+  id: z.string().default(() => 'usr_' + Math.random().toString(36).slice(2, 10)),
   name: z.string().default(''),
   avatar: z.string().default('🤠'),
   coins: z.number().default(50000),
@@ -63,7 +66,6 @@ export const PlayerProfileSchema = z.object({
 });
 
 export type PlayerProfile = z.infer<typeof PlayerProfileSchema>;
-export type PlayerStats = z.infer<typeof PlayerStatsSchema>;
 export type Achievement = z.infer<typeof AchievementSchema>;
 export type Quest = z.infer<typeof QuestSchema>;
 export type AchievementCategory = z.infer<typeof AchievementCategorySchema>;

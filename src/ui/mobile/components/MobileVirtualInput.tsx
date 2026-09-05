@@ -6,38 +6,38 @@ import { useI18n } from '../../../locales';
 export interface MobileVirtualInputProps {
   value: string;
   onChange: (value: string) => void;
-  placeholder: string;
-  icon: React.ReactNode | null;
-  label: string | null;
-  error: string | null;
-  maxLength: number;
-  showRandomNameButton: boolean;
-  showPasteButton: boolean;
-  onRandomName: (() => void) | null;
-  onPaste: (() => void) | null;
-  onSubmit: (() => void) | null;
-  className: string | null;
-  inputClassName: string | null;
-  clearable: boolean;
-  renderExtraActions: (() => React.ReactNode) | null;
+  placeholder?: string;
+  icon?: React.ReactNode;
+  label?: string;
+  error?: string;
+  maxLength?: number;
+  showRandomNameButton?: boolean;
+  showPasteButton?: boolean;
+  onRandomName?: () => void;
+  onPaste?: () => void;
+  onSubmit?: () => void;
+  className?: string;
+  inputClassName?: string;
+  clearable?: boolean;
+  renderExtraActions?: () => React.ReactNode;
 }
 
 export const MobileVirtualInput: React.FC<MobileVirtualInputProps> = ({
   value,
   onChange,
-  placeholder,
+  placeholder = '',
   icon,
   label,
   error,
-  maxLength,
-  showRandomNameButton,
-  showPasteButton,
+  maxLength = 16,
+  showRandomNameButton = false,
+  showPasteButton = false,
   onRandomName,
   onPaste,
   onSubmit,
   className,
   inputClassName,
-  clearable,
+  clearable = true,
   renderExtraActions
 }) => {
   const { t } = useI18n();
@@ -143,7 +143,6 @@ export const MobileVirtualInput: React.FC<MobileVirtualInputProps> = ({
           maxLength={maxLength}
           showRandomNameButton={showRandomNameButton}
           showPasteButton={showPasteButton}
-          className={null}
         />
       )}
     </div>

@@ -1,9 +1,9 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
 import { CardTracker } from '../../src/ai/card-tracker';
-import { makeBotDecision, DecisionContext } from '../../src/ai/decision-maker';
+import { makeBotDecision, DecisionContext, createDecisionContext } from '../../src/ai/decision-maker';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { createCard } from '../../src/engine/card';
-import { Card, createDefaultGameRules } from '../../src/engine/types';
+import { Card, PlayedMove, createDefaultGameRules } from '../../src/engine/types';
 
 describe('Chiến Thuật Ra Bài Cầm Cái & Mở Màn 3 Bích Chuẩn Tiến Lên Miền Nam', () => {
   let tracker: CardTracker;
@@ -12,11 +12,11 @@ describe('Chiến Thuật Ra Bài Cầm Cái & Mở Màn 3 Bích Chuẩn Tiến 
     tracker = new CardTracker();
   });
 
-  const createMockDecisionContext = (partial: Partial<DecisionContext> & { hand: Card[] }): DecisionContext => ({
+  const createMockDecisionContext = (partial: Partial<DecisionContext> & { hand: Card[]; currentRoundLeadingMove?: PlayedMove | null; isLeadMove?: boolean }): DecisionContext => createDecisionContext({
     hand: partial.hand,
     currentRoundLeadingMove: partial.currentRoundLeadingMove ?? null,
     isFirstMoveOfGame: partial.isFirstMoveOfGame ?? false,
-    isLeadMove: partial.isLeadMove ?? false,
+    isLeadMove: partial.isLeadMove ?? (partial.currentRoundLeadingMove ? false : true),
     tracker: partial.tracker ?? tracker,
     config: partial.config ?? BOT_PERSONAS.BOT_ELO_1750,
     remainingPlayerCards: partial.remainingPlayerCards ?? { p0: 9, p1: 9, p2: 9, p3: 9 },

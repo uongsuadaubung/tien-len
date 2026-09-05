@@ -17,6 +17,21 @@ export interface ProgressEvaluator {
 }
 
 // ============================================================================
+// HELPER: KIỂM TRA NGƯỜI THẮNG DỰA TRÊN PROFILE ID
+// ============================================================================
+function isMatchWinner(event: GameEvent, profile: PlayerProfile): boolean {
+  if (event.type !== 'MATCH_COMPLETED') return false;
+  if (event.winnerPlayerId === profile.id) return true;
+  if (event.winners && event.winners.some(w => w.id === profile.id)) return true;
+  if (event.isHumanWinner) {
+    if (!event.allPlayers || event.allPlayers.length === 0) return true;
+    const human = event.allPlayers.find(p => !p.isBot);
+    if (!human || human.id === profile.id) return true;
+  }
+  return false;
+}
+
+// ============================================================================
 // 1. EVALUATORS CHO KHO NHIỆM VỤ NGÀY (DAILY QUESTS)
 // ============================================================================
 
@@ -40,8 +55,8 @@ export class WinMatchesEvaluator implements ProgressEvaluator {
     this.id = id;
   }
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'MATCH_COMPLETED' && event.isHumanWinner) {
+  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    if (event.type === 'MATCH_COMPLETED' && isMatchWinner(event, profile)) {
       return Math.min(targetCount, currentCount + 1);
     }
     return currentCount;
@@ -56,7 +71,7 @@ export class WinStreakEvaluatorGeneric implements ProgressEvaluator {
 
   evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
     if (event.type === 'MATCH_COMPLETED') {
-      const streak = event.isHumanWinner ? profile.stats.currentStreak + 1 : 0;
+      const streak = isMatchWinner(event, profile) ? profile.stats.currentStreak + 1 : 0;
       return Math.min(targetCount, Math.max(currentCount, streak));
     }
     return currentCount;
@@ -66,8 +81,8 @@ export class WinStreakEvaluatorGeneric implements ProgressEvaluator {
 export class ChopAnyTwoEvaluator implements ProgressEvaluator {
   readonly id = 'daily_chop_any_two';
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'CHOP_EXECUTED' && event.chopperPlayerId === 'p0') {
+  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    if (event.type === 'CHOP_EXECUTED' && event.chopperPlayerId === profile.id) {
       return Math.min(targetCount, currentCount + 1);
     }
     return currentCount;
@@ -77,8 +92,8 @@ export class ChopAnyTwoEvaluator implements ProgressEvaluator {
 export class ChopRedTwoEvaluator implements ProgressEvaluator {
   readonly id = 'daily_chop_red_two';
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'CHOP_EXECUTED' && event.chopperPlayerId === 'p0') {
+  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    if (event.type === 'CHOP_EXECUTED' && event.chopperPlayerId === profile.id) {
       const hasRedTwo = event.choppingCards.some(c => c.rank === 15 && (c.suit === 'HEARTS' || c.suit === 'DIAMONDS'));
       if (hasRedTwo) {
         return Math.min(targetCount, currentCount + 1);
@@ -91,8 +106,8 @@ export class ChopRedTwoEvaluator implements ProgressEvaluator {
 export class ChopBlackTwoEvaluator implements ProgressEvaluator {
   readonly id = 'daily_chop_black_two';
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'CHOP_EXECUTED' && event.chopperPlayerId === 'p0') {
+  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    if (event.type === 'CHOP_EXECUTED' && event.chopperPlayerId === profile.id) {
       const hasBlackTwo = event.choppingCards.some(c => c.rank === 15 && (c.suit === 'SPADES' || c.suit === 'CLUBS'));
       if (hasBlackTwo) {
         return Math.min(targetCount, currentCount + 1);
@@ -105,8 +120,8 @@ export class ChopBlackTwoEvaluator implements ProgressEvaluator {
 export class ChopPairTwoOrGoodsEvaluator implements ProgressEvaluator {
   readonly id = 'daily_chop_pair_two_or_goods';
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'CHOP_EXECUTED' && event.chopperPlayerId === 'p0') {
+  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    if (event.type === 'CHOP_EXECUTED' && event.chopperPlayerId === profile.id) {
       const isFourOfAKind = event.choppingCards.length === 4 && event.choppingCards.every(c => c.rank === event.choppingCards[0].rank);
       const isPairsConsecutive = event.choppingCards.length >= 6;
       if (isFourOfAKind || isPairsConsecutive || event.choppingCards.length >= 2) {
@@ -123,8 +138,8 @@ export class CascadeChopEvaluator implements ProgressEvaluator {
     this.id = id;
   }
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'CHOP_EXECUTED' && event.chopperPlayerId === 'p0') {
+  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    if (event.type === 'CHOP_EXECUTED' && event.chopperPlayerId === profile.id) {
       if (event.isCascadeChop || event.chopChainCount >= 2) {
         return Math.min(targetCount, currentCount + 1);
       }
@@ -139,8 +154,8 @@ export class InflictCongEvaluator implements ProgressEvaluator {
     this.id = id;
   }
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'MATCH_COMPLETED' && event.isHumanWinner && event.congsGivenCount > 0) {
+  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    if (event.type === 'MATCH_COMPLETED' && isMatchWinner(event, profile) && event.congsGivenCount > 0) {
       return Math.min(targetCount, currentCount + event.congsGivenCount);
     }
     return currentCount;
@@ -172,8 +187,8 @@ export class PlayCombinationTypeEvaluator implements ProgressEvaluator {
     this.minCardsCount = minCardsCount;
   }
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'CARD_PLAYED' && event.playerId === 'p0') {
+  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    if (event.type === 'CARD_PLAYED' && event.playerId === profile.id) {
       if (event.combination.type === this.comboType) {
         if (this.minCardsCount === 0 || event.combination.cards.length >= this.minCardsCount) {
           return Math.min(targetCount, currentCount + 1);
@@ -187,8 +202,8 @@ export class PlayCombinationTypeEvaluator implements ProgressEvaluator {
 export class PlaySinglesEvaluator implements ProgressEvaluator {
   readonly id = 'daily_play_ten_singles';
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'CARD_PLAYED' && event.playerId === 'p0' && event.combination.type === 'SINGLE') {
+  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    if (event.type === 'CARD_PLAYED' && event.playerId === profile.id && event.combination.type === 'SINGLE') {
       return Math.min(targetCount, currentCount + 1);
     }
     return currentCount;
@@ -204,8 +219,8 @@ export class EndingMoveTypeEvaluator implements ProgressEvaluator {
     this.comboType = comboType;
   }
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'CARD_PLAYED' && event.playerId === 'p0' && event.remainingCardsCount === 0) {
+  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    if (event.type === 'CARD_PLAYED' && event.playerId === profile.id && event.remainingCardsCount === 0) {
       if (event.combination.type === this.comboType) {
         return Math.min(targetCount, currentCount + 1);
       }
@@ -220,8 +235,8 @@ export class EndingThreeSpadesEvaluator implements ProgressEvaluator {
     this.id = id;
   }
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'MATCH_COMPLETED' && event.isHumanWinner && event.isThreeSpadesWin) {
+  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    if (event.type === 'MATCH_COMPLETED' && isMatchWinner(event, profile) && event.isThreeSpadesWin) {
       return Math.min(targetCount, currentCount + 1);
     }
     return currentCount;
@@ -237,8 +252,8 @@ export class ModeWinEvaluator implements ProgressEvaluator {
     this.matchGameType = matchGameType;
   }
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'MATCH_COMPLETED' && event.isHumanWinner) {
+  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    if (event.type === 'MATCH_COMPLETED' && isMatchWinner(event, profile)) {
       if (
         event.activeGameType === this.matchGameType ||
         (this.matchGameType === 'TRADITIONAL' && event.activeGameType === 'QUICK') ||
@@ -271,8 +286,8 @@ export class PlayerCountWinEvaluator implements ProgressEvaluator {
     this.expectedCount = expectedCount;
   }
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'MATCH_COMPLETED' && event.isHumanWinner) {
+  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    if (event.type === 'MATCH_COMPLETED' && isMatchWinner(event, profile)) {
       if (event.playerCount === this.expectedCount || event.allPlayers?.length === this.expectedCount) {
         return Math.min(targetCount, currentCount + 1);
       }
@@ -301,9 +316,12 @@ export class EarnCoinsEvaluator implements ProgressEvaluator {
     this.id = id;
   }
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'MATCH_COMPLETED' && event.humanNetCoins > 0) {
-      return Math.min(targetCount, currentCount + event.humanNetCoins);
+  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    if (event.type === 'MATCH_COMPLETED') {
+      const netGain = event.payouts?.[profile.id] ?? event.humanNetCoins ?? 0;
+      if (netGain > 0) {
+        return Math.min(targetCount, currentCount + netGain);
+      }
     }
     return currentCount;
   }
@@ -318,8 +336,8 @@ export class HighRollerEvaluator implements ProgressEvaluator {
     this.minBet = minBet;
   }
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'MATCH_COMPLETED' && event.isHumanWinner && event.betAmount >= this.minBet) {
+  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    if (event.type === 'MATCH_COMPLETED' && isMatchWinner(event, profile) && event.betAmount >= this.minBet) {
       return Math.min(targetCount, currentCount + 1);
     }
     return currentCount;
@@ -336,8 +354,8 @@ export class TotalWinsEvaluator implements ProgressEvaluator {
     this.id = id;
   }
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'MATCH_COMPLETED' && event.isHumanWinner) {
+  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    if (event.type === 'MATCH_COMPLETED' && isMatchWinner(event, profile)) {
       return Math.min(targetCount, currentCount + 1);
     }
     return currentCount;
@@ -353,13 +371,13 @@ export class InstantWinAchievementEvaluator implements ProgressEvaluator {
     this.specificType = specificType;
   }
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'INSTANT_WIN' && event.winnerPlayerId === 'p0') {
+  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    if (event.type === 'INSTANT_WIN' && event.winnerPlayerId === profile.id) {
       if (!this.specificType || event.instantWinType === this.specificType) {
         return Math.min(targetCount, currentCount + 1);
       }
     }
-    if (event.type === 'MATCH_COMPLETED' && event.isHumanWinner && event.instantWinType) {
+    if (event.type === 'MATCH_COMPLETED' && isMatchWinner(event, profile) && event.instantWinType) {
       if (!this.specificType || event.instantWinType === this.specificType) {
         return Math.min(targetCount, currentCount + 1);
       }
@@ -387,9 +405,9 @@ export class WealthAchievementEvaluator implements ProgressEvaluator {
 
   evaluate(event: GameEvent, _currentCount: number, targetCount: number, profile: PlayerProfile): number {
     if (event.type === 'MATCH_COMPLETED') {
-      return Math.min(targetCount, Math.max(0, event.totalHumanCoins));
+      return Math.min(targetCount, Math.max(0, event.totalHumanCoins ?? profile.coins));
     }
-    if (event.type === 'COINS_CHANGED' && event.playerId === 'p0') {
+    if (event.type === 'COINS_CHANGED' && event.playerId === profile.id) {
       return Math.min(targetCount, Math.max(0, event.newBalance));
     }
     return Math.min(targetCount, Math.max(0, profile.coins));
@@ -402,8 +420,8 @@ export class ChopMasterAchievementEvaluator implements ProgressEvaluator {
     this.id = id;
   }
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'CHOP_EXECUTED' && event.chopperPlayerId === 'p0') {
+  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    if (event.type === 'CHOP_EXECUTED' && event.chopperPlayerId === profile.id) {
       return Math.min(targetCount, currentCount + 1);
     }
     return currentCount;
@@ -413,8 +431,8 @@ export class ChopMasterAchievementEvaluator implements ProgressEvaluator {
 export class ChopGoodsAchievementEvaluator implements ProgressEvaluator {
   readonly id = 'ach_chop_goods_10';
 
-  evaluate(event: GameEvent, currentCount: number, targetCount: number): number {
-    if (event.type === 'CHOP_EXECUTED' && event.chopperPlayerId === 'p0') {
+  evaluate(event: GameEvent, currentCount: number, targetCount: number, profile: PlayerProfile): number {
+    if (event.type === 'CHOP_EXECUTED' && event.chopperPlayerId === profile.id) {
       const isFourOfAKind = event.choppingCards.length === 4 && event.choppingCards.every(c => c.rank === event.choppingCards[0].rank);
       const isPairsConsecutive = event.choppingCards.length >= 6;
       if (isFourOfAKind || isPairsConsecutive) {

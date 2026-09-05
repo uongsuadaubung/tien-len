@@ -16,7 +16,6 @@ interface HeaderBarProps {
   playerElo: number;
   soundEnabled: boolean;
   onToggleSound: () => void;
-  onOpenCustomGameModal: (() => void) | null;
   onOpenRules: () => void;
   onOpenSettings: () => void;
   onOpenXRay: () => void;

@@ -2,7 +2,7 @@ import { describe, test, expect } from 'bun:test';
 import { createCard } from '../../src/engine/card';
 import { isValidMove } from '../../src/engine/validator';
 import { GameEngine } from '../../src/engine/game';
-import { makeBotDecision, DecisionContext } from '../../src/ai/decision-maker';
+import { makeBotDecision, DecisionContext, createDecisionContext } from '../../src/ai/decision-maker';
 import { CardTracker } from '../../src/ai/card-tracker';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { Player, createDefaultGameRules, Card, PlayedMove } from '../../src/engine/types';
@@ -117,6 +117,7 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
 
       const moveRes = engine.playMove('p0', [players[0].hand[0]]);
       expect(moveRes.success).toBe(false);
+      if (moveRes.success) return;
       expect(moveRes.error).toContain('Luật cấm về bằng lá Heo (2) cuối cùng');
       expect(players[0].hand.length).toBe(1);
     });
@@ -186,6 +187,8 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
 
       // p0 đánh 5 Bích về Nhất -> Game Over
       const playRes = engine.playMove('p0', [players[0].hand[0]]);
+      expect(playRes.success).toBe(true);
+      if (!playRes.success) return;
       expect(playRes.isGameOver).toBe(true);
       expect(engine.isGameOver).toBe(true);
 
@@ -201,11 +204,11 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
   });
 
   describe('3. Trí Tuệ Bot AI Thích Ứng Với Luật Cấm 2 Cuối', () => {
-    const createMockDecisionContext = (partial: Partial<DecisionContext> & { hand: Card[]; currentRoundLeadingMove?: PlayedMove | null }): DecisionContext => ({
+    const createMockDecisionContext = (partial: Partial<DecisionContext> & { hand: Card[]; currentRoundLeadingMove?: PlayedMove | null; isLeadMove?: boolean }): DecisionContext => createDecisionContext({
       hand: partial.hand,
       currentRoundLeadingMove: partial.currentRoundLeadingMove ?? null,
       isFirstMoveOfGame: partial.isFirstMoveOfGame ?? false,
-      isLeadMove: partial.isLeadMove ?? false,
+      isLeadMove: partial.isLeadMove ?? (partial.currentRoundLeadingMove ? false : true),
       tracker: partial.tracker ?? new CardTracker(),
       config: partial.config ?? BOT_PERSONAS.BOT_ELO_1850,
       remainingPlayerCards: partial.remainingPlayerCards ?? { bot1: 2, p0: 5, bot2: 6, bot3: 7 },
@@ -290,12 +293,7 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
         playerId: 'p0',
         combination: { type: 'SINGLE' as const, cards: [aceCard], highestCard: aceCard, length: 1 },
         timestamp: Date.now(),
-        isChop: null,
-        choppedPlayerId: null,
-        penaltyAmount: null,
-        isCascadeChop: null,
-        chopChainCount: null,
-        chopChainTotalAmount: null
+        isChop: false
       };
 
       const decision = makeBotDecision(createMockDecisionContext({
@@ -603,9 +601,121 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
       expect(engine.currentRound.currentTurnPlayerId).toBe('p0');
       const res2 = engine.playMove('p0', [card2S, card2C, card2D, card2H]);
       expect(res2.success).toBe(false);
+      if (res2.success) return;
       expect(res2.error).toContain('Luật cấm về bằng lá Heo (2) cuối cùng');
       // Bài vẫn còn nguyên 4 lá Heo trên tay
       expect(players[0].hand.length).toBe(4);
     });
   });
+
+  describe('5. Cơ Chế Bỏ Lượt Khi Cầm Cái (Lead Turn Pass) & Chống Deadlock', () => {
+    function createTestPlayers(): Player[] {
+      return [
+        createPlayer({ id: 'p0', name: 'Player', avatar: '', score: 1000 }),
+        createBotPlayer('bot1', null, { name: 'Bot 1', avatar: '', score: 1000 }),
+        createBotPlayer('bot2', null, { name: 'Bot 2', avatar: '', score: 1000 }),
+        createBotPlayer('bot3', null, { name: 'Bot 3', avatar: '', score: 1000 })
+      ];
+    }
+
+    test('Lượt mở màn ván đầu tiên (isFirstMoveOfGame = true) BẮT BUỘC phải đánh, không được bỏ lượt', () => {
+      const players = createTestPlayers();
+      const rules = createDefaultGameRules({
+        gameFlow: { firstGameRequireThreeOfSpades: true, winnerLeadsNextGame: true, prohibitEndingWithTwo: true }
+      });
+      const engine = new GameEngine(players, rules);
+      engine.startCustomGame(1);
+
+      // Cho p0 giữ 3 Bích và đến lượt mở màn ván 1
+      players[0].hand = [createCard(3, 'SPADES'), createCard(5, 'HEARTS')];
+      engine.isFirstMoveOfGame = true;
+      engine.currentRound.leadPlayerId = 'p0';
+      engine.currentRound.currentTurnPlayerId = 'p0';
+
+      const passRes = engine.passTurn('p0');
+      expect(passRes.success).toBe(false);
+      if (passRes.success) return;
+      expect(passRes.error).toContain('Lượt mở màn ván đầu tiên bắt buộc phải ra bài');
+    });
+
+    test('Khi đang cầm cái (Lead move) ở các lượt khác, người chơi có thể BỎ LƯỢT để nhường quyền mở vòng cho người kế tiếp', () => {
+      const players = createTestPlayers();
+      const rules = createDefaultGameRules({
+        gameFlow: { firstGameRequireThreeOfSpades: false, winnerLeadsNextGame: true, prohibitEndingWithTwo: true }
+      });
+      const engine = new GameEngine(players, rules);
+      engine.startCustomGame(2);
+
+      players[0].hand = [createCard(15, 'HEARTS')]; // p0 chỉ còn Heo cơ
+      players[1].hand = [createCard(8, 'CLUBS')];
+      players[2].hand = [createCard(9, 'CLUBS')];
+      players[3].hand = [createCard(10, 'CLUBS')];
+
+      engine.currentRound.leadPlayerId = 'p0';
+      engine.currentRound.currentTurnPlayerId = 'p0';
+      expect(engine.isRoundLeadMove()).toBe(true);
+
+      // p0 đang cầm cái nhưng chọn BỎ LƯỢT
+      const passRes = engine.passTurn('p0');
+      expect(passRes.success).toBe(true);
+      expect(players[0].isPassedCurrentRound).toBe(true);
+
+      // Quyền cầm cái và lượt đi được chuyển sang bot1 (người kế tiếp còn bài)
+      expect(engine.currentRound.currentTurnPlayerId).toBe('bot1');
+      expect(engine.currentRound.leadPlayerId).toBe('bot1');
+      expect(engine.isRoundLeadMove()).toBe(true);
+
+      // bot1 có thể mở bài bình thường
+      const bot1Move = engine.playMove('bot1', [createCard(8, 'CLUBS')]);
+      expect(bot1Move.success).toBe(true);
+    });
+
+    test('Chống Soft-lock/Deadlock: Toàn bộ người chơi còn lại đều chỉ còn Heo và cùng Bỏ Lượt khi cầm cái -> Ván đấu kết thúc ngay và phạt Thối Heo', () => {
+      const players = createTestPlayers();
+      const rules = createDefaultGameRules({
+        table: { betAmount: 100 },
+        gameFlow: { firstGameRequireThreeOfSpades: false, winnerLeadsNextGame: true, prohibitEndingWithTwo: true }
+      });
+      const engine = new GameEngine(players, rules);
+      engine.startCustomGame(2);
+
+      // bot3 đã hết bài về Nhất trước đó
+      players[3].hand = [];
+      players[3].rankPosition = 1;
+      engine.winners = [players[3]];
+
+      // 3 người chơi còn lại (p0, bot1, bot2) mỗi người chỉ còn đúng 1 lá Heo (2)
+      players[0].hand = [createCard(15, 'SPADES')];
+      players[1].hand = [createCard(15, 'CLUBS')];
+      players[2].hand = [createCard(15, 'DIAMONDS')];
+
+      engine.currentRound.leadPlayerId = 'p0';
+      engine.currentRound.currentTurnPlayerId = 'p0';
+
+      // 1. p0 cầm cái bỏ lượt vì cấm về Heo
+      const pass0 = engine.passTurn('p0');
+      expect(pass0.success).toBe(true);
+      expect(engine.currentRound.currentTurnPlayerId).toBe('bot1');
+
+      // 2. bot1 cầm cái cũng bỏ lượt
+      const pass1 = engine.passTurn('bot1');
+      expect(pass1.success).toBe(true);
+      expect(engine.currentRound.currentTurnPlayerId).toBe('bot2');
+
+      // 3. bot2 cầm cái cũng bỏ lượt (người cuối cùng còn lại bỏ lượt mở vòng)
+      const pass2 = engine.passTurn('bot2');
+      expect(pass2.success).toBe(true);
+
+      // Ván đấu PHẢI kết thúc ngay lập tức, không được treo/loop vô hạn
+      expect(engine.isGameOver).toBe(true);
+
+      // Kiểm tra tất cả người còn giữ Heo đều bị phạt Thối Heo
+      expect(players[0].score).toBeLessThan(1000);
+      expect(players[1].score).toBeLessThan(1000);
+      expect(players[2].score).toBeLessThan(1000);
+      // Người về Nhất (bot3) nhận tiền phạt
+      expect(players[3].score).toBeGreaterThan(1000);
+    });
+  });
 });
+

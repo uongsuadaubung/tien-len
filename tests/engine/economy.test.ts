@@ -136,9 +136,7 @@ describe('Economy & Hardcore Penalties (Kinh Tế & Trừng Phạt Cược Lớn
   });
 
   test('Tính tiền đền Cóng (Cháy bài)', () => {
-    // Bàn thường (x1): 26x cược = 26,000 xu
-    expect(calculateCongPenalty(BET, 1)).toBe(26000);
-    // Hệ số nhân phạt x2: 52x cược = 52,000 xu
-    expect(calculateCongPenalty(BET, 2)).toBe(52000);
+    // Cóng đền cố định 26x cược = 26,000 xu (không bị nhân hệ số chặt)
+    expect(calculateCongPenalty(BET)).toBe(26000);
   });
 });

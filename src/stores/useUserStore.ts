@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { PlayerProfile, loadPlayerProfile, savePlayerProfile, resetPlayerProfile } from '../engine/storage';
+import { useGameStore } from './useGameStore';
 
 interface UserState {
   profile: PlayerProfile;
@@ -19,11 +20,15 @@ interface UserState {
 export const useUserStore = create<UserState>((set) => ({
   profile: loadPlayerProfile(),
 
-  hydrateProfile: (profile) => set({ profile }),
+  hydrateProfile: (profile) => {
+    useGameStore.getState().setMyPlayerId(profile.id);
+    set({ profile });
+  },
 
   setProfile: (profileOrUpdater) => set((state) => {
     const next = typeof profileOrUpdater === 'function' ? profileOrUpdater(state.profile) : profileOrUpdater;
     savePlayerProfile(next);
+    useGameStore.getState().setMyPlayerId(next.id);
     return { profile: next };
   }),
 
@@ -100,6 +105,7 @@ export const useUserStore = create<UserState>((set) => ({
 
   resetProfile: () => set(() => {
     const initial = resetPlayerProfile();
+    useGameStore.getState().setMyPlayerId(initial.id);
     return { profile: initial };
   })
 }));

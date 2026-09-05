@@ -1,29 +1,25 @@
 import { useEffect, useMemo, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { Player, InstantWinType } from '../../engine/types';
-import { CampaignChapter } from '../../engine/campaign';
 import { clearActiveMatchSession } from '../../engine/storage';
 import { MatchLogger } from '../../engine/match-logger';
-import { ActiveGameType, useGameStore } from '../../stores/useGameStore';
+import { ActiveGameType, useGameStore, CampaignResultMeta } from '../../stores/useGameStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { useOnlineStore } from '../../stores/useOnlineStore';
-import { useViewStore } from '../../stores/useViewStore';
 import { useI18n } from '../../locales';
+import { EloDeltaResult } from '../../engine/elo';
 
 export type PrimaryBtnIconType = 'PLAY' | 'CHECK' | 'SWORDS' | 'ROTATE_CCW' | 'HOME' | 'BANK' | 'SPINNER';
 export type SecondaryBtnIconType = 'HOME' | 'MAP';
+
+export type { CampaignResultMeta };
 
 export interface UseVictoryLogicProps {
   isOpen: boolean;
   onNextGame: () => void;
   onReturnToLobby: () => void;
   onOpenCampaignMap?: (() => void) | null;
-  campaignResultMeta?: {
-    isUnlockedNext: boolean;
-    isAllCompleted: boolean;
-    nextChapter: CampaignChapter | null;
-    currentWins: number;
-  } | null;
+  campaignResultMeta?: CampaignResultMeta | null;
 }
 
 export interface VictoryLogicResult {
@@ -68,6 +64,7 @@ export interface VictoryLogicResult {
   payouts: Record<string, number>;
   loanDeduction: number;
   eloDelta: number;
+  lastEloBreakdown: EloDeltaResult['breakdown'] | null;
   allEloDeltas: Record<string, number>;
 }
 
@@ -90,6 +87,7 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     matchPayouts: payouts,
     loanDeductionAmount: loanDeduction,
     lastEloDelta: eloDelta,
+    lastEloBreakdown,
     allEloDeltas,
     activeGameType,
     currentCampaignChapter: campaignChapter,
@@ -98,15 +96,11 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
 
   const { profile } = useUserStore();
   const onlineStore = useOnlineStore();
-  const { openModal } = useViewStore();
 
   const playerCoins = profile.coins;
   const betAmount = gameSettings.betAmount;
 
   const chapterWins = campaignResultMeta?.currentWins ?? (campaignChapter ? (profile.campaignChapterWins[campaignChapter.id] || 0) : 0);
-  const isChapterUnlockedNext = campaignResultMeta?.isUnlockedNext ?? false;
-  const isAllCampaignCompleted = campaignResultMeta?.isAllCompleted ?? false;
-  const nextChapter = campaignResultMeta?.nextChapter ?? null;
 
   const roomState = onlineStore.roomState;
   const isOnlineHost = onlineStore.isHost;
@@ -118,8 +112,8 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
 
   const totalOnlinePlayers = roomState !== null ? roomState.players.length : allPlayers.length;
   const readyOnlinePlayers = roomState !== null ? roomState.players.filter(p => p.isReady).length : 0;
-  const myOnlinePlayer = roomState !== null ? roomState.players.find(p => p.playerId === myPlayerId) || null : null;
-  const isMyPlayerReady = myOnlinePlayer !== null ? myOnlinePlayer.isReady : false;
+  const myOnlinePlayer = roomState !== null ? roomState.players.find(p => p.playerId === myPlayerId) : undefined;
+  const isMyPlayerReady = myOnlinePlayer?.isReady ?? false;
 
   useEffect(() => {
     if (isOpen) {
@@ -148,7 +142,7 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     URL.revokeObjectURL(url);
   }, []);
 
-  const humanPayout = payouts !== null ? (payouts[myPlayerId] || 0) : 0;
+  const humanPayout = payouts[myPlayerId] ?? 0;
 
   // Sắp xếp người chơi theo kết quả
   const displayPlayers: Player[] = useMemo(() => {
@@ -158,9 +152,7 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
       if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
       if (aIdx !== -1) return -1;
       if (bIdx !== -1) return 1;
-      const aHandLen = a.hand !== null && a.hand !== undefined ? a.hand.length : 0;
-      const bHandLen = b.hand !== null && b.hand !== undefined ? b.hand.length : 0;
-      return aHandLen - bHandLen;
+      return a.hand.length - b.hand.length;
     });
   }, [allPlayers, winners]);
 
@@ -216,15 +208,16 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     secondaryBtnAction = onReturnToLobby;
   } else if (isTableDismissed) {
     modalIcon = '🚨';
+    primaryBtnText = t('victory.btnBackLobby');
+    primaryBtnIconType = 'HOME';
+    primaryBtnAction = onReturnToLobby;
+
     if (isHumanBankrupt) {
       modalTitle = t('victory.outOfCoinsTitle');
       modalSubtitle = t('victory.outOfCoinsSub');
       statBox2Title = t('victory.statusLabel');
       statBox2Value = t('victory.bankruptStatus');
       statBox2Sub = t('victory.needMoreCoinsSub');
-      primaryBtnText = t('victory.openBankBtn');
-      primaryBtnIconType = 'BANK';
-      primaryBtnAction = () => openModal('BANK');
     } else {
       modalTitle = t('victory.tableDismissedTitle');
       const botNames = bankruptBots.map(b => b.name).join(', ');
@@ -232,9 +225,6 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
       statBox2Title = t('victory.statusLabel');
       statBox2Value = t('victory.opponentsOutOfCoins');
       statBox2Sub = t('victory.bankruptCountSub', { count: bankruptBots.length });
-      primaryBtnText = t('victory.findNewTableBtn');
-      primaryBtnIconType = 'ROTATE_CCW';
-      primaryBtnAction = onNextGame;
     }
   } else if (isCampaign) {
     modalIcon = isHumanWinner ? '⭐' : '💀';
@@ -245,7 +235,8 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
       : t('victory.campaignRetrySub');
 
     if (isHumanWinner) {
-      if (isChapterUnlockedNext && nextChapter !== null) {
+      if (campaignResultMeta?.status === 'NEXT_UNLOCKED') {
+        const nextChapter = campaignResultMeta.nextChapter;
         modalTitle = t('victory.chapterCompletedTitle');
         modalSubtitle = t('victory.chapterUnlockedSub', { name: nextChapter.name });
         primaryBtnText = t('victory.campaignNextBtn');
@@ -254,7 +245,7 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
         secondaryBtnText = t('victory.campaignMapBtn');
         secondaryBtnIconType = 'MAP';
         secondaryBtnAction = onOpenCampaignMap !== null ? onOpenCampaignMap : onReturnToLobby;
-      } else if (isAllCampaignCompleted) {
+      } else if (campaignResultMeta?.status === 'ALL_COMPLETED') {
         modalTitle = t('victory.campaignAllWonTitle');
         modalSubtitle = t('victory.campaignAllWonSub');
         primaryBtnText = t('victory.btnBackLobby');
@@ -319,6 +310,7 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     payouts,
     loanDeduction,
     eloDelta,
+    lastEloBreakdown,
     allEloDeltas
   };
 }

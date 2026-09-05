@@ -21,7 +21,7 @@ export function useSmartHandSorting() {
   } = useGameStore();
 
   const handleAutoSort = useCallback(() => {
-    const localPlayer = players.find(p => p.id === myPlayerId) || players[0];
+    const localPlayer = players.find(p => p.id === myPlayerId) ?? null;
     if (!localPlayer || localPlayer.hand.length === 0) return;
 
     const variants = getAvailableSmartVariants(localPlayer.hand);

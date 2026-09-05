@@ -4,10 +4,10 @@ import type { TienLenSaveData } from '../schemas/sync.schema';
 export type { GithubUser, TienLenSaveData };
 
 export interface GistFile {
-  content?: string;
+  content: string | null;
   raw_url: string;
-  filename?: string;
-  size?: number;
+  filename: string | null;
+  size: number | null;
 }
 
 export interface Gist {
@@ -22,7 +22,7 @@ export interface GistListItem {
   id: string;
   description: string | null;
   updated_at: string;
-  files: Record<string, { raw_url: string; filename?: string }>;
+  files: Record<string, { raw_url: string; filename: string | null }>;
 }
 
 export type SyncResponse<T = unknown> =
@@ -34,9 +34,16 @@ export type SmartSyncResult =
   | { type: 'synced'; detail: 'upload' | 'download' }
   | { type: 'conflict'; localData: TienLenSaveData; cloudData: TienLenSaveData };
 
-export interface GistHistoryItem {
-  version: string;
-  committedAt: string;
-  saveData: TienLenSaveData | null;
-  error?: string;
-}
+export type GistHistoryItem =
+  | {
+      readonly success: true;
+      readonly version: string;
+      readonly committedAt: string;
+      readonly saveData: TienLenSaveData;
+    }
+  | {
+      readonly success: false;
+      readonly version: string;
+      readonly committedAt: string;
+      readonly error: string;
+    };

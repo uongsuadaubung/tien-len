@@ -15,12 +15,7 @@ describe('Quick Response Finder & Selection Cycle (Chọn Nhanh Bài Vừa Khít
         length: cards.length
       },
       timestamp: Date.now(),
-      isChop: null,
-      choppedPlayerId: null,
-      penaltyAmount: null,
-      isCascadeChop: null,
-      chopChainCount: null,
-      chopChainTotalAmount: null
+      isChop: false
     };
   };
 

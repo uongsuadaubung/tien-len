@@ -85,10 +85,10 @@ export interface BotMatchResult {
 }
 
 export interface SimulatedTableResult {
-  id?: string;
+  id: string;
   tableId: string;
-  timestamp?: number;
+  timestamp: number;
   betAmount: number;
   botResults: BotMatchResult[];
-  highlightNews: EcosystemNewsItem[] | null;
+  highlightNews: EcosystemNewsItem[];
 }

@@ -522,28 +522,37 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     key={item.version}
                     className="p-2.5 rounded-xl bg-[var(--bg-container)] border border-[var(--border-container)] flex items-center justify-between gap-2"
                   >
-                    <div>
-                      <div className="text-xs font-semibold text-[var(--text-primary)]">
-                        {formatDateTime(new Date(item.committedAt).getTime(), t('sync.neverSynced'))}
-                      </div>
-                      {item.saveData?.profile ? (
-                        <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                          {t('sync.historyName', { name: item.saveData.profile.name || t('common.player') })} | {t('sync.historyCoins', { coins: item.saveData.profile.coins.toLocaleString() })} | {t('sync.historyElo', { elo: item.saveData.profile.elo })}
+                    {item.success ? (
+                      <>
+                        <div>
+                          <div className="text-xs font-semibold text-[var(--text-primary)]">
+                            {formatDateTime(new Date(item.committedAt).getTime(), t('sync.neverSynced'))}
+                          </div>
+                          {item.saveData.profile ? (
+                            <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                              {t('sync.historyName', { name: item.saveData.profile.name || t('common.player') })} | {t('sync.historyCoins', { coins: item.saveData.profile.coins.toLocaleString() })} | {t('sync.historyElo', { elo: item.saveData.profile.elo })}
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-zinc-500">{t('sync.historyNoProfile')}</div>
+                          )}
                         </div>
-                      ) : (
-                        <div className="text-[10px] text-zinc-500">{t('sync.historyNoProfile')}</div>
-                      )}
-                    </div>
-                    {item.saveData && (
-                      <Button
-                        variant="surface"
-                        size="sm"
-                        onClick={() => handleRestoreCommit(item)}
-                        disabled={isSyncing}
-                        className="text-[11px] text-[var(--color-gold)] border-[var(--color-gold-border)] ml-2 shrink-0"
-                      >
-                        {t('sync.historyRestore')}
-                      </Button>
+                        <Button
+                          variant="surface"
+                          size="sm"
+                          onClick={() => handleRestoreCommit(item)}
+                          disabled={isSyncing}
+                          className="text-[11px] text-[var(--color-gold)] border-[var(--color-gold-border)] ml-2 shrink-0"
+                        >
+                          {t('sync.historyRestore')}
+                        </Button>
+                      </>
+                    ) : (
+                      <div>
+                        <div className="text-xs font-semibold text-[var(--text-primary)]">
+                          {formatDateTime(new Date(item.committedAt).getTime(), t('sync.neverSynced'))}
+                        </div>
+                        <div className="text-[10px] text-red-400">{item.error}</div>
+                      </div>
                     )}
                   </div>
                 ))}

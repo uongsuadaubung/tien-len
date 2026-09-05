@@ -3,10 +3,11 @@ import {
   type Card, 
   type Player, 
   type GameRules, 
+  type InstantWinType,
   GameRulesBuilder 
 } from '../types';
 import { createBotPlayer, createPlayer } from '../player-factory';
-import { makeBotDecision } from '../../ai/decision-maker';
+import { makeBotDecision, createDecisionContext } from '../../ai/decision-maker';
 import { CardTracker } from '../../ai/card-tracker';
 import { getBotConfig } from '../../ai/bot-factory';
 import { 
@@ -27,7 +28,7 @@ import { resolveStrategyForMatch } from '../strategies/game-mode-strategy';
 import { savePlayerProfile, type PlayerProfile } from '../storage';
 import { type MatchCompletedEvent, GameEventBus } from '../events/game-event-bus';
 import { evaluateDailyQuests, evaluateAchievements } from '../evaluators/progress-evaluators';
-import { type PlayingTurnMatchState, type GameOverMatchState } from '../state-machine/types';
+import { type PlayingTurnMatchState, type GameOverMatchState, createPlayingTurnMatchState } from '../state-machine/types';
 import type { IMatchDriver, DriverActionResult } from '../match-driver.interface';
 
 export interface HostEngineDriverCallbacks {
@@ -38,6 +39,8 @@ export interface HostEngineDriverCallbacks {
 export class HostEngineDriver implements IMatchDriver {
   public engine: GameEngine | null = null;
   public cardTracker: CardTracker = new CardTracker();
+  public chopsByPlayer: Record<string, number> = {};
+  public gotChoppedByPlayer: Record<string, number> = {};
   private p2pClient: P2PClient;
   public roomState: OnlineRoomState;
   private unsubscribeActions: Array<() => void> = [];
@@ -46,6 +49,7 @@ export class HostEngineDriver implements IMatchDriver {
   private onAutoStartMatch: (() => void) | null = null;
   public gameNumber: number = 0;
   public lastWinnerId: string | null = null;
+  public instantWinType: InstantWinType | null = null;
 
   constructor(
     p2pClient: P2PClient, 
@@ -61,7 +65,10 @@ export class HostEngineDriver implements IMatchDriver {
 
   public startMatch(onLocalHandDealt: (cards: Card[]) => void): void {
     this.cleanup();
+    this.chopsByPlayer = {};
+    this.gotChoppedByPlayer = {};
     this.gameNumber += 1;
+    this.instantWinType = null;
 
     // 1. Build GameRules
     const rules: GameRules = new GameRulesBuilder()
@@ -105,8 +112,15 @@ export class HostEngineDriver implements IMatchDriver {
     // 3. Initialize Engine
     const engine = new GameEngine(players, rules);
     this.engine = engine;
-    engine.startNewGame(this.gameNumber, this.lastWinnerId || undefined);
+    const startResult = engine.startNewGame(this.gameNumber, this.lastWinnerId || undefined);
     this.cardTracker = new CardTracker();
+
+    if (startResult.instantWin) {
+      this.instantWinType = startResult.instantWinType;
+      useGameStore.getState().setInstantWinType(startResult.instantWinType);
+      this.handleGameOver();
+      return;
+    }
 
     // 4. Fog of War: Dispatch private hands
     this.roomState.players.forEach((op: OnlinePlayer) => {
@@ -174,29 +188,27 @@ export class HostEngineDriver implements IMatchDriver {
       const selectedCards = player.hand.filter(c => packet.cardIds?.includes(c.id));
       const res = this.engine.playMove(packet.playerId, selectedCards);
       if (res.success) {
-        if (res.playedMove) {
-          GameEventBus.getInstance().emit({
-            type: 'CARD_PLAYED',
-            playerId: packet.playerId,
-            cards: [...res.playedMove.combination.cards],
-            combination: res.playedMove.combination,
-            remainingCardsCount: player.hand.length
-          });
-          this.cardTracker.recordMove(res.playedMove);
-        }
+        GameEventBus.getInstance().emit({
+          type: 'CARD_PLAYED',
+          playerId: packet.playerId,
+          cards: [...res.playedMove.combination.cards],
+          combination: res.playedMove.combination,
+          remainingCardsCount: player.hand.length
+        });
+        this.cardTracker.recordMove(res.playedMove);
+
         if (res.isChop && res.choppedPlayerId) {
+          this.chopsByPlayer[player.id] = (this.chopsByPlayer[player.id] || 0) + 1;
+          this.gotChoppedByPlayer[res.choppedPlayerId] = (this.gotChoppedByPlayer[res.choppedPlayerId] || 0) + 1;
           GameEventBus.getInstance().emit({
             type: 'CHOP_EXECUTED',
-            chopperPlayerId: packet.playerId,
+            chopperPlayerId: player.id,
             victimPlayerId: res.choppedPlayerId,
-            penaltyAmount: res.penaltyAmount || 0,
+            penaltyAmount: res.penaltyAmount,
             choppingCards: [...selectedCards],
-            isCascadeChop: res.isCascadeChop || false,
-            chopChainCount: res.chopChainCount || 1
+            isCascadeChop: res.isCascadeChop,
+            chopChainCount: res.chopChainCount
           });
-        }
-        if (res.playedMove) {
-          this.cardTracker.recordMove(res.playedMove);
         }
         this.broadcastCurrentTableState(`${player.name} đã đánh bài`);
 
@@ -254,7 +266,7 @@ export class HostEngineDriver implements IMatchDriver {
       const isNextPlayerOneCard = nextPlayer ? nextPlayer.hand.length === 1 : false;
       const lastMove = this.engine.currentRound.moves[this.engine.currentRound.moves.length - 1] || null;
 
-      const decision = makeBotDecision({
+      const decision = makeBotDecision(createDecisionContext({
         hand: botPlayer.hand,
         currentRoundLeadingMove: lastMove,
         isFirstMoveOfGame: this.engine.isFirstMoveOfGame,
@@ -271,30 +283,31 @@ export class HostEngineDriver implements IMatchDriver {
         mctsMap: null,
         compositeRuleStrategy: null,
         opponentProfiles: null
-      });
+      }));
 
-      if (decision.type === 'PLAY' && decision.cards && decision.cards.length > 0) {
-        const res = this.engine.playMove(botPlayer.id, decision.cards);
+      if (decision.type === 'PLAY' && decision.cards.length > 0) {
+        const res = this.engine.playMove(botPlayer.id, [...decision.cards]);
         if (res.success) {
-          if (res.playedMove) {
-            GameEventBus.getInstance().emit({
-              type: 'CARD_PLAYED',
-              playerId: botPlayer.id,
-              cards: [...res.playedMove.combination.cards],
-              combination: res.playedMove.combination,
-              remainingCardsCount: botPlayer.hand.length
-            });
-            this.cardTracker.recordMove(res.playedMove);
-          }
+          GameEventBus.getInstance().emit({
+            type: 'CARD_PLAYED',
+            playerId: botPlayer.id,
+            cards: [...res.playedMove.combination.cards],
+            combination: res.playedMove.combination,
+            remainingCardsCount: botPlayer.hand.length
+          });
+          this.cardTracker.recordMove(res.playedMove);
+
           if (res.isChop && res.choppedPlayerId) {
+            this.chopsByPlayer[botPlayer.id] = (this.chopsByPlayer[botPlayer.id] || 0) + 1;
+            this.gotChoppedByPlayer[res.choppedPlayerId] = (this.gotChoppedByPlayer[res.choppedPlayerId] || 0) + 1;
             GameEventBus.getInstance().emit({
               type: 'CHOP_EXECUTED',
               chopperPlayerId: botPlayer.id,
               victimPlayerId: res.choppedPlayerId,
-              penaltyAmount: res.penaltyAmount || 0,
+              penaltyAmount: res.penaltyAmount,
               choppingCards: [...decision.cards],
-              isCascadeChop: res.isCascadeChop || false,
-              chopChainCount: res.chopChainCount || 1
+              isCascadeChop: res.isCascadeChop,
+              chopChainCount: res.chopChainCount
             });
           }
           this.broadcastCurrentTableState(`${botPlayer.name} đã đánh bài`);
@@ -352,22 +365,12 @@ export class HostEngineDriver implements IMatchDriver {
       isLeadMove
     };
 
-    // Đồng bộ trực tiếp vào GameStore của Host
+    // Đồng bộ trực tiếp vào GameStore của Host nguyên tử qua State Pattern
     const gameStore = useGameStore.getState();
     const leadingMove = this.engine.getLeadingMove();
-    gameStore.setGameNumber(this.gameNumber);
-    gameStore.setPlayers(this.engine.players.map(p => ({ ...p })));
-    gameStore.setCurrentTurnPlayerId(currentTurnId);
-    gameStore.setLeadPlayerId(leadId);
-    gameStore.setCurrentMove(leadingMove);
-    gameStore.setIsFirstMoveOfGame(isFirstMoveOfGame);
-    gameStore.setIsLeadMove(isLeadMove);
-    gameStore.setWinners([...this.engine.winners]);
-    gameStore.setIsGameOver(this.engine.isGameOver);
-    gameStore.setDealtCounts(remainingCardCounts);
 
     if (!this.engine.isGameOver && currentTurnId && leadId) {
-      const playingState: PlayingTurnMatchState = {
+      const playingState: PlayingTurnMatchState = createPlayingTurnMatchState({
         status: 'PLAYING',
         gameNumber: this.gameNumber,
         roundNumber: this.engine.roundNumber,
@@ -382,8 +385,27 @@ export class HostEngineDriver implements IMatchDriver {
         chopNotification: null,
         botThinkingThought: null,
         rules: this.engine.rules
-      };
-      gameStore.setMatchState(playingState);
+      });
+      gameStore.applyMatchState(playingState);
+      gameStore.setDealtCounts(remainingCardCounts);
+    } else {
+      gameStore.applyMatchSnapshot({
+        gameNumber: this.gameNumber,
+        players: this.engine.players.map(p => ({ ...p })),
+        currentTurnPlayerId: currentTurnId,
+        leadPlayerId: leadId,
+        currentMove: leadingMove,
+        winners: [...this.engine.winners],
+        isGameOver: this.engine.isGameOver,
+        instantWinType: null,
+        isDealing: false,
+        dealtCounts: remainingCardCounts,
+        dealBanner: null,
+        chopNotification: null,
+        botThinkingThought: null,
+        isFirstMoveOfGame,
+        isLeadMove
+      });
     }
 
     void this.p2pClient.broadcastTableSync(packet);
@@ -392,41 +414,45 @@ export class HostEngineDriver implements IMatchDriver {
   private handleGameOver(): void {
     if (!this.engine) return;
 
+    const hostPlayer = this.roomState.players.find(p => p.isHost);
+    if (!hostPlayer) {
+      throw new Error('[HostEngineDriver] Không tìm thấy Host player trong roomState khi kết toán ván đấu!');
+    }
+    const hostPlayerId = hostPlayer.playerId;
+    const playerElos: Record<string, number> = {};
+    this.roomState.players.forEach(p => {
+      playerElos[p.playerId] = p.elo || 1000;
+    });
+
+    const userStore = useUserStore.getState();
+    const currentProfile = userStore.profile;
+
+    const streaksByPlayer: Record<string, number> = {
+      [hostPlayerId]: currentProfile.stats.currentStreak
+    };
+
     const strategy = resolveStrategyForMatch('ONLINE', this.roomState.settlementRule);
     const settlement = strategy.settleMatch({
       players: this.engine.players,
       winners: this.engine.winners,
       betAmount: this.roomState.betAmount,
-      playerElo: null,
+      subjectPlayerId: hostPlayerId,
+      playerElos,
+      chopsByPlayer: this.chopsByPlayer,
+      gotChoppedByPlayer: this.gotChoppedByPlayer,
+      streaksByPlayer,
       isBankLoanActive: false,
-      campaignReward: null,
       penaltyMultiplier: this.roomState.choppingMultiplier,
-      isThreeSpadesWin: this.engine.isThreeSpadesWin
+      isThreeSpadesWin: this.engine.isThreeSpadesWin,
+      isInstantWin: !!this.engine.instantWinner
     });
 
-    const totalPlayers = this.engine.players.length;
     const winner = this.engine.winners[0];
     if (!winner) {
       throw new Error('[HostEngineDriver] Không thể kết toán ván đấu khi danh sách winners rỗng!');
     }
     const winnerId = winner.id;
-    const eloDeltas: Record<string, number> = {};
-    this.engine.players.forEach(p => {
-      const rank = this.engine?.winners.findIndex(w => w.id === p.id) ?? -1;
-      const effectiveRank = rank !== -1 ? rank + 1 : totalPlayers;
-      let delta = 0;
-      if (totalPlayers === 2) {
-        delta = effectiveRank === 1 ? 25 : -25;
-      } else if (totalPlayers === 3) {
-        delta = effectiveRank === 1 ? 25 : (effectiveRank === 2 ? 0 : -25);
-      } else {
-        if (effectiveRank === 1) delta = 25;
-        else if (effectiveRank === 2) delta = 10;
-        else if (effectiveRank === 3) delta = -10;
-        else delta = -25;
-      }
-      eloDeltas[p.id] = delta;
-    });
+    const eloDeltas: Record<string, number> = settlement.allEloDeltas;
 
     const allPlayerHands: Record<string, NetworkCard[]> = {};
     this.engine.players.forEach(p => {
@@ -437,13 +463,14 @@ export class HostEngineDriver implements IMatchDriver {
       this.lastWinnerId = this.engine.winners[0].id;
     }
 
-    const hostPayout = settlement.payouts['p0'] || 0;
-    const hostEloDelta = eloDeltas['p0'] || 0;
-    const isHostWinner = winnerId === 'p0';
+    const hostPayout = settlement.payouts[hostPlayerId];
+    if (hostPayout === undefined) {
+      throw new Error(`[HostEngineDriver] Không tìm thấy payout cho host ${hostPlayerId} trong settlement!`);
+    }
+    const hostEloDelta = eloDeltas[hostPlayerId] ?? settlement.eloDelta;
+    const isHostWinner = winnerId === hostPlayerId;
 
     // Cập nhật Profile cho Host
-    const userStore = useUserStore.getState();
-    const currentProfile = userStore.profile;
     const nextCoins = Math.max(0, currentProfile.coins + hostPayout);
     const nextElo = Math.max(0, currentProfile.elo + hostEloDelta);
     const nextWins = isHostWinner ? currentProfile.stats.wins + 1 : currentProfile.stats.wins;
@@ -465,7 +492,7 @@ export class HostEngineDriver implements IMatchDriver {
       }
     };
 
-    const congsGivenCount = isHostWinner ? this.engine.players.filter(p => p.id !== 'p0' && p.hand.length === 13).length : 0;
+    const congsGivenCount = isHostWinner ? this.engine.players.filter(p => p.id !== hostPlayerId && p.hand.length === 13).length : 0;
     const matchCompletedEvent: MatchCompletedEvent = {
       type: 'MATCH_COMPLETED',
       activeGameType: 'ONLINE',
@@ -521,6 +548,7 @@ export class HostEngineDriver implements IMatchDriver {
     const gameStore = useGameStore.getState();
     gameStore.setMatchPayouts(settlement.payouts);
     gameStore.setLastEloDelta(hostEloDelta);
+    gameStore.setLastEloBreakdown(settlement.allEloBreakdowns?.[hostPlayerId] ?? settlement.eloBreakdown ?? null);
     gameStore.setAllEloDeltas(eloDeltas);
     gameStore.setIsGameOver(true);
     gameStore.setWinners([...this.engine.winners]);

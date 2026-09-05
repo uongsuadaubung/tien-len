@@ -127,19 +127,19 @@ export class MinimaxEndgameSolver {
         isFinishingMove: isFinishing,
         prohibitEndingWithTwo
       });
-      if (res.valid && res.combination) {
+      if (res.valid) {
         if (isFinishing) {
           return {
             isForcedWin: true,
             turnsToWin: 1,
-            bestMove: { cards, combination: res.combination, isChop: res.isChop || false },
+            bestMove: { cards, combination: res.combination, isChop: res.isChop },
             reason: 'Dứt điểm cờ tàn 1 nước tất thắng (Mate-in-1)'
           };
         }
         validFirstMoves.push({
           cards,
           combination: res.combination,
-          isChop: res.isChop || false,
+          isChop: res.isChop,
           mask: cardsToBitmask(cards)
         });
       }
@@ -273,11 +273,11 @@ export class MinimaxEndgameSolver {
           isFinishingMove: isFinishing,
           prohibitEndingWithTwo
         });
-        if (res.valid && res.combination) {
+        if (res.valid) {
           moves.push({
             cards,
             combination: res.combination,
-            isChop: res.isChop || false,
+            isChop: res.isChop,
             mask: cardsToBitmask(cards)
           });
         }
@@ -351,11 +351,11 @@ export class MinimaxEndgameSolver {
           isFinishingMove: isFinishing,
           prohibitEndingWithTwo
         });
-        if (res.valid && res.combination) {
+        if (res.valid) {
           moves.push({
             cards,
             combination: res.combination,
-            isChop: res.isChop || false,
+            isChop: res.isChop,
             mask: cardsToBitmask(cards)
           });
         }

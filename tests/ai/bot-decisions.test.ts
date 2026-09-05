@@ -3,7 +3,7 @@ import { parseCard, parseCards } from '../../src/engine/card';
 import { identifyCombination } from '../../src/engine/combinations';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { CardTracker } from '../../src/ai/card-tracker';
-import { makeBotDecision, DecisionContext } from '../../src/ai/decision-maker';
+import { makeBotDecision, DecisionContext, createDecisionContext } from '../../src/ai/decision-maker';
 import { createDefaultGameRules, Card, PlayedMove, Combination } from '../../src/engine/types';
 
 describe('AI Bot Decision Maker', () => {
@@ -11,19 +11,14 @@ describe('AI Bot Decision Maker', () => {
     playerId,
     combination: combo,
     timestamp: Date.now(),
-    isChop: null,
-    choppedPlayerId: null,
-    penaltyAmount: null,
-    isCascadeChop: null,
-    chopChainCount: null,
-    chopChainTotalAmount: null
+    isChop: false
   });
 
-  const createMockDecisionContext = (partial: Partial<DecisionContext> & { hand: Card[] }): DecisionContext => ({
+  const createMockDecisionContext = (partial: Partial<DecisionContext> & { hand: Card[]; currentRoundLeadingMove?: PlayedMove | null; isLeadMove?: boolean }): DecisionContext => createDecisionContext({
     hand: partial.hand,
     currentRoundLeadingMove: partial.currentRoundLeadingMove ?? null,
     isFirstMoveOfGame: partial.isFirstMoveOfGame ?? false,
-    isLeadMove: partial.isLeadMove ?? false,
+    isLeadMove: partial.isLeadMove ?? (partial.currentRoundLeadingMove ? false : true),
     tracker: partial.tracker ?? new CardTracker(),
     config: partial.config ?? BOT_PERSONAS.BOT_ELO_1750,
     remainingPlayerCards: partial.remainingPlayerCards ?? { p1: 10, p2: 10, p3: 10 },

@@ -10,7 +10,7 @@ export const UI_TIMINGS = {
   DEAL_CARD_INTERVAL_MS: 40,      // Khoảng cách giữa các lá bài được chia
   DEAL_HIT_DELAY_MS: 160,         // Thời gian lá bài bay tới ghế nhận
   DEAL_FINISH_DELAY_MS: 380,      // Delay sau khi lá cuối bay tới đích để kết thúc
-  SHUFFLE_DURATION_MS: 400,       // Thời gian hiệu ứng xào bài
+  SHUFFLE_DURATION_MS: 360,       // Thời gian xào bài (0.36s cho đúng 1 chu kỳ riffle flourish đồng bộ với âm thanh)
 
   // Thông báo & Banner
   BANNER_DISPLAY_DURATION_MS: 2800, // Thời gian hiển thị Banner mở màn

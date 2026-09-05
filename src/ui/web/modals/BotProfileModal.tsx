@@ -15,7 +15,7 @@ import {
 
 interface BotProfileModalProps {
   isOpen: boolean;
-  bot: BotEntity | null;
+  bot: BotEntity;
   onClose: () => void;
 }
 
@@ -25,7 +25,6 @@ export const BotProfileModal: React.FC<BotProfileModalProps> = ({
   onClose
 }) => {
   const { t } = useI18n();
-  if (!bot) return null;
 
   const tierInfo = getTierFromElo(bot.elo);
 

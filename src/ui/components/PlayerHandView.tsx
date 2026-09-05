@@ -13,7 +13,7 @@ interface HandCardStyle extends React.CSSProperties {
 }
 
 interface PlayerHandViewProps {
-  player: Player | null;
+  player: Player;
   selectedCardIds: Set<string>;
   onToggleCardSelect: (cardId: string) => void;
   onClearCardSelection: (() => void) | null;
@@ -32,7 +32,7 @@ interface PlayerHandViewProps {
   isFirstMoveOfGame: boolean;
   sortMode: HandSortMode;
   variantIndex: number;
-  cardSize?: 'sm' | 'md' | 'lg' | 'mobile';
+  cardSize: 'sm' | 'md' | 'lg' | 'mobile' | null;
 }
 
 export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
@@ -58,11 +58,10 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
   cardSize = 'md'
 }) => {
   const { t } = useI18n();
-  if (!player) return null;
 
   const isMobileSize = cardSize === 'mobile';
-  const visibleCardCount = isDealing ? (dealtCardsCount ?? 0) : (player.hand?.length || 0);
-  const hand = (player.hand || []).slice(0, visibleCardCount);
+  const visibleCardCount = isDealing ? (dealtCardsCount ?? 0) : player.hand.length;
+  const hand = player.hand.slice(0, visibleCardCount);
   const has3S = hand.some(c => c.rank === 3 && c.suit === 'SPADES');
   const isSelectedWith3S = Array.from(selectedCardIds).some(id => {
     const c = hand.find(card => card.id === id);

@@ -9,11 +9,11 @@ import {
 describe('Player & Bot Factory Helper Tests', () => {
   test('1. createPlayer: Khởi tạo người chơi mặc định với đầy đủ các thuộc tính chuẩn', () => {
     const player = createPlayer();
-    expect(player.id).toBe('p0');
+    expect(player.id.startsWith('usr_')).toBe(true);
     expect(player.name).toBe('Người Chơi');
     expect(player.avatar).toBe('🤠');
     expect(player.isBot).toBe(false);
-    expect(player.botPersonaId).toBeNull();
+    expect(player.botPersonaId).toBeUndefined();
     expect(player.hand).toEqual([]);
     expect(player.playedCards).toEqual([]);
     expect(player.score).toBe(50000);
@@ -43,7 +43,7 @@ describe('Player & Bot Factory Helper Tests', () => {
     expect(bot1.name).toBe('Bot 1');
     expect(bot1.avatar).toBe('🤖');
     expect(bot1.isBot).toBe(true);
-    expect(bot1.botPersonaId).toBeNull();
+    expect(bot1.botPersonaId).toBe('BOT_ELO_1150');
     expect(bot1.score).toBe(1000);
 
     const botNamed = createBotPlayer('bot_custom', 'BOT_ELO_1450', { name: 'Thần Bài', score: 20000 });

@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useEffect } from 'react';
 import { isValidMove } from '../../engine/validator';
 import { evaluateSelectionFeedback, MoveHint } from '../../ai/hint-engine';
 import { CardTracker } from '../../ai/card-tracker';
@@ -15,6 +15,8 @@ import type { ChopNotificationInfo, BotThinkingInfo } from '../../engine/state-m
 // Stores
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useGameStore } from '../../stores/useGameStore';
+import { useViewStore } from '../../stores/useViewStore';
+import { appFlowCoordinator } from '../../services/app-flow-coordinator';
 
 export interface UseGameTableScreenLogicProps {
   onPlaySelectedCards: () => void;
@@ -23,11 +25,11 @@ export interface UseGameTableScreenLogicProps {
 
 export interface GameTableScreenLogicResult {
   myPlayerIndex: number;
-  p0: Player | null;
+  localPlayer: Player;
   isMyTurn: boolean;
   selectedCards: Card[];
   isValidPlaySelection: boolean;
-  canP0Pass: boolean;
+  canPassTurn: boolean;
   isSolo1v1: boolean;
   playerCount: number;
   botPersonaIds: [string, string, string];
@@ -44,6 +46,7 @@ export interface GameTableScreenLogicResult {
   handleQuickSelect: () => void;
   handlePlayCards: () => void;
   handlePassTurnAction: () => void;
+  handleOpenXRay: () => void;
   // MatchState derived properties
   isDealing: boolean;
   isPlaying: boolean;
@@ -76,39 +79,42 @@ export function useGameTableScreenLogic({
     selectedCardIds,
     currentHint,
     gameRules,
-    dealtCounts: storeDealtCounts,
     setSelectedCardIds
   } = useGameStore();
 
-  // Xác định người chơi cục bộ theo perspective
+  // Xác định người chơi cục bộ theo perspective - Invariant Bàn Đấu
   const myPlayerIndex = Math.max(0, players.findIndex(p => p.id === myPlayerId));
-  const p0 = players[myPlayerIndex] || (players.length > 0 ? players[0] : null);
+  const localPlayer = players[myPlayerIndex] ?? players[0];
+  if (!localPlayer) {
+    throw new Error('[useGameTableScreenLogic] Invariant Violated: Table must have at least 1 valid player');
+  }
 
-  // Trích xuất thuộc tính bảo đảm tồn tại từ State Pattern (Discriminated Union)
+  // Tự động đồng bộ myPlayerId với ID thực tế của localPlayer nếu phát hiện lệch pha
+  useEffect(() => {
+    if (localPlayer && localPlayer.id && myPlayerId !== localPlayer.id) {
+      useGameStore.getState().setMyPlayerId(localPlayer.id);
+    }
+  }, [localPlayer, myPlayerId]);
+
+  // 1. Phân giải trạng thái theo Type State Pattern (Discriminated Unions)
   const isDealing = matchState.status === 'DEALING';
   const isPlaying = matchState.status === 'PLAYING';
-  const isRoundEnded = matchState.status === 'ROUND_ENDED';
-
-  const dealtCounts = isDealing ? matchState.dealtCounts : storeDealtCounts;
+  const dealtCounts = isDealing ? matchState.dealtCounts : {};
   const dealBanner = isDealing ? matchState.dealBanner : null;
 
-  const currentTurnPlayerId = isPlaying
-    ? matchState.currentTurnPlayerId
-    : (isRoundEnded ? matchState.nextLeadPlayerId : null);
+  // 2. Khi đang ở trạng thái PLAYING: Lượt chơi và người cầm cái BẢO ĐẢM TỒN TẠI (non-nullable)
+  const activeTurn = matchState.status === 'PLAYING' ? matchState : null;
+  const currentTurnPlayerId = activeTurn ? activeTurn.currentTurnPlayerId : null;
+  const leadPlayerId = activeTurn ? activeTurn.leadPlayerId : null;
+  const isLeadMove = activeTurn ? activeTurn.isLeadMove : false;
+  const isFirstMoveOfGame = activeTurn ? activeTurn.isFirstMoveOfGame : false;
+  const currentMove = activeTurn ? activeTurn.leadingMove : null;
+  const chopNotification = activeTurn ? activeTurn.chopNotification : null;
+  const botThinkingThought = activeTurn ? activeTurn.botThinkingThought : null;
 
-  const leadPlayerId = isPlaying
-    ? matchState.leadPlayerId
-    : (isRoundEnded ? matchState.nextLeadPlayerId : null);
-
-  const currentMove = isPlaying ? matchState.leadingMove : null;
-  const chopNotification = (isPlaying || isRoundEnded) ? matchState.chopNotification : null;
-  const botThinkingThought = isPlaying ? matchState.botThinkingThought : null;
-  const isLeadMove = isPlaying ? matchState.isLeadMove : true;
-  const isFirstMoveOfGame = isPlaying ? matchState.isFirstMoveOfGame : false;
-
-  // Lượt của tôi: chỉ có thể xảy ra khi trận đấu đang ở trạng thái PLAYING
-  const isMyTurn = isPlaying && currentTurnPlayerId === myPlayerId;
-  const selectedCards = p0 !== null ? p0.hand.filter(c => selectedCardIds.has(c.id)) : [];
+  // Lượt của tôi: chỉ có thể xảy ra khi trận đấu đang ở trạng thái PLAYING và người chơi trùng khớp
+  const isMyTurn = activeTurn !== null && (activeTurn.currentTurnPlayerId === localPlayer.id || activeTurn.currentTurnPlayerId === myPlayerId);
+  const selectedCards = localPlayer.hand.filter(c => selectedCardIds.has(c.id));
 
   const isValidPlaySelection =
     isMyTurn &&
@@ -118,42 +124,38 @@ export function useGameTableScreenLogic({
       target: currentMove !== null ? currentMove.combination : null,
       isFirstMoveOfGame,
       isLeadMove,
-      hasPassedRound: p0 !== null ? p0.isPassedCurrentRound : false,
+      hasPassedRound: localPlayer.isPassedCurrentRound,
       allowFourPairsCutAnytime: gameRules.chopping.allowFourPairsCutAnytime,
-      isFinishingMove: selectedCards.length === (p0 !== null ? p0.hand.length : 0),
+      isFinishingMove: selectedCards.length === localPlayer.hand.length,
       prohibitEndingWithTwo: gameRules.gameFlow.prohibitEndingWithTwo
     }).valid;
 
-  // Không cần kiểm tra !isDealing vì isMyTurn đã bảo đảm trận đấu ở trạng thái PLAYING
-  const canP0Pass =
-    isMyTurn &&
-    !isLeadMove &&
-    currentMove !== null &&
-    currentMove.playerId !== myPlayerId;
+  // Cho phép bỏ lượt tự do khi đến lượt của mình, trừ lượt mở màn ván đầu tiên bắt buộc phải ra bài
+  const canPassTurn = isMyTurn && !isFirstMoveOfGame;
 
   // Tính toán danh sách các phương án Chọn Nhanh
   const quickSelectCandidates = useMemo(() => {
-    if (!isMyTurn || p0 === null || p0.hand.length === 0) return [];
+    if (!isMyTurn || !activeTurn || localPlayer.hand.length === 0) return [];
     return getSortedQuickSelectCandidates({
-      hand: p0.hand,
-      leadingMove: currentMove,
-      isLeadMove,
-      isFirstMoveOfGame,
+      hand: localPlayer.hand,
+      leadingMove: activeTurn.leadingMove,
+      isLeadMove: activeTurn.isLeadMove,
+      isFirstMoveOfGame: activeTurn.isFirstMoveOfGame,
       allowFourPairsCutAnytime: gameRules.chopping.allowFourPairsCutAnytime,
       prohibitEndingWithTwo: gameRules.gameFlow.prohibitEndingWithTwo
     });
-  }, [isMyTurn, p0, currentMove, isLeadMove, isFirstMoveOfGame, gameRules]);
+  }, [isMyTurn, activeTurn, localPlayer.hand, gameRules]);
 
   // Phản hồi nhận xét chiến thuật thời gian thực của Quân Sư
   const activeAiHint = useMemo(() => {
-    if (!aiHintEnabled || !isMyTurn || p0 === null) return currentHint;
+    if (!aiHintEnabled || !isMyTurn) return currentHint;
     if (selectedCards.length === 0) return currentHint;
 
-    const tracker = new CardTracker(p0.hand, 1.0);
+    const tracker = appFlowCoordinator.getPlayerTracker(localPlayer.id) ?? new CardTracker(localPlayer.hand, 1.0);
 
     const feedback = evaluateSelectionFeedback({
       selectedCards,
-      hand: p0.hand,
+      hand: localPlayer.hand,
       leadingMove: currentMove,
       isFirstMoveOfGame,
       isLeadMove,
@@ -163,19 +165,19 @@ export function useGameTableScreenLogic({
     });
 
     return feedback !== null ? feedback : currentHint;
-  }, [aiHintEnabled, isMyTurn, p0, selectedCards, currentHint, currentMove, isFirstMoveOfGame, isLeadMove, gameRules]);
+  }, [aiHintEnabled, isMyTurn, localPlayer.id, localPlayer.hand, selectedCards, currentHint, currentMove, isFirstMoveOfGame, isLeadMove, gameRules]);
 
   const canQuickSelect = isMyTurn && quickSelectCandidates.length > 0;
 
   const handleQuickSelect = useCallback(() => {
-    if (!isMyTurn || p0 === null || p0.hand.length === 0) return;
+    if (!isMyTurn || !activeTurn || localPlayer.hand.length === 0) return;
 
     const nextCards = getNextQuickSelectCards(
       {
-        hand: p0.hand,
-        leadingMove: currentMove,
-        isLeadMove,
-        isFirstMoveOfGame,
+        hand: localPlayer.hand,
+        leadingMove: activeTurn.leadingMove,
+        isLeadMove: activeTurn.isLeadMove,
+        isFirstMoveOfGame: activeTurn.isFirstMoveOfGame,
         allowFourPairsCutAnytime: gameRules.chopping.allowFourPairsCutAnytime,
         prohibitEndingWithTwo: gameRules.gameFlow.prohibitEndingWithTwo
       },
@@ -186,7 +188,19 @@ export function useGameTableScreenLogic({
       setSelectedCardIds(new Set(nextCards.map(c => c.id)));
       soundManager.playCardDeal();
     }
-  }, [isMyTurn, p0, currentMove, isLeadMove, isFirstMoveOfGame, gameRules, selectedCardIds, setSelectedCardIds]);
+  }, [isMyTurn, activeTurn, localPlayer.hand, gameRules, selectedCardIds, setSelectedCardIds]);
+
+  const handleOpenXRay = useCallback(() => {
+    const tracker = appFlowCoordinator.getPlayerTracker(localPlayer.id);
+    if (!tracker) {
+      throw new Error('[useGameTableScreenLogic] Invariant: Tracker must be initialized when at game table');
+    }
+    useViewStore.getState().openModal({
+      type: 'XRAY',
+      tracker,
+      ownHand: localPlayer.hand
+    });
+  }, [localPlayer.id, localPlayer.hand]);
 
   // Phân bổ ghế tương đối theo chiều kim đồng hồ quanh bàn
   const isSolo1v1 = playerCount === 2;
@@ -210,11 +224,11 @@ export function useGameTableScreenLogic({
 
   return {
     myPlayerIndex,
-    p0,
+    localPlayer,
     isMyTurn,
     selectedCards,
     isValidPlaySelection,
-    canP0Pass,
+    canPassTurn,
     isSolo1v1,
     playerCount,
     botPersonaIds,
@@ -231,6 +245,7 @@ export function useGameTableScreenLogic({
     handleQuickSelect,
     handlePlayCards,
     handlePassTurnAction,
+    handleOpenXRay,
     isDealing,
     isPlaying,
     dealtCounts,

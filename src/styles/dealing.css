@@ -44,12 +44,26 @@
 }
 
 .deck-shuffle-flourish {
-  animation: deckFlourish 0.4s ease-in-out infinite;
+  animation: deckFlourish 0.36s ease-in-out infinite;
+  filter: drop-shadow(0 14px 24px rgba(212, 175, 55, 0.45)) drop-shadow(0 0 16px rgba(0, 0, 0, 0.85));
 }
 
 @keyframes deckFlourish {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-6px) scale(1.04) rotate(-2deg); }
+  0% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+  25% {
+    transform: translate3d(-10px, -8px, 12px) scale(1.06) rotate(-5deg);
+  }
+  50% {
+    transform: translate3d(0, -3px, 4px) scale(1.02) rotate(0deg);
+  }
+  75% {
+    transform: translate3d(10px, -8px, 12px) scale(1.06) rotate(5deg);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
 }
 
 /* Luồng bài bay phong cách ZingPlay (4 Streams) */
@@ -119,22 +133,6 @@
     transform: translate(calc(-50% + clamp(140px, 26vw, 300px)), -50%) scale(0.7) rotate(90deg);
     opacity: 0;
   }
-}
-
-.zingplay-stream-p0 {
-  animation: streamToBottom 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.zingplay-stream-p1 {
-  animation: streamToLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.zingplay-stream-p2 {
-  animation: streamToTop 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.zingplay-stream-p3 {
-  animation: streamToRight 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Animation bay chính xác từ cỗ bài tâm bàn đến tâm ghế từng người chơi */
@@ -264,18 +262,18 @@
   }
 }
 
-.card-slide-p0 {
+.card-slide-bottom {
   animation: slideInFromBottom 0.36s cubic-bezier(0.18, 0.89, 0.32, 1.15) forwards;
 }
 
-.card-slide-p1 {
+.card-slide-left {
   animation: slideInFromLeft 0.36s cubic-bezier(0.18, 0.89, 0.32, 1.15) forwards;
 }
 
-.card-slide-p2 {
+.card-slide-top {
   animation: slideInFromTop 0.36s cubic-bezier(0.18, 0.89, 0.32, 1.15) forwards;
 }
 
-.card-slide-p3 {
+.card-slide-right {
   animation: slideInFromRight 0.36s cubic-bezier(0.18, 0.89, 0.32, 1.15) forwards;
 }

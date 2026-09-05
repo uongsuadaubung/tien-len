@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Sliders } from 'lucide-react';
+import { Play, Sliders, Info } from 'lucide-react';
 import { TableRulesConfigPanel, TableConfigState } from '../../components/TableRulesConfigPanel';
 import { Badge, Button } from '../../primitives';
 import { MobileScreenWrapper } from './MobileScreenWrapper';
@@ -53,9 +53,18 @@ export const MobileQuickSetupSheet: React.FC<MobileQuickSetupSheetProps> = ({
       footer={
         <div className="w-full flex items-center justify-between gap-2 text-xs">
           <div className="text-xs text-[var(--text-muted)] min-w-0 flex flex-col">
-            <span className="text-[10px] text-[var(--text-muted)] truncate">{t('customGame.depositRequired', { amount: actualDeposit })}</span>
-            {depositRequired > actualDeposit && (
-              <span className="text-[10px] text-zinc-500 font-normal ml-1">({depositRequired.toLocaleString()} Xu)</span>
+            {depositRequired > actualDeposit ? (
+              <span
+                className="text-[10px] text-[var(--text-muted)] truncate inline-flex items-center gap-1 cursor-help"
+                title={t('customGame.depositStandardTooltip', { standard: depositRequired })}
+              >
+                <span className="truncate">{t('customGame.depositHeld', { amount: actualDeposit })}</span>
+                <Info className="w-3 h-3 text-[var(--color-gold)] shrink-0 inline-block" />
+              </span>
+            ) : (
+              <span className="text-[10px] text-[var(--text-muted)] truncate">
+                {t('customGame.depositRequired', { amount: actualDeposit })}
+              </span>
             )}
           </div>
 
@@ -79,7 +88,6 @@ export const MobileQuickSetupSheet: React.FC<MobileQuickSetupSheetProps> = ({
           </div>
         </div>
       }
-      className={null}
     >
       <div className="pb-4 select-none">
         <TableRulesConfigPanel

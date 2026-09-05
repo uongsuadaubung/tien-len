@@ -28,7 +28,7 @@ export const CampaignMapModal: React.FC<CampaignMapModalProps> = ({
     getChapterStatus,
     handleOpenBossProfile,
     handleStartChapter
-  } = useCampaign({ onSelectChapter });
+  } = useCampaign({ onSelectChapter, initialChapterId: null });
   const { t } = useI18n();
 
   if (!isOpen) return null;

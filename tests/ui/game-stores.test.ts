@@ -120,4 +120,30 @@ describe('Zustand State Stores Integration Tests (Kiểm Thử Tích Hợp State
     expect(cleanState.winners).toEqual([]);
     expect(cleanState.currentMove).toBeNull();
   });
+
+  it('6. useUserStore & useGameStore: Đồng bộ myPlayerId khi hydrateProfile, setProfile và resetProfile', () => {
+    const customProfile = {
+      ...useUserStore.getState().profile,
+      id: 'usr_synced_9999',
+      name: 'Cao Thủ Tiến Lên'
+    };
+
+    // Hydrate
+    useUserStore.getState().hydrateProfile(customProfile);
+    expect(useUserStore.getState().profile.id).toBe('usr_synced_9999');
+    expect(useGameStore.getState().myPlayerId).toBe('usr_synced_9999');
+
+    // Set profile
+    useUserStore.getState().setProfile({
+      ...customProfile,
+      id: 'usr_new_id_8888'
+    });
+    expect(useUserStore.getState().profile.id).toBe('usr_new_id_8888');
+    expect(useGameStore.getState().myPlayerId).toBe('usr_new_id_8888');
+
+    // Reset profile
+    useUserStore.getState().resetProfile();
+    const resetId = useUserStore.getState().profile.id;
+    expect(useGameStore.getState().myPlayerId).toBe(resetId);
+  });
 });

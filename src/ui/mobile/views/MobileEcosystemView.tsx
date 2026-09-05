@@ -18,6 +18,25 @@ import {
   Target 
 } from 'lucide-react';
 
+const NEWS_TYPE_STYLES: Record<string, { cardClass: string; defaultAvatar: string }> = {
+  BANKRUPTCY: {
+    cardClass: 'bg-[var(--color-ruby-bg)] border-[var(--color-ruby-border)] text-[var(--color-ruby-text)]',
+    defaultAvatar: '🚨'
+  },
+  WIN_STREAK: {
+    cardClass: 'border-orange-500/30 text-orange-200',
+    defaultAvatar: '🔥'
+  },
+  BIG_WIN: {
+    cardClass: 'border-[var(--color-gold-border)] bg-[var(--color-gold-dim)]',
+    defaultAvatar: '💰'
+  }
+};
+const DEFAULT_NEWS_STYLE = {
+  cardClass: 'border-[var(--border-card)]',
+  defaultAvatar: '🎉'
+};
+
 export interface MobileEcosystemViewProps {
   isOpen: boolean;
   onClose: () => void;
@@ -124,7 +143,6 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
           )}
         </div>
       }
-      className={null}
     >
       <div className="flex flex-col space-y-2.5 pb-6 select-none">
         {/* THANH ĐIỀU HƯỚNG TAB & TÌM KIẾM */}
@@ -148,18 +166,9 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
               }}
               placeholder={t('ecosystem.searchPlaceholder')}
               icon={<Search className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
-              label={null}
-              error={null}
               maxLength={30}
-              showRandomNameButton={false}
               showPasteButton={true}
-              onRandomName={null}
-              onPaste={null}
-              onSubmit={null}
-              className={null}
-              inputClassName={null}
               clearable={true}
-              renderExtraActions={null}
             />
           )}
         </div>
@@ -342,26 +351,16 @@ export const MobileEcosystemView: React.FC<MobileEcosystemViewProps> = ({
               </div>
             ) : (
               newsfeed.map((news) => {
-                const isBankruptcy = news.type === 'BANKRUPTCY';
-                const isStreak = news.type === 'WIN_STREAK';
-                const isBigWin = news.type === 'BIG_WIN';
+                const style = NEWS_TYPE_STYLES[news.type] || DEFAULT_NEWS_STYLE;
 
                 return (
                   <Card
                     key={news.id}
                     variant="card"
-                    className={`p-3.5 rounded-xl border flex items-start gap-3 transition-all ${
-                      isBankruptcy
-                        ? 'bg-[var(--color-ruby-bg)] border-[var(--color-ruby-border)] text-[var(--color-ruby-text)]'
-                        : isStreak
-                        ? 'border-orange-500/30 text-orange-200'
-                        : isBigWin
-                        ? 'border-[var(--color-gold-border)] bg-[var(--color-gold-dim)]'
-                        : 'border-[var(--border-card)]'
-                    }`}
+                    className={`p-3.5 rounded-xl border flex items-start gap-3 transition-all ${style.cardClass}`}
                   >
                     <div className="w-10 h-10 rounded-xl bg-[var(--bg-input)] border border-[var(--border-container)] flex items-center justify-center text-xl shrink-0 shadow-inner">
-                      <span className="emoji-avatar">{news.avatar || (isBankruptcy ? '🚨' : isStreak ? '🔥' : isBigWin ? '💰' : '🎉')}</span>
+                      <span className="emoji-avatar">{news.avatar || style.defaultAvatar}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold leading-relaxed text-[var(--text-primary)]">{news.message}</p>

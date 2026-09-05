@@ -11,11 +11,9 @@ export type { ValidMoveInfo };
 /**
  * Ngữ cảnh ra quyết định toàn diện của Bot AI
  */
-export interface DecisionContext {
+export interface BaseDecisionContext {
   hand: Card[];
-  currentRoundLeadingMove: PlayedMove | null;
   isFirstMoveOfGame: boolean;
-  isLeadMove: boolean;
   tracker: CardTracker;
   config: BotConfig;
   remainingPlayerCards: Record<string, number>;
@@ -30,6 +28,36 @@ export interface DecisionContext {
   opponentProfiles: Record<string, OpponentBehaviorProfile> | null;
 }
 
+export interface LeadDecisionContext extends BaseDecisionContext {
+  isLeadMove: true;
+  currentRoundLeadingMove?: PlayedMove | null;
+}
+
+export interface FollowDecisionContext extends BaseDecisionContext {
+  isLeadMove: false;
+  currentRoundLeadingMove: PlayedMove; // ✅ BẢO ĐẢM 100% NON-NULLABLE KHI ĐÈ BÀI
+}
+
+export type DecisionContext = LeadDecisionContext | FollowDecisionContext;
+
+export function createDecisionContext(params: BaseDecisionContext & {
+  isLeadMove: boolean;
+  currentRoundLeadingMove?: PlayedMove | null;
+}): DecisionContext {
+  if (params.isLeadMove || !params.currentRoundLeadingMove) {
+    return {
+      ...params,
+      isLeadMove: true,
+      currentRoundLeadingMove: params.currentRoundLeadingMove ?? null
+    };
+  }
+  return {
+    ...params,
+    isLeadMove: false,
+    currentRoundLeadingMove: params.currentRoundLeadingMove
+  };
+}
+
 export { 
   type BotDecision, 
   type PlayBotDecision, 
@@ -39,13 +67,13 @@ export {
 import type { BotDecision } from './thinking-phases';
 
 export interface BuildBotDecisionOptions {
-  cards: Card[] | null;
-  combination: Combination | null;
-  reason: string | null;
-  strategyUsed: string | null;
-  evaluationScore: number | null;
-  candidatesEvaluated: BotCandidateEvaluation[] | null;
-  telemetry: BotDecisionTelemetry | null;
+  cards?: readonly Card[];
+  combination?: Combination;
+  reason?: string;
+  strategyUsed?: string;
+  evaluationScore?: number;
+  candidatesEvaluated?: readonly BotCandidateEvaluation[];
+  telemetry?: BotDecisionTelemetry;
 }
 
 /**
@@ -58,24 +86,22 @@ export function buildBotDecision(
   if (type === 'PLAY') {
     return {
       type: 'PLAY',
-      cards: opts.cards || [],
+      cards: opts.cards ?? [],
       combination: opts.combination!,
-      reason: opts.reason ?? null,
-      strategyUsed: opts.strategyUsed ?? null,
-      evaluationScore: opts.evaluationScore ?? null,
-      candidatesEvaluated: opts.candidatesEvaluated ?? null,
-      telemetry: opts.telemetry ?? null
+      reason: opts.reason,
+      strategyUsed: opts.strategyUsed,
+      evaluationScore: opts.evaluationScore,
+      candidatesEvaluated: opts.candidatesEvaluated,
+      telemetry: opts.telemetry
     };
   }
   return {
     type: 'PASS',
-    cards: null,
-    combination: null,
-    reason: opts.reason ?? null,
-    strategyUsed: opts.strategyUsed ?? null,
-    evaluationScore: opts.evaluationScore ?? null,
-    candidatesEvaluated: opts.candidatesEvaluated ?? null,
-    telemetry: opts.telemetry ?? null
+    reason: opts.reason,
+    strategyUsed: opts.strategyUsed,
+    evaluationScore: opts.evaluationScore,
+    candidatesEvaluated: opts.candidatesEvaluated,
+    telemetry: opts.telemetry
   };
 }
 
@@ -88,6 +114,8 @@ export const AI_HEURISTIC_WEIGHTS = {
   EMERGENCY_SACRIFICE_REWARD: 160,
   EMERGENCY_INTERCEPT_BONUS: 150,
   EMERGENCY_TWO_DUMP_BONUS: 200,
+  ANTI_ONE_CARD_INTERCEPT_BONUS: 350,
+  FEEDING_ONE_CARD_PENALTY_FACTOR: 2.0,
   SEMI_COOP_PASS_DEDUCTION: 600,
   HEO_GREED_PASS_DEDUCTION: 600,
 
@@ -114,6 +142,7 @@ export const AI_HEURISTIC_WEIGHTS = {
 
   // 5. Cờ Tàn & Về Bài
   ENDGAME_SPRINT_BONUS: 120,
+  ENDGAME_EXHAUSTION_PENALTY: 260,
   STRONGEST_SINGLE_BONUS: 100,
   TRASH_MOVE_REWARD: 10,
   TIER_LOOKAHEAD_BONUS: 25,

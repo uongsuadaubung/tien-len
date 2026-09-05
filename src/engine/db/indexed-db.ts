@@ -4,6 +4,8 @@ import type { PlayerProfile, ActiveMatchSession } from '../storage';
 import type { MatchLogReport } from '../match-logger';
 import { ECOSYSTEM_CONSTANTS } from '../constants/ecosystem';
 import { SavedSettingsSchema, QuickTableConfigSchema, type QuickTableConfig } from '../schemas/settings.schema';
+import { PlayerProfileSchema } from '../schemas/profile.schema';
+import { BotEntitySchema } from '../schemas/ecosystem.schema';
 
 /**
  * ============================================================================
@@ -18,10 +20,40 @@ export interface KeyValueRecord<T> {
   updatedAt: number | null;
 }
 
+export interface PlayerRecord {
+  id: string; // Unique primary key (e.g. 'usr_...', 'bot_...', 'peer_...')
+  name: string;
+  avatar: string;
+  coins: number;
+  elo: number;
+  stats: {
+    gamesPlayed: number;
+    wins: number;
+    chopsDone: number;
+    congsGiven: number;
+    totalEarned: number;
+    highestStreak: number;
+    currentStreak: number;
+  };
+  dnaTier?: number;
+  status?: 'ACTIVE' | 'BANKRUPT';
+  activityStatus?: 'IN_MATCH' | 'IDLE' | 'RESTING';
+  aiConfig?: Record<string, unknown> | null;
+  campaignUnlockedChapter?: number;
+  campaignChapterWins?: Record<string | number, number>;
+  dailyQuests?: unknown[];
+  achievements?: unknown[];
+  loans?: number;
+  dailyReliefClaimedCount?: number;
+  lastDailyResetDate?: string;
+  lastDailyResetTimestamp?: number;
+  dailyMilestonesClaimed?: Record<string | number, boolean>;
+  updatedAt: number;
+}
+
 export class TienLenDatabase extends Dexie {
-  bots!: Table<BotEntity, string>;
+  players!: Table<PlayerRecord, string>;
   newsfeed!: Table<EcosystemNewsItem, string>;
-  player_profile!: Table<KeyValueRecord<PlayerProfile>, string>;
   game_settings!: Table<KeyValueRecord<unknown>, string>;
   active_session!: Table<KeyValueRecord<ActiveMatchSession>, string>;
   human_behavior!: Table<KeyValueRecord<unknown>, string>;
@@ -30,9 +62,8 @@ export class TienLenDatabase extends Dexie {
   constructor() {
     super(ECOSYSTEM_CONSTANTS.DB_NAME);
     this.version(1).stores({
-      bots: 'id, elo, coins, status, dnaTier',
+      players: 'id, elo, coins, dnaTier, status',
       newsfeed: 'id, timestamp, type',
-      player_profile: 'key',
       game_settings: 'key',
       active_session: 'key',
       human_behavior: 'key',
@@ -43,17 +74,15 @@ export class TienLenDatabase extends Dexie {
 
 // In-Memory RAM Cache dự phòng (hỗ trợ môi trường SSR / Web Worker / Test)
 export const memoryStore: {
-  bots: Map<string, BotEntity>;
+  players: Map<string, PlayerRecord>;
   newsfeed: EcosystemNewsItem[];
-  player_profile: PlayerProfile | null;
   game_settings: Record<string, unknown> | null;
   active_session: ActiveMatchSession | null;
   human_behavior: unknown | null;
   match_logs: Map<string, MatchLogReport>;
 } = {
-  bots: new Map(),
+  players: new Map(),
   newsfeed: [],
-  player_profile: null,
   game_settings: null,
   active_session: null,
   human_behavior: null,
@@ -72,44 +101,80 @@ export function getGameDB(): TienLenDatabase {
 export const getEcosystemDB = getGameDB;
 
 // ============================================================================
-// BOT OPERATIONS
+// BOT OPERATIONS (Thuần 100% dựa trên bảng players)
 // ============================================================================
 
+export function botToPlayerRecord(bot: BotEntity): PlayerRecord {
+  return {
+    id: bot.id,
+    name: bot.name,
+    avatar: bot.avatar,
+    coins: bot.coins,
+    elo: bot.elo,
+    dnaTier: bot.dnaTier,
+    status: bot.status,
+    activityStatus: bot.activityStatus,
+    stats: {
+      gamesPlayed: bot.stats.gamesPlayed,
+      wins: bot.stats.wins,
+      chopsDone: bot.stats.chopsDone,
+      congsGiven: bot.stats.congsGiven,
+      totalEarned: bot.stats.totalEarned,
+      highestStreak: bot.highestStreak,
+      currentStreak: bot.currentStreak
+    },
+    updatedAt: Date.now()
+  };
+}
+
+export function profileToPlayerRecord(profile: PlayerProfile): PlayerRecord {
+  return {
+    id: profile.id,
+    name: profile.name,
+    avatar: profile.avatar,
+    coins: profile.coins,
+    elo: profile.elo,
+    stats: profile.stats,
+    campaignUnlockedChapter: profile.campaignUnlockedChapter,
+    campaignChapterWins: profile.campaignChapterWins,
+    dailyQuests: profile.dailyQuests,
+    achievements: profile.achievements,
+    loans: profile.loans,
+    dailyReliefClaimedCount: profile.dailyReliefClaimedCount,
+    lastDailyResetDate: profile.lastDailyResetDate,
+    lastDailyResetTimestamp: profile.lastDailyResetTimestamp,
+    dailyMilestonesClaimed: profile.dailyMilestonesClaimed,
+    updatedAt: Date.now()
+  };
+}
+
 export async function dbGetAllBots(): Promise<BotEntity[]> {
-  try {
-    const db = getGameDB();
-    const bots = await db.bots.toArray();
-    if (bots.length > 0) {
-      bots.forEach(b => memoryStore.bots.set(b.id, b));
-      return bots;
+  const players = await dbGetAllPlayers();
+  const bots: BotEntity[] = [];
+  for (const p of players) {
+    if (p.id.startsWith('bot_') || (p.dnaTier !== undefined && !p.id.startsWith('usr_'))) {
+      const parsed = BotEntitySchema.safeParse(p);
+      if (parsed.success) {
+        bots.push(parsed.data);
+      }
     }
-    return Array.from(memoryStore.bots.values());
-  } catch {
-    return Array.from(memoryStore.bots.values());
   }
+  return bots;
 }
 
 export async function dbSaveBot(bot: BotEntity): Promise<void> {
-  memoryStore.bots.set(bot.id, bot);
-  try {
-    const db = getGameDB();
-    await db.bots.put(bot);
-  } catch {}
+  await dbSavePlayer(botToPlayerRecord(bot));
 }
 
 export async function dbSaveBotsBatch(bots: BotEntity[]): Promise<void> {
-  bots.forEach(b => memoryStore.bots.set(b.id, b));
-  try {
-    const db = getGameDB();
-    await db.bots.bulkPut(bots);
-  } catch {}
+  await dbSavePlayersBatch(bots.map(botToPlayerRecord));
 }
 
 export async function dbDeleteBotsBatch(botIds: string[]): Promise<void> {
-  botIds.forEach(id => memoryStore.bots.delete(id));
+  botIds.forEach(id => memoryStore.players.delete(id));
   try {
     const db = getGameDB();
-    await db.bots.bulkDelete(botIds);
+    await db.players.bulkDelete(botIds);
   } catch {}
 }
 
@@ -173,50 +238,62 @@ export async function dbAddNewsBatch(items: EcosystemNewsItem[]): Promise<void> 
 // ============================================================================
 
 export async function dbResetEcosystem(): Promise<void> {
-  memoryStore.bots.clear();
+  const allPlayers = await dbGetAllPlayers();
+  const botIds = allPlayers
+    .filter(p => p.id.startsWith('bot_') || (p.dnaTier !== undefined && !p.id.startsWith('usr_')))
+    .map(p => p.id);
+  await dbDeleteBotsBatch(botIds);
   memoryStore.newsfeed = [];
-
   try {
     const db = getGameDB();
-    await Promise.all([
-      db.bots.clear(),
-      db.newsfeed.clear()
-    ]);
+    await db.newsfeed.clear();
   } catch {}
 }
 
 // ============================================================================
-// 1. PLAYER PROFILE OPERATIONS
+// 1. PLAYER PROFILE OPERATIONS (Thuần 100% dựa trên bảng players)
 // ============================================================================
 
-export async function dbGetPlayerProfile(): Promise<PlayerProfile | null> {
-  try {
-    const db = getGameDB();
-    const record = await db.player_profile.get('current');
-    if (record?.data) {
-      memoryStore.player_profile = record.data;
-      return record.data;
+export async function dbGetPlayerProfile(id?: string): Promise<PlayerProfile | null> {
+  if (id) {
+    const p = await dbGetPlayer(id);
+    if (p) {
+      const parsed = PlayerProfileSchema.safeParse(p);
+      return parsed.success ? parsed.data : null;
     }
-    return memoryStore.player_profile;
-  } catch {
-    return memoryStore.player_profile;
+    return null;
   }
+  const allPlayers = await dbGetAllPlayers();
+  const human = allPlayers.find(p => p.id.startsWith('usr_'));
+  if (human) {
+    const parsed = PlayerProfileSchema.safeParse(human);
+    return parsed.success ? parsed.data : null;
+  }
+  return null;
 }
 
 export async function dbSavePlayerProfile(profile: PlayerProfile): Promise<void> {
-  memoryStore.player_profile = profile;
-  try {
-    const db = getGameDB();
-    await db.player_profile.put({ key: 'current', data: profile, updatedAt: Date.now() });
-  } catch {}
+  await dbSavePlayer(profileToPlayerRecord(profile));
 }
 
-export async function dbDeletePlayerProfile(): Promise<void> {
-  memoryStore.player_profile = null;
-  try {
-    const db = getGameDB();
-    await db.player_profile.delete('current');
-  } catch {}
+export async function dbDeletePlayerProfile(id?: string): Promise<void> {
+  if (id) {
+    memoryStore.players.delete(id);
+    try {
+      const db = getGameDB();
+      await db.players.delete(id);
+    } catch {}
+    return;
+  }
+  const allPlayers = await dbGetAllPlayers();
+  const human = allPlayers.find(p => p.id.startsWith('usr_'));
+  if (human) {
+    memoryStore.players.delete(human.id);
+    try {
+      const db = getGameDB();
+      await db.players.delete(human.id);
+    } catch {}
+  }
 }
 
 // ============================================================================
@@ -368,3 +445,119 @@ export async function dbGetRecentMatchLogs(limit: number = 20): Promise<MatchLog
     return Array.from(memoryStore.match_logs.values()).slice(0, limit);
   }
 }
+
+// ============================================================================
+// 6. UNIFIED PLAYER OPERATIONS (Pure ID-Driven)
+// ============================================================================
+
+export async function dbGetPlayer(id: string): Promise<PlayerRecord | null> {
+  try {
+    const db = getGameDB();
+    const p = await db.players.get(id);
+    if (p) {
+      memoryStore.players.set(p.id, p);
+      return p;
+    }
+    return memoryStore.players.get(id) ?? null;
+  } catch {
+    return memoryStore.players.get(id) ?? null;
+  }
+}
+
+export async function dbSavePlayer(player: PlayerRecord): Promise<void> {
+  memoryStore.players.set(player.id, player);
+  try {
+    const db = getGameDB();
+    await db.players.put(player);
+  } catch {}
+}
+
+export async function dbSavePlayersBatch(players: PlayerRecord[]): Promise<void> {
+  players.forEach(p => memoryStore.players.set(p.id, p));
+  try {
+    const db = getGameDB();
+    await db.players.bulkPut(players);
+  } catch {}
+}
+
+export async function dbGetAllPlayers(): Promise<PlayerRecord[]> {
+  try {
+    const db = getGameDB();
+    const list = await db.players.toArray();
+    if (list.length > 0) {
+      list.forEach(p => memoryStore.players.set(p.id, p));
+      return list;
+    }
+    return Array.from(memoryStore.players.values());
+  } catch {
+    return Array.from(memoryStore.players.values());
+  }
+}
+
+export async function dbUpdatePlayerMatchResult(
+  id: string,
+  updates: {
+    deltaCoins: number;
+    deltaElo: number;
+    isWin: boolean;
+    chopsDone?: number;
+    congsGiven?: number;
+  }
+): Promise<PlayerRecord | null> {
+  let p = await dbGetPlayer(id);
+  if (!p) {
+    // If not in DB yet, create base record
+    p = {
+      id,
+      name: id,
+      avatar: '👤',
+      coins: 50000,
+      elo: 1000,
+      stats: {
+        gamesPlayed: 0,
+        wins: 0,
+        chopsDone: 0,
+        congsGiven: 0,
+        totalEarned: 0,
+        highestStreak: 0,
+        currentStreak: 0
+      },
+      updatedAt: Date.now()
+    };
+  }
+
+  const nextCoins = Math.max(0, p.coins + updates.deltaCoins);
+  const nextElo = Math.max(0, p.elo + updates.deltaElo);
+  const nextWins = updates.isWin ? p.stats.wins + 1 : p.stats.wins;
+  const nextCurrentStreak = updates.isWin ? p.stats.currentStreak + 1 : 0;
+  const nextHighestStreak = Math.max(p.stats.highestStreak, nextCurrentStreak);
+  const nextTotalEarned = updates.deltaCoins > 0 ? p.stats.totalEarned + updates.deltaCoins : p.stats.totalEarned;
+
+  const updated: PlayerRecord = {
+    ...p,
+    coins: nextCoins,
+    elo: nextElo,
+    stats: {
+      ...p.stats,
+      gamesPlayed: p.stats.gamesPlayed + 1,
+      wins: nextWins,
+      currentStreak: nextCurrentStreak,
+      highestStreak: nextHighestStreak,
+      totalEarned: nextTotalEarned,
+      chopsDone: p.stats.chopsDone + (updates.chopsDone || 0),
+      congsGiven: p.stats.congsGiven + (updates.congsGiven || 0)
+    },
+    updatedAt: Date.now()
+  };
+
+  await dbSavePlayer(updated);
+  return updated;
+}
+
+// Tự động dọn dẹp cơ sở dữ liệu cũ v1 nếu còn lưu trên trình duyệt client
+try {
+  if (typeof indexedDB !== 'undefined') {
+    Dexie.delete('TIEN_LEN_DEXIE_DB_V1').catch(() => {});
+  }
+} catch {}
+

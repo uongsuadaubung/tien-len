@@ -11,12 +11,12 @@ import { useI18n } from '../../../locales';
 
 export interface MobileNameSetupViewProps {
   isOpen: boolean;
-  onClose?: (() => void) | null;
+  onClose?: () => void;
 }
 
 export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
   isOpen,
-  onClose = null
+  onClose
 }) => {
   const { t } = useI18n();
   const { profile } = useUserStore();
@@ -51,7 +51,6 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
           : t('nameSetup.subUpdate')
       }
       icon={<Sparkles className="w-5 h-5 text-[var(--color-gold)]" />}
-      headerRight={null}
       footer={
         <div className="w-full flex items-center justify-end gap-2">
           {!isFirstTime && onClose && profile.name.trim() !== '' && (
@@ -62,14 +61,13 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
           <Button
             variant="gold"
             size="md"
-            onClick={() => handleSubmit(null)}
+            onClick={() => handleSubmit()}
             leftIcon={<Check className="w-4 h-4" />}
           >
             {isFirstTime || !profile.name ? t('nameSetup.btnStartPlaying') : t('nameSetup.btnSaveChanges')}
           </Button>
         </div>
       }
-      className={null}
     >
       <div className="space-y-2.5 pb-6 select-none">
         {/* 1. Chọn Avatar Đại Diện */}
@@ -124,15 +122,12 @@ export const MobileNameSetupView: React.FC<MobileNameSetupViewProps> = ({
             }}
             placeholder={t('nameSetup.namePlaceholder')}
             icon={<User className="w-4 h-4 text-[var(--color-gold)]" />}
-            label={null}
-            error={error}
+            error={error || undefined}
             maxLength={20}
             showRandomNameButton={true}
             showPasteButton={false}
             onRandomName={handleQuickRandom}
-            onPaste={null}
-            onSubmit={() => handleSubmit(null)}
-            className={null}
+            onSubmit={() => handleSubmit()}
             inputClassName="border-[var(--color-gold-border)]"
             clearable={false}
             renderExtraActions={() => (

@@ -25,7 +25,9 @@ export function simulateSingleTableMatch(
   }
   if (tableBots.length < 4) {
     return {
+      id: `sim_tbl_${table.tableId}_skipped`,
       tableId: table.tableId,
+      timestamp: Date.now(),
       betAmount: table.betAmount,
       botResults: [],
       highlightNews: []
@@ -58,7 +60,10 @@ export function simulateSingleTableMatch(
   const trackersMap = new Map<string, CardTracker>();
   for (const bot of tableBots) {
     const p = engine.getPlayer(bot.id);
-    trackersMap.set(bot.id, new CardTracker(p?.hand || [], bot.memoryDepth));
+    if (!p) {
+      throw new Error(`[headless-sim] Invariant violated: Bot player ${bot.id} not found in engine`);
+    }
+    trackersMap.set(bot.id, new CardTracker(p.hand, bot.memoryDepth));
   }
 
   // 3. Vòng lặp giải quyết ván đấu đồng bộ 100% CPU (0ms delay)
@@ -170,7 +175,9 @@ export function simulateSingleTableMatch(
   }
 
   return {
+    id: `sim_tbl_${table.tableId}_${Date.now()}`,
     tableId: table.tableId,
+    timestamp: Date.now(),
     betAmount: table.betAmount,
     botResults,
     highlightNews

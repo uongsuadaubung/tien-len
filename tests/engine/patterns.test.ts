@@ -28,6 +28,7 @@ import { PlayerProfile } from '../../src/engine/storage';
 
 describe('Design Patterns Architecture Unit Tests (Kiểm Thử Mẫu Thiết Kế)', () => {
   const createMockProfile = (): PlayerProfile => ({
+    id: 'usr_test',
     name: 'Đại Gia',
     avatar: '🤠',
     coins: 50000,

@@ -8,12 +8,12 @@ import { useI18n } from '../../../locales';
 
 export interface NameSetupModalProps {
   isOpen: boolean;
-  onClose?: (() => void) | null;
+  onClose?: () => void;
 }
 
 export const NameSetupModal: React.FC<NameSetupModalProps> = ({
   isOpen,
-  onClose = null
+  onClose
 }) => {
   const { t } = useI18n();
   const { profile } = useUserStore();
@@ -54,7 +54,7 @@ export const NameSetupModal: React.FC<NameSetupModalProps> = ({
           <Button
             variant="gold"
             size="md"
-            onClick={() => handleSubmit(null)}
+            onClick={() => handleSubmit()}
             leftIcon={<Check className="w-4 h-4" />}
           >
             {isFirstTime || !profile.name ? t('nameSetup.btnStartPlaying') : t('nameSetup.btnSaveChanges')}
@@ -62,7 +62,7 @@ export const NameSetupModal: React.FC<NameSetupModalProps> = ({
         </div>
       }
     >
-      <form onSubmit={(e) => handleSubmit(e)} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* 1. Chọn Avatar Đại Diện */}
         <Card variant="card" className="p-3.5 space-y-2">
           <div className="flex items-center justify-between">

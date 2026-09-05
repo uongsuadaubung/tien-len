@@ -91,12 +91,10 @@ export function isGameRules(obj: unknown): obj is GameRules {
   return StrictGameRulesSchema.safeParse(obj).success;
 }
 
-export interface Player {
+export interface BasePlayer {
   id: string;
   name: string;
   avatar: string;
-  isBot: boolean;
-  botPersonaId: string | null;
   hand: Card[];
   playedCards: Card[];
   score: number;
@@ -106,16 +104,75 @@ export interface Player {
   instantWinType: InstantWinType | null;
 }
 
-export interface PlayedMove {
+export interface HumanPlayer extends BasePlayer {
+  isBot: false;
+  botPersonaId?: undefined;
+}
+
+export interface BotPlayer extends BasePlayer {
+  isBot: true;
+  botPersonaId: string;
+}
+
+export type Player = HumanPlayer | BotPlayer;
+
+export interface BasePlayedMove {
   playerId: string;
   combination: Combination;
   timestamp: number;
-  isChop: boolean | null;            // Có phải là một cú chặt heo/hàng không
-  choppedPlayerId: string | null;    // Người bị chặt
-  penaltyAmount: number | null;      // Tiền/điểm phạt của cú chặt
-  isCascadeChop: boolean | null;     // Có phải là cú chặt đè trong chuỗi chặt chồng không
-  chopChainCount: number | null;     // Số lần chặt liên tiếp trong chuỗi (2, 3, 4...)
-  chopChainTotalAmount: number | null; // Tổng số tiền tích lũy của chuỗi chặt
+}
+
+export interface StandardPlayedMove extends BasePlayedMove {
+  isChop: false;
+  choppedPlayerId?: undefined;
+  penaltyAmount?: undefined;
+  isCascadeChop?: undefined;
+  chopChainCount?: undefined;
+  chopChainTotalAmount?: undefined;
+}
+
+export interface ChopPlayedMove extends BasePlayedMove {
+  isChop: true;
+  choppedPlayerId: string;
+  penaltyAmount: number;
+  isCascadeChop: boolean;
+  chopChainCount: number;
+  chopChainTotalAmount: number;
+}
+
+export type PlayedMove = StandardPlayedMove | ChopPlayedMove;
+
+export function createPlayedMove(
+  playerId: string,
+  combination: Combination,
+  chopData?: {
+    choppedPlayerId: string;
+    penaltyAmount: number;
+    isCascadeChop?: boolean;
+    chopChainCount?: number;
+    chopChainTotalAmount?: number;
+  },
+  timestamp: number = Date.now()
+): PlayedMove {
+  if (chopData) {
+    return {
+      playerId,
+      combination,
+      timestamp,
+      isChop: true,
+      choppedPlayerId: chopData.choppedPlayerId,
+      penaltyAmount: chopData.penaltyAmount,
+      isCascadeChop: chopData.isCascadeChop ?? false,
+      chopChainCount: chopData.chopChainCount ?? 1,
+      chopChainTotalAmount: chopData.chopChainTotalAmount ?? chopData.penaltyAmount
+    };
+  }
+  return {
+    playerId,
+    combination,
+    timestamp,
+    isChop: false
+  };
 }
 
 export interface Round {

@@ -22,11 +22,11 @@ import {
   type GameFlowRulesBuilder,
   type TableRulesBuilder 
 } from '../../engine/types';
-import { type PlayerProfile, savePlayerProfile } from '../../engine/storage';
+import { type PlayerProfile, savePlayerProfile, loadPlayerProfile } from '../../engine/storage';
 import { createPlayer, createBotPlayer } from '../../engine/player-factory';
 import { type MatchCompletedEvent } from '../../engine/events/game-event-bus';
 import { evaluateDailyQuests, evaluateAchievements } from '../../engine/evaluators/progress-evaluators';
-import { type PlayingTurnMatchState, type GameOverMatchState } from '../../engine/state-machine/types';
+import { type PlayingTurnMatchState, type GameOverMatchState, createPlayingTurnMatchState } from '../../engine/state-machine/types';
 import { type RoomSlice, type OnlineSliceCreator } from './types';
 
 export function generateRoomPin(existingRooms: readonly PublicRoomSummary[] = []): string {
@@ -57,12 +57,13 @@ function syncLobbyBroadcast(roomState: OnlineRoomState): void {
     globalLobbyDiscoveryClient.stopBroadcasting();
     return;
   }
-  const host = roomState.players.find(p => p.isHost) || roomState.players[0];
+  const host = roomState.players.find(p => p.isHost);
+  if (!host) return;
   const summary: PublicRoomSummary = {
     roomCode: roomState.roomCode,
-    hostName: host?.name || 'Chủ Bàn',
-    hostAvatar: host?.avatar || '🤠',
-    hostElo: host?.elo ?? 1000,
+    hostName: host.name,
+    hostAvatar: host.avatar,
+    hostElo: host.elo,
     playerCount: roomState.players.length,
     maxPlayers: roomState.playerCount,
     betAmount: roomState.betAmount,
@@ -89,7 +90,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
   isHost: false,
   roomCode: null,
   roomState: null,
-  myPlayerId: 'p0',
+  myPlayerId: loadPlayerProfile().id,
   connectionStatus: 'IDLE',
   disbandNotice: null,
   publicRooms: [],
@@ -154,7 +155,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
 
     const hostPlayer: OnlinePlayer = {
       peerId: selfPeerId,
-      playerId: 'p0',
+      playerId: profile.id || loadPlayerProfile().id,
       name: profile.name || 'Chủ Bàn',
       avatar: profile.avatar || '🤠',
       elo: profile.elo ?? 1000,
@@ -255,9 +256,10 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       set(s => ({ chatMessages: [...s.chatMessages.slice(-50), chat] }));
     });
 
+    const hostPlayerId = profile.id || loadPlayerProfile().id;
     useGameStore.setState({
       activeGameType: 'ONLINE',
-      myPlayerId: 'p0'
+      myPlayerId: hostPlayerId
     });
 
     set({
@@ -266,13 +268,13 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         roomCode,
         roomState: initialRoomState,
         isHost: true,
-        myPlayerId: 'p0'
+        myPlayerId: hostPlayerId
       },
       isOnlineMatch: true,
       isHost: true,
       roomCode,
       roomState: initialRoomState,
-      myPlayerId: 'p0',
+      myPlayerId: hostPlayerId,
       connectionStatus: 'CONNECTED',
       chatMessages: [],
       lastTableSync: null,
@@ -454,7 +456,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       const room = get().roomState;
       const selfPeerId = globalP2PClient.selfPeerId;
       const me = room?.players.find(p => p.peerId === selfPeerId);
-      const myId = dealPacket.playerId || (me ? me.playerId : (get().myPlayerId !== 'p0' ? get().myPlayerId : 'p1'));
+      const myId = dealPacket.playerId || me?.playerId || get().myPlayerId;
       set({ myPlayerId: myId });
 
       const cards = dealPacket.cards.map(c => createCard(c.rank, c.suit));
@@ -467,8 +469,8 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
             return createPlayer({ id: p.playerId, name: p.name, avatar: p.avatar, score: p.coins });
           })
         : (gameStore.players.length > 0 ? gameStore.players : [
-            createPlayer({ id: 'p0', name: 'Chủ Bàn', avatar: '🤠', score: 50000 }),
-            createPlayer({ id: 'p1', name: 'Đấu Thủ', avatar: '🤠', score: 50000 })
+            createPlayer({ id: room?.hostPeerId || 'host', name: 'Chủ Bàn', avatar: '🤠', score: 50000 }),
+            createPlayer({ id: myId, name: 'Đấu Thủ', avatar: '🤠', score: 50000 })
           ]);
 
       const currentPlayers = basePlayers.map((p) => {
@@ -501,7 +503,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       gameStore.setActiveGameType('ONLINE');
       gameStore.setCurrentScreen('GAME_TABLE');
 
-      const playingState: PlayingTurnMatchState = {
+      const playingState: PlayingTurnMatchState = createPlayingTurnMatchState({
         status: 'PLAYING',
         gameNumber: dealPacket.gameNumber || 1,
         roundNumber: 1,
@@ -516,7 +518,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         chopNotification: null,
         botThinkingThought: null,
         rules: gameStore.gameRules
-      };
+      });
       gameStore.setMatchState(playingState);
 
       const counts: Record<string, number> = {};
@@ -548,12 +550,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
             playerId: sync.currentMovePlayerId || '',
             combination: combo,
             timestamp: Date.now(),
-            isChop: null,
-            choppedPlayerId: null,
-            penaltyAmount: null,
-            isCascadeChop: null,
-            chopChainCount: null,
-            chopChainTotalAmount: null
+            isChop: false
           });
           GameEventBus.getInstance().emit({
             type: 'CARD_PLAYED',
@@ -595,7 +592,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         const isLead = sync.isLeadMove ?? (gameStore.currentMove === null);
 
         if (currentTurnId && leadId) {
-          const playingState: PlayingTurnMatchState = {
+          const playingState: PlayingTurnMatchState = createPlayingTurnMatchState({
             status: 'PLAYING',
             gameNumber: sync.gameNumber || gameStore.gameNumber,
             roundNumber: gameStore.matchState.status === 'PLAYING' ? gameStore.matchState.roundNumber : 1,
@@ -610,7 +607,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
             chopNotification: null,
             botThinkingThought: null,
             rules: gameStore.gameRules
-          };
+          });
           gameStore.setMatchState(playingState);
         }
       }
@@ -817,9 +814,10 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
     }
     globalP2PClient.leave();
 
+    const defaultProfileId = loadPlayerProfile().id;
     useGameStore.getState().setCurrentScreen('LOBBY');
     useGameStore.getState().setActiveGameType('QUICK');
-    useGameStore.getState().setMyPlayerId('p0');
+    useGameStore.getState().setMyPlayerId(defaultProfileId);
     useGameStore.getState().resetMatchState();
 
     set({
@@ -831,7 +829,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       isHost: false,
       roomCode: null,
       roomState: null,
-      myPlayerId: 'p0',
+      myPlayerId: defaultProfileId,
       connectionStatus: 'IDLE',
       chatMessages: [],
       lastTableSync: null,

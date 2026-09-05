@@ -9,12 +9,7 @@ describe('AI Card Tracker (Bộ Nhớ Đếm Bài & Suy Luận)', () => {
     playerId,
     combination,
     timestamp: Date.now(),
-    isChop: null,
-    choppedPlayerId: null,
-    penaltyAmount: null,
-    isCascadeChop: null,
-    chopChainCount: null,
-    chopChainTotalAmount: null
+    isChop: false
   });
 
   test('Theo dõi chính xác các lá bài đã xuất hiện', () => {

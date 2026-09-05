@@ -12,6 +12,7 @@ import {
 
 describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
   const mockProfile: PlayerProfile = {
+    id: 'usr_test',
     name: 'Người Chơi',
     avatar: '🤠',
     coins: 50000,
@@ -64,10 +65,7 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
           betAmount: 500,
           soundEnabled: true
         }
-      },
-      customSettings: null,
-      campaignChapter: null,
-      customBotPersonaIds: [randomBots[0].id, randomBots[1].id, randomBots[2].id],
+      },      customBotPersonaIds: [randomBots[0].id, randomBots[1].id, randomBots[2].id],
       customBotConfigs: [randomBots[0], randomBots[1], randomBots[2]]
     });
 
@@ -97,10 +95,7 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
           betAmount: 200,
           soundEnabled: true
         }
-      },
-      customSettings: null,
-      campaignChapter: null,
-      customBotPersonaIds: [randomBots[0].id, 'BOT_ELO_1150', 'BOT_ELO_1450'],
+      },      customBotPersonaIds: [randomBots[0].id, 'BOT_ELO_1150', 'BOT_ELO_1450'],
       customBotConfigs: [randomBots[0], {}, {}]
     });
 
@@ -124,10 +119,7 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
           betAmount: 1000,
           soundEnabled: true
         }
-      },
-      customSettings: null,
-      campaignChapter: null,
-      customBotPersonaIds: [randomBots[0].id, randomBots[1].id, 'BOT_ELO_1450'],
+      },      customBotPersonaIds: [randomBots[0].id, randomBots[1].id, 'BOT_ELO_1450'],
       customBotConfigs: [randomBots[0], randomBots[1], {}]
     });
 
@@ -167,11 +159,9 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
     const { calculateCountCardsSettlement, calculateChopPenalty, calculateCongPenalty } = require('../../src/engine/economy');
     const bet = 100;
 
-    // 1. Phạt Cóng ở x1 vs x4
-    const congX1 = calculateCongPenalty(bet, 1);
-    const congX4 = calculateCongPenalty(bet, 4);
-    expect(congX1).toBe(2600);
-    expect(congX4).toBe(2600 * 4); // 10,400 xu
+    // 1. Phạt Cóng cố định 26x cược, không nhân hệ số chặt
+    const cong = calculateCongPenalty(bet);
+    expect(cong).toBe(2600);
 
     // 2. Chặt Heo Đỏ ở x1 vs x3
     const redTwo = { id: '2H', rank: 15, suit: 'HEARTS', weight: 63, code: '2H' };
@@ -203,8 +193,8 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
     });
 
     const settlementX4 = calculateCountCardsSettlement([winner, loser], 'p0', bet, 4);
-    // 2 lá * 100 * 4 = 800 xu
-    expect(settlementX4['p1']).toBe(-800);
-    expect(settlementX4['p0']).toBe(800);
+    // Hệ số x4 chỉ áp dụng cho thối/cóng/chặt, 2 lá rác thường = 2 lá * 100 = 200 xu
+    expect(settlementX4['p1']).toBe(-200);
+    expect(settlementX4['p0']).toBe(200);
   });
 });

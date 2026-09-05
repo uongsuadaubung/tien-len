@@ -1,6 +1,6 @@
 import React from 'react';
 import { useViewStore } from '../../../stores/useViewStore';
-import { useGameStore } from '../../../stores/useGameStore';
+import { useGameStore, type CampaignResultMeta } from '../../../stores/useGameStore';
 import { QuestsModal } from './QuestsModal';
 import { LuckyWheelModal } from './LuckyWheelModal';
 import { BankruptcyModal } from './BankruptcyModal';
@@ -20,32 +20,22 @@ import { MatchmakingModal } from './MatchmakingModal';
 import { SyncConflictModal } from './SyncConflictModal';
 import { OnlineRoomModal } from './OnlineRoomModal';
 import { OnlineDisbandModal } from '../../components/OnlineDisbandModal';
-import { useEcosystemStore } from '../../../stores/useEcosystemStore';
-import { CardTracker } from '../../../ai/card-tracker';
 import { CampaignChapter } from '../../../engine/campaign';
 import { normalizePlayerCount } from '../../../engine/types';
 import { useMatchmakingStore } from '../../../stores/useMatchmakingStore';
-import { appFlowCoordinator } from '../../../services/app-flow-coordinator';
 
 export interface WebGameModalsProps {
-  player0Tracker?: CardTracker | null;
   onStartQuickGame: (config: QuickSetupConfig) => void;
   onStartCustomGame: (config: CustomGameModalConfig) => void;
   onSelectCampaignChapter: (chapter: CampaignChapter) => void;
   onNextGame: () => void;
   onReturnToLobby: () => void;
   onConfirmForfeit: () => void;
-  campaignResultMeta: {
-    isUnlockedNext: boolean;
-    isAllCompleted: boolean;
-    nextChapter: CampaignChapter | null;
-    currentWins: number;
-  } | null;
+  campaignResultMeta?: CampaignResultMeta | null;
   onOpenCampaignMap: (() => void) | null;
 }
 
 export const WebGameModals: React.FC<WebGameModalsProps> = ({
-  player0Tracker,
   onStartQuickGame,
   onStartCustomGame,
   onSelectCampaignChapter,
@@ -55,14 +45,13 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
   campaignResultMeta,
   onOpenCampaignMap
 }) => {
-  const { pendingMatch, cancelMatchmaking, executeMatch } = useMatchmakingStore();
+  const { cancelMatchmaking, executeMatch } = useMatchmakingStore();
   // Modal Store
   const {
+    activeModal,
     isSettingsOpen,
     isCustomGameModalOpen,
     isQuickSetupOpen,
-    isMatchmakingOpen,
-    isXRayOpen,
     isVictoryOpen,
     isQuestModalOpen,
     isLuckyWheelOpen,
@@ -70,14 +59,9 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
     isCampaignModalOpen,
     isNameSetupOpen,
     isRulesOpen,
-    isBotProfileOpen,
-    isSyncConflictOpen,
-    syncConflictData,
     openModal,
     closeModal
   } = useViewStore();
-
-  const { selectedBot } = useEcosystemStore();
 
   // Game Store
   const {
@@ -86,12 +70,8 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
     playerCount,
     botPersonaIds,
     customBotConfigs,
-    players,
-    currentHint,
-    myPlayerId
+    currentHint
   } = useGameStore();
-
-  const localPlayer = players.find(p => p.id === myPlayerId) || players[0];
 
   return (
     <>
@@ -139,15 +119,11 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
       />
 
       {/* 5.1. Matchmaking Modal (Giả Lập Ghép Trận Online) */}
-      {isMatchmakingOpen && pendingMatch && (
+      {activeModal?.type === 'MATCHMAKING' && (
         <MatchmakingModal
-          isOpen={isMatchmakingOpen}
+          match={activeModal.match}
           onCancel={cancelMatchmaking}
           onMatchReady={executeMatch}
-          betAmount={pendingMatch.betAmount}
-          modeName={pendingMatch.modeName}
-          matchedBots={pendingMatch.botConfigs}
-          playerCount={pendingMatch.playerCount}
         />
       )}
 
@@ -172,13 +148,15 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
       />
 
       {/* 8. X-Ray Inspector */}
-      <XRayInspector
-        isOpen={isXRayOpen}
-        onClose={() => closeModal('XRAY')}
-        tracker={player0Tracker || appFlowCoordinator.getPlayerTracker('p0') || new CardTracker(localPlayer?.hand || [], 1.0)}
-        ownHand={localPlayer?.hand || []}
-        currentHint={currentHint}
-      />
+      {activeModal?.type === 'XRAY' && (
+        <XRayInspector
+          isOpen={true}
+          onClose={() => closeModal('XRAY')}
+          tracker={activeModal.tracker}
+          ownHand={activeModal.ownHand}
+          currentHint={currentHint}
+        />
+      )}
 
       {/* 9. Victory Modal */}
       <VictoryModal
@@ -190,10 +168,21 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
       />
 
       {/* 10. Confirm Forfeit Modal */}
-      <ConfirmForfeitModal onConfirmForfeit={onConfirmForfeit} />
+      {activeModal?.type === 'CONFIRM_FORFEIT' && (
+        <ConfirmForfeitModal
+          data={activeModal.data}
+          onClose={() => closeModal('CONFIRM_FORFEIT')}
+          onConfirmForfeit={onConfirmForfeit}
+        />
+      )}
 
       {/* 11. F5 Penalty Notice Modal */}
-      <F5PenaltyNoticeModal />
+      {activeModal?.type === 'F5_PENALTY_NOTICE' && (
+        <F5PenaltyNoticeModal
+          data={activeModal.data}
+          onClose={() => closeModal('F5_PENALTY_NOTICE')}
+        />
+      )}
 
       {/* 12. Name Setup Modal */}
       <NameSetupModal
@@ -211,18 +200,21 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
       <EcosystemModal />
 
       {/* 15. Bot Profile Card Modal */}
-      <BotProfileModal
-        isOpen={isBotProfileOpen}
-        bot={selectedBot}
-        onClose={() => closeModal('BOT_PROFILE')}
-      />
+      {activeModal?.type === 'BOT_PROFILE' && (
+        <BotProfileModal
+          isOpen={true}
+          bot={activeModal.bot}
+          onClose={() => closeModal('BOT_PROFILE')}
+        />
+      )}
 
       {/* 16. Sync Conflict Resolution Modal */}
-      <SyncConflictModal
-        isOpen={isSyncConflictOpen}
-        conflictData={syncConflictData || null}
-        onClose={() => closeModal('SYNC_CONFLICT')}
-      />
+      {activeModal?.type === 'SYNC_CONFLICT' && (
+        <SyncConflictModal
+          conflictData={activeModal.data}
+          onClose={() => closeModal('SYNC_CONFLICT')}
+        />
+      )}
 
       {/* 17. Online P2P Multiplayer Room Modal */}
       <OnlineRoomModal />

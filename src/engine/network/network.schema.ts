@@ -19,7 +19,7 @@ export type NetworkCard = z.infer<typeof NetworkCardSchema>;
 
 export const OnlinePlayerSchema = z.object({
   peerId: z.string(),
-  playerId: z.string(), // 'p0', 'p1', 'p2', 'p3'
+  playerId: z.string(),
   name: z.string().default('Đấu Thủ'),
   avatar: z.string().default('🤠'),
   elo: z.number().default(1000),

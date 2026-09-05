@@ -355,9 +355,9 @@ export const ECONOMY_CONSTANTS = {
 
 /**
  * Tính tiền cọc an toàn tối đa cho bàn đấu:
- * 26 * betAmount * choppingMultiplier
+ * 26 * betAmount (cố định 26 mức cược chuẩn Cóng)
  */
-export function calculateRequiredDeposit(betAmount: number, choppingMultiplier: number = 1): number;
+export function calculateRequiredDeposit(betAmount: number): number;
 
 /**
  * Tính toán biến động Elo sau một ván xếp hạng theo số lượng người chơi (2, 3 hoặc 4 người):

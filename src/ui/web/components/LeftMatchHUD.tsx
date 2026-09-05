@@ -14,8 +14,8 @@ import { useI18n } from '../../../locales';
 
 interface LeftMatchHUDProps {
   players: Player[];
-  currentTurnPlayerId: string;
-  leadPlayerId: string;
+  currentTurnPlayerId: string | null;
+  leadPlayerId: string | null;
   gameNumber: number;
   betAmount: number;
   isDealing: boolean;

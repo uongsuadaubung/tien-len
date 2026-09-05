@@ -107,7 +107,6 @@ export const MobileQuestsView: React.FC<MobileQuestsViewProps> = ({
           </div>
         </div>
       }
-      className={null}
     >
       <div className="space-y-3 pb-6 select-none">
         {/* TABS CHÍNH */}

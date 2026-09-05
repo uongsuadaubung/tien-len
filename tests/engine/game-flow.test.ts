@@ -136,6 +136,7 @@ describe('Game Flow & Lifecycle Engine', () => {
     // p2 dùng 3 đôi thông chặt 2H của p1!
     const chopRes = game.playMove('p2', parseCards('4S 4D 5S 5D 6S 6D'));
     expect(chopRes.success).toBe(true);
+    if (!chopRes.success) return;
     expect(chopRes.isChop).toBe(true);
 
     // Tiền thưởng chặt heo đỏ: 2 mức cược (200)

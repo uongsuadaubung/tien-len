@@ -119,60 +119,67 @@ function findAllCandidateCombinations(cards: Card[]): Combination[] {
   return candidates;
 }
 
+interface StrategyScoreConfig {
+  readonly weights: Partial<Record<CombinationType, number>>;
+  readonly straightBonus: (length: number) => number;
+}
+
+const STRATEGY_SCORE_CONFIGS: Record<PartitionStrategy, StrategyScoreConfig> = {
+  BIG_HANDS: {
+    weights: {
+      FIVE_PAIRS_SEQUENTIAL: 1000,
+      FOUR_PAIRS_SEQUENTIAL: 800,
+      FOUR_OF_A_KIND: 600,
+      THREE_PAIRS_SEQUENTIAL: 500,
+      TRIPLE: 25,
+      PAIR: 15
+    },
+    straightBonus: (len) => 10 + len * 4
+  },
+  MAX_STRAIGHTS: {
+    weights: {
+      FIVE_PAIRS_SEQUENTIAL: 300,
+      FOUR_PAIRS_SEQUENTIAL: 200,
+      FOUR_OF_A_KIND: 150,
+      THREE_PAIRS_SEQUENTIAL: 50,
+      TRIPLE: 20,
+      PAIR: 10
+    },
+    straightBonus: (len) => 60 + len * 35
+  },
+  MAX_PAIRS: {
+    weights: {
+      FIVE_PAIRS_SEQUENTIAL: 500,
+      FOUR_PAIRS_SEQUENTIAL: 400,
+      FOUR_OF_A_KIND: 350,
+      THREE_PAIRS_SEQUENTIAL: 250,
+      TRIPLE: 70,
+      PAIR: 45
+    },
+    straightBonus: (len) => 10 + len * 6
+  },
+  OPTIMAL_TURNS: {
+    weights: {
+      FIVE_PAIRS_SEQUENTIAL: 800,
+      FOUR_PAIRS_SEQUENTIAL: 600,
+      FOUR_OF_A_KIND: 400,
+      THREE_PAIRS_SEQUENTIAL: 300,
+      TRIPLE: 40,
+      PAIR: 22
+    },
+    straightBonus: (len) => 25 + len * 12
+  }
+};
+
 /**
- * Đánh giá điểm của tổ hợp theo chiến thuật cụ thể
+ * Đánh giá điểm của tổ hợp theo chiến thuật cụ thể (O(1) Polymorphic Lookup)
  */
 function evaluateCombinationScoreByStrategy(combo: Combination, strategy: PartitionStrategy): number {
-  if (strategy === 'BIG_HANDS') {
-    switch (combo.type) {
-      case 'FIVE_PAIRS_SEQUENTIAL': return 1000;
-      case 'FOUR_PAIRS_SEQUENTIAL': return 800;
-      case 'FOUR_OF_A_KIND': return 600;
-      case 'THREE_PAIRS_SEQUENTIAL': return 500;
-      case 'STRAIGHT': return 10 + combo.length * 4;
-      case 'TRIPLE': return 25;
-      case 'PAIR': return 15;
-      default: return 0;
-    }
+  const cfg = STRATEGY_SCORE_CONFIGS[strategy] || STRATEGY_SCORE_CONFIGS.OPTIMAL_TURNS;
+  if (combo.type === 'STRAIGHT') {
+    return cfg.straightBonus(combo.length);
   }
-
-  if (strategy === 'MAX_STRAIGHTS') {
-    switch (combo.type) {
-      case 'FIVE_PAIRS_SEQUENTIAL': return 300;
-      case 'FOUR_PAIRS_SEQUENTIAL': return 200;
-      case 'FOUR_OF_A_KIND': return 150;
-      case 'THREE_PAIRS_SEQUENTIAL': return 50;
-      case 'STRAIGHT': return 60 + combo.length * 35; // Ưu tiên cực đại sảnh
-      case 'TRIPLE': return 20;
-      case 'PAIR': return 10;
-      default: return 0;
-    }
-  }
-
-  if (strategy === 'MAX_PAIRS') {
-    switch (combo.type) {
-      case 'FIVE_PAIRS_SEQUENTIAL': return 500;
-      case 'FOUR_PAIRS_SEQUENTIAL': return 400;
-      case 'FOUR_OF_A_KIND': return 350;
-      case 'THREE_PAIRS_SEQUENTIAL': return 250;
-      case 'TRIPLE': return 70;
-      case 'PAIR': return 45;
-      case 'STRAIGHT': return 10 + combo.length * 6;
-      default: return 0;
-    }
-  }
-
-  // Mặc định: OPTIMAL_TURNS (Sạch rác / Cực tiểu hóa số lượt)
-  switch (combo.type) {
-    case 'FIVE_PAIRS_SEQUENTIAL': return 800;
-    case 'FOUR_PAIRS_SEQUENTIAL': return 600;
-    case 'FOUR_OF_A_KIND': return 400;
-    case 'THREE_PAIRS_SEQUENTIAL': return 300;
-    case 'STRAIGHT': return 25 + combo.length * 12;
-    case 'TRIPLE': return 40;
-    case 'PAIR': return 22;
-    default: return 0;
-  }
+  return cfg.weights[combo.type] ?? 0;
 }
 
 /**
@@ -270,17 +277,27 @@ function convertPartitionToGroups(partition: HandPartition): SmartCardGroup[] {
 
   let groupCounter = 1;
 
-  for (const combo of straightsAndSeqs) {
-    let name = 'Sảnh';
-    if (combo.type === 'THREE_PAIRS_SEQUENTIAL') name = '3 Đôi Thông';
-    else if (combo.type === 'FOUR_PAIRS_SEQUENTIAL') name = '4 Đôi Thông';
-    else if (combo.type === 'FIVE_PAIRS_SEQUENTIAL') name = '5 Đôi Thông';
-    else if (combo.type === 'DRAGON_STRAIGHT') name = 'Sảnh Rồng';
+const COMBO_GROUP_NAME_MAP: Record<CombinationType, string> = {
+  SINGLE: 'Bài Rác',
+  PAIR: 'Đôi',
+  TRIPLE: 'Sám Cô',
+  STRAIGHT: 'Sảnh',
+  THREE_PAIRS_SEQUENTIAL: '3 Đôi Thông',
+  FOUR_OF_A_KIND: 'Tứ Quý',
+  FOUR_PAIRS_SEQUENTIAL: '4 Đôi Thông',
+  FIVE_PAIRS_SEQUENTIAL: '5 Đôi Thông',
+  SIX_PAIRS: '6 Đôi',
+  DRAGON_STRAIGHT: 'Sảnh Rồng',
+  SAME_COLOR_13: 'Đồng Màu 13 Lá',
+  FOUR_TWOS: 'Tứ Quý 2',
+  FIRST_ROUND_FOUR_THREES: 'Tứ Quý 3'
+};
 
+  for (const combo of straightsAndSeqs) {
     groups.push({
       id: `combo-${groupCounter++}-${combo.type}`,
       type: combo.type,
-      name,
+      name: COMBO_GROUP_NAME_MAP[combo.type] || 'Sảnh',
       cards: sortCards(combo.cards)
     });
   }
@@ -289,7 +306,7 @@ function convertPartitionToGroups(partition: HandPartition): SmartCardGroup[] {
     groups.push({
       id: `combo-${groupCounter++}-quad`,
       type: 'FOUR_OF_A_KIND',
-      name: 'Tứ Quý',
+      name: COMBO_GROUP_NAME_MAP.FOUR_OF_A_KIND,
       cards: sortCards(combo.cards)
     });
   }
@@ -298,7 +315,7 @@ function convertPartitionToGroups(partition: HandPartition): SmartCardGroup[] {
     groups.push({
       id: `combo-${groupCounter++}-triple`,
       type: 'TRIPLE',
-      name: 'Sám Cô',
+      name: COMBO_GROUP_NAME_MAP.TRIPLE,
       cards: sortCards(combo.cards)
     });
   }
@@ -307,7 +324,7 @@ function convertPartitionToGroups(partition: HandPartition): SmartCardGroup[] {
     groups.push({
       id: `combo-${groupCounter++}-pair`,
       type: 'PAIR',
-      name: 'Đôi',
+      name: COMBO_GROUP_NAME_MAP.PAIR,
       cards: sortCards(combo.cards)
     });
   }
@@ -316,7 +333,7 @@ function convertPartitionToGroups(partition: HandPartition): SmartCardGroup[] {
     groups.push({
       id: `combo-${groupCounter++}-trash`,
       type: 'SINGLE',
-      name: 'Bài Rác',
+      name: COMBO_GROUP_NAME_MAP.SINGLE,
       cards: sortCards(partition.trashCards)
     });
   }

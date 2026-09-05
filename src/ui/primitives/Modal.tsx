@@ -7,14 +7,14 @@ export interface ModalProps {
   isOpen: boolean;
   onClose?: () => void;
   title: React.ReactNode;
-  subtitle?: string | null;
-  icon?: React.ReactNode | null;
-  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | '5xl' | null;
-  height?: string | null;
-  headerRight?: React.ReactNode | null;
-  footer?: React.ReactNode | null;
+  subtitle?: string;
+  icon?: React.ReactNode;
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl' | '5xl';
+  height?: string;
+  headerRight?: React.ReactNode;
+  footer?: React.ReactNode;
   children: React.ReactNode;
-  className?: string | null;
+  className?: string;
   preventClose?: boolean;
   showCloseButton?: boolean;
 }

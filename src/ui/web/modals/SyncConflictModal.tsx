@@ -3,21 +3,15 @@ import { AlertTriangle, CloudUpload, CloudDownload, Trophy, Coins, Calendar } fr
 import { Modal, Button, Card, Badge } from '../../primitives';
 import { getRankTierByElo } from '../../../engine/elo';
 import { forceUploadToCloud, forceDownloadFromCloud } from '../../../engine/sync/sync-service';
-import type { TienLenSaveData } from '../../../engine/sync/types';
+import type { SyncConflictData } from '../../../stores/useViewStore';
 import { useI18n } from '../../../locales';
 
-interface SyncConflictModalProps {
-  isOpen: boolean;
+export interface SyncConflictModalProps {
+  conflictData: SyncConflictData;
   onClose: () => void;
-  conflictData: {
-    localData: TienLenSaveData;
-    cloudData: TienLenSaveData;
-  } | null;
-  onResolved?: () => void;
 }
 
-function formatTime(timestamp?: number, fallback: string = '---'): string {
-  if (!timestamp) return fallback;
+function formatTime(timestamp: number): string {
   const d = new Date(timestamp);
   const hours = String(d.getHours()).padStart(2, '0');
   const minutes = String(d.getMinutes()).padStart(2, '0');
@@ -28,16 +22,12 @@ function formatTime(timestamp?: number, fallback: string = '---'): string {
 }
 
 export const SyncConflictModal: React.FC<SyncConflictModalProps> = ({
-  isOpen,
-  onClose,
   conflictData,
-  onResolved
+  onClose
 }) => {
   const { t } = useI18n();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  if (!isOpen || !conflictData) return null;
 
   const { localData, cloudData } = conflictData;
   const localRank = getRankTierByElo(localData.profile.elo);
@@ -49,7 +39,6 @@ export const SyncConflictModal: React.FC<SyncConflictModalProps> = ({
     try {
       await forceUploadToCloud();
       onClose();
-      if (onResolved) onResolved();
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : t('sync.conflictUploadError'));
     } finally {
@@ -63,7 +52,6 @@ export const SyncConflictModal: React.FC<SyncConflictModalProps> = ({
     try {
       await forceDownloadFromCloud();
       onClose();
-      if (onResolved) onResolved();
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : t('sync.conflictDownloadError'));
     } finally {
@@ -73,7 +61,7 @@ export const SyncConflictModal: React.FC<SyncConflictModalProps> = ({
 
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen={true}
       onClose={onClose}
       preventClose={true}
       showCloseButton={false}
@@ -150,7 +138,7 @@ export const SyncConflictModal: React.FC<SyncConflictModalProps> = ({
 
               <div className="text-[11px] text-[var(--text-muted)] flex items-center gap-1.5 pt-0.5">
                 <Calendar className="w-3.5 h-3.5 shrink-0" />
-                <span>{t('sync.conflictUpdated', { time: formatTime(localData.updatedAt, t('common.unknown')) })}</span>
+                <span>{t('sync.conflictUpdated', { time: formatTime(localData.updatedAt) })}</span>
               </div>
             </div>
 
@@ -222,7 +210,7 @@ export const SyncConflictModal: React.FC<SyncConflictModalProps> = ({
 
               <div className="text-[11px] text-[var(--text-muted)] flex items-center gap-1.5 pt-0.5">
                 <Calendar className="w-3.5 h-3.5 shrink-0" />
-                <span>{t('sync.conflictUpdated', { time: formatTime(cloudData.updatedAt, t('common.unknown')) })}</span>
+                <span>{t('sync.conflictUpdated', { time: formatTime(cloudData.updatedAt) })}</span>
               </div>
             </div>
 

@@ -22,7 +22,7 @@ export const AVATAR_OPTIONS: readonly string[] = [
 
 export interface UseNameSetupParams {
   isOpen: boolean;
-  onClose?: (() => void) | null;
+  onClose?: () => void;
 }
 
 export interface UseNameSetupResult {
@@ -33,12 +33,12 @@ export interface UseNameSetupResult {
   error: string | null;
   setError: (error: string | null) => void;
   avatarOptions: readonly string[];
-  handleSubmit: (e: React.FormEvent | null) => void;
+  handleSubmit: (e?: React.FormEvent) => void;
 }
 
 export function useNameSetup({
   isOpen,
-  onClose = null
+  onClose
 }: UseNameSetupParams): UseNameSetupResult {
   const { t } = useI18n();
   const { profile, setProfile: onUpdateProfile } = useUserStore();
@@ -54,7 +54,7 @@ export function useNameSetup({
     }
   }, [isOpen, profile]);
 
-  const handleSubmit = (e: React.FormEvent | null) => {
+  const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
     const trimmed = name.trim();

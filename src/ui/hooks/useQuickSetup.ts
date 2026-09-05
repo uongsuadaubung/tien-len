@@ -35,6 +35,26 @@ export interface UseQuickSetupReturn {
 }
 
 /**
+ * Hàm biên giới (boundary resolver): phân giải cấu hình bàn chơi nhanh, đảm bảo 100% thuộc tính hợp lệ và non-null
+ */
+export function resolveQuickSetupConfig(
+  partial: Partial<TableConfigState> | null | undefined
+): TableConfigState {
+  return {
+    playerCount: partial?.playerCount ?? 4,
+    mode: partial?.mode ?? 'COUNT_CARDS',
+    betAmount: partial?.betAmount ?? ECONOMY_CONSTANTS.DEFAULT_QUICK_BET,
+    choppingMultiplier: partial?.choppingMultiplier ?? 1,
+    congEnabled: partial?.congEnabled ?? true,
+    prohibitEndingWithTwo: partial?.prohibitEndingWithTwo ?? true,
+    allowFourPairsCutAnytime: partial?.allowFourPairsCutAnytime ?? true,
+    threeSpadesEndingBonus: partial?.threeSpadesEndingBonus ?? true,
+    cascadeChopEnabled: partial?.cascadeChopEnabled ?? true,
+    instantWinEnabled: partial?.instantWinEnabled ?? true
+  };
+}
+
+/**
  * Custom hook quản lý toàn bộ trạng thái và nghiệp vụ cho Cấu Hình Bàn Chơi Nhanh
  */
 export function useQuickSetup({
@@ -44,39 +64,20 @@ export function useQuickSetup({
 }: UseQuickSetupProps): UseQuickSetupReturn {
   const { profile } = useUserStore();
   const playerCoins = profile.coins;
-  const [config, setConfig] = useState<TableConfigState>({
-    playerCount: initialConfig?.playerCount || 4,
-    mode: initialConfig?.mode || 'COUNT_CARDS',
-    betAmount: initialConfig?.betAmount || ECONOMY_CONSTANTS.DEFAULT_QUICK_BET,
-    choppingMultiplier: initialConfig?.choppingMultiplier ?? 1,
-    congEnabled: initialConfig?.congEnabled ?? true,
-    prohibitEndingWithTwo: initialConfig?.prohibitEndingWithTwo ?? true,
-    allowFourPairsCutAnytime: initialConfig?.allowFourPairsCutAnytime ?? true,
-    threeSpadesEndingBonus: initialConfig?.threeSpadesEndingBonus ?? true,
-    cascadeChopEnabled: initialConfig?.cascadeChopEnabled ?? true,
-    instantWinEnabled: initialConfig?.instantWinEnabled ?? true
-  });
+  const [config, setConfig] = useState<TableConfigState>(() =>
+    resolveQuickSetupConfig(initialConfig)
+  );
 
   useEffect(() => {
     if (initialConfig) {
       setConfig(prev => ({
         ...prev,
-        playerCount: initialConfig.playerCount ?? prev.playerCount,
-        mode: initialConfig.mode ?? prev.mode,
-        betAmount: initialConfig.betAmount ?? prev.betAmount,
-        choppingMultiplier: initialConfig.choppingMultiplier ?? prev.choppingMultiplier,
-        congEnabled: initialConfig.congEnabled ?? prev.congEnabled,
-        prohibitEndingWithTwo: initialConfig.prohibitEndingWithTwo ?? prev.prohibitEndingWithTwo,
-        allowFourPairsCutAnytime: initialConfig.allowFourPairsCutAnytime ?? prev.allowFourPairsCutAnytime,
-        threeSpadesEndingBonus: initialConfig.threeSpadesEndingBonus ?? prev.threeSpadesEndingBonus,
-        cascadeChopEnabled: initialConfig.cascadeChopEnabled ?? prev.cascadeChopEnabled,
-        instantWinEnabled: initialConfig.instantWinEnabled ?? prev.instantWinEnabled
+        ...resolveQuickSetupConfig({ ...prev, ...initialConfig })
       }));
     }
   }, [initialConfig]);
 
-  const currentMultiplier = config.choppingMultiplier || 1;
-  const depositRequired = calculateRequiredDeposit(config.betAmount, currentMultiplier);
+  const depositRequired = calculateRequiredDeposit(config.betAmount);
   const isInsufficientCoins = playerCoins < config.betAmount;
   const actualDeposit = Math.min(playerCoins, depositRequired);
 
@@ -97,12 +98,12 @@ export function useQuickSetup({
       playerCount: config.playerCount,
       betAmount: Math.max(10, config.betAmount),
       settlementRule: config.mode === 'CUSTOM' ? 'COUNT_CARDS' : config.mode,
-      choppingMultiplier: config.choppingMultiplier ?? 1,
-      congEnabled: config.congEnabled ?? true,
-      prohibitEndingWithTwo: config.prohibitEndingWithTwo ?? true,
-      allowFourPairsCutAnytime: config.allowFourPairsCutAnytime ?? true,
-      threeSpadesEndingBonus: config.threeSpadesEndingBonus ?? true,
-      cascadeChopEnabled: config.cascadeChopEnabled ?? true
+      choppingMultiplier: config.choppingMultiplier,
+      congEnabled: config.congEnabled,
+      prohibitEndingWithTwo: config.prohibitEndingWithTwo,
+      allowFourPairsCutAnytime: config.allowFourPairsCutAnytime,
+      threeSpadesEndingBonus: config.threeSpadesEndingBonus,
+      cascadeChopEnabled: config.cascadeChopEnabled
     });
     onClose?.();
   }, [config, isInsufficientCoins, onClose, onStartGame, playerCoins]);

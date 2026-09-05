@@ -193,12 +193,7 @@ describe('Positional Awareness & In-Match Fast Adaptation AI Verification', () =
       playerId: 'p1',
       combination: identifyCombination([createCard(15, 'SPADES')])!,
       timestamp: Date.now(),
-      isChop: null,
-      choppedPlayerId: null,
-      penaltyAmount: null,
-      isCascadeChop: null,
-      chopChainCount: null,
-      chopChainTotalAmount: null
+      isChop: false
     };
 
     // Hồ sơ đối thủ p1 là người cực kỳ ham găm Heo (heoGreedRate = 0.9)
@@ -257,12 +252,7 @@ describe('Positional Awareness & In-Match Fast Adaptation AI Verification', () =
       playerId: 'p1',
       combination: identifyCombination([createCard(3, 'SPADES')])!,
       timestamp: Date.now(),
-      isChop: null,
-      choppedPlayerId: null,
-      penaltyAmount: null,
-      isCascadeChop: null,
-      chopChainCount: null,
-      chopChainTotalAmount: null
+      isChop: false
     };
 
     const context: DecisionContext = {

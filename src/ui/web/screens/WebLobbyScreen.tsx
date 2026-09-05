@@ -29,7 +29,7 @@ import { isFullScreen, toggleFullScreen } from '../../utils/fullscreen';
 import { useI18n } from '../../../locales';
 import { GameMode, GameSettlementRule } from '../../../engine/types';
 export interface WebLobbyScreenProps {
-  onPlayNow: (() => void) | null;
+  onPlayNow?: () => void;
   onOpenQuickSetup: () => void;
   onOpenCustomGameModal: () => void;
   onOpenCampaign: () => void;
@@ -37,7 +37,7 @@ export interface WebLobbyScreenProps {
   onOpenLuckyWheel: () => void;
   onOpenBank: () => void;
   onOpenSettings: () => void;
-  onOpenRules: (() => void) | null;
+  onOpenRules?: () => void;
   onOpenNameSetup: () => void;
 }
 
@@ -306,8 +306,6 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
             icon={<Flame className="w-4 h-4" />}
             title={t('lobby.heroTitle')}
             subtitle={t('lobby.heroSubtitle')}
-            action={null}
-            className={null}
           />
 
           {/* HERO CARD: TIER 1 CONTAINER */}
@@ -403,8 +401,6 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
             icon={<Trophy className="w-4 h-4" />}
             title={t('lobby.extendedModes')}
             subtitle={t('lobby.extendedSubtitle')}
-            action={null}
-            className={null}
           />
 
           <div className={`grid grid-cols-1 ${onlineMultiplayerBetaEnabled ? 'md:grid-cols-3' : 'md:grid-cols-2'} gap-3 sm:gap-3.5`}>

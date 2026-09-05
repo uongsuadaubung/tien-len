@@ -9,12 +9,7 @@ describe('Quân Sư Thần Bài AI (Hint Engine)', () => {
     playerId,
     timestamp: Date.now(),
     combination,
-    isChop: null,
-    choppedPlayerId: null,
-    penaltyAmount: null,
-    isCascadeChop: null,
-    chopChainCount: null,
-    chopChainTotalAmount: null
+    isChop: false
   });
 
   it('phát hiện FORCED_PASS khi người chơi không có bất kỳ bài nào đè được', () => {

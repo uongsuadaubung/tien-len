@@ -14,7 +14,7 @@ import { isTwo, sortCards } from './card';
 import { checkInstantWin, createDeck, dealCards, shuffleDeck, createMulberry32 } from './deck';
 import { identifyCombination } from './combinations';
 import { isValidMove } from './validator';
-import { makeBotDecision } from '../ai/decision-maker';
+import { makeBotDecision, createDecisionContext } from '../ai/decision-maker';
 import { BotConfig } from '../ai/types';
 import { CardTracker } from '../ai/card-tracker';
 import { OpponentProfiler } from '../ai/opponent-profiler';
@@ -22,32 +22,47 @@ import { calculateChopPenalty, calculateRottenPenalty } from './economy';
 import { MatchLogger, BotDecisionTelemetry } from './match-logger';
 import { evaluateChopTransition } from './state-machine';
 
-export interface PlayMoveResult {
-  success: boolean;
-  isChop: boolean | null;
-  choppedPlayerId: string | null;
-  penaltyAmount: number | null;
-  isCascadeChop: boolean | null;
-  chopChainCount: number | null;
-  chopChainTotalAmount: number | null;
-  playedMove: PlayedMove | null;
-  error: string | null;
-  isGameOver: boolean | null;
-}
+export type PlayMoveResult =
+  | {
+      readonly success: true;
+      readonly playedMove: PlayedMove;
+      readonly isChop: boolean;
+      readonly choppedPlayerId: string | null;
+      readonly penaltyAmount: number;
+      readonly isCascadeChop: boolean;
+      readonly chopChainCount: number;
+      readonly chopChainTotalAmount: number;
+      readonly isGameOver: boolean;
+    }
+  | {
+      readonly success: false;
+      readonly error: string;
+    };
 
-export interface BotTurnResult {
-  action: 'PLAY' | 'PASS';
-  playerId: string;
-  playedMove: PlayedMove | null;
-  isChop: boolean | null;
-  choppedPlayerId: string | null;
-  penaltyAmount: number | null;
-  isCascadeChop: boolean | null;
-  chopChainCount: number | null;
-  chopChainTotalAmount: number | null;
-  isGameOver: boolean | null;
-  botDecisionDetails?: BotDecisionTelemetry | null;
-}
+export type BotTurnResult =
+  | {
+      readonly action: 'PLAY';
+      readonly playerId: string;
+      readonly playedMove: PlayedMove;
+      readonly isChop: boolean;
+      readonly choppedPlayerId: string | null;
+      readonly penaltyAmount: number;
+      readonly isCascadeChop: boolean;
+      readonly chopChainCount: number;
+      readonly chopChainTotalAmount: number;
+      readonly isGameOver: boolean;
+      readonly botDecisionDetails: BotDecisionTelemetry | null;
+    }
+  | {
+      readonly action: 'PASS';
+      readonly playerId: string;
+      readonly isGameOver: boolean;
+      readonly botDecisionDetails: BotDecisionTelemetry | null;
+    };
+
+export type PassTurnResult =
+  | { readonly success: true }
+  | { readonly success: false; readonly error: string };
 
 export type StartGameResult =
   | {
@@ -57,8 +72,8 @@ export type StartGameResult =
     }
   | {
       readonly instantWin: false;
-      readonly instantWinner?: never;
-      readonly instantWinType?: never;
+      readonly instantWinner: null;
+      readonly instantWinType: null;
     };
 
 export class GameEngine {
@@ -97,10 +112,15 @@ export class GameEngine {
       cascadeChopEnabled: this.rules.chopping.cascadeMultiplier
     };
 
+    if (players.length === 0) {
+      throw new Error('[GameEngine] Danh sách players không được rỗng!');
+    }
+
+    const firstPlayerId = players[0].id;
     this.currentRound = {
       moves: [],
-      leadPlayerId: players[0]?.id || 'p0',
-      currentTurnPlayerId: players[0]?.id || 'p0',
+      leadPlayerId: firstPlayerId,
+      currentTurnPlayerId: firstPlayerId,
       passedPlayerIds: [],
       isFinished: false
     };
@@ -119,7 +139,7 @@ export class GameEngine {
     return this.currentRound.moves[this.currentRound.moves.length - 1];
   }
 
-  public lastWinnerId?: string;
+  public lastWinnerId: string | null = null;
   public isThreeSpadesWin: boolean = false;
 
   /**
@@ -129,8 +149,8 @@ export class GameEngine {
    */
   public startNewGame(
     gameNumber = 1,
-    previousWinnerId?: string,
-    seedOrRng?: number | (() => number)
+    previousWinnerId: string | null = null,
+    seedOrRng: number | (() => number) | null = null
   ): StartGameResult {
     this.gameNumber = gameNumber;
     this.isFirstMoveOfGame = this.gameNumber === 1;
@@ -196,7 +216,7 @@ export class GameEngine {
       players: this.players
     });
 
-    return { instantWin: false };
+    return { instantWin: false, instantWinner: null, instantWinType: null };
   }
 
   /**
@@ -205,9 +225,9 @@ export class GameEngine {
    * - Ván 1: Người có lá 3 Bích (bắt buộc chứa 3 Bích ở lượt đầu).
    *   Nếu không ai có 3 Bích (bàn 2-3 người): Tìm người có lá bài nhỏ nhất trên tay và cho người đó đi trước.
    */
-  private determineFirstPlayer(previousWinnerId?: string): { firstPlayerId: string; isFirstMoveOfGame: boolean } {
+  private determineFirstPlayer(previousWinnerId: string | null = null): { firstPlayerId: string; isFirstMoveOfGame: boolean } {
     let firstPlayerId = this.players[0].id;
-    const resolvedPrevWinnerId = previousWinnerId || this.lastWinnerId;
+    const resolvedPrevWinnerId = previousWinnerId ?? this.lastWinnerId;
 
     if (this.gameNumber > 1 && resolvedPrevWinnerId && this.players.some(p => p.id === resolvedPrevWinnerId)) {
       // Ván thứ 2 trở đi: Người về Nhất ván trước được quyền đi trước bất kể đang cầm bài gì!
@@ -242,7 +262,7 @@ export class GameEngine {
   /**
    * Khởi tạo custom game để phục vụ Unit Test
    */
-  public startCustomGame(gameNumber = 1, previousWinnerId?: string): void {
+  public startCustomGame(gameNumber = 1, previousWinnerId: string | null = null): void {
     this.gameNumber = gameNumber;
     this.isGameOver = false;
     this.playedCardsInGame = [];
@@ -287,13 +307,13 @@ export class GameEngine {
     botTelemetry: BotDecisionTelemetry | null = null
   ): PlayMoveResult {
     const player = this.getPlayer(playerId);
-    if (!player) return { success: false, isChop: null, choppedPlayerId: null, penaltyAmount: null, isCascadeChop: null, chopChainCount: null, chopChainTotalAmount: null, playedMove: null, error: 'Không tìm thấy người chơi', isGameOver: null };
+    if (!player) return { success: false, error: 'Không tìm thấy người chơi' };
 
     // Kiểm tra lá bài có nằm trong tay người chơi không
     const handCardIds = new Set(player.hand.map(c => c.id));
     const allCardsOwned = cards.every(c => handCardIds.has(c.id));
     if (!allCardsOwned) {
-      return { success: false, isChop: null, choppedPlayerId: null, penaltyAmount: null, isCascadeChop: null, chopChainCount: null, chopChainTotalAmount: null, playedMove: null, error: 'Các lá bài không nằm trên tay người chơi', isGameOver: null };
+      return { success: false, error: 'Các lá bài không nằm trên tay người chơi' };
     }
 
     // Kiểm tra lượt đánh
@@ -304,7 +324,7 @@ export class GameEngine {
       identifyCombination(cards)?.type === 'FOUR_PAIRS_SEQUENTIAL';
 
     if (!isCurrentTurn && !isSpecialFourPairsJump) {
-      return { success: false, isChop: null, choppedPlayerId: null, penaltyAmount: null, isCascadeChop: null, chopChainCount: null, chopChainTotalAmount: null, playedMove: null, error: 'Chưa đến lượt của bạn', isGameOver: null };
+      return { success: false, error: 'Chưa đến lượt của bạn' };
     }
 
     const leadingMove = this.getLeadingMove();
@@ -325,8 +345,8 @@ export class GameEngine {
       prohibitEndingWithTwo
     });
 
-    if (!validation.valid || !validation.combination) {
-      return { success: false, isChop: null, choppedPlayerId: null, penaltyAmount: null, isCascadeChop: null, chopChainCount: null, chopChainTotalAmount: null, playedMove: null, error: validation.reason || 'Nước đi không hợp lệ', isGameOver: null };
+    if (!validation.valid) {
+      return { success: false, error: validation.reason };
     }
 
     // 1. Trừ bài trên tay và thêm vào danh sách đã đánh
@@ -403,17 +423,24 @@ export class GameEngine {
     }
 
     // 3. Ghi nhận nước đi vào Round
-    const playedMoveRecord: PlayedMove = {
-      playerId,
-      combination: validation.combination,
-      timestamp: Date.now(),
-      isChop,
-      choppedPlayerId: choppedPlayerId || null,
-      penaltyAmount: penaltyAmount || null,
-      isCascadeChop: isCascadeChop ?? null,
-      chopChainCount: chopChainCount ?? null,
-      chopChainTotalAmount: chopChainTotalAmount ?? null
-    };
+    const playedMoveRecord: PlayedMove = isChop
+      ? {
+          playerId,
+          combination: validation.combination,
+          timestamp: Date.now(),
+          isChop: true,
+          choppedPlayerId: choppedPlayerId || '',
+          penaltyAmount: penaltyAmount || 0,
+          isCascadeChop: !!isCascadeChop,
+          chopChainCount: chopChainCount || 1,
+          chopChainTotalAmount: chopChainTotalAmount || penaltyAmount || 0
+        }
+      : {
+          playerId,
+          combination: validation.combination,
+          timestamp: Date.now(),
+          isChop: false
+        };
 
     this.currentRound.moves = [...this.currentRound.moves, playedMoveRecord];
 
@@ -474,13 +501,12 @@ export class GameEngine {
         this.settleEndGame();
         return {
           success: true,
-          error: null,
           isChop,
           choppedPlayerId: choppedPlayerId || null,
-          penaltyAmount: penaltyAmount || null,
-          isCascadeChop: isCascadeChop ?? null,
-          chopChainCount: chopChainCount ?? null,
-          chopChainTotalAmount: chopChainTotalAmount ?? null,
+          penaltyAmount,
+          isCascadeChop,
+          chopChainCount,
+          chopChainTotalAmount,
           playedMove: playedMoveRecord,
           isGameOver: true
         };
@@ -492,13 +518,12 @@ export class GameEngine {
 
     return {
       success: true,
-      error: null,
       isChop,
       choppedPlayerId: choppedPlayerId || null,
-      penaltyAmount: penaltyAmount || null,
-      isCascadeChop: isCascadeChop ?? null,
-      chopChainCount: chopChainCount ?? null,
-      chopChainTotalAmount: chopChainTotalAmount ?? null,
+      penaltyAmount,
+      isCascadeChop,
+      chopChainCount,
+      chopChainTotalAmount,
       playedMove: playedMoveRecord,
       isGameOver: this.isGameOver
     };
@@ -510,13 +535,13 @@ export class GameEngine {
   public passTurn(
     playerId: string,
     botTelemetry: BotDecisionTelemetry | null = null
-  ): { success: boolean; error?: string } {
+  ): PassTurnResult {
     if (this.currentRound.currentTurnPlayerId !== playerId) {
       return { success: false, error: 'Chưa đến lượt của bạn' };
     }
 
-    if (this.isRoundLeadMove()) {
-      return { success: false, error: 'Bạn đang cầm cái, không thể bỏ lượt mở đầu' };
+    if (this.isFirstMoveOfGame) {
+      return { success: false, error: 'Lượt mở màn ván đầu tiên bắt buộc phải ra bài' };
     }
 
     const player = this.getPlayer(playerId);
@@ -571,7 +596,12 @@ export class GameEngine {
   public executeBotTurn(botConfig: BotConfig, tracker: CardTracker): BotTurnResult {
     const currentPlayer = this.getCurrentPlayer();
     if (!currentPlayer || !currentPlayer.isBot || currentPlayer.hand.length === 0) {
-      return { action: 'PASS', playerId: currentPlayer?.id || '', playedMove: null, isChop: null, choppedPlayerId: null, penaltyAmount: null, isCascadeChop: null, chopChainCount: null, chopChainTotalAmount: null, isGameOver: this.isGameOver };
+      return {
+        action: 'PASS',
+        playerId: currentPlayer?.id || '',
+        isGameOver: this.isGameOver,
+        botDecisionDetails: null
+      };
     }
 
     const playerId = currentPlayer.id;
@@ -584,7 +614,7 @@ export class GameEngine {
     const prohibitEndingWithTwo = this.rules.gameFlow.prohibitEndingWithTwo;
 
     try {
-      const decision = makeBotDecision({
+      const decision = makeBotDecision(createDecisionContext({
         hand: currentPlayer.hand,
         currentRoundLeadingMove: leading,
         isFirstMoveOfGame: this.isFirstMoveOfGame,
@@ -601,35 +631,23 @@ export class GameEngine {
         mctsMap: null,
         compositeRuleStrategy: null,
         opponentProfiles: null
-      });
+      }));
 
-      if (decision.type === 'PLAY' && decision.cards && decision.cards.length > 0) {
-        const cardsPlayed = [...decision.cards];
-        const moveRes = this.playMove(playerId, decision.cards, decision.telemetry || null);
+      if (decision.type === 'PLAY' && decision.cards.length > 0) {
+        const moveRes = this.playMove(playerId, [...decision.cards], decision.telemetry || null);
         if (moveRes.success) {
-          const combo = identifyCombination(cardsPlayed);
-          const playedMoveInfo: PlayedMove = {
-            playerId,
-            combination: combo || { type: 'SINGLE', cards: cardsPlayed, length: 1, highestCard: cardsPlayed[0] },
-            timestamp: Date.now(),
-            isChop: moveRes.isChop,
-            choppedPlayerId: moveRes.choppedPlayerId,
-            penaltyAmount: moveRes.penaltyAmount,
-            isCascadeChop: moveRes.isCascadeChop,
-            chopChainCount: moveRes.chopChainCount,
-            chopChainTotalAmount: moveRes.chopChainTotalAmount
-          };
           return {
             action: 'PLAY',
             playerId,
-            playedMove: playedMoveInfo,
+            playedMove: moveRes.playedMove,
             isChop: moveRes.isChop,
             choppedPlayerId: moveRes.choppedPlayerId,
             penaltyAmount: moveRes.penaltyAmount,
             isCascadeChop: moveRes.isCascadeChop,
             chopChainCount: moveRes.chopChainCount,
             chopChainTotalAmount: moveRes.chopChainTotalAmount,
-            isGameOver: this.isGameOver
+            isGameOver: this.isGameOver,
+            botDecisionDetails: decision.telemetry || null
           };
         }
       } else {
@@ -638,14 +656,8 @@ export class GameEngine {
           return {
             action: 'PASS',
             playerId,
-            playedMove: null,
-            isChop: null,
-            choppedPlayerId: null,
-            penaltyAmount: null,
-            isCascadeChop: null,
-            chopChainCount: null,
-            chopChainTotalAmount: null,
-            isGameOver: this.isGameOver
+            isGameOver: this.isGameOver,
+            botDecisionDetails: decision.telemetry || null
           };
         }
       }
@@ -660,7 +672,12 @@ export class GameEngine {
   private executeEmergencyFallback(playerId: string): BotTurnResult {
     const player = this.getPlayer(playerId);
     if (!player || player.hand.length === 0) {
-      return { action: 'PASS', playerId, playedMove: null, isChop: null, choppedPlayerId: null, penaltyAmount: null, isCascadeChop: null, chopChainCount: null, chopChainTotalAmount: null, isGameOver: this.isGameOver };
+      return {
+        action: 'PASS',
+        playerId,
+        isGameOver: this.isGameOver,
+        botDecisionDetails: null
+      };
     }
 
     const isLead = this.isRoundLeadMove();
@@ -678,14 +695,15 @@ export class GameEngine {
             return {
               action: 'PLAY',
               playerId,
-              playedMove: this.getLeadingMove() || null,
+              playedMove: res.playedMove,
               isChop: res.isChop,
               choppedPlayerId: res.choppedPlayerId,
               penaltyAmount: res.penaltyAmount,
               isCascadeChop: res.isCascadeChop,
               chopChainCount: res.chopChainCount,
               chopChainTotalAmount: res.chopChainTotalAmount,
-              isGameOver: this.isGameOver
+              isGameOver: this.isGameOver,
+              botDecisionDetails: null
             };
           }
         }
@@ -699,30 +717,25 @@ export class GameEngine {
           return {
             action: 'PLAY',
             playerId,
-            playedMove: this.getLeadingMove() || null,
+            playedMove: res.playedMove,
             isChop: res.isChop,
             choppedPlayerId: res.choppedPlayerId,
             penaltyAmount: res.penaltyAmount,
             isCascadeChop: res.isCascadeChop,
             chopChainCount: res.chopChainCount,
             chopChainTotalAmount: res.chopChainTotalAmount,
-            isGameOver: this.isGameOver
+            isGameOver: this.isGameOver,
+            botDecisionDetails: null
           };
         }
       }
-      if (prohibitEndingWithTwo && player.hand.every(isTwo)) {
-        this.advanceTurn(playerId);
+      const passLeadRes = this.passTurn(playerId);
+      if (passLeadRes.success) {
         return {
           action: 'PASS',
           playerId,
-          playedMove: null,
-          isChop: null,
-          choppedPlayerId: null,
-          penaltyAmount: null,
-          isCascadeChop: null,
-          chopChainCount: null,
-          chopChainTotalAmount: null,
-          isGameOver: this.isGameOver
+          isGameOver: this.isGameOver,
+          botDecisionDetails: null
         };
       }
     }
@@ -733,14 +746,8 @@ export class GameEngine {
       return {
         action: 'PASS',
         playerId,
-        playedMove: null,
-        isChop: null,
-        choppedPlayerId: null,
-        penaltyAmount: null,
-        isCascadeChop: null,
-        chopChainCount: null,
-        chopChainTotalAmount: null,
-        isGameOver: this.isGameOver
+        isGameOver: this.isGameOver,
+        botDecisionDetails: null
       };
     }
 
@@ -754,14 +761,15 @@ export class GameEngine {
         return {
           action: 'PLAY',
           playerId,
-          playedMove: this.getLeadingMove() || null,
+          playedMove: res.playedMove,
           isChop: res.isChop,
           choppedPlayerId: res.choppedPlayerId,
           penaltyAmount: res.penaltyAmount,
           isCascadeChop: res.isCascadeChop,
           chopChainCount: res.chopChainCount,
           chopChainTotalAmount: res.chopChainTotalAmount,
-          isGameOver: this.isGameOver
+          isGameOver: this.isGameOver,
+          botDecisionDetails: null
         };
       }
     }
@@ -771,14 +779,8 @@ export class GameEngine {
     return {
       action: 'PASS',
       playerId,
-      playedMove: null,
-      isChop: null,
-      choppedPlayerId: null,
-      penaltyAmount: null,
-      isCascadeChop: null,
-      chopChainCount: null,
-      chopChainTotalAmount: null,
-      isGameOver: this.isGameOver
+      isGameOver: this.isGameOver,
+      botDecisionDetails: null
     };
   }
 
@@ -789,7 +791,10 @@ export class GameEngine {
       this.currentRound.currentTurnPlayerId = nextId;
       player = this.getPlayer(nextId);
     }
-    return player || this.players[0];
+    if (!player) {
+      throw new Error(`[GameEngine] Không tìm thấy người chơi cho lượt hiện tại: ${this.currentRound?.currentTurnPlayerId}`);
+    }
+    return player;
   }
 
   public checkGameOver(): boolean {
@@ -828,14 +833,23 @@ export class GameEngine {
     const eligiblePlayers = activeRemainingPlayers.filter(p => !p.isPassedCurrentRound);
 
     // Vòng kết thúc khi:
-    // - Nếu lastMover còn bài: tất cả những người khác đã bỏ lượt (eligiblePlayers.length <= 1).
-    // - Nếu lastMover đã hết bài (đã về Nhất/Nhì): tất cả người còn bài đều đã bỏ lượt (eligiblePlayers.length === 0).
-    const isRoundOver = isLastMoverActive
-      ? eligiblePlayers.length <= 1
+    // - Nếu có lastMover và lastMover còn bài: tất cả những người khác đã bỏ lượt (eligiblePlayers.length <= 1).
+    // - Nếu có lastMover nhưng lastMover đã hết bài (đã về Nhất/Nhì): tất cả người còn bài đều đã bỏ lượt (eligiblePlayers.length === 0).
+    // - Nếu chưa có ai ra bài trong vòng (lastMover là null) mà tất cả người chơi còn bài đều đã bỏ lượt: không ai có thể/chịu ra bài -> kết thúc ván đấu
+    const isRoundOver = lastMover
+      ? (isLastMoverActive ? eligiblePlayers.length <= 1 : eligiblePlayers.length === 0)
       : eligiblePlayers.length === 0;
 
     if (isRoundOver) {
-      let nextLeadPlayerId = lastMover ? lastMover.playerId : currentPlayerId;
+      if (!lastMover) {
+        // Toàn bộ người chơi còn bài đều bỏ lượt khi cầm cái (ví dụ: tất cả đều chỉ còn Heo và cấm về Heo)
+        // Kết thúc ván đấu ngay để tránh lặp vô hạn, xử phạt Thối Heo/Hàng
+        this.isGameOver = true;
+        this.settleEndGame();
+        return;
+      }
+
+      let nextLeadPlayerId = lastMover.playerId;
 
       // Nếu người vừa đánh nước cuối đã hết bài, chuyển quyền mở vòng cho người kế tiếp theo chiều kim đồng hồ
       const leadPlayer = this.getPlayer(nextLeadPlayerId);
@@ -850,6 +864,10 @@ export class GameEngine {
     // Vòng vẫn tiếp diễn: Chuyển lượt cho người tiếp theo (chưa bỏ lượt và còn bài)
     const nextPlayerId = this.getNextEligiblePlayerId(currentPlayerId);
     this.currentRound.currentTurnPlayerId = nextPlayerId;
+    if (!lastMover) {
+      // Nếu chưa có ai ra bài trong vòng, quyền mở vòng chuyển sang cho người kế tiếp
+      this.currentRound.leadPlayerId = nextPlayerId;
+    }
   }
 
   /**

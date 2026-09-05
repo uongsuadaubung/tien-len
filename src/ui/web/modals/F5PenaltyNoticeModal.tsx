@@ -1,22 +1,22 @@
 import React from 'react';
 import { AlertOctagon, Check } from 'lucide-react';
-import { useViewStore } from '../../../stores/useViewStore';
+import type { F5PenaltyData } from '../../../stores/useViewStore';
 import { useI18n } from '../../../locales';
 import { Modal, Card, Button, Badge } from '../../primitives';
 
-export const F5PenaltyNoticeModal: React.FC = () => {
-  const { isF5PenaltyNoticeOpen, closeModal, f5PenaltyData } = useViewStore();
+interface F5PenaltyNoticeModalProps {
+  data: F5PenaltyData;
+  onClose: () => void;
+}
+
+export const F5PenaltyNoticeModal: React.FC<F5PenaltyNoticeModalProps> = ({ data, onClose }) => {
   const { t } = useI18n();
-
-  if (!isF5PenaltyNoticeOpen) return null;
-
-  const depositLost = f5PenaltyData?.depositLost ?? 0;
-  const eloLost = f5PenaltyData?.eloLost ?? 30;
+  const { depositLost, eloLost } = data;
 
   return (
     <Modal
-      isOpen={isF5PenaltyNoticeOpen}
-      onClose={() => closeModal('F5_PENALTY_NOTICE')}
+      isOpen={true}
+      onClose={onClose}
       title={t('f5Penalty.modalTitle')}
       subtitle={t('f5Penalty.modalSubtitle')}
       icon={<AlertOctagon className="w-5 h-5 text-[#f87171]" />}
@@ -27,7 +27,7 @@ export const F5PenaltyNoticeModal: React.FC = () => {
           variant="gold"
           size="md"
           fullWidth
-          onClick={() => closeModal('F5_PENALTY_NOTICE')}
+          onClick={onClose}
           leftIcon={<Check className="w-4 h-4 text-[#0a0c0e]" />}
         >
           {t('f5Penalty.btnUnderstood')}

@@ -77,12 +77,7 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
         playerId: 'p1',
         combination: { type: 'SINGLE' as const, cards: [c3S], highestCard: c3S, length: 1 },
         timestamp: Date.now(),
-        isChop: null,
-        choppedPlayerId: null,
-        penaltyAmount: null,
-        isCascadeChop: null,
-        chopChainCount: null,
-        chopChainTotalAmount: null
+        isChop: false
       };
 
       // Đè Heo lên lá 3 khi còn nhiều bài (handSize = 8) -> bị phạt nặng -100
@@ -141,12 +136,7 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
           playerId: 'p1',
           combination: { type: 'SINGLE', cards: [c4C], highestCard: c4C, length: 1 },
           timestamp: Date.now(),
-          isChop: null,
-          choppedPlayerId: null,
-          penaltyAmount: null,
-          isCascadeChop: null,
-          chopChainCount: null,
-          chopChainTotalAmount: null
+          isChop: false
         },
         remainingPlayerCards: { p0: 5, p1: 2, p2: 8, p3: 9 }, // p1 còn 2 lá!
         hasPlayedFirstCard: false, // CHƯA RA ĐƯỢC LÁ NÀO
@@ -161,8 +151,10 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
       const emergency = congStrategy.evaluateEmergency(context, validMoves);
       expect(emergency).not.toBeNull();
       expect(emergency?.type).toBe('PLAY');
-      expect(emergency?.reason).toContain('Thoát Cóng');
-      expect(emergency?.cards?.[0].id).toBe(c7S.id); // Chọn lá nhỏ nhất để thoát cóng
+      if (emergency?.type === 'PLAY') {
+        expect(emergency.reason).toContain('Thoát Cóng');
+        expect(emergency.cards[0].id).toBe(c7S.id); // Chọn lá nhỏ nhất để thoát cóng
+      }
     });
 
     it('KHÔNG kích hoạt Thoát Cóng nếu Bot đã từng ra bài thành công (hasPlayedFirstCard === true)', () => {
@@ -251,8 +243,11 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
 
       const emergency = gameFlowStrategy.evaluateEmergency(context, validMoves);
       expect(emergency).not.toBeNull();
-      expect(emergency?.cards?.[0].id).toBe(c2H.id);
-      expect(emergency?.reason).toContain('Cấm 2 cuối');
+      expect(emergency?.type).toBe('PLAY');
+      if (emergency?.type === 'PLAY') {
+        expect(emergency.cards[0].id).toBe(c2H.id);
+        expect(emergency.reason).toContain('Cấm 2 cuối');
+      }
     });
 
     it('Luật Chống Đền Bài: Khi người kế tiếp báo 1 lá, bắt buộc đánh bài to nhất để chặn đầu', () => {
@@ -279,8 +274,11 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
 
       const emergency = gameFlowStrategy.evaluateEmergency(context, validMoves);
       expect(emergency).not.toBeNull();
-      expect(emergency?.cards?.[0].id).toBe(cAS.id); // Đánh Át để chặn đầu
-      expect(emergency?.reason).toContain('chống đền bài');
+      expect(emergency?.type).toBe('PLAY');
+      if (emergency?.type === 'PLAY') {
+        expect(emergency.cards[0].id).toBe(cAS.id); // Đánh Át để chặn đầu
+        expect(emergency.reason).toContain('chống đền bài');
+      }
     });
   });
 

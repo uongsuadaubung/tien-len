@@ -6,7 +6,7 @@ import { evaluateDailyQuests, evaluateAchievements } from '../engine/evaluators/
 import { Quest, Achievement } from '../engine/quests';
 import { PlayerProfile, getActiveMatchSession, clearActiveMatchSession, savePlayerProfile } from '../engine/storage';
 import { MatchLogger } from '../engine/match-logger';
-import { useGameStore, CampaignResultMeta } from '../stores/useGameStore';
+import { useGameStore, CampaignResultMeta, createCampaignResultMeta } from '../stores/useGameStore';
 import { useUserStore } from '../stores/useUserStore';
 import { useViewStore } from '../stores/useViewStore';
 import { useEcosystemStore } from '../stores/useEcosystemStore';
@@ -15,6 +15,8 @@ import { forceUploadToCloud } from '../engine/sync/sync-service';
 import { CustomBotConfigTuple } from '../engine/types';
 import { assertEconomicBalance } from '../engine/invariants/match-invariants';
 import type { BotConfig } from '../ai/types';
+import { getBotConfig } from '../ai/bot-factory';
+import { dbUpdatePlayerMatchResult } from '../engine/db/indexed-db';
 
 export type { CampaignResultMeta };
 
@@ -53,11 +55,31 @@ export function settleCompletedMatch(engine: GameEngine): void {
   const resolvedInstantWinType = engine.instantWinner?.instantWinType || null;
   gameStore.setInstantWinType(resolvedInstantWinType || undefined);
 
+  const humanPlayer = engine.players.find(p => p.id === gameStore.myPlayerId);
+  if (!humanPlayer) {
+    throw new Error(`[MatchSettlementService] Không tìm thấy player với id="${gameStore.myPlayerId}" trong danh sách bàn đấu khi kết toán!`);
+  }
+  const humanPlayerId = humanPlayer.id;
+
   const winner = engine.winners[0];
   if (!winner) {
     throw new Error('[MatchSettlementService] Không thể kết toán khi engine.winners rỗng!');
   }
-  const isPlayerWin = winner.id === 'p0';
+  const isPlayerWin = winner.id === humanPlayerId;
+  // Thu thập dữ liệu toàn bàn đấu: Lượt chặt Heo/Hàng từ MatchLogger
+  const turns = MatchLogger.getInstance().getTurns();
+  const chopsByPlayer: Record<string, number> = {};
+  const gotChoppedByPlayer: Record<string, number> = {};
+  for (const t of turns) {
+    if (t.action === 'PLAY' && t.isChop) {
+      if (t.playerId) {
+        chopsByPlayer[t.playerId] = (chopsByPlayer[t.playerId] || 0) + 1;
+      }
+      if (t.choppedPlayerId) {
+        gotChoppedByPlayer[t.choppedPlayerId] = (gotChoppedByPlayer[t.choppedPlayerId] || 0) + 1;
+      }
+    }
+  }
 
   const currentProfile = userStore.profile;
   const currentCoins = currentProfile.coins;
@@ -68,15 +90,38 @@ export function settleCompletedMatch(engine: GameEngine): void {
   const effectiveMode = engine.settings.mode;
   const strategy = resolveStrategyForMatch(activeGameType, effectiveMode);
 
+  // Thu thập điểm Elo và Streak cho tất cả người chơi tại bàn
+  const playerElos: Record<string, number> = {
+    [humanPlayerId]: currentElo
+  };
+  for (const p of engine.players) {
+    if (p.id !== humanPlayerId) {
+      if (p.botPersonaId) {
+        playerElos[p.id] = getBotConfig(p.botPersonaId).elo ?? 1000;
+      } else {
+        playerElos[p.id] = 1000;
+      }
+    }
+  }
+
+  const streaksByPlayer: Record<string, number> = {
+    [humanPlayerId]: currentProfile.stats.currentStreak
+  };
+
   const settlement = strategy.settleMatch({
     players: engine.players,
     winners: engine.winners,
     betAmount: engine.settings.betAmount,
-    playerElo: currentElo,
+    subjectPlayerId: humanPlayerId,
+    playerElos,
+    chopsByPlayer,
+    gotChoppedByPlayer,
+    streaksByPlayer,
     isBankLoanActive,
-    campaignReward: currentCampaignChapter?.rewardCoins || null,
+    campaignReward: currentCampaignChapter?.rewardCoins,
     penaltyMultiplier: engine.rules.chopping.multiplier || engine.rules.cong.multiplier || 1,
-    isThreeSpadesWin: engine.isThreeSpadesWin
+    isThreeSpadesWin: engine.isThreeSpadesWin,
+    isInstantWin: !!engine.instantWinner
   });
 
   // Chốt chặn bất biến kinh tế: Tổng tiền thắng + thua = 0
@@ -86,12 +131,17 @@ export function settleCompletedMatch(engine: GameEngine): void {
   gameStore.setMatchPayouts(settlement.payouts);
   gameStore.setLoanDeductionAmount(settlement.loanDeduction);
   gameStore.setLastEloDelta(settlement.eloDelta);
+  gameStore.setLastEloBreakdown(settlement.eloBreakdown ?? null);
+  gameStore.setAllEloDeltas(settlement.allEloDeltas ?? {});
 
   const session = getActiveMatchSession();
   const heldDeposit = session ? session.depositAmount : 0;
   clearActiveMatchSession();
 
-  const humanNetEarned = settlement.payouts['p0'] || 0;
+  const humanNetEarned = settlement.payouts[humanPlayerId];
+  if (humanNetEarned === undefined) {
+    throw new Error(`[MatchSettlementService] Không tìm thấy payout cho người chơi ${humanPlayerId} trong bảng kết toán!`);
+  }
   const nextCoins = Math.max(0, currentCoins + heldDeposit + humanNetEarned);
   const nextLoans = Math.max(0, currentProfile.loans - settlement.loanDeduction);
   const nextElo = settlement.isVictoryModalRanked
@@ -126,12 +176,12 @@ export function settleCompletedMatch(engine: GameEngine): void {
       }
     }
 
-    gameStore.setCampaignResultMeta({
+    gameStore.setCampaignResultMeta(createCampaignResultMeta({
       isUnlockedNext: unlockedNext,
       isAllCompleted: allCompleted,
       nextChapter: nextChapObj,
       currentWins: currentWinsInChapter
-    });
+    }));
   } else {
     gameStore.setCampaignResultMeta(null);
   }
@@ -153,7 +203,7 @@ export function settleCompletedMatch(engine: GameEngine): void {
     }
   };
 
-  const congsGivenCount = isPlayerWin ? engine.players.filter(p => p.id !== 'p0' && p.hand.length === 13).length : 0;
+  const congsGivenCount = isPlayerWin ? engine.players.filter(p => p.id !== humanPlayerId && p.hand.length === 13).length : 0;
   const matchCompletedEvent: MatchCompletedEvent = {
     type: 'MATCH_COMPLETED',
     activeGameType,
@@ -199,29 +249,33 @@ export function settleCompletedMatch(engine: GameEngine): void {
   });
   gameStore.setMatchLogReport(matchReport);
 
+  // Cập nhật kết quả trận đấu vào bảng players thống nhất (Dexie IndexedDB v2) cho toàn bộ người chơi tại bàn
+  for (const p of engine.players) {
+    const deltaCoins = settlement.payouts[p.id] || 0;
+    const deltaElo = settlement.allEloDeltas[p.id] ?? (p.id === humanPlayerId ? settlement.eloDelta : 0);
+    const isWinner = winner.id === p.id;
+    const congsGiven = isWinner
+      ? engine.players.filter(pl => pl.id !== p.id && pl.hand.length === 13).length
+      : 0;
+    dbUpdatePlayerMatchResult(p.id, {
+      deltaCoins,
+      deltaElo,
+      isWin: isWinner,
+      chopsDone: chopsByPlayer[p.id] || 0,
+      congsGiven
+    }).catch(() => {});
+  }
+
   // Cập nhật hệ sinh thái 200 Bot nếu không phải Campaign
   if (activeGameType !== 'CAMPAIGN') {
     const totalPlayers = engine.players.length;
-    const humanRank = isPlayerWin ? 1 : (engine.winners.findIndex(w => w.id === 'p0') + 1 || totalPlayers);
+    const humanRank = isPlayerWin ? 1 : (engine.winners.findIndex(w => w.id === humanPlayerId) + 1 || totalPlayers);
     const botResults = engine.players
-      .filter(p => p.id !== 'p0')
+      .filter(p => p.id !== humanPlayerId)
       .map(p => {
         const rank = engine.winners.findIndex(w => w.id === p.id) + 1 || totalPlayers;
         const deltaCoins = settlement.payouts[p.id] || 0;
-        let deltaElo = 0;
-        if (totalPlayers === 2) {
-          if (rank === 1) deltaElo = Math.floor(Math.random() * 9) + 24;
-          else deltaElo = -(Math.floor(Math.random() * 9) + 24);
-        } else if (totalPlayers === 3) {
-          if (rank === 1) deltaElo = Math.floor(Math.random() * 9) + 24;
-          else if (rank === 2) deltaElo = Math.floor(Math.random() * 5) - 2;
-          else deltaElo = -(Math.floor(Math.random() * 9) + 24);
-        } else {
-          if (rank === 1) deltaElo = Math.floor(Math.random() * 9) + 24;
-          else if (rank === 2) deltaElo = Math.floor(Math.random() * 5) + 8;
-          else if (rank === 3) deltaElo = -(Math.floor(Math.random() * 5) + 8);
-          else deltaElo = -(Math.floor(Math.random() * 9) + 24);
-        }
+        const deltaElo = settlement.allEloDeltas[p.id] ?? 0;
 
         const chopsDone = matchReport?.turns.filter(t => t.isChop && t.playerId === p.id).length || 0;
         const congsGiven = (engine.winners[0]?.id === p.id)
@@ -239,7 +293,7 @@ export function settleCompletedMatch(engine: GameEngine): void {
       });
 
     const eloDeltasMap: Record<string, number> = {
-      p0: settlement.eloDelta
+      [humanPlayerId]: settlement.eloDelta
     };
     botResults.forEach(b => {
       eloDeltasMap[b.botId] = b.deltaElo;

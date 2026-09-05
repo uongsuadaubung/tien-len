@@ -4,12 +4,12 @@ export interface MobileBottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
   title: React.ReactNode;
-  subtitle: string | null;
-  icon: React.ReactNode | null;
-  headerRight: React.ReactNode | null;
-  footer: React.ReactNode | null;
+  subtitle?: string;
+  icon?: React.ReactNode;
+  headerRight?: React.ReactNode;
+  footer?: React.ReactNode;
   children: React.ReactNode;
-  className: string | null;
+  className?: string;
 }
 
 export const MobileBottomSheet: React.FC<MobileBottomSheetProps> = ({

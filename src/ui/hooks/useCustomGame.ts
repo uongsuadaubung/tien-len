@@ -26,9 +26,9 @@ import { useUserStore } from '../../stores/useUserStore';
 import { t } from '../../locales';
 
 export interface UseCustomGameProps {
-  initialConfig?: Partial<CustomGameModalConfig>;
+  initialConfig: Partial<CustomGameModalConfig> | null;
   onStartCustomGame: (config: CustomGameModalConfig) => void;
-  onClose?: () => void;
+  onClose: (() => void) | null;
 }
 
 export interface UseCustomGameReturn {
@@ -73,6 +73,38 @@ const getSeatLabels = () => [
 ] as const;
 
 /**
+ * Hàm biên giới (boundary resolver): phân giải cấu hình custom game, đảm bảo 100% thuộc tính hợp lệ và non-null
+ */
+export function resolveCustomGameConfig(
+  partial: Partial<CustomGameModalConfig> | null | undefined,
+  playerCoins: number
+): CustomGameModalConfig {
+  const resolvedPlayerCount = normalizePlayerCount(partial?.playerCount);
+  const initialBet = Math.min(
+    partial?.settings?.betAmount ?? ECONOMY_CONSTANTS.DEFAULT_QUICK_BET,
+    Math.max(1, playerCoins)
+  );
+
+  return {
+    selectedModeId: partial?.selectedModeId ?? 'COUNT_CARDS',
+    playerCount: resolvedPlayerCount,
+    settings: {
+      mode: partial?.settings?.mode ?? 'COUNT_CARDS',
+      betAmount: initialBet,
+      playerCount: resolvedPlayerCount,
+      allowFourPairsCutAnytime: partial?.settings?.allowFourPairsCutAnytime ?? true,
+      instantWinEnabled: partial?.settings?.instantWinEnabled ?? true,
+      soundEnabled: partial?.settings?.soundEnabled ?? true,
+      prohibitEndingWithTwo: partial?.settings?.prohibitEndingWithTwo ?? true,
+      threeSpadesEndingBonus: partial?.settings?.threeSpadesEndingBonus ?? true,
+      cascadeChopEnabled: partial?.settings?.cascadeChopEnabled ?? true
+    },
+    botPersonaIds: partial?.botPersonaIds ?? ['BOT_ELO_850', 'BOT_ELO_1150', 'BOT_ELO_1750'],
+    customBotConfigs: partial?.customBotConfigs ?? [{}, {}, {}]
+  };
+}
+
+/**
  * Custom hook quản lý toàn bộ trạng thái và nghiệp vụ cho Xưởng Tùy Biến Trận Đấu Sandbox
  */
 export function useCustomGame({
@@ -84,34 +116,15 @@ export function useCustomGame({
   const playerCoins = profile.coins;
   const allPersonas = useMemo(() => getAllBotConfigs(), []);
 
-  const initialBet = Math.min(
-    initialConfig?.settings?.betAmount || ECONOMY_CONSTANTS.DEFAULT_QUICK_BET,
-    Math.max(1, playerCoins)
+  const initialResolved = useMemo(
+    () => resolveCustomGameConfig(initialConfig, playerCoins),
+    [initialConfig, playerCoins]
   );
 
-  const [playerCount, setPlayerCount] = useState<PlayerCount>(
-    normalizePlayerCount(initialConfig?.playerCount)
-  );
-
-  const [settings, setSettings] = useState<GameSettings>({
-    mode: initialConfig?.settings?.mode || 'COUNT_CARDS',
-    betAmount: initialBet,
-    playerCount: normalizePlayerCount(initialConfig?.playerCount),
-    allowFourPairsCutAnytime: initialConfig?.settings?.allowFourPairsCutAnytime ?? true,
-    instantWinEnabled: initialConfig?.settings?.instantWinEnabled ?? true,
-    soundEnabled: initialConfig?.settings?.soundEnabled ?? true,
-    prohibitEndingWithTwo: initialConfig?.settings?.prohibitEndingWithTwo ?? true,
-    threeSpadesEndingBonus: initialConfig?.settings?.threeSpadesEndingBonus ?? true,
-    cascadeChopEnabled: initialConfig?.settings?.cascadeChopEnabled ?? true
-  });
-
-  const [botPersonaIds, setBotPersonaIds] = useState<BotPersonaIdTuple>(
-    initialConfig?.botPersonaIds || ['BOT_ELO_850', 'BOT_ELO_1150', 'BOT_ELO_1750']
-  );
-
-  const [customBotConfigs, setCustomBotConfigs] = useState<CustomBotConfigTuple<BotConfig>>(
-    initialConfig?.customBotConfigs || [{}, {}, {}]
-  );
+  const [playerCount, setPlayerCount] = useState<PlayerCount>(initialResolved.playerCount);
+  const [settings, setSettings] = useState<GameSettings>(initialResolved.settings);
+  const [botPersonaIds, setBotPersonaIds] = useState<BotPersonaIdTuple>(initialResolved.botPersonaIds);
+  const [customBotConfigs, setCustomBotConfigs] = useState<CustomBotConfigTuple<BotConfig>>(initialResolved.customBotConfigs);
 
   const [choppingMultiplier, setChoppingMultiplier] = useState<number>(1);
   const [congEnabled, setCongEnabled] = useState<boolean>(true);
@@ -119,7 +132,7 @@ export function useCustomGame({
   const [activeTab, setActiveTab] = useState<CustomGameTabType>('MODE_RULES');
   const [activeBotSeatIndex, setActiveBotSeatIndex] = useState<number>(0);
 
-  const depositRequired = calculateRequiredDeposit(settings.betAmount, choppingMultiplier);
+  const depositRequired = calculateRequiredDeposit(settings.betAmount);
   const isInsufficientCoins = playerCoins < settings.betAmount;
   const actualDeposit = Math.min(playerCoins, depositRequired);
 
@@ -197,8 +210,8 @@ export function useCustomGame({
   }, [isInsufficientCoins, onClose, onStartCustomGame, playerCount, playerCoins, settings, botPersonaIds, customBotConfigs]);
 
   const activeBotCount = playerCount - 1;
-  const currentActivePersona = BOT_PERSONAS[botPersonaIds[activeBotSeatIndex]] || BOT_PERSONAS.BOT_ELO_1150;
-  const currentActiveCustom = customBotConfigs[activeBotSeatIndex] || {};
+  const currentActivePersona = BOT_PERSONAS[botPersonaIds[activeBotSeatIndex]] ?? BOT_PERSONAS.BOT_ELO_1150;
+  const currentActiveCustom = customBotConfigs[activeBotSeatIndex] ?? {};
   const currentConfig: BotConfig = useMemo(() => ({
     ...currentActivePersona,
     ...currentActiveCustom

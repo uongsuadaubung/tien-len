@@ -38,7 +38,7 @@ const BOT_PRESETS: readonly BotPreset[] = [
 export interface MobileCustomGameViewProps {
   isOpen: boolean;
   onClose: () => void;
-  initialConfig?: Partial<CustomGameModalConfig>;
+  initialConfig: Partial<CustomGameModalConfig> | null;
   onStartCustomGame: (config: CustomGameModalConfig) => void;
 }
 
@@ -137,7 +137,6 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
           </div>
         </div>
       }
-      className={null}
     >
       <div className="space-y-4 pb-4 select-none">
         {/* TABS */}

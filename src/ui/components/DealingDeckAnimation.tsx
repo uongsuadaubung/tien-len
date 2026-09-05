@@ -48,6 +48,18 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
   const isFinishedRef = useRef<boolean>(false);
   const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
 
+  const playersRef = useRef(players);
+  playersRef.current = players;
+
+  const onDealCardRef = useRef(onDealCard);
+  onDealCardRef.current = onDealCard;
+
+  const onDealCompleteRef = useRef(onDealComplete);
+  onDealCompleteRef.current = onDealComplete;
+
+  const onSkipRef = useRef(onSkip);
+  onSkipRef.current = onSkip;
+
   const clearAllTimeouts = () => {
     timeoutsRef.current.forEach(t => clearTimeout(t));
     timeoutsRef.current = [];
@@ -55,11 +67,11 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
 
   useEffect(() => {
     if (!isDealing) {
+      isFinishedRef.current = false;
       clearAllTimeouts();
       setFlyingCards([]);
       setRemainingDeckCards(totalDeckCards);
       setIsShuffling(false);
-      isFinishedRef.current = false;
       return;
     }
 
@@ -73,15 +85,13 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
 
     // 2. Giai đoạn Chia bài xoay tròn
     const startDealingTimeout = setTimeout(() => {
+      if (isFinishedRef.current) return;
       setIsShuffling(false);
 
-      const seatIds = (players && players.length >= actualPlayerCount)
-        ? players.slice(0, actualPlayerCount).map(p => `seat-${p.id}`)
-        : actualPlayerCount === 2 
-        ? ['seat-p0', 'seat-p1']
-        : actualPlayerCount === 3
-        ? ['seat-p0', 'seat-p1', 'seat-p2']
-        : ['seat-p0', 'seat-p1', 'seat-p2', 'seat-p3'];
+      const currentPlayers = playersRef.current;
+      const seatIds = (currentPlayers && currentPlayers.length >= actualPlayerCount)
+        ? currentPlayers.slice(0, actualPlayerCount).map(p => `seat-${p.id}`)
+        : Array.from({ length: actualPlayerCount }, (_, idx) => `seat-player-${idx}`);
 
       const totalCards = actualPlayerCount * 13;
       const delayPerCard = UI_TIMINGS.DEAL_CARD_INTERVAL_MS;
@@ -100,7 +110,8 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
 
           // Đo đạc tọa độ thực tế giữa tâm cỗ bài và ghế người nhận
           const deckEl = deckRef.current || document.getElementById('dealing-center-deck');
-          const targetEl = document.getElementById(targetSeatId) || document.getElementById(`seat-p${playerIndex}`);
+          const targetEl = document.getElementById(targetSeatId) 
+            || (currentPlayers?.[playerIndex] ? document.getElementById(`seat-${currentPlayers[playerIndex].id}`) : null);
 
           if (deckEl && targetEl) {
             const dR = deckEl.getBoundingClientRect();
@@ -154,7 +165,7 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
           // Khi lá bài bay tới ghế -> cập nhật số bài tăng lên
           const hitTimeout = setTimeout(() => {
             if (isFinishedRef.current) return;
-            onDealCard(playerIndex, targetCount);
+            onDealCardRef.current(playerIndex, targetCount);
           }, UI_TIMINGS.DEAL_HIT_DELAY_MS);
           timeoutsRef.current.push(hitTimeout);
 
@@ -164,9 +175,9 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
               if (isFinishedRef.current) return;
               isFinishedRef.current = true;
               for (let p = 0; p < actualPlayerCount; p++) {
-                onDealCard(p, 13);
+                onDealCardRef.current(p, 13);
               }
-              onDealComplete();
+              onDealCompleteRef.current();
             }, UI_TIMINGS.DEAL_FINISH_DELAY_MS);
             timeoutsRef.current.push(finishTimeout);
           }
@@ -174,28 +185,29 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
 
         timeoutsRef.current.push(t);
       }
-    }, 400);
+    }, UI_TIMINGS.SHUFFLE_DURATION_MS);
 
     timeoutsRef.current.push(startDealingTimeout);
 
     return () => {
       clearAllTimeouts();
     };
-  }, [isDealing, actualPlayerCount, players]);
+  }, [isDealing]);
 
   const handleSkip = () => {
     isFinishedRef.current = true;
     clearAllTimeouts();
     setFlyingCards([]);
     setRemainingDeckCards(0);
+    setIsShuffling(false);
     // Cập nhật đủ 13 lá cho tất cả
     for (let p = 0; p < actualPlayerCount; p++) {
-      onDealCard(p, 13);
+      onDealCardRef.current(p, 13);
     }
-    if (onSkip) {
-      onSkip();
+    if (onSkipRef.current) {
+      onSkipRef.current();
     } else {
-      onDealComplete();
+      onDealCompleteRef.current();
     }
   };
 
@@ -223,12 +235,14 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
             {/* Các lớp cạnh bài xếp chồng */}
             {Array.from({ length: stackLayersCount }).map((_, idx) => {
               const offset = (stackLayersCount - idx) * 1.5;
+              const shuffleOffset = isShuffling ? (idx % 2 === 0 ? 7 : -7) : 0;
+              const shuffleRot = isShuffling ? (idx % 2 === 0 ? 3 : -3) : 0;
               return (
                 <div
                   key={idx}
-                  className="absolute inset-0 rounded-md shadow-xs pointer-events-none"
+                  className="absolute inset-0 rounded-md shadow-xs pointer-events-none transition-transform duration-300"
                   style={{
-                    transform: `translate3d(${(idx % 2 === 0 ? 0.3 : -0.3)}px, ${offset}px, -${offset}px)`,
+                    transform: `translate3d(${(idx % 2 === 0 ? 0.3 : -0.3) + shuffleOffset}px, ${offset}px, -${offset}px) rotate(${shuffleRot}deg)`,
                     border: '1px solid #ca8a04',
                     background: 'linear-gradient(90deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)'
                   }}

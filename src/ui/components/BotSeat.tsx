@@ -1,24 +1,26 @@
 import React from 'react';
 import { Player } from '../../engine/types';
 import { BotConfig } from '../../ai/types';
+import { createCampaignBotEntity } from '../../engine/campaign';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { useViewStore } from '../../stores/useViewStore';
 import { useI18n } from '../../locales';
 
 interface BotSeatProps {
-  player: Player | null;
-  botConfig: BotConfig | null;
+  player: Player;
+  botConfig: BotConfig;
   isCurrentTurn: boolean;
   position: 'left' | 'top' | 'right';
   isLeader: boolean;
   displayCardCount: number | null;
   isDealing: boolean;
   thoughtText: string | null;
-  size?: 'compact' | 'normal';
+  size: 'compact' | 'normal' | null;
 }
 
 export const BotSeat: React.FC<BotSeatProps> = ({
   player,
+  botConfig,
   isCurrentTurn,
   position = 'top',
   isLeader,
@@ -28,23 +30,20 @@ export const BotSeat: React.FC<BotSeatProps> = ({
   size = 'normal'
 }) => {
   const { t } = useI18n();
-  if (!player) return null;
 
   const isCompact = size === 'compact';
 
   const handleInspectBot = () => {
-    const allBots = useEcosystemStore.getState().bots;
-    const targetId = player.botPersonaId || player.id;
-    const targetBot = allBots.find(b => b.id === targetId || b.name === player.name) || null;
-    if (targetBot) {
-      useEcosystemStore.getState().setSelectedBot(targetBot);
-      useViewStore.getState().openModal('BOT_PROFILE');
-    }
+    const ecosystemBots = useEcosystemStore.getState().bots;
+    const botEntity = ecosystemBots.find(b => b.id === botConfig.id || b.name === botConfig.name) 
+      ?? createCampaignBotEntity(botConfig, ecosystemBots);
+    useEcosystemStore.getState().setSelectedBot(botEntity);
+    useViewStore.getState().openModal({ type: 'BOT_PROFILE', bot: botEntity });
   };
 
   const cardCount = isDealing 
     ? (displayCardCount ?? 0) 
-    : (player.hand && player.hand.length > 0 ? player.hand.length : (displayCardCount ?? 0));
+    : (player.hand.length > 0 ? player.hand.length : (displayCardCount ?? 0));
   const visibleCards = Math.min(13, cardCount);
 
   if (isCompact) {

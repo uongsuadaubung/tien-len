@@ -1,18 +1,29 @@
 import { create } from 'zustand';
-import type { BotConfig } from '../ai/types';
-import { useViewStore } from './useViewStore';
+import { useViewStore, type MatchmakingData } from './useViewStore';
 
-export interface MatchmakingData {
-  betAmount: number;
-  modeName: string;
-  botConfigs: BotConfig[];
-  playerCount: number;
-  onStart: () => void;
+export type { MatchmakingData };
+
+/**
+ * Các trạng thái phiên ghép trận theo Type State Pattern (Discriminated Unions)
+ */
+export interface IdleMatchmakingSession {
+  readonly status: 'IDLE';
+  readonly isSearching: false;
+  readonly pendingMatch: null;
 }
 
+export interface SearchingMatchmakingSession {
+  readonly status: 'SEARCHING';
+  readonly isSearching: true;
+  readonly pendingMatch: MatchmakingData; // ✅ Non-nullable 100% khi đang ghép trận
+}
+
+export type MatchmakingSession = IdleMatchmakingSession | SearchingMatchmakingSession;
+
 export interface MatchmakingState {
-  isSearching: boolean;
-  pendingMatch: MatchmakingData | null;
+  readonly session: MatchmakingSession;
+  readonly isSearching: boolean;
+  readonly pendingMatch: MatchmakingData | null;
   
   // Actions
   setPendingMatch: (match: MatchmakingData | null) => void;
@@ -23,36 +34,70 @@ export interface MatchmakingState {
 }
 
 export const useMatchmakingStore = create<MatchmakingState>((set, get) => ({
+  session: {
+    status: 'IDLE',
+    isSearching: false,
+    pendingMatch: null
+  },
   isSearching: false,
   pendingMatch: null,
 
   setPendingMatch: (match) => {
-    set({ pendingMatch: match, isSearching: match !== null });
+    if (match !== null) {
+      set({
+        session: { status: 'SEARCHING', isSearching: true, pendingMatch: match },
+        isSearching: true,
+        pendingMatch: match
+      });
+    } else {
+      set({
+        session: { status: 'IDLE', isSearching: false, pendingMatch: null },
+        isSearching: false,
+        pendingMatch: null
+      });
+    }
   },
 
   startMatchmaking: (match) => {
-    set({ pendingMatch: match, isSearching: true });
-    useViewStore.getState().openModal('MATCHMAKING');
+    set({
+      session: { status: 'SEARCHING', isSearching: true, pendingMatch: match },
+      isSearching: true,
+      pendingMatch: match
+    });
+    useViewStore.getState().openModal({
+      type: 'MATCHMAKING',
+      match
+    });
   },
 
   cancelMatchmaking: () => {
     useViewStore.getState().closeModal('MATCHMAKING');
-    set({ pendingMatch: null, isSearching: false });
+    set({
+      session: { status: 'IDLE', isSearching: false, pendingMatch: null },
+      isSearching: false,
+      pendingMatch: null
+    });
   },
 
   executeMatch: () => {
-    const { pendingMatch } = get();
-    if (!pendingMatch) return;
-    
-    useViewStore.getState().closeModal('MATCHMAKING');
-    set({ isSearching: false });
-    
-    const onStart = pendingMatch.onStart;
-    set({ pendingMatch: null });
-    onStart();
+    const { session } = get();
+    if (session.status === 'SEARCHING') {
+      useViewStore.getState().closeModal('MATCHMAKING');
+      set({
+        session: { status: 'IDLE', isSearching: false, pendingMatch: null },
+        isSearching: false,
+        pendingMatch: null
+      });
+      // ✅ Dữ liệu onStart bảo đảm tồn tại non-nullable
+      session.pendingMatch.onStart();
+    }
   },
 
   resetMatchmaking: () => {
-    set({ pendingMatch: null, isSearching: false });
+    set({
+      session: { status: 'IDLE', isSearching: false, pendingMatch: null },
+      isSearching: false,
+      pendingMatch: null
+    });
   }
 }));

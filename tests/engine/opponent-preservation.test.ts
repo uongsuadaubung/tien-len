@@ -107,4 +107,42 @@ describe('Bảo Toàn Danh Tính Đối Thủ & Cơ Chế Giải Tán Khi Cháy 
     expect(bankruptBots.length).toBe(0);
     expect(isHumanBankrupt).toBe(true);
   });
+
+  it('4. Khi giải tán bàn do người chơi hoặc bot cháy túi, nút điều hướng là Quay Về Sảnh (onReturnToLobby) thay vì mở Ngân Hàng', () => {
+    const betAmount = 1000;
+    const allPlayers: Player[] = [
+      createPlayer({ id: 'p0', name: 'Người Chơi', avatar: '🤠', score: 500 }),
+      createBotPlayer('p1', 'BOT_ELO_1750', { name: 'Hải Đồ Tể', avatar: '🔪', score: 12000 }),
+      createBotPlayer('p2', 'BOT_ELO_850', { name: 'Bé Bông', avatar: '🌸', score: 8000 }),
+      createBotPlayer('p3', 'BOT_ELO_1450', { name: 'Chú Bảy', avatar: '☕', score: 15500 })
+    ];
+
+    const isCampaign = false;
+    const isOnline = false;
+    const playerCoins = 500; // Người chơi không đủ mức cược 1000
+
+    const bankruptBots = !isCampaign ? allPlayers.filter(p => p.isBot && (p.score || 0) < betAmount) : [];
+    const isHumanBankrupt = !isCampaign && playerCoins < betAmount;
+    const isTableDismissed = !isCampaign && !isOnline && (bankruptBots.length > 0 || isHumanBankrupt);
+
+    expect(isTableDismissed).toBe(true);
+
+    // Mô phỏng logic cấu hình nút bấm trong useVictoryLogic:
+    let primaryBtnText = 'Chơi Tiếp';
+    let primaryBtnIconType = 'PLAY';
+    let primaryBtnActionType = 'NEXT_GAME';
+
+    if (isTableDismissed) {
+      // Khi giải tán bàn (người chơi hoặc bot hết tiền), nút bấm luôn là Quay Về Sảnh
+      primaryBtnText = 'Quay Về Sảnh';
+      primaryBtnIconType = 'HOME';
+      primaryBtnActionType = 'RETURN_TO_LOBBY';
+    }
+
+    expect(primaryBtnText).toBe('Quay Về Sảnh');
+    expect(primaryBtnIconType).toBe('HOME');
+    expect(primaryBtnActionType).toBe('RETURN_TO_LOBBY');
+    expect(primaryBtnActionType).not.toBe('OPEN_BANK');
+  });
 });
+

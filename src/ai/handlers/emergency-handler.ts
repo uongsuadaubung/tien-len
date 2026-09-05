@@ -24,7 +24,7 @@ export class EmergencyRuleHandler extends BotDecisionHandler {
 
     const ruleContext: RuleDecisionContext = {
       hand: context.hand,
-      currentRoundLeadingMove: context.currentRoundLeadingMove,
+      currentRoundLeadingMove: context.currentRoundLeadingMove ?? null,
       isFirstMoveOfGame: context.isFirstMoveOfGame,
       isLeadMove: context.isLeadMove,
       tracker: context.tracker,
@@ -43,10 +43,16 @@ export class EmergencyRuleHandler extends BotDecisionHandler {
 
     const emergency = compositeStrategy.evaluateEmergencyOverrides(ruleContext, validMoves);
     if (emergency) {
-      return buildBotDecision(emergency.type, {
-        cards: emergency.cards || null,
-        combination: emergency.combination || null,
-        reason: emergency.reason || null,
+      if (emergency.type === 'PLAY') {
+        return buildBotDecision('PLAY', {
+          cards: [...emergency.cards],
+          combination: emergency.combination,
+          reason: emergency.reason,
+          strategyUsed: 'EMERGENCY_OVERRIDE'
+        });
+      }
+      return buildBotDecision('PASS', {
+        reason: emergency.reason,
         strategyUsed: 'EMERGENCY_OVERRIDE'
       });
     }

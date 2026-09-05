@@ -17,6 +17,25 @@ import {
   Target 
 } from 'lucide-react';
 
+const NEWS_TYPE_STYLES: Record<string, { cardClass: string; defaultAvatar: string }> = {
+  BANKRUPTCY: {
+    cardClass: 'bg-[var(--color-ruby-bg)] border-[var(--color-ruby-border)] text-[var(--color-ruby-text)]',
+    defaultAvatar: '🚨'
+  },
+  WIN_STREAK: {
+    cardClass: 'border-orange-500/30 text-orange-200',
+    defaultAvatar: '🔥'
+  },
+  BIG_WIN: {
+    cardClass: 'border-[var(--color-gold-border)] bg-[var(--color-gold-dim)]',
+    defaultAvatar: '💰'
+  }
+};
+const DEFAULT_NEWS_STYLE = {
+  cardClass: 'border-[var(--border-card)]',
+  defaultAvatar: '🎉'
+};
+
 export const EcosystemModal: React.FC = () => {
   const { t } = useI18n();
   const { isEcosystemOpen, closeModal } = useViewStore();
@@ -363,26 +382,16 @@ export const EcosystemModal: React.FC = () => {
               </div>
             ) : (
               newsfeed.map((news) => {
-                const isBankruptcy = news.type === 'BANKRUPTCY';
-                const isStreak = news.type === 'WIN_STREAK';
-                const isBigWin = news.type === 'BIG_WIN';
+                const style = NEWS_TYPE_STYLES[news.type] || DEFAULT_NEWS_STYLE;
 
                 return (
                   <Card
                     key={news.id}
                     variant="card"
-                    className={`p-3.5 rounded-xl border flex items-start gap-3 transition-all ${
-                      isBankruptcy
-                        ? 'bg-[var(--color-ruby-bg)] border-[var(--color-ruby-border)] text-[var(--color-ruby-text)]'
-                        : isStreak
-                        ? 'border-orange-500/30 text-orange-200'
-                        : isBigWin
-                        ? 'border-[var(--color-gold-border)] bg-[var(--color-gold-dim)]'
-                        : 'border-[var(--border-card)]'
-                    }`}
+                    className={`p-3.5 rounded-xl border flex items-start gap-3 transition-all ${style.cardClass}`}
                   >
                     <div className="w-10 h-10 rounded-xl bg-[var(--bg-input)] border border-[var(--border-container)] flex items-center justify-center text-xl flex-shrink-0 shadow-inner">
-                      {news.avatar || (isBankruptcy ? '🚨' : isStreak ? '🔥' : isBigWin ? '💰' : '🎉')}
+                      {news.avatar || style.defaultAvatar}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold leading-relaxed text-[var(--text-primary)]">{news.message}</p>

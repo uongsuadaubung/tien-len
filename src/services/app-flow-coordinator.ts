@@ -1,6 +1,5 @@
 import { 
   OfflineMatchDriver, 
-  type MatchSnapshot, 
   type MatchCompletionResult, 
   type TableSessionConfig 
 } from '../engine/offline-match-driver';
@@ -34,6 +33,7 @@ import type { CustomGameModalConfig } from '../ui/web/modals/CustomGameModal';
 import type { BotConfig } from '../ai/types';
 import { assertValidMatchStartup } from '../engine/invariants/match-invariants';
 import { settleCompletedMatch } from './match-settlement-service';
+import { CardTracker } from '../ai/card-tracker';
 
 export class AppFlowCoordinator {
   private static instance: AppFlowCoordinator | null = null;
@@ -133,7 +133,6 @@ export class AppFlowCoordinator {
           },
           customBotPersonaIds: botIds,
           customBotConfigs: botConfigs,
-          campaignChapter: null,
           playerCount: config.playerCount
         });
 
@@ -162,10 +161,6 @@ export class AppFlowCoordinator {
     const strategy = resolveStrategyForMatch('CAMPAIGN', 'COUNT_CARDS');
     const setup = strategy.setupMatch({
       profile: liveProfile,
-      customRules: null,
-      customSettings: null,
-      customBotPersonaIds: null,
-      customBotConfigs: null,
       campaignChapter: chapter,
       playerCount: 4
     });
@@ -215,11 +210,9 @@ export class AppFlowCoordinator {
         const strategy = resolveStrategyForMatch('QUICK', config.settings.mode);
         const setup = strategy.setupMatch({
           profile: liveProfile,
-          customRules: null,
           customSettings: config.settings,
           customBotPersonaIds: config.botPersonaIds,
           customBotConfigs: config.customBotConfigs,
-          campaignChapter: null,
           playerCount: config.playerCount
         });
 
@@ -266,10 +259,6 @@ export class AppFlowCoordinator {
     });
     this.driver = driver;
 
-    driver.subscribe((snapshot: MatchSnapshot) => {
-      useGameStore.getState().applyMatchSnapshot(snapshot);
-    });
-
     driver.subscribeMatchState((matchState) => {
       useGameStore.getState().applyMatchState(matchState);
     });
@@ -280,7 +269,7 @@ export class AppFlowCoordinator {
 
     // 2. Tính cọc và trừ cọc an toàn
     const multiplier = config.rules.chopping.multiplier || 1;
-    const targetDeposit = calculateRequiredDeposit(betAmount, multiplier);
+    const targetDeposit = calculateRequiredDeposit(betAmount);
     let actualDeposit = 0;
     if (betAmount > 0) {
       actualDeposit = Math.min(currentProfile.coins, targetDeposit);
@@ -313,6 +302,7 @@ export class AppFlowCoordinator {
 
     // 5. Đồng bộ cấu hình vào Zustand Store (Single Source of Truth)
     const gameStore = useGameStore.getState();
+    gameStore.setMyPlayerId(currentProfile.id);
     gameStore.resetMatchState();
     gameStore.setInstantWinType(undefined);
     gameStore.setActiveGameType(config.gameType === 'CAMPAIGN' ? 'CAMPAIGN' : 'QUICK');
@@ -338,12 +328,12 @@ export class AppFlowCoordinator {
   public launchOfflineMatch(
     gameNumber: number = 1,
     options?: {
-      playerCount?: number | null;
-      customRules?: GameRules | DeepPartial<GameRules> | null;
-      customSettings?: Partial<GameSettings> | null;
-      customBotPersonaIds?: string[] | null;
-      customBotConfigs?: Partial<BotConfig>[] | null;
-      campaignChapter?: CampaignChapter | null;
+      playerCount?: number;
+      customRules?: GameRules | DeepPartial<GameRules>;
+      customSettings?: Partial<GameSettings>;
+      customBotPersonaIds?: string[];
+      customBotConfigs?: Partial<BotConfig>[];
+      campaignChapter?: CampaignChapter;
       activeGameType?: 'QUICK' | 'CAMPAIGN';
       preserveWinnerId?: string;
     }
@@ -355,12 +345,12 @@ export class AppFlowCoordinator {
       const strategy = resolveStrategyForMatch(gameType, mode);
       const setup = strategy.setupMatch({
         profile,
-        customRules: options?.customRules ?? null,
-        customSettings: options?.customSettings ?? null,
-        customBotPersonaIds: options?.customBotPersonaIds ?? null,
-        customBotConfigs: options?.customBotConfigs ?? null,
-        campaignChapter: options?.campaignChapter ?? null,
-        playerCount: options?.playerCount ?? null
+        customRules: options?.customRules,
+        customSettings: options?.customSettings,
+        customBotPersonaIds: options?.customBotPersonaIds,
+        customBotConfigs: options?.customBotConfigs,
+        campaignChapter: options?.campaignChapter,
+        playerCount: options?.playerCount
       });
 
       this.startTable({
@@ -487,7 +477,7 @@ export class AppFlowCoordinator {
 
     // Trừ cọc cho ván mới
     const multiplier = driver.tableConfig.rules.chopping.multiplier || 1;
-    const targetDeposit = calculateRequiredDeposit(betAmount, multiplier);
+    const targetDeposit = calculateRequiredDeposit(betAmount);
     let actualDeposit = 0;
     if (betAmount > 0) {
       actualDeposit = Math.min(liveProfile.coins, targetDeposit);
@@ -539,7 +529,8 @@ export class AppFlowCoordinator {
     }
 
     if (!this.driver || !this.driver.engine) return false;
-    const player = this.driver.engine.getPlayer(gameStore.myPlayerId);
+    const targetPlayerId = gameStore.myPlayerId || this.driver.localPlayerId;
+    const player = this.driver.engine.getPlayer(targetPlayerId) ?? this.driver.engine.players[0];
     if (!player) return false;
 
     const cardsToPlay = player.hand.filter(c => selectedIds.has(c.id));
@@ -562,7 +553,11 @@ export class AppFlowCoordinator {
     }
 
     if (!this.driver || !this.driver.engine) return false;
-    const res = this.driver.passTurn(gameStore.myPlayerId);
+    const targetPlayerId = gameStore.myPlayerId || this.driver.localPlayerId;
+    const player = this.driver.engine.getPlayer(targetPlayerId) ?? this.driver.engine.players[0];
+    if (!player) return false;
+
+    const res = this.driver.passTurn(player.id);
     if (res.success) {
       gameStore.clearCardSelection();
       return true;
@@ -572,7 +567,8 @@ export class AppFlowCoordinator {
 
   public autoSortHand(): void {
     if (this.driver) {
-      this.driver.autoSort('p0');
+      const myPlayerId = useGameStore.getState().myPlayerId || this.driver.localPlayerId;
+      this.driver.autoSort(myPlayerId);
     }
   }
 
@@ -588,15 +584,15 @@ export class AppFlowCoordinator {
     }
   }
 
-  public getAiHint(playerId: string = 'p0') {
+  public getAiHint(playerId: string) {
     return this.driver ? this.driver.getAiHint(playerId) : null;
   }
 
-  public getPlayerTracker(playerId: string = 'p0') {
-    return this.driver ? this.driver.getTracker(playerId) : null;
+  public getPlayerTracker(playerId: string): CardTracker | null {
+    return this.driver !== null ? this.driver.getTracker(playerId) : null;
   }
 
-  public getValidMoves(playerId: string = 'p0') {
+  public getValidMoves(playerId: string) {
     return this.driver ? this.driver.getValidMoves(playerId) : [];
   }
 

@@ -47,8 +47,6 @@ export const MobileBankView: React.FC<MobileBankViewProps> = ({
           🪙 {profile.coins.toLocaleString()} Xu
         </Badge>
       }
-      footer={null}
-      className={null}
     >
       <div className="space-y-4 pb-6 select-none">
         {/* Thông báo Thành công / Thất bại */}

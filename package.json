@@ -10,8 +10,9 @@
     "lint": "eslint src/",
     "test": "bun test",
     "test:coverage": "bun test --coverage",
-    "benchmark": "bun test tests/ai/bot-benchmark.test.ts",
-    "analyze:log": "bun run scripts/analyze-match-log.ts"
+    "analyze:log": "bun run scripts/analyze-match-log.ts",
+    "debug:log": "bun run scripts/debug-match-details.ts",
+    "verify:replay": "bun run scripts/verify-replay-fixes.ts"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",

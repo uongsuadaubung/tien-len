@@ -1,6 +1,6 @@
 import React from 'react';
 import { useViewStore } from '../../../stores/useViewStore';
-import { useGameStore } from '../../../stores/useGameStore';
+import { useGameStore, type CampaignResultMeta } from '../../../stores/useGameStore';
 import { MobileQuestsView } from '../views/MobileQuestsView';
 import { MobileLuckyWheelView } from '../views/MobileLuckyWheelView';
 import { MobileBankView } from '../views/MobileBankView';
@@ -22,33 +22,23 @@ import { MobileMatchmakingSheet } from './MobileMatchmakingSheet';
 import { MobileSyncConflictView } from '../views/MobileSyncConflictView';
 import { MobileOnlineRoomView } from '../views/MobileOnlineRoomView';
 import { MobileOnlineDisbandView } from '../views/MobileOnlineDisbandView';
-import { useEcosystemStore } from '../../../stores/useEcosystemStore';
 import { useOnlineStore } from '../../../stores/useOnlineStore';
-import { CardTracker } from '../../../ai/card-tracker';
 import { CampaignChapter } from '../../../engine/campaign';
 import { normalizePlayerCount } from '../../../engine/types';
 import { useMatchmakingStore } from '../../../stores/useMatchmakingStore';
-import { appFlowCoordinator } from '../../../services/app-flow-coordinator';
 
 export interface MobileGameSheetsProps {
-  player0Tracker?: CardTracker | null;
   onStartQuickGame: (config: QuickSetupConfig) => void;
   onStartCustomGame: (config: CustomGameModalConfig) => void;
   onSelectCampaignChapter: (chapter: CampaignChapter) => void;
   onNextGame: () => void;
   onReturnToLobby: () => void;
   onConfirmForfeit: () => void;
-  campaignResultMeta: {
-    isUnlockedNext: boolean;
-    isAllCompleted: boolean;
-    nextChapter: CampaignChapter | null;
-    currentWins: number;
-  } | null;
+  campaignResultMeta?: CampaignResultMeta | null;
   onOpenCampaignMap: (() => void) | null;
 }
 
 export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
-  player0Tracker,
   onStartQuickGame,
   onStartCustomGame,
   onSelectCampaignChapter,
@@ -58,14 +48,13 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
   campaignResultMeta,
   onOpenCampaignMap
 }) => {
-  const { pendingMatch, cancelMatchmaking, executeMatch } = useMatchmakingStore();
+  const { cancelMatchmaking, executeMatch } = useMatchmakingStore();
   // Modal Store
   const {
+    activeModal,
     isSettingsOpen,
     isCustomGameModalOpen,
     isQuickSetupOpen,
-    isMatchmakingOpen,
-    isXRayOpen,
     isVictoryOpen,
     isQuestModalOpen,
     isLuckyWheelOpen,
@@ -74,15 +63,11 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
     isNameSetupOpen,
     isRulesOpen,
     isEcosystemOpen,
-    isBotProfileOpen,
-    isSyncConflictOpen,
     isOnlineRoomOpen,
-    syncConflictData,
     openModal,
     closeModal
   } = useViewStore();
 
-  const { selectedBot } = useEcosystemStore();
   const { disbandNotice, clearDisbandNotice } = useOnlineStore();
 
   // Game Store
@@ -92,12 +77,8 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
     playerCount,
     botPersonaIds,
     customBotConfigs,
-    players,
-    currentHint,
-    myPlayerId
+    currentHint
   } = useGameStore();
-
-  const localPlayer = players.find(p => p.id === myPlayerId) || players[0];
 
   return (
     <>
@@ -146,25 +127,21 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
       )}
 
       {/* 4. Màn Hình Ghép Trận Đấu Radar Native Mobile */}
-      {isMatchmakingOpen && pendingMatch && (
+      {activeModal?.type === 'MATCHMAKING' && (
         <MobileMatchmakingSheet
-          isOpen={isMatchmakingOpen}
+          match={activeModal.match}
           onCancel={cancelMatchmaking}
           onMatchReady={executeMatch}
-          betAmount={pendingMatch.betAmount}
-          modeName={pendingMatch.modeName}
-          matchedBots={pendingMatch.botConfigs}
-          playerCount={pendingMatch.playerCount}
         />
       )}
 
       {/* 5. Trang Soi Bài X-Ray (Full Screen Sheet) */}
-      {isXRayOpen && (
+      {activeModal?.type === 'XRAY' && (
         <XRayInspector
-          isOpen={isXRayOpen}
+          isOpen={true}
           onClose={() => closeModal('XRAY')}
-          tracker={player0Tracker || appFlowCoordinator.getPlayerTracker('p0') || new CardTracker(localPlayer?.hand || [], 1.0)}
-          ownHand={localPlayer?.hand || []}
+          tracker={activeModal.tracker}
+          ownHand={activeModal.ownHand}
           currentHint={currentHint}
         />
       )}
@@ -214,10 +191,21 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
       )}
 
       {/* 11. Ngăn Kéo Xác Nhận Bỏ Cuộc Giữa Trận (Bottom Sheet) */}
-      <ConfirmForfeitModal onConfirmForfeit={onConfirmForfeit} />
+      {activeModal?.type === 'CONFIRM_FORFEIT' && (
+        <ConfirmForfeitModal
+          data={activeModal.data}
+          onClose={() => closeModal('CONFIRM_FORFEIT')}
+          onConfirmForfeit={onConfirmForfeit}
+        />
+      )}
 
       {/* 12. Ngăn Kéo Thông Báo Phạt F5 (Bottom Sheet) */}
-      <F5PenaltyNoticeModal />
+      {activeModal?.type === 'F5_PENALTY_NOTICE' && (
+        <F5PenaltyNoticeModal
+          data={activeModal.data}
+          onClose={() => closeModal('F5_PENALTY_NOTICE')}
+        />
+      )}
 
       {/* 13. Màn Hình Đặt Tên & Cập Nhật Hồ Sơ Native Mobile */}
       {isNameSetupOpen && (
@@ -244,19 +232,18 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
       )}
 
       {/* 16. Trang Hồ Sơ Cao Thủ Bot */}
-      {isBotProfileOpen && selectedBot && (
+      {activeModal?.type === 'BOT_PROFILE' && (
         <BotProfileModal
-          isOpen={isBotProfileOpen}
-          bot={selectedBot}
+          isOpen={true}
+          bot={activeModal.bot}
           onClose={() => closeModal('BOT_PROFILE')}
         />
       )}
 
       {/* 17. Trang Xử Lý Xung Đột Dữ Liệu Đồng Bộ Đám Mây (Native Mobile - Bắt buộc chọn) */}
-      {isSyncConflictOpen && syncConflictData && (
+      {activeModal?.type === 'SYNC_CONFLICT' && (
         <MobileSyncConflictView
-          isOpen={isSyncConflictOpen}
-          conflictData={syncConflictData || null}
+          conflictData={activeModal.data}
           onClose={() => closeModal('SYNC_CONFLICT')}
         />
       )}

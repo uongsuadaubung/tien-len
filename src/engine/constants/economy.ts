@@ -226,13 +226,31 @@ export const ECONOMY_CONSTANTS = {
   /** Điểm Elo bị phạt khi thoát game / F5 giữa trận */
   F5_DISCONNECT_ELO_PENALTY: 30,
 
-  /** Hệ số số lá bài tối đa quy đổi tiền cọc an toàn (26 lá = 2 người chơi x 13 lá) */
+  /** Hệ số số lá bài tối đa quy đổi tiền cọc an toàn: tương đương 1 ván phạt Cóng (26 lá) hoặc 2 ván thua 13 lá */
   DEPOSIT_CARD_MULTIPLIER: 26
 } as const;
 
 /**
- * Tính tiền cọc an toàn yêu cầu cho bàn đấu: 26 * betAmount * choppingMultiplier
+ * Tính tiền cọc an toàn yêu cầu cho bàn đấu:
+ * - Dựa trên hình phạt Cóng tối đa: 26 mức cược (13 lá x 2 theo luật đếm lá chuẩn).
+ * - Hệ số nhân Chặt/Thối không áp dụng cho số lá cọc an toàn.
+ * - Đảm bảo nguồn chân lý duy nhất (Single Source of Truth) cho toàn bộ hệ thống.
  */
-export function calculateRequiredDeposit(betAmount: number, choppingMultiplier: number = 1): number {
-  return ECONOMY_CONSTANTS.DEPOSIT_CARD_MULTIPLIER * betAmount * Math.max(1, choppingMultiplier);
+export function calculateRequiredDeposit(betAmount: number): number {
+  return ECONOMY_CONSTANTS.DEPOSIT_CARD_MULTIPLIER * betAmount;
 }
+
+/**
+ * Tính mức cược an toàn tối đa dựa trên số dư ví hiện có và tỷ lệ phân bổ (fraction)
+ */
+export function calculateMaxSafeBet(coins: number, fraction: number = 1): number {
+  return Math.max(10, Math.floor((coins * fraction) / ECONOMY_CONSTANTS.DEPOSIT_CARD_MULTIPLIER));
+}
+
+/**
+ * Kiểm tra xem người chơi có đủ tiền cọc an toàn cho mức cược này không
+ */
+export function canAffordDeposit(coins: number, betAmount: number): boolean {
+  return coins >= calculateRequiredDeposit(betAmount);
+}
+

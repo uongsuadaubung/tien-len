@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, Sliders } from 'lucide-react';
+import { Play, Sliders, Info } from 'lucide-react';
 import { TableRulesConfigPanel, TableConfigState } from '../../components/TableRulesConfigPanel';
 import { Modal, Button } from '../../primitives';
 import { useQuickSetup, QuickSetupConfig } from '../../hooks/useQuickSetup';
@@ -51,9 +51,16 @@ export const QuickSetupModal: React.FC<QuickSetupModalProps> = ({
       footer={
         <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-xs text-[var(--text-muted)] text-center sm:text-left">
-            <span>{t('customGame.depositRequired', { amount: actualDeposit })}</span>
-            {depositRequired > actualDeposit && (
-              <span className="text-[10px] text-zinc-500 ml-1">({depositRequired.toLocaleString()} Xu)</span>
+            {depositRequired > actualDeposit ? (
+              <span
+                className="inline-flex items-center gap-1 cursor-help underline decoration-dotted decoration-[var(--border-container)]"
+                title={t('customGame.depositStandardTooltip', { standard: depositRequired })}
+              >
+                <span>{t('customGame.depositHeld', { amount: actualDeposit })}</span>
+                <Info className="w-3.5 h-3.5 text-[var(--color-gold)] shrink-0 inline-block" />
+              </span>
+            ) : (
+              <span>{t('customGame.depositRequired', { amount: actualDeposit })}</span>
             )}
           </div>
 

@@ -27,7 +27,21 @@ function findDefaultLogFile(): string | null {
 
 function runAnalysis(): void {
   const args = process.argv.slice(2);
-  let targetPath = args[0] || findDefaultLogFile();
+  let targetPath = args.find(a => !a.startsWith('--')) || findDefaultLogFile();
+  const turnsArg = args.find(a => a.startsWith('--turns=') || a.startsWith('--turns'));
+  let filterStart = 1;
+  let filterEnd = 999;
+  if (turnsArg) {
+    const val = turnsArg.includes('=') ? turnsArg.split('=')[1] : args[args.indexOf(turnsArg) + 1];
+    if (val && val.includes('-')) {
+      const [s, e] = val.split('-').map(Number);
+      if (!isNaN(s)) filterStart = s;
+      if (!isNaN(e)) filterEnd = e;
+    } else if (val && !isNaN(Number(val))) {
+      filterStart = Number(val);
+      filterEnd = Number(val);
+    }
+  }
 
   if (!targetPath) {
     console.error('❌ Vui lòng truyền đường dẫn file JSON cần phân tích.');
@@ -90,6 +104,7 @@ function runAnalysis(): void {
   let matchCount = 0;
 
   report.turns.forEach((turn: MatchTurnLogEntry) => {
+    if (turn.turnNumber < filterStart || turn.turnNumber > filterEnd) return;
     const isPlay = turn.action === 'PLAY';
     const cardsStr = turn.cardsPlayed ? turn.cardsPlayed.map((c: Card) => c.code).join(' ') : 'BỎ LƯỢT';
     const handBeforeStr = turn.handBeforeTurn.map((c: Card) => c.code).join(' ');

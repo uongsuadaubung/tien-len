@@ -24,12 +24,7 @@ describe('Bayesian Card Inference Engine Unit Tests', () => {
         highestCard: createCard(7, 'CLUBS')
       },
       timestamp: Date.now(),
-      isChop: false,
-      choppedPlayerId: null,
-      penaltyAmount: null,
-      isCascadeChop: null,
-      chopChainCount: null,
-      chopChainTotalAmount: null
+      isChop: false
     };
 
     tracker.recordMove(pairMove);

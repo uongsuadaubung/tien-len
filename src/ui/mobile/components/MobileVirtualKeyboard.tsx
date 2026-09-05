@@ -8,14 +8,14 @@ export type KeyboardLayoutMode = 'ALPHA' | 'NUMERIC';
 export interface MobileVirtualKeyboardProps {
   value: string;
   onChange: (newValue: string) => void;
-  onEnter: (() => void) | null;
-  onClose: () => void | null;
-  onRandomName: (() => void) | null;
-  onPaste: (() => void) | null;
-  maxLength: number;
-  showRandomNameButton: boolean;
-  showPasteButton: boolean;
-  className: string | null;
+  onEnter?: () => void;
+  onClose?: () => void;
+  onRandomName?: () => void;
+  onPaste?: () => void;
+  maxLength?: number;
+  showRandomNameButton?: boolean;
+  showPasteButton?: boolean;
+  className?: string;
 }
 
 const RANDOM_NICKNAME_PREFIXES: readonly string[] = [
@@ -57,9 +57,9 @@ export const MobileVirtualKeyboard: React.FC<MobileVirtualKeyboardProps> = ({
   onClose,
   onRandomName,
   onPaste,
-  maxLength,
-  showRandomNameButton,
-  showPasteButton,
+  maxLength = 20,
+  showRandomNameButton = false,
+  showPasteButton = false,
   className
 }) => {
   const { t } = useI18n();

@@ -147,7 +147,7 @@ export function formatCard(card: Card): string {
 /**
  * Chuyển danh sách lá bài thành chuỗi ký hiệu trực quan (vd: "3♠ 4♣ 5♦")
  */
-export function formatCards(cards: Card[], separator = ' '): string {
+export function formatCards(cards: readonly Card[], separator = ' '): string {
   return cards.map(formatCard).join(separator);
 }
 

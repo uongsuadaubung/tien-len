@@ -53,11 +53,7 @@ describe('Bot Factory & Dynamic Matchmaking Verification', () => {
 
     const setupResult = strategy.setupMatch({
       profile,
-      playerCount: 4,
-      customRules: null,
-      customSettings: null,
-      campaignChapter: null,
-      customBotPersonaIds: [
+      playerCount: 4,      customBotPersonaIds: [
         randomBots[0].id,
         randomBots[1].id,
         randomBots[2].id

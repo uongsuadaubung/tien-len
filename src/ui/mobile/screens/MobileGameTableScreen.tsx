@@ -66,16 +66,15 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
     selectedCardIds,
     handSortMode,
     smartVariantIndex,
-    myPlayerId,
     toggleCardSelect,
     clearCardSelection
   } = useGameStore();
 
   const {
-    p0,
+    localPlayer,
     isMyTurn,
     isValidPlaySelection,
-    canP0Pass,
+    canPassTurn,
     playerCount,
     botPersonaIds,
     customBotConfigs,
@@ -307,32 +306,30 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
           </div>
         </div>
 
-        {/* GHẾ DƯỚI: TAY BÀI VÀ CÁC NÚT ĐIỀU KHIỂN CỦA NGƯỜI CHƠI (P0, FULL THÂN BÀI 100%) */}
+        {/* GHẾ DƯỚI: TAY BÀI VÀ CÁC NÚT ĐIỀU KHIỂN CỦA NGƯỜI CHƠI (FULL THÂN BÀI 100%) */}
         <div className="w-full flex justify-center z-30 mb-0 overflow-visible shrink-0">
-          {p0 && (
-            <PlayerHandView
-              player={p0}
-              selectedCardIds={selectedCardIds}
-              onToggleCardSelect={toggleCardSelect}
-              onClearCardSelection={clearCardSelection}
-              onPlaySelectedCards={handlePlayCards}
-              onPassTurn={handlePassTurnAction}
-              onAutoSort={onAutoSort}
-              onQuickSelect={quickResponseAssistEnabled ? handleQuickSelect : null}
-              canQuickSelect={quickResponseAssistEnabled ? canQuickSelect : false}
-              quickSelectCandidatesCount={quickSelectCandidates.length}
-              isCurrentTurn={isMyTurn}
-              canPlay={isValidPlaySelection}
-              canPass={canP0Pass}
-              isLeader={leadPlayerId === myPlayerId}
-              isDealing={isDealing}
-              dealtCardsCount={dealtCounts[myPlayerId]}
-              isFirstMoveOfGame={isFirstMoveOfGame}
-              sortMode={handSortMode}
-              variantIndex={smartVariantIndex}
-              cardSize="mobile"
-            />
-          )}
+          <PlayerHandView
+            player={localPlayer}
+            selectedCardIds={selectedCardIds}
+            onToggleCardSelect={toggleCardSelect}
+            onClearCardSelection={clearCardSelection}
+            onPlaySelectedCards={handlePlayCards}
+            onPassTurn={handlePassTurnAction}
+            onAutoSort={onAutoSort}
+            onQuickSelect={quickResponseAssistEnabled ? handleQuickSelect : null}
+            canQuickSelect={quickResponseAssistEnabled ? canQuickSelect : false}
+            quickSelectCandidatesCount={quickSelectCandidates.length}
+            isCurrentTurn={isMyTurn}
+            canPlay={isValidPlaySelection}
+            canPass={canPassTurn}
+            isLeader={leadPlayerId === localPlayer.id}
+            isDealing={isDealing}
+            dealtCardsCount={dealtCounts[localPlayer.id]}
+            isFirstMoveOfGame={isFirstMoveOfGame}
+            sortMode={handSortMode}
+            variantIndex={smartVariantIndex}
+            cardSize="mobile"
+          />
         </div>
       </main>
     </div>

@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
 import { CardTracker } from '../../src/ai/card-tracker';
-import { makeBotDecision, DecisionContext, calculateTurnsToClearHand } from '../../src/ai/decision-maker';
+import { makeBotDecision, DecisionContext, calculateTurnsToClearHand, createDecisionContext } from '../../src/ai/decision-maker';
 import { partitionHand } from '../../src/ai/hand-partitioner';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { createCard } from '../../src/engine/card';
@@ -13,11 +13,11 @@ describe('5 Cơ Chế Ra Quyết Định Cấp Đại Kiện Tướng Cho AI Bot
     tracker = new CardTracker();
   });
 
-  const createMockContext = (partial: Partial<DecisionContext> & { hand: Card[] }): DecisionContext => ({
+  const createMockContext = (partial: Partial<DecisionContext> & { hand: Card[]; currentRoundLeadingMove?: PlayedMove | null; isLeadMove?: boolean }): DecisionContext => createDecisionContext({
     hand: partial.hand,
     currentRoundLeadingMove: partial.currentRoundLeadingMove ?? null,
     isFirstMoveOfGame: partial.isFirstMoveOfGame ?? false,
-    isLeadMove: partial.isLeadMove ?? false,
+    isLeadMove: partial.isLeadMove ?? (partial.currentRoundLeadingMove ? false : true),
     tracker: partial.tracker ?? tracker,
     config: partial.config ?? BOT_PERSONAS.BOT_ELO_1900,
     remainingPlayerCards: partial.remainingPlayerCards ?? { p0: 10, p1: 10, p2: 10, p3: 10 },
@@ -43,12 +43,7 @@ describe('5 Cơ Chế Ra Quyết Định Cấp Đại Kiện Tướng Cho AI Bot
         length: 1
       },
       timestamp: Date.now(),
-      isChop: null,
-      choppedPlayerId: null,
-      penaltyAmount: null,
-      isCascadeChop: null,
-      chopChainCount: null,
-      chopChainTotalAmount: null
+      isChop: false
     };
 
     // Bot có [Đôi Át (A♠, A♥) + rác nhỏ 3♠, 4♦]. Để đỡ 10♠, Bot phải xé Đôi Át!
@@ -183,12 +178,7 @@ describe('5 Cơ Chế Ra Quyết Định Cấp Đại Kiện Tướng Cho AI Bot
         length: 1
       },
       timestamp: Date.now(),
-      isChop: null,
-      choppedPlayerId: null,
-      penaltyAmount: null,
-      isCascadeChop: null,
-      chopChainCount: null,
-      chopChainTotalAmount: null
+      isChop: false
     };
 
     // Bot có [2♥ Heo Cơ + rác 3♠, 4♦]

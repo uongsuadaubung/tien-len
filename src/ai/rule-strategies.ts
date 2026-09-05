@@ -53,12 +53,17 @@ export interface RuleLeadPolicy {
   aggressiveFinisherPush: boolean;
 }
 
-export interface RuleEmergencyAction {
-  type: 'PLAY' | 'PASS';
-  cards: Card[] | null;
-  combination: Combination | null;
-  reason: string;
-}
+export type RuleEmergencyAction =
+  | {
+      readonly type: 'PLAY';
+      readonly cards: readonly Card[];
+      readonly combination: Combination;
+      readonly reason: string;
+    }
+  | {
+      readonly type: 'PASS';
+      readonly reason: string;
+    };
 
 export interface RuleStrategyEvaluator {
   readonly ruleName: string;
@@ -372,7 +377,16 @@ export class GameFlowRuleStrategy implements RuleStrategyEvaluator {
           };
         }
       } else {
-        // Người báo 1 lá là người khác -> Tẩu rác nhỏ
+        // Người báo 1 lá là người khác:
+        // 1. Nếu bot có BỘ (Đôi, Sám, Sảnh): ƯU TIÊN ĐÁNH BỘ!
+        // Người 1 lá hoàn toàn không thể bắt được bộ, đánh bộ sẽ khóa chặt họ và giữ lượt/về bài an toàn.
+        // Trả về null để LeadMoveHandler tự do chọn bộ tối ưu theo chiến thuật & chính sách chế độ chơi.
+        const comboMoves = validMoves.filter(m => m.combination.type !== 'SINGLE');
+        if (comboMoves.length > 0) {
+          return null;
+        }
+
+        // 2. Nếu bot chỉ toàn rác lẻ: Tẩu rác nhỏ thoát bài
         const singles = validMoves.filter(m => m.combination.type === 'SINGLE' && !isTwo(m.combination.highestCard));
         if (singles.length > 0) {
           const sortedAsc = [...singles].sort((a, b) => a.combination.highestCard.weight - b.combination.highestCard.weight);

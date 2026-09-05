@@ -1,15 +1,14 @@
-import { Card, createDefaultGameRules } from '../engine/types';
+import { Card, PlayedMove, createDefaultGameRules } from '../engine/types';
 import { CardTracker } from './card-tracker';
-import { BotConfig } from './types';
 import { getBotConfig } from './bot-factory';
-import { DecisionContext, BotDecision, makeBotDecision } from './decision-maker';
+import { DecisionContext, BotDecision, makeBotDecision, createDecisionContext } from './decision-maker';
 import { MatchLogReport } from '../engine/match-logger';
 
 export interface TurnReplayResult {
   turnNumber: number;
   playerId: string;
   loggedAction: 'PLAY' | 'PASS';
-  loggedCards: Card[] | null;
+  loggedCards?: Card[];
   loggedReason: string | null;
   loggedStrategy: string | null;
   reproducedDecision: BotDecision;
@@ -26,92 +25,93 @@ export function replayTurnDecisionFromLog(
 ): TurnReplayResult {
   const turnIndex = report.turns.findIndex(t => t.turnNumber === turnNumber);
   if (turnIndex === -1) {
-    throw new Error(`Không tìm thấy lượt đấu số ${turnNumber} trong MatchLogReport.`);
+    throw new Error(`[LogReplayer] Không tìm thấy lượt đánh #${turnNumber} trong báo cáo trận đấu.`);
   }
 
   const turnEntry = report.turns[turnIndex];
-  const player = report.players.find(p => p.id === turnEntry.playerId);
-  const botPersonaId = turnEntry.botPersonaId || player?.botPersonaId || 'BOT_ELO_1750';
-  const config: BotConfig = getBotConfig(botPersonaId);
+  const config = getBotConfig(turnEntry.botPersonaId || 'BOT_ELO_1150');
 
-  // 1. Tái thiết lập CardTracker theo lịch sử các lá bài đã xuất hiện trước lượt này
+  // 1. Dựng lại bộ nhớ bài (CardTracker) từ đầu trận đến trước lượt hiện tại
   const tracker = new CardTracker(turnEntry.handBeforeTurn, config.memoryDepth);
   for (let i = 0; i < turnIndex; i++) {
     const prevTurn = report.turns[i];
     if (prevTurn.action === 'PLAY' && prevTurn.cardsPlayed && prevTurn.combination) {
       if (prevTurn.playerId !== turnEntry.playerId) {
-        tracker.recordMove({
-          playerId: prevTurn.playerId,
-          combination: prevTurn.combination,
-          timestamp: prevTurn.timestamp,
-          isChop: prevTurn.isChop ?? null,
-          choppedPlayerId: prevTurn.choppedPlayerId ?? null,
-          penaltyAmount: prevTurn.penaltyAmount ?? null,
-          isCascadeChop: null,
-          chopChainCount: null,
-          chopChainTotalAmount: null
-        });
+        const move: PlayedMove = prevTurn.isChop && prevTurn.choppedPlayerId
+          ? {
+              playerId: prevTurn.playerId,
+              combination: prevTurn.combination,
+              timestamp: prevTurn.timestamp,
+              isChop: true,
+              choppedPlayerId: prevTurn.choppedPlayerId,
+              penaltyAmount: prevTurn.penaltyAmount ?? 0,
+              isCascadeChop: false,
+              chopChainCount: 1,
+              chopChainTotalAmount: prevTurn.penaltyAmount ?? 0
+            }
+          : {
+              playerId: prevTurn.playerId,
+              combination: prevTurn.combination,
+              timestamp: prevTurn.timestamp,
+              isChop: false
+            };
+        tracker.recordMove(move);
       }
     }
   }
 
-  // 2. Tính toán số lá còn lại của từng người chơi tại thời điểm của lượt này
+  // 2. Tính số lượng bài còn lại của các đối thủ tại thời điểm này
   const remainingPlayerCards: Record<string, number> = {};
-  if (turnEntry.botDecision?.remainingOpponentCards) {
-    Object.assign(remainingPlayerCards, turnEntry.botDecision.remainingOpponentCards);
-    remainingPlayerCards[turnEntry.playerId] = turnEntry.handBeforeTurn.length;
-  } else {
-    // Dự phòng: Tính dựa trên bài ban đầu và các lá đã đánh
-    report.players.forEach(p => {
-      let count = p.initialHand.length;
-      for (let i = 0; i < turnIndex; i++) {
-        const prevTurn = report.turns[i];
-        if (prevTurn.playerId === p.id && prevTurn.action === 'PLAY' && prevTurn.cardsPlayed) {
-          count -= prevTurn.cardsPlayed.length;
-        }
-      }
-      remainingPlayerCards[p.id] = count;
-    });
+  for (const p of report.players) {
+    remainingPlayerCards[p.id] = p.initialHand.length;
   }
+  for (let i = 0; i < turnIndex; i++) {
+    const prevTurn = report.turns[i];
+    if (prevTurn.action === 'PLAY' && prevTurn.cardsPlayed) {
+      remainingPlayerCards[prevTurn.playerId] -= prevTurn.cardsPlayed.length;
+    }
+  }
+  delete remainingPlayerCards[turnEntry.playerId];
 
-  // 3. Xác định người kế tiếp
-  const activePlayerIds = report.players
-    .filter(p => remainingPlayerCards[p.id] > 0)
-    .map(p => p.id);
-  const currentIdx = activePlayerIds.indexOf(turnEntry.playerId);
-  const nextPlayerId = activePlayerIds[(currentIdx + 1) % activePlayerIds.length] || 'p1';
-  const isNextPlayerOneCard = remainingPlayerCards[nextPlayerId] === 1;
+  // 3. Dựng lại ngữ cảnh ra quyết định (DecisionContext)
+  const isFirstMove = turnNumber === 1;
+  const isLeadMove = turnEntry.isLeadMove;
 
-  // 4. Khởi dựng DecisionContext chính xác tuyệt đối
-  const context: DecisionContext = {
+  const playerIds = report.players.map(p => p.id);
+  const currentIdx = playerIds.indexOf(turnEntry.playerId);
+  const nextPlayerId = playerIds[(currentIdx + 1) % playerIds.length] || playerIds[0] || '';
+  const isNextPlayerOneCard = (remainingPlayerCards[nextPlayerId] ?? 13) === 1;
+
+  const context: DecisionContext = createDecisionContext({
     hand: [...turnEntry.handBeforeTurn],
     currentRoundLeadingMove: turnEntry.leadingMoveBeforeTurn,
-    isFirstMoveOfGame: turnIndex === 0,
-    isLeadMove: turnEntry.isLeadMove,
+    isFirstMoveOfGame: isFirstMove,
+    isLeadMove,
     tracker,
     config,
     remainingPlayerCards,
     nextPlayerId,
     rules: report.rules || createDefaultGameRules(),
-    hasPlayedFirstCard: true,
+    hasPlayedFirstCard: turnEntry.handBeforeTurn.length < 13,
     isNextPlayerOneCard,
     prohibitEndingWithTwo: report.rules?.gameFlow?.prohibitEndingWithTwo ?? true,
-    gameMode: report.gameMode || 'TRADITIONAL',
+    gameMode: report.gameMode || 'COUNT_CARDS',
     mctsMap: null,
     compositeRuleStrategy: null,
     opponentProfiles: null
-  };
+  });
 
-  // 5. Chạy lại quyết định của AI
+  // 4. Thực thi lại quyết định
   const reproducedDecision = makeBotDecision(context);
 
+  // 5. So sánh kết quả
   const isActionMatched = (
     reproducedDecision.type === turnEntry.action &&
     (
-      (reproducedDecision.cards === null && turnEntry.cardsPlayed === null) ||
+      turnEntry.action === 'PASS' ||
       (
-        reproducedDecision.cards !== null &&
-        turnEntry.cardsPlayed !== null &&
+        turnEntry.action === 'PLAY' &&
+        reproducedDecision.type === 'PLAY' &&
         reproducedDecision.cards.length === turnEntry.cardsPlayed.length &&
         reproducedDecision.cards.every(c => turnEntry.cardsPlayed!.some(tc => tc.id === c.id))
       )
@@ -122,7 +122,7 @@ export function replayTurnDecisionFromLog(
     turnNumber,
     playerId: turnEntry.playerId,
     loggedAction: turnEntry.action,
-    loggedCards: turnEntry.cardsPlayed,
+    loggedCards: turnEntry.action === 'PLAY' ? turnEntry.cardsPlayed : undefined,
     loggedReason: turnEntry.botDecision?.chosenReason || null,
     loggedStrategy: turnEntry.botDecision?.strategyUsed || null,
     reproducedDecision,

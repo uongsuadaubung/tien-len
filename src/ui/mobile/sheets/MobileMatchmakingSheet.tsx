@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BotConfig } from '../../../ai/types';
 import { getRankTierByElo } from '../../../engine/elo';
 import { soundManager } from '../../audio/sound-manager';
 import { Swords, Check, X, Loader2, Sparkles, ArrowLeft } from 'lucide-react';
@@ -7,25 +6,20 @@ import { Badge } from '../../primitives';
 import { useUserStore } from '../../../stores/useUserStore';
 import { useI18n } from '../../../locales';
 
+import type { MatchmakingData } from '../../../stores/useViewStore';
+
 export interface MobileMatchmakingSheetProps {
-  isOpen: boolean;
+  match: MatchmakingData;
   onCancel: () => void;
   onMatchReady: () => void;
-  betAmount: number;
-  modeName: string;
-  matchedBots: BotConfig[];
-  playerCount?: number;
 }
 
 export const MobileMatchmakingSheet: React.FC<MobileMatchmakingSheetProps> = ({
-  isOpen,
+  match,
   onCancel,
-  onMatchReady,
-  betAmount,
-  modeName,
-  matchedBots,
-  playerCount = 4
+  onMatchReady
 }) => {
+  const { betAmount, modeName, botConfigs: matchedBots, playerCount } = match;
   const { t } = useI18n();
   const { profile: playerProfile } = useUserStore();
   const [stage, setStage] = useState<'SEARCHING' | 'FOUND'>('SEARCHING');
@@ -35,14 +29,13 @@ export const MobileMatchmakingSheet: React.FC<MobileMatchmakingSheetProps> = ({
   const tipIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const autoStartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const actualPlayerCount = playerCount || (matchedBots.length + 1);
-  const requiredBotCount = Math.max(1, actualPlayerCount - 1);
+  const requiredBotCount = Math.max(1, playerCount - 1);
   const playerTier = getRankTierByElo(playerProfile.elo);
 
   const searchingTips = [
-    actualPlayerCount === 2 
+    playerCount === 2 
       ? t('matchmaking.tipSolo')
-      : actualPlayerCount === 3
+      : playerCount === 3
         ? t('matchmaking.tip3P')
         : t('matchmaking.tip4P'),
     t('matchmaking.tipDeposit'),
@@ -51,46 +44,42 @@ export const MobileMatchmakingSheet: React.FC<MobileMatchmakingSheetProps> = ({
   ];
 
   useEffect(() => {
-    if (isOpen) {
-      setStage('SEARCHING');
-      setElapsedSeconds(0);
-      setTipIndex(0);
+    setStage('SEARCHING');
+    setElapsedSeconds(0);
+    setTipIndex(0);
 
-      // Đếm giây tìm trận
-      timerRef.current = setInterval(() => {
-        setElapsedSeconds(prev => prev + 1);
-      }, 1000);
+    // Đếm giây tìm trận
+    timerRef.current = setInterval(() => {
+      setElapsedSeconds(prev => prev + 1);
+    }, 1000);
 
-      // Đổi câu gợi ý mỗi 850ms
-      tipIntervalRef.current = setInterval(() => {
-        setTipIndex(prev => (prev + 1) % searchingTips.length);
-      }, 850);
+    // Đổi câu gợi ý mỗi 850ms
+    tipIntervalRef.current = setInterval(() => {
+      setTipIndex(prev => (prev + 1) % searchingTips.length);
+    }, 850);
 
-      // Giả lập thời gian tìm kiếm chân thực (1.8s - 2.4s)
-      const simulatedDelay = 1800 + Math.random() * 600;
-      const matchFoundTimeout = setTimeout(() => {
-        setStage('FOUND');
-        soundManager.playMatchFound();
+    // Giả lập thời gian tìm kiếm chân thực (1.8s - 2.4s)
+    const simulatedDelay = 1800 + Math.random() * 600;
+    const matchFoundTimeout = setTimeout(() => {
+      setStage('FOUND');
+      soundManager.playMatchFound();
 
-        if (timerRef.current) clearInterval(timerRef.current);
-        if (tipIntervalRef.current) clearInterval(tipIntervalRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (tipIntervalRef.current) clearInterval(tipIntervalRef.current);
 
-        // Sau 1.2s hiển thị đối thủ, tự động vào bàn
-        autoStartTimeoutRef.current = setTimeout(() => {
-          onMatchReady();
-        }, 1200);
-      }, simulatedDelay);
+      // Sau 1.2s hiển thị đối thủ, tự động vào bàn
+      autoStartTimeoutRef.current = setTimeout(() => {
+        onMatchReady();
+      }, 1200);
+    }, simulatedDelay);
 
-      return () => {
-        clearTimeout(matchFoundTimeout);
-        if (timerRef.current) clearInterval(timerRef.current);
-        if (tipIntervalRef.current) clearInterval(tipIntervalRef.current);
-        if (autoStartTimeoutRef.current) clearTimeout(autoStartTimeoutRef.current);
-      };
-    }
-  }, [isOpen, onMatchReady, searchingTips.length]);
-
-  if (!isOpen) return null;
+    return () => {
+      clearTimeout(matchFoundTimeout);
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (tipIntervalRef.current) clearInterval(tipIntervalRef.current);
+      if (autoStartTimeoutRef.current) clearTimeout(autoStartTimeoutRef.current);
+    };
+  }, [onMatchReady, searchingTips.length]);
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60).toString().padStart(2, '0');
@@ -101,7 +90,7 @@ export const MobileMatchmakingSheet: React.FC<MobileMatchmakingSheetProps> = ({
   // Dựng danh sách người chơi hiển thị theo đúng số lượng (2, 3 hoặc 4 người)
   const allSlots = [
     {
-      id: 'p0',
+      id: playerProfile.id,
       name: playerProfile.name || t('hud.you').replace(/[()]/g, ''),
       avatar: playerProfile.avatar || '🤠',
       elo: playerProfile.elo,
@@ -137,7 +126,7 @@ export const MobileMatchmakingSheet: React.FC<MobileMatchmakingSheetProps> = ({
               {stage === 'SEARCHING' ? t('matchmaking.radarSearch') : t('matchmaking.matchFound')}
             </span>
             <span className="text-[10px] text-zinc-400 hidden sm:inline">
-              • {modeName} ({t('tableConfig.tablePlayerCount', { count: actualPlayerCount })})
+              • {modeName} ({t('tableConfig.tablePlayerCount', { count: playerCount })})
             </span>
           </div>
         </div>
@@ -225,15 +214,15 @@ export const MobileMatchmakingSheet: React.FC<MobileMatchmakingSheetProps> = ({
             <div className="w-full bg-[#142416] border border-emerald-400/60 py-1 px-3 rounded-xl flex items-center justify-center gap-2 text-center shadow">
               <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
               <span className="font-black text-xs text-emerald-300 uppercase tracking-wide">
-                {actualPlayerCount === 2
+                {playerCount === 2
                   ? t('matchmaking.foundSolo')
-                  : t('matchmaking.foundRankMatch', { count: actualPlayerCount })}
+                  : t('matchmaking.foundRankMatch', { count: playerCount })}
               </span>
               <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
             </div>
 
             {/* Lưới 4 Đấu Thủ (Nằm ngang 1 hàng 4 cột, vừa vặn 100% không scroll) */}
-            <div className={`w-full grid ${actualPlayerCount === 2 ? 'grid-cols-2' : actualPlayerCount === 3 ? 'grid-cols-3' : 'grid-cols-4'} gap-1.5 sm:gap-2`}>
+            <div className={`w-full grid ${playerCount === 2 ? 'grid-cols-2' : playerCount === 3 ? 'grid-cols-3' : 'grid-cols-4'} gap-1.5 sm:gap-2`}>
               {allSlots.map((slot) => {
                 const tier = getRankTierByElo(slot.elo);
                 return (
@@ -277,7 +266,7 @@ export const MobileMatchmakingSheet: React.FC<MobileMatchmakingSheetProps> = ({
             {/* Thông báo vào bàn */}
             <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-xs animate-pulse mt-0.5">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>{t('matchmaking.allReadyEntering', { count: actualPlayerCount })}</span>
+              <span>{t('matchmaking.allReadyEntering', { count: playerCount })}</span>
             </div>
           </div>
         )}

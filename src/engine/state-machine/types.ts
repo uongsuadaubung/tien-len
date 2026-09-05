@@ -53,7 +53,7 @@ export interface DealingMatchState {
  * 3. Trạng thái đang chơi lượt bình thường
  * currentTurnPlayerId và leadPlayerId BẢO ĐẢM 100% LÀ STRING (Không bao giờ null/undefined).
  */
-export interface PlayingTurnMatchState {
+export interface BasePlayingTurnMatchState {
   readonly status: 'PLAYING';
   readonly gameNumber: number;
   readonly roundNumber: number;
@@ -61,13 +61,44 @@ export interface PlayingTurnMatchState {
   readonly currentTurnPlayerId: string; // ✅ Chắc chắn tồn tại
   readonly leadPlayerId: string;        // ✅ Chắc chắn tồn tại
   readonly roundMoves: readonly PlayedMove[];
-  readonly leadingMove: PlayedMove | null;
-  readonly isLeadMove: boolean;
   readonly isFirstMoveOfGame: boolean;
   readonly passedPlayerIds: readonly string[];
   readonly chopNotification: ChopNotificationInfo | null;
   readonly botThinkingThought: BotThinkingInfo | null;
   readonly rules: GameRules;
+}
+
+export interface LeadPlayingTurnMatchState extends BasePlayingTurnMatchState {
+  readonly isLeadMove: true;
+  readonly leadingMove: null;
+}
+
+export interface FollowPlayingTurnMatchState extends BasePlayingTurnMatchState {
+  readonly isLeadMove: false;
+  readonly leadingMove: PlayedMove; // ✅ BẢO ĐẢM 100% NON-NULLABLE KHI ĐÈ BÀI
+}
+
+export type PlayingTurnMatchState = LeadPlayingTurnMatchState | FollowPlayingTurnMatchState;
+
+/**
+ * Factory tại State Boundary chuẩn hóa việc tạo PlayingTurnMatchState
+ */
+export function createPlayingTurnMatchState(params: BasePlayingTurnMatchState & {
+  isLeadMove: boolean;
+  leadingMove: PlayedMove | null;
+}): PlayingTurnMatchState {
+  if (params.isLeadMove || !params.leadingMove) {
+    return {
+      ...params,
+      isLeadMove: true,
+      leadingMove: null
+    };
+  }
+  return {
+    ...params,
+    isLeadMove: false,
+    leadingMove: params.leadingMove
+  };
 }
 
 /**

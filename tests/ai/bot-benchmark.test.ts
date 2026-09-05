@@ -89,8 +89,8 @@ describe('AI Bot Benchmark Simulation & Latency Across 9 Tiers', () => {
           opponentProfiles: null
         });
 
-        if (decision.type === 'PLAY' && decision.cards) {
-          const moveRes = game.playMove(currentTurnPlayer.id, decision.cards);
+        if (decision.type === 'PLAY') {
+          const moveRes = game.playMove(currentTurnPlayer.id, [...decision.cards]);
           if (moveRes.success) {
             const lastMove = game.getLeadingMove();
             if (lastMove) {

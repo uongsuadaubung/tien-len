@@ -11,7 +11,7 @@ interface XRayInspectorProps {
   isOpen: boolean;
   onClose: () => void;
   tracker: CardTracker;
-  ownHand: Card[];
+  ownHand: readonly Card[];
   currentHint: MoveHint | null;
 }
 

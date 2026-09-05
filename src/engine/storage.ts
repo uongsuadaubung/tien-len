@@ -15,7 +15,9 @@ import {
   dbClearActiveSession,
   dbGetHumanBehavior,
   dbSaveHumanBehavior,
-  dbClearHumanBehavior
+  dbClearHumanBehavior,
+  dbGetPlayer,
+  dbSavePlayer
 } from './db/indexed-db';
 
 import { PlayerProfileSchema, type PlayerProfile } from './schemas/profile.schema';
@@ -144,8 +146,24 @@ export async function hydrateStorageFromIndexedDB(): Promise<{
     const dbProfile = await dbGetPlayerProfile();
     if (dbProfile) {
       cachedProfile = sanitizeAndValidateProfile(dbProfile);
-      // Chỉ lưu lại nếu có thay đổi ngày mới
-      if (dbProfile.lastDailyResetDate !== cachedProfile.lastDailyResetDate) {
+      // Đảm bảo profile luôn tồn tại trong db.players
+      if (cachedProfile.id) {
+        const existingPlayer = await dbGetPlayer(cachedProfile.id);
+        if (!existingPlayer) {
+          await dbSavePlayer({
+            id: cachedProfile.id,
+            name: cachedProfile.name,
+            avatar: cachedProfile.avatar,
+            elo: cachedProfile.elo,
+            coins: cachedProfile.coins,
+            status: 'ACTIVE',
+            stats: cachedProfile.stats,
+            updatedAt: Date.now()
+          }).catch(() => {});
+        }
+      }
+      // Chỉ lưu lại nếu có thay đổi ngày mới hoặc bản ghi cũ chưa có ID
+      if (dbProfile.lastDailyResetDate !== cachedProfile.lastDailyResetDate || !dbProfile.id) {
         dbSavePlayerProfile(cachedProfile).catch(() => {});
       }
     } else {

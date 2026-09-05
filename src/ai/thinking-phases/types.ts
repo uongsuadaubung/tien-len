@@ -9,27 +9,27 @@ export type BotThinkingPhaseStatus = 'EMERGENCY_RESCUE' | 'END_GAME' | 'OPENING'
  */
 export interface PlayBotDecision {
   readonly type: 'PLAY';
-  readonly cards: Card[];
+  readonly cards: readonly Card[];
   readonly combination: Combination;
-  readonly reason: string | null;
-  readonly strategyUsed: string | null;
-  readonly evaluationScore: number | null;
-  readonly candidatesEvaluated: BotCandidateEvaluation[] | null;
-  readonly telemetry: BotDecisionTelemetry | null;
+  readonly reason?: string;
+  readonly strategyUsed?: string;
+  readonly evaluationScore?: number;
+  readonly candidatesEvaluated?: readonly BotCandidateEvaluation[];
+  readonly telemetry?: BotDecisionTelemetry;
 }
 
 /**
- * Quyết định bỏ lượt (Type-Safe: cards và combination LUÔN LÀ NULL)
+ * Quyết định bỏ lượt (Type-Safe: Không có bài đánh)
  */
 export interface PassBotDecision {
   readonly type: 'PASS';
-  readonly cards: null;
-  readonly combination: null;
-  readonly reason: string | null;
-  readonly strategyUsed: string | null;
-  readonly evaluationScore: number | null;
-  readonly candidatesEvaluated: BotCandidateEvaluation[] | null;
-  readonly telemetry: BotDecisionTelemetry | null;
+  readonly cards?: undefined;
+  readonly combination?: undefined;
+  readonly reason?: string;
+  readonly strategyUsed?: string;
+  readonly evaluationScore?: number;
+  readonly candidatesEvaluated?: readonly BotCandidateEvaluation[];
+  readonly telemetry?: BotDecisionTelemetry;
 }
 
 /**

@@ -112,21 +112,21 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
         id: 'p1',
         name: 'Trùm Sòng',
         avatar: '🕶️',
-        hand: parseCards('4D 5D'), // Còn 2 lá (x2 = 4 lá phạt = 4 x 500 = 2,000)
+        hand: parseCards('4D 5D'), // Còn 2 lá bình thường = 2 x 500 = 1,000 (không nhân multiplier)
         score: 50000
       }),
       makeTestPlayer({
         id: 'p2',
         name: 'Cô Sáu',
         avatar: '👑',
-        hand: parseCards('2S'), // 1 lá heo đen (2 lá x 500 = 1,000 + thối heo đen x2 = 1,000 = 2,000)
+        hand: parseCards('2S'), // 1 lá bình thường = 500 + thối heo đen x2 (1 lá x 500 x 2 = 1,000) = 1,500
         score: 50000
       }),
       makeTestPlayer({
         id: 'p3',
         name: 'Bà Son',
         avatar: '🦹‍♀️',
-        hand: parseCards('3D 4C 5C 6C 7C 8C 9C 10C JC QC KC AC 2D'), // Cóng hệ số x2: 52 x 500 = 26,000 + thối heo đỏ x2 = 2,000 = 28,000
+        hand: parseCards('3D 4C 5C 6C 7C 8C 9C 10C JC QC KC AC 2D'), // Cóng: 26 lá x 500 = 13,000 + thối heo đỏ x2 = 2,000 -> tổng -15,000
         score: 50000,
         hasPlayedFirstCard: false
       })
@@ -134,10 +134,10 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
 
     const payouts = calculateCountCardsSettlement(players, 'p0', BET, 2);
 
-    expect(payouts['p1']).toBe(-2000);
-    expect(payouts['p2']).toBe(-2000);
-    expect(payouts['p3']).toBe(-28000);
-    expect(payouts['p0']).toBe(32000);
+    expect(payouts['p1']).toBe(-1000);
+    expect(payouts['p2']).toBe(-1500);
+    expect(payouts['p3']).toBe(-15000);
+    expect(payouts['p0']).toBe(17500);
   });
 
   test('4. Chế độ Nhất Ăn Tất (WINNER_TAKES_ALL): Người về Nhất ăn trọn tiền cược cơ bản từ tất cả người thua', () => {
@@ -218,6 +218,7 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
 
     const moveRes = engine.playMove('p0', [initialPlayers[0].hand[0]]);
     expect(moveRes.success).toBe(true);
+    if (!moveRes.success) return;
     expect(moveRes.isGameOver).toBe(true);
     expect(engine.isGameOver).toBe(true);
     expect(engine.winners.length).toBe(1);
@@ -250,6 +251,7 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
 
     const moveRes = engine.playMove('p0', [initialPlayers[0].hand[0]]);
     expect(moveRes.success).toBe(true);
+    if (!moveRes.success) return;
     expect(moveRes.isGameOver).toBe(true);
     expect(engine.isGameOver).toBe(true);
     expect(engine.winners.length).toBe(2); // p0 Nhất, p1 Bét

@@ -12,8 +12,7 @@ import {
   Users,
   Building2
 } from 'lucide-react';
-import { CampaignChapter } from '../../../engine/campaign';
-import { useGameStore } from '../../../stores/useGameStore';
+import { useGameStore, CampaignResultMeta } from '../../../stores/useGameStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useOnlineStore } from '../../../stores/useOnlineStore';
 import { MatchLogger } from '../../../engine/match-logger';
@@ -28,12 +27,7 @@ export interface VictoryModalProps {
   onNextGame: () => void;
   onReturnToLobby: () => void;
   onOpenCampaignMap: (() => void) | null;
-  campaignResultMeta?: {
-    isUnlockedNext: boolean;
-    isAllCompleted: boolean;
-    nextChapter: CampaignChapter | null;
-    currentWins: number;
-  } | null;
+  campaignResultMeta?: CampaignResultMeta | null;
 }
 
 const INSTANT_WIN_KEY_MAP: Record<InstantWinType, I18nKeyPath> = {
@@ -45,28 +39,20 @@ const INSTANT_WIN_KEY_MAP: Record<InstantWinType, I18nKeyPath> = {
   FIRST_ROUND_FOUR_THREES: 'victory.instantWinTypes.FIRST_ROUND_FOUR_THREES'
 };
 
-function isInstantWinType(val: string): val is InstantWinType {
-  return Object.prototype.hasOwnProperty.call(INSTANT_WIN_KEY_MAP, val);
-}
+const PRIMARY_ICON_MAP: Record<PrimaryBtnIconType, React.ReactNode> = {
+  PLAY: <Play className="w-4 h-4 text-black" />,
+  CHECK: <Check className="w-4 h-4 text-black" />,
+  SWORDS: <Swords className="w-4 h-4 text-black" />,
+  ROTATE_CCW: <RotateCcw className="w-4 h-4 text-black" />,
+  HOME: <Home className="w-4 h-4 text-black" />,
+  BANK: <Building2 className="w-4 h-4 text-black" />,
+  SPINNER: <RotateCcw className="w-4 h-4 text-black animate-spin" />
+};
 
-function renderPrimaryIcon(type: PrimaryBtnIconType) {
-  switch (type) {
-    case 'PLAY': return <Play className="w-4 h-4 text-black" />;
-    case 'CHECK': return <Check className="w-4 h-4 text-black" />;
-    case 'SWORDS': return <Swords className="w-4 h-4 text-black" />;
-    case 'ROTATE_CCW': return <RotateCcw className="w-4 h-4 text-black" />;
-    case 'HOME': return <Home className="w-4 h-4 text-black" />;
-    case 'BANK': return <Building2 className="w-4 h-4 text-black" />;
-    case 'SPINNER': return <RotateCcw className="w-4 h-4 text-black animate-spin" />;
-  }
-}
-
-function renderSecondaryIcon(type: SecondaryBtnIconType) {
-  switch (type) {
-    case 'HOME': return <Home className="w-4 h-4" />;
-    case 'MAP': return <Map className="w-4 h-4" />;
-  }
-}
+const SECONDARY_ICON_MAP: Record<SecondaryBtnIconType, React.ReactNode> = {
+  HOME: <Home className="w-4 h-4" />,
+  MAP: <Map className="w-4 h-4" />
+};
 
 export const VictoryModal: React.FC<VictoryModalProps> = ({
   isOpen,
@@ -80,11 +66,11 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
   const { myPlayerId } = useGameStore();
   const { roomState } = useOnlineStore();
 
-  const getInstantWinTitle = (type: string) => {
-    if (isInstantWinType(type)) {
+  const getInstantWinTitle = (type: InstantWinType | null) => {
+    if (type && INSTANT_WIN_KEY_MAP[type]) {
       return t(INSTANT_WIN_KEY_MAP[type]);
     }
-    return type;
+    return '';
   };
 
   const {
@@ -121,6 +107,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     payouts,
     loanDeduction,
     eloDelta,
+    lastEloBreakdown,
     allEloDeltas
   } = useVictoryLogic({
     isOpen,
@@ -149,7 +136,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
               variant="gold"
               size="md"
               onClick={primaryBtnAction}
-              leftIcon={renderPrimaryIcon(primaryBtnIconType)}
+              leftIcon={PRIMARY_ICON_MAP[primaryBtnIconType]}
               className="w-full sm:w-auto px-8"
             >
               {primaryBtnText}
@@ -162,7 +149,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
               variant="surface"
               size="md"
               onClick={secondaryBtnAction}
-              leftIcon={renderSecondaryIcon(secondaryBtnIconType)}
+              leftIcon={SECONDARY_ICON_MAP[secondaryBtnIconType]}
             >
               {secondaryBtnText}
             </Button>
@@ -173,7 +160,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
               size="md"
               onClick={primaryBtnAction}
               disabled={primaryBtnDisabled}
-              leftIcon={renderPrimaryIcon(primaryBtnIconType)}
+              leftIcon={PRIMARY_ICON_MAP[primaryBtnIconType]}
             >
               {primaryBtnText}
             </Button>
@@ -289,6 +276,32 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
             )}
           </Card>
         </div>
+
+        {/* CHI TIẾT ĐIỂM XẾP HẠNG (ELO BREAKDOWN) */}
+        {!isCampaign && lastEloBreakdown && lastEloBreakdown.items.length > 0 && (
+          <Card variant="card" className="p-2.5 sm:p-3 space-y-1.5 bg-gradient-to-r from-slate-900/90 via-slate-850/70 to-slate-900/90 border-slate-700/60 shadow-inner">
+            <div className="flex items-center justify-between border-b border-white/10 pb-1.5 mb-1">
+              <span className="text-[11px] font-bold text-[var(--color-gold)] uppercase tracking-wider flex items-center gap-1.5">
+                ⚡ {t('victory.eloBreakdownTitle')}
+              </span>
+              <span className={`text-xs font-mono font-bold px-1.5 py-0.5 rounded ${eloDelta >= 0 ? 'bg-emerald-950/70 text-emerald-400 border border-emerald-500/30' : 'bg-rose-950/70 text-rose-400 border border-rose-500/30'}`}>
+                {eloDelta >= 0 ? `+${eloDelta}` : eloDelta} Elo
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1">
+              {lastEloBreakdown.items.map((item) => (
+                <div key={item.id} className="flex items-center justify-between text-[11px]">
+                  <span className="text-[var(--text-muted)] truncate mr-2">
+                    {t(item.labelKey)}
+                  </span>
+                  <span className={`font-mono font-bold ${item.value >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {item.value >= 0 ? `+${item.value}` : item.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {/* Bảng Xếp Hạng & Bài Tàn Cuộc Của Người Chơi */}
         <div className="space-y-2.5 max-h-64 sm:max-h-80 overflow-y-auto pr-1">

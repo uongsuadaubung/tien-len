@@ -11,8 +11,11 @@ import type {
   RoundEndedMatchState,
   GameOverMatchState
 } from '../../src/engine/state-machine/types';
-import { createDefaultGameRules, Player } from '../../src/engine/types';
+import { createDefaultGameRules, Player, PlayedMove } from '../../src/engine/types';
+import { createCard } from '../../src/engine/card';
+import { identifyCombination } from '../../src/engine/combinations';
 import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
+import { createPlayingTurnMatchState } from '../../src/engine/state-machine/types';
 import { OfflineMatchDriver } from '../../src/engine/offline-match-driver';
 
 describe('Kiến Trúc State Pattern & Discriminated Unions (Game Engine State Machine)', () => {
@@ -131,6 +134,15 @@ describe('Kiến Trúc State Pattern & Discriminated Unions (Game Engine State M
 
   describe('2. mapMatchStateToSnapshot: Ánh xạ chuẩn xác sang MatchSnapshot tương thích ngược', () => {
     it('Ánh xạ các trường trạng thái PLAYING sang snapshot', () => {
+      const card3S = createCard(3, 'SPADES');
+      const combo = identifyCombination([card3S])!;
+      const dummyMove: PlayedMove = {
+        playerId: 'p1',
+        combination: combo,
+        timestamp: Date.now(),
+        isChop: false
+      };
+
       const playingState: PlayingTurnMatchState = {
         status: 'PLAYING',
         gameNumber: 2,
@@ -138,8 +150,8 @@ describe('Kiến Trúc State Pattern & Discriminated Unions (Game Engine State M
         players: testPlayers,
         currentTurnPlayerId: 'p2',
         leadPlayerId: 'p1',
-        roundMoves: [],
-        leadingMove: null,
+        roundMoves: [dummyMove],
+        leadingMove: dummyMove,
         isLeadMove: false,
         isFirstMoveOfGame: false,
         passedPlayerIds: ['p0'],
@@ -155,6 +167,59 @@ describe('Kiến Trúc State Pattern & Discriminated Unions (Game Engine State M
       expect(snapshot.isDealing).toBe(false);
       expect(snapshot.isGameOver).toBe(false);
       expect(snapshot.isLeadMove).toBe(false);
+    });
+
+    it('createPlayingTurnMatchState chuẩn hóa tự động Lead và Follow turn tại State Boundary', () => {
+      const card3S = createCard(3, 'SPADES');
+      const combo = identifyCombination([card3S])!;
+      const dummyMove: PlayedMove = {
+        playerId: 'p1',
+        combination: combo,
+        timestamp: Date.now(),
+        isChop: false
+      };
+
+      // 1. Khi isLeadMove: true, leadingMove luôn luôn được chuẩn hóa thành null
+      const leadTurn = createPlayingTurnMatchState({
+        status: 'PLAYING',
+        gameNumber: 1,
+        roundNumber: 1,
+        players: testPlayers,
+        currentTurnPlayerId: 'p0',
+        leadPlayerId: 'p0',
+        roundMoves: [],
+        leadingMove: dummyMove, // Sẽ được chuẩn hóa thành null vì đang là Lead
+        isLeadMove: true,
+        isFirstMoveOfGame: true,
+        passedPlayerIds: [],
+        chopNotification: null,
+        botThinkingThought: null,
+        rules: defaultRules
+      });
+      expect(leadTurn.isLeadMove).toBe(true);
+      expect(leadTurn.leadingMove).toBeNull();
+
+      // 2. Khi isLeadMove: false và có leadingMove, leadingMove bảo đảm non-nullable 100%
+      const followTurn = createPlayingTurnMatchState({
+        status: 'PLAYING',
+        gameNumber: 1,
+        roundNumber: 1,
+        players: testPlayers,
+        currentTurnPlayerId: 'p1',
+        leadPlayerId: 'p0',
+        roundMoves: [dummyMove],
+        leadingMove: dummyMove,
+        isLeadMove: false,
+        isFirstMoveOfGame: false,
+        passedPlayerIds: [],
+        chopNotification: null,
+        botThinkingThought: null,
+        rules: defaultRules
+      });
+      expect(followTurn.isLeadMove).toBe(false);
+      if (!followTurn.isLeadMove) {
+        expect(followTurn.leadingMove.playerId).toBe('p1');
+      }
     });
   });
 

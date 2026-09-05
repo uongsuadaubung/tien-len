@@ -11,14 +11,14 @@ export class CardTracker {
   private opponentHighestRankPassed: Map<string, Map<CombinationType, number>> = new Map();
   private rankCountOnBoardAndHand: Map<Rank, number> = new Map();
 
-  constructor(initialHand: Card[] = [], memoryDepth = 1.0) {
+  constructor(initialHand: readonly Card[] = [], memoryDepth = 1.0) {
     this.memoryDepth = memoryDepth;
-    this.updateOwnHand(initialHand || []);
+    this.updateOwnHand(initialHand);
   }
 
-  public updateOwnHand(hand: Card[] = []): void {
+  public updateOwnHand(hand: readonly Card[] = []): void {
     this.ownHandCardIds.clear();
-    for (const card of hand || []) {
+    for (const card of hand) {
       this.ownHandCardIds.add(card.id);
     }
     this.recomputeRankCounts();

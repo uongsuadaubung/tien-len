@@ -47,7 +47,7 @@ export function assertValidMatchStartup(context: {
   betAmount: number;
   playerCoins: number;
   playerCount: number;
-  activeGameType?: string;
+  activeGameType: string | null;
 }): void {
   if (context.betAmount <= 0) {
     reportInvariantViolation(`Mức cược bàn đấu không hợp lệ (phải > 0, nhận được: ${context.betAmount})`, context);

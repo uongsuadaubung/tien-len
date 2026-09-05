@@ -1,10 +1,8 @@
 import type { Card } from './types';
 
-export interface DriverActionResult {
-  success: boolean;
-  reason?: string;
-  error?: string;
-}
+export type DriverActionResult =
+  | { readonly success: true }
+  | { readonly success: false; readonly error: string };
 
 /**
  * IMatchDriver

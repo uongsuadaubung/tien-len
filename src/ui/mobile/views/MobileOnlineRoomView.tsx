@@ -77,7 +77,6 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
       title={t('online.modalTitle')}
       subtitle={t('online.modalSubtitle')}
       icon={<Wifi className="w-5 h-5 text-[var(--color-gold)] animate-pulse" />}
-      className={null}
       headerRight={
         <Badge variant="gold" size="md">
           🪙 {profile.coins.toLocaleString()} Xu

@@ -25,7 +25,7 @@ import { useOnlineStore } from '../stores/useOnlineStore';
 import { appFlowCoordinator } from '../services/app-flow-coordinator';
 
 export const App: React.FC = () => {
-  const { currentScreen, openModal, setF5PenaltyData } = useViewStore();
+  const { currentScreen, openModal } = useViewStore();
   const { profile, setProfile, hydrateProfile } = useUserStore();
   const [isHydrated, setIsHydrated] = useState(false);
   const [hasEnteredGame, setHasEnteredGame] = useState(false);
@@ -42,7 +42,8 @@ export const App: React.FC = () => {
     handleDealCard,
     handleDealComplete,
     handleForfeitMatch,
-    handleReturnToLobby
+    handleReturnToLobby,
+    handleRequestExitTable
   } = useGameMatchLoop();
 
   // Khởi động nạp dữ liệu từ Dexie IndexedDB thuần túy (Tối thiểu 2s)
@@ -57,6 +58,7 @@ export const App: React.FC = () => {
     ]).then(async ([hydrated, savedSettings, savedTableConfig]) => {
       if (hydrated.profile) {
         hydrateProfile(hydrated.profile);
+        useGameStore.getState().setMyPlayerId(hydrated.profile.id);
       }
       if (savedSettings) {
         useSettingsStore.getState().hydrateSettings(savedSettings);
@@ -71,11 +73,13 @@ export const App: React.FC = () => {
         try {
           const syncResult = await smartSync();
           if (syncResult.type === 'conflict') {
-            useViewStore.getState().setSyncConflictData({
-              localData: syncResult.localData,
-              cloudData: syncResult.cloudData
+            useViewStore.getState().openModal({
+              type: 'SYNC_CONFLICT',
+              data: {
+                localData: syncResult.localData,
+                cloudData: syncResult.cloudData
+              }
             });
-            useViewStore.getState().openModal('SYNC_CONFLICT');
           }
         } catch (err: unknown) {
           console.warn('[AutoSyncOnStartup] Tự động đồng bộ khi mở game gặp sự cố:', err);
@@ -102,17 +106,19 @@ export const App: React.FC = () => {
         };
         setProfile(updatedProfile);
         savePlayerProfile(updatedProfile);
-        setF5PenaltyData({
-          depositLost,
-          eloLost,
-          isRanked: isQuickOrRanked
+        openModal({
+          type: 'F5_PENALTY_NOTICE',
+          data: {
+            depositLost,
+            eloLost,
+            isRanked: isQuickOrRanked
+          }
         });
-        openModal('F5_PENALTY_NOTICE');
       }
 
       setIsHydrated(true);
     });
-  }, [hydrateProfile, setProfile, openModal, setF5PenaltyData]);
+  }, [hydrateProfile, setProfile, openModal]);
 
   // Kiểm tra nếu chưa đặt tên thì mở Modal tạo tên khởi nghiệp (chỉ chạy SAU KHI đã nạp xong từ Dexie)
   useEffect(() => {
@@ -188,6 +194,7 @@ export const App: React.FC = () => {
     handleDealComplete,
     handleForfeitMatch,
     handleReturnToLobby,
+    handleRequestExitTable,
     handlePlayNowDefault,
     handleStartQuickGame,
     handleStartCustomGameWithConfig,

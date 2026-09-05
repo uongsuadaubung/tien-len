@@ -29,7 +29,7 @@ export const MobileCampaignMapView: React.FC<MobileCampaignMapViewProps> = ({
     getChapterStatus,
     handleOpenBossProfile,
     handleStartChapter
-  } = useCampaign({ onSelectChapter });
+  } = useCampaign({ onSelectChapter, initialChapterId: null });
   const { t } = useI18n();
 
   if (!isOpen) return null;
@@ -65,7 +65,6 @@ export const MobileCampaignMapView: React.FC<MobileCampaignMapViewProps> = ({
           </div>
         </div>
       }
-      className={null}
     >
       <div className="space-y-4 pb-4 select-none">
         {/* BẢN ĐỒ 9 CHƯƠNG DẠNG TRACK CUỘN NGANG */}

@@ -45,6 +45,13 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
         !c.cards.some(isTwo) // KHÔNG BAO GIỜ coi Heo/Đôi Heo/Sám Heo là combo thường để xả bừa bãi!
     );
 
+    const compositeStrategy = context.compositeRuleStrategy;
+    const leadPolicy = compositeStrategy ? compositeStrategy.getCompositeLeadPolicy() : {
+      preferLongestComboFirst: false,
+      dumpSmallTrashFirst: true,
+      aggressiveFinisherPush: false
+    };
+
     // =========================================================================
     // 0. CHẶN ĐẦU ĐỀN BÀI SINH TỬ BẰNG BẺ BÀI (DYNAMIC SACRIFICE / SPLITTING)
     // =========================================================================
@@ -163,8 +170,10 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
       !isEmergencyAntiLeader &&
       !isNextPlayerOneCard
     ) {
-      if (nonTwoTrash.length > 0) {
-        const smallestTrash = nonTwoTrash[0];
+      // Chỉ coi là rác nhỏ khi rank <= 9 (3..9). Nếu rác là bài to (10, J, Q, K), không tự ý xả bừa bãi!
+      const trueSmallTrash = nonTwoTrash.filter(c => c.rank <= 9);
+      if (trueSmallTrash.length > 0) {
+        const smallestTrash = trueSmallTrash[0];
         const move = validMoves.find(
           m => m.combination.type === 'SINGLE' && m.cards[0].id === smallestTrash.id
         );
@@ -203,15 +212,12 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
     // =========================================================================
     // 4. CHÍNH SÁCH RA BÀI HỢP THÀNH TỪ CÁC RULE ACTIVE (COMPOSITE LEAD POLICY)
     // =========================================================================
-    const compositeStrategy = context.compositeRuleStrategy;
-    const leadPolicy = compositeStrategy ? compositeStrategy.getCompositeLeadPolicy() : {
-      preferLongestComboFirst: false,
-      dumpSmallTrashFirst: true,
-      aggressiveFinisherPush: false
-    };
-
-    // A. Ưu tiên xả Sảnh dài (4-6 lá) & Bộ thường nhiều lá trước (Luật Đếm Lá - Không xả Heo)
-    if (leadPolicy.preferLongestComboFirst && regularNonTwoCombos.length > 0 && !isEmergencyAntiLeader && !isNextPlayerOneCard) {
+    // A. Ưu tiên xả Sảnh dài (4-6 lá) & Bộ thường nhiều lá trước (Luật Đếm Lá, hoặc khi có người 1 lá mà ta có bộ để khóa họ)
+    if (
+      (leadPolicy.preferLongestComboFirst || isEmergencyAntiLeader) &&
+      regularNonTwoCombos.length > 0 &&
+      !isNextPlayerOneCard
+    ) {
       const sortedCombos = [...regularNonTwoCombos].sort((a, b) => {
         if (b.cards.length !== a.cards.length) {
           return b.cards.length - a.cards.length;
@@ -227,11 +233,18 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
           m.combination.highestCard.id === longestCombo.highestCard.id
       );
       if (move) {
+        const reason = isEmergencyAntiLeader
+          ? `Có người báo 1 lá: Đánh bộ (${longestCombo.type} ${longestCombo.cards.length} lá) để khóa đối thủ không cho về bài`
+          : `Chiến thuật Rule-Driven: Xả tổ hợp dài nhất (${longestCombo.type} ${longestCombo.cards.length} lá) trước để giảm số lá tồn`;
+        const strategyUsed = isEmergencyAntiLeader
+          ? 'COMBO_LOCK_ONE_CARD_OPPONENT'
+          : 'RULE_DRIVEN_LONGEST_COMBO';
+
         return buildBotDecision('PLAY', {
           cards: move.cards,
           combination: move.combination,
-          reason: `Chiến thuật Rule-Driven: Xả tổ hợp dài nhất (${longestCombo.type} ${longestCombo.cards.length} lá) trước để giảm số lá tồn`,
-          strategyUsed: 'RULE_DRIVEN_LONGEST_COMBO'
+          reason,
+          strategyUsed
         });
       }
     }

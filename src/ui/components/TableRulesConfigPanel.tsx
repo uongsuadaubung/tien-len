@@ -16,18 +16,19 @@ import { Card, Badge, ToggleSwitch } from '../primitives';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { MobileVirtualInput } from '../mobile/components/MobileVirtualInput';
 import { useI18n } from '../../locales';
+import { calculateRequiredDeposit, calculateMaxSafeBet, canAffordDeposit } from '../../engine/constants/economy';
 
 export interface TableConfigState {
   playerCount: PlayerCount;
   mode: GameMode;
   betAmount: number;
-  choppingMultiplier?: number;
-  congEnabled?: boolean;
-  prohibitEndingWithTwo?: boolean;
-  allowFourPairsCutAnytime?: boolean;
-  threeSpadesEndingBonus?: boolean;
-  cascadeChopEnabled?: boolean;
-  instantWinEnabled?: boolean;
+  choppingMultiplier: number;
+  congEnabled: boolean;
+  prohibitEndingWithTwo: boolean;
+  allowFourPairsCutAnytime: boolean;
+  threeSpadesEndingBonus: boolean;
+  cascadeChopEnabled: boolean;
+  instantWinEnabled: boolean;
 }
 
 export interface TableRulesConfigPanelProps {
@@ -73,22 +74,22 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
   }, [config.betAmount]);
 
   // Tính toán tiền cọc an toàn
-  const currentMultiplier = config.choppingMultiplier || 1;
-  const depositRequired = 26 * config.betAmount * currentMultiplier;
+  const currentMultiplier = config.choppingMultiplier;
+  const depositRequired = calculateRequiredDeposit(config.betAmount);
   const depositPercent = playerCoins > 0 ? (depositRequired / playerCoins) * 100 : 100;
-  const isInsufficientCoins = playerCoins < depositRequired;
+  const isInsufficientCoins = !canAffordDeposit(playerCoins, config.betAmount);
 
-  const congPenaltyAmount = config.betAmount * 26 * currentMultiplier;
+  const congPenaltyAmount = config.betAmount * 26;
   const minThoiAmount = config.betAmount * 0.5 * currentMultiplier;
   const maxThoiAmount = config.betAmount * 4 * currentMultiplier;
   const fourPairsRewardAmount = config.betAmount * 4 * currentMultiplier;
 
-  const isProhibitEndingWithTwo = config.prohibitEndingWithTwo !== false;
-  const isAllowFourPairsCutAnytime = config.allowFourPairsCutAnytime !== false;
-  const isThreeSpadesEndingBonus = config.threeSpadesEndingBonus !== false;
-  const isCascadeChopEnabled = config.cascadeChopEnabled !== false;
-  const isCongEnabled = config.congEnabled !== false;
-  const isInstantWinEnabled = config.instantWinEnabled !== false;
+  const isProhibitEndingWithTwo = config.prohibitEndingWithTwo;
+  const isAllowFourPairsCutAnytime = config.allowFourPairsCutAnytime;
+  const isThreeSpadesEndingBonus = config.threeSpadesEndingBonus;
+  const isCascadeChopEnabled = config.cascadeChopEnabled;
+  const isCongEnabled = config.congEnabled;
+  const isInstantWinEnabled = config.instantWinEnabled;
 
   let riskBadgeVariant: 'gold' | 'neutral' | 'danger' = 'neutral';
   let riskBadgeText = t('tableConfig.depositSafe');
@@ -139,8 +140,8 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
       return;
     }
 
-    const reqDeposit = 26 * parsed * currentMultiplier;
-    if (reqDeposit > playerCoins) {
+    const reqDeposit = calculateRequiredDeposit(parsed);
+    if (!canAffordDeposit(playerCoins, parsed)) {
       setBetError(t('tableConfig.betInputErrorDeposit', { deposit: reqDeposit.toLocaleString(), coins: playerCoins.toLocaleString() }));
     } else {
       setBetError(null);
@@ -150,7 +151,7 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
   };
 
   const handleApplyQuickPercent = (fraction: number) => {
-    const maxSafeBet = Math.max(10, Math.floor((playerCoins * fraction) / (26 * currentMultiplier)));
+    const maxSafeBet = calculateMaxSafeBet(playerCoins, fraction);
     setBetError(null);
     setCustomBetInput(maxSafeBet.toString());
     onChange({ betAmount: maxSafeBet });
@@ -275,30 +276,33 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
           }> = {
             COUNT_CARDS: {
               title: t('tableConfig.modeCountCardsTitle'),
-              badge: t('tableConfig.modeCountCardsBadge', { amount: (config.betAmount * currentMultiplier).toLocaleString() }),
+              badge: t('tableConfig.modeCountCardsBadge', { amount: config.betAmount.toLocaleString() }),
               desc: t('tableConfig.modeCountCardsDesc'),
-              maxWin: t('tableConfig.modeCountCardsMaxWin', { amount: (activeBotCount * 13 * config.betAmount * currentMultiplier).toLocaleString() }),
-              maxLoss: t('tableConfig.modeCountCardsMaxLoss', { amount: congPenaltyAmount.toLocaleString() })
+              maxWin: t('tableConfig.modeCountCardsMaxWin', { amount: (activeBotCount * 13 * config.betAmount).toLocaleString() }),
+              maxLoss: t('tableConfig.modeCountCardsMaxLoss', { 
+                amount: congPenaltyAmount.toLocaleString(),
+                cards: '26'
+              })
             },
             WINNER_TAKES_ALL: {
               title: t('tableConfig.modeWinnerTakesAllTitle'),
               badge: t('tableConfig.modeWinnerTakesAllBadge', { count: activeBotCount }),
               desc: t('tableConfig.modeWinnerTakesAllDesc'),
-              maxWin: t('tableConfig.modeWinnerTakesAllMaxWin', { amount: (activeBotCount * config.betAmount * currentMultiplier).toLocaleString() }),
-              maxLoss: t('tableConfig.modeWinnerTakesAllMaxLoss', { amount: (config.betAmount * currentMultiplier).toLocaleString() })
+              maxWin: t('tableConfig.modeWinnerTakesAllMaxWin', { amount: (activeBotCount * config.betAmount).toLocaleString() }),
+              maxLoss: t('tableConfig.modeWinnerTakesAllMaxLoss', { amount: config.betAmount.toLocaleString() })
             },
             TRADITIONAL: {
               title: t('tableConfig.modeTraditionalTitle'),
               badge: t('tableConfig.modeTraditionalBadge'),
               desc: t('tableConfig.modeTraditionalDesc'),
-              maxWin: t('tableConfig.modeTraditionalMaxWin', { amount: ((activeBotCount >= 3 ? 2 : activeBotCount >= 2 ? 2 : 1) * config.betAmount * currentMultiplier).toLocaleString() }),
-              maxLoss: t('tableConfig.modeTraditionalMaxLoss', { amount: ((activeBotCount >= 3 ? 2 : activeBotCount >= 2 ? 2 : 1) * config.betAmount * currentMultiplier).toLocaleString() })
+              maxWin: t('tableConfig.modeTraditionalMaxWin', { amount: ((activeBotCount >= 3 ? 2 : activeBotCount >= 2 ? 2 : 1) * config.betAmount).toLocaleString() }),
+              maxLoss: t('tableConfig.modeTraditionalMaxLoss', { amount: ((activeBotCount >= 3 ? 2 : activeBotCount >= 2 ? 2 : 1) * config.betAmount).toLocaleString() })
             },
             CUSTOM: {
               title: t('tableConfig.modeCustomTitle'),
               badge: t('tableConfig.modeCustomBadge'),
               desc: t('tableConfig.modeCustomDesc'),
-              maxWin: t('tableConfig.modeCountCardsMaxWin', { amount: (activeBotCount * 13 * config.betAmount * currentMultiplier).toLocaleString() }),
+              maxWin: t('tableConfig.modeCountCardsMaxWin', { amount: (activeBotCount * 13 * config.betAmount).toLocaleString() }),
               maxLoss: `-${congPenaltyAmount.toLocaleString()} Xu`
             }
           };
@@ -360,8 +364,8 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {PRESET_BETS.map(amt => {
             const isSelected = !isCustomBet && config.betAmount === amt;
-            const requiredDepositForPreset = 26 * amt * currentMultiplier;
-            const isPresetDisabled = playerCoins < requiredDepositForPreset;
+            const requiredDepositForPreset = calculateRequiredDeposit(amt);
+            const isPresetDisabled = !canAffordDeposit(playerCoins, amt);
 
             return (
               <button
@@ -414,16 +418,7 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
                 value={customBetInput}
                 onChange={handleCustomBetChange}
                 placeholder={t('tableConfig.customBetPlaceholder')}
-                icon={null}
-                label={null}
-                error={null}
                 maxLength={10}
-                showRandomNameButton={false}
-                showPasteButton={false}
-                onRandomName={null}
-                onPaste={null}
-                onSubmit={null}
-                className={null}
                 inputClassName="font-mono font-bold"
                 clearable={true}
                 renderExtraActions={() => (
@@ -647,7 +642,7 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
                     {t('tableConfig.ruleCong')}
                   </div>
                   <div className="text-[10px] text-[var(--text-muted)] mt-0.5 leading-tight">
-                    {t('tableConfig.ruleCongDesc', { count: 26 * currentMultiplier, cards: 26 * currentMultiplier, amount: congPenaltyAmount.toLocaleString() })}
+                    {t('tableConfig.ruleCongDesc', { count: 26, cards: 26, amount: congPenaltyAmount.toLocaleString() })}
                   </div>
                 </div>
               </div>

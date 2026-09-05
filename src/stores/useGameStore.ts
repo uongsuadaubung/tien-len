@@ -10,7 +10,7 @@ import {
   CustomBotConfigTuple,
   updateTupleAt
 } from '../engine/types';
-import type { MatchState } from '../engine/state-machine';
+import { type MatchState, mapMatchStateToSnapshot } from '../engine/state-machine';
 import { BotConfig } from '../ai/types';
 import { GameSettingsSchema, QuickTableConfigSchema, type QuickTableConfig } from '../engine/schemas/settings.schema';
 import { CampaignChapter } from '../engine/campaign';
@@ -20,17 +20,74 @@ import { MatchLogReport } from '../engine/match-logger';
 import { createPlayer, createBotPlayer } from '../engine/player-factory';
 import { dbSaveQuickTableConfig } from '../engine/db/indexed-db';
 import { useViewStore } from './useViewStore';
+import { EloDeltaResult } from '../engine/elo';
+import { loadPlayerProfile } from '../engine/storage';
 
 export type ActiveGameType = 'QUICK' | 'CAMPAIGN' | 'ONLINE';
 export type ScreenType = 'LOBBY' | 'GAME_TABLE';
 
 export type HandSortMode = 'NATURAL' | 'SMART_GROUP' | 'BY_SUIT' | 'TWO_PRESERVE';
 
-export interface CampaignResultMeta {
+export interface CampaignNextUnlockedMeta {
+  status: 'NEXT_UNLOCKED';
+  isUnlockedNext: true;
+  isAllCompleted: false;
+  nextChapter: CampaignChapter;
+  currentWins: number;
+}
+
+export interface CampaignAllCompletedMeta {
+  status: 'ALL_COMPLETED';
+  isUnlockedNext: false;
+  isAllCompleted: true;
+  nextChapter: null;
+  currentWins: number;
+}
+
+export interface CampaignInProgressMeta {
+  status: 'IN_PROGRESS';
+  isUnlockedNext: false;
+  isAllCompleted: false;
+  nextChapter: null;
+  currentWins: number;
+}
+
+export type CampaignResultMeta =
+  | CampaignNextUnlockedMeta
+  | CampaignAllCompletedMeta
+  | CampaignInProgressMeta;
+
+export function createCampaignResultMeta(params: {
   isUnlockedNext: boolean;
   isAllCompleted: boolean;
   nextChapter: CampaignChapter | null;
   currentWins: number;
+}): CampaignResultMeta {
+  if (params.isAllCompleted) {
+    return {
+      status: 'ALL_COMPLETED',
+      isUnlockedNext: false,
+      isAllCompleted: true,
+      nextChapter: null,
+      currentWins: params.currentWins
+    };
+  }
+  if (params.isUnlockedNext && params.nextChapter) {
+    return {
+      status: 'NEXT_UNLOCKED',
+      isUnlockedNext: true,
+      isAllCompleted: false,
+      nextChapter: params.nextChapter,
+      currentWins: params.currentWins
+    };
+  }
+  return {
+    status: 'IN_PROGRESS',
+    isUnlockedNext: false,
+    isAllCompleted: false,
+    nextChapter: null,
+    currentWins: params.currentWins
+  };
 }
 
 export interface ChopNotificationData {
@@ -88,6 +145,7 @@ interface GameState {
   matchPayouts: Record<string, number>;
   loanDeductionAmount: number;
   lastEloDelta: number;
+  lastEloBreakdown: EloDeltaResult['breakdown'] | null;
   allEloDeltas: Record<string, number>;
   matchLogReport: MatchLogReport | null;
   campaignResultMeta: CampaignResultMeta | null;
@@ -140,6 +198,7 @@ interface GameState {
   setMatchPayouts: (payouts: Record<string, number>) => void;
   setLoanDeductionAmount: (amount: number) => void;
   setLastEloDelta: (delta: number) => void;
+  setLastEloBreakdown: (breakdown: EloDeltaResult['breakdown'] | null) => void;
   setAllEloDeltas: (deltas: Record<string, number>) => void;
   setMatchLogReport: (report: MatchLogReport | null) => void;
   setMatchState: (state: MatchState) => void;
@@ -164,24 +223,26 @@ interface GameState {
   resetMatchState: () => void;
 }
 
+const initialProfile = loadPlayerProfile();
+
 const DEFAULT_PLAYERS: Player[] = [
   createPlayer({
-    id: 'p0',
-    name: 'Bạn (Người Chơi)',
-    avatar: '🤠',
-    score: ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS
+    id: initialProfile.id,
+    name: initialProfile.name || 'Bạn (Người Chơi)',
+    avatar: initialProfile.avatar || '🤠',
+    score: initialProfile.coins ?? ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS
   }),
-  createBotPlayer('p1', 'BOT_ELO_850', {
+  createBotPlayer('bot_alex', 'BOT_ELO_850', {
     name: 'Alex',
     avatar: '🧒',
     score: 4850
   }),
-  createBotPlayer('p2', 'BOT_ELO_1150', {
+  createBotPlayer('bot_kai', 'BOT_ELO_1150', {
     name: 'Kai',
     avatar: '🤠',
     score: 8200
   }),
-  createBotPlayer('p3', 'BOT_ELO_1450', {
+  createBotPlayer('bot_marcus', 'BOT_ELO_1450', {
     name: 'Marcus',
     avatar: '👴',
     score: 16500
@@ -203,7 +264,7 @@ export const DEFAULT_MATCH_STATE: MatchState = {
 export const useGameStore = create<GameState>((set) => ({
   currentScreen: 'LOBBY',
   activeGameType: 'QUICK',
-  myPlayerId: 'p0',
+  myPlayerId: initialProfile.id,
   playerCount: 4,
   botPersonaIds: ['BOT_ELO_850', 'BOT_ELO_1150', 'BOT_ELO_1450'],
   customBotConfigs: [{}, {}, {}],
@@ -242,6 +303,7 @@ export const useGameStore = create<GameState>((set) => ({
   matchPayouts: {},
   loanDeductionAmount: 0,
   lastEloDelta: 0,
+  lastEloBreakdown: null,
   allEloDeltas: {},
   matchLogReport: null,
   campaignResultMeta: null,
@@ -334,95 +396,38 @@ export const useGameStore = create<GameState>((set) => ({
   setMatchPayouts: (payouts) => set({ matchPayouts: payouts }),
   setLoanDeductionAmount: (amount) => set({ loanDeductionAmount: amount }),
   setLastEloDelta: (delta) => set({ lastEloDelta: delta }),
+  setLastEloBreakdown: (breakdown) => set({ lastEloBreakdown: breakdown }),
   setAllEloDeltas: (deltas) => set({ allEloDeltas: deltas }),
   setMatchLogReport: (report) => set({ matchLogReport: report }),
   setMatchState: (matchState) => set({ matchState }),
-  applyMatchState: (matchState) => set(() => {
-    switch (matchState.status) {
-      case 'WAITING':
-        return {
-          matchState,
-          gameNumber: matchState.gameNumber,
-          players: [...matchState.players],
-          isDealing: false,
-          isGameOver: false,
-          currentTurnPlayerId: null,
-          leadPlayerId: null,
-          currentMove: null,
-          winners: [],
-          instantWinType: null
-        };
-      case 'DEALING':
-        return {
-          matchState,
-          gameNumber: matchState.gameNumber,
-          players: [...matchState.players],
-          isDealing: true,
-          dealtCounts: { ...matchState.dealtCounts },
-          dealBanner: matchState.dealBanner,
-          isGameOver: false,
-          currentTurnPlayerId: null,
-          instantWinType: null
-        };
-      case 'PLAYING':
-        return {
-          matchState,
-          gameNumber: matchState.gameNumber,
-          players: [...matchState.players],
-          currentTurnPlayerId: matchState.currentTurnPlayerId,
-          leadPlayerId: matchState.leadPlayerId,
-          currentMove: matchState.leadingMove ? { ...matchState.leadingMove } : null,
-          isDealing: false,
-          isGameOver: false,
-          instantWinType: null,
-          isFirstMoveOfGame: matchState.isFirstMoveOfGame,
-          isLeadMove: matchState.isLeadMove,
-          chopNotification: matchState.chopNotification ? { ...matchState.chopNotification } : null,
-          botThinkingThought: matchState.botThinkingThought ? { ...matchState.botThinkingThought } : null
-        };
-      case 'INSTANT_WIN':
-        return {
-          matchState,
-          gameNumber: matchState.gameNumber,
-          players: [...matchState.players],
-          winners: [matchState.instantWinner],
-          instantWinType: matchState.instantWinType,
-          isDealing: false,
-          isGameOver: true,
-          currentTurnPlayerId: null,
-          matchPayouts: { ...matchState.matchPayouts },
-          allEloDeltas: { ...matchState.eloDeltas },
-          matchLogReport: matchState.matchLogReport
-        };
-      case 'ROUND_ENDED':
-        return {
-          matchState,
-          gameNumber: matchState.gameNumber,
-          players: [...matchState.players],
-          currentTurnPlayerId: matchState.nextLeadPlayerId,
-          leadPlayerId: matchState.nextLeadPlayerId,
-          currentMove: null,
-          isDealing: false,
-          isGameOver: false,
-          instantWinType: null,
-          isLeadMove: true,
-          chopNotification: matchState.chopNotification ? { ...matchState.chopNotification } : null
-        };
-      case 'GAME_OVER':
-        return {
-          matchState,
-          gameNumber: matchState.gameNumber,
-          players: [...matchState.players],
-          winners: [...matchState.winners],
-          isDealing: false,
-          isGameOver: true,
-          currentTurnPlayerId: null,
-          matchPayouts: { ...matchState.matchPayouts },
-          allEloDeltas: { ...matchState.eloDeltas },
-          matchLogReport: matchState.matchLogReport
-        };
-    }
-  }),
+  applyMatchState: (matchState) => {
+    const snapshot = mapMatchStateToSnapshot(matchState);
+    const hasEconomy = matchState.status === 'INSTANT_WIN' || matchState.status === 'GAME_OVER';
+    set((state) => ({
+      ...state,
+      matchState,
+      gameNumber: snapshot.gameNumber,
+      players: snapshot.players,
+      currentTurnPlayerId: snapshot.currentTurnPlayerId,
+      leadPlayerId: snapshot.leadPlayerId,
+      currentMove: snapshot.currentMove,
+      winners: snapshot.winners,
+      isGameOver: snapshot.isGameOver,
+      instantWinType: snapshot.instantWinType,
+      isDealing: snapshot.isDealing,
+      dealtCounts: snapshot.dealtCounts,
+      dealBanner: snapshot.dealBanner,
+      chopNotification: snapshot.chopNotification,
+      botThinkingThought: snapshot.botThinkingThought,
+      isFirstMoveOfGame: snapshot.isFirstMoveOfGame,
+      isLeadMove: snapshot.isLeadMove,
+      ...(hasEconomy ? {
+        matchPayouts: { ...matchState.matchPayouts },
+        allEloDeltas: { ...matchState.eloDeltas },
+        matchLogReport: matchState.matchLogReport
+      } : {})
+    }));
+  },
   applyMatchSnapshot: (snapshot) => set((state) => ({
     ...state,
     gameNumber: snapshot.gameNumber,
@@ -464,6 +469,7 @@ export const useGameStore = create<GameState>((set) => ({
     matchPayouts: {},
     loanDeductionAmount: 0,
     lastEloDelta: 0,
+    lastEloBreakdown: null,
     allEloDeltas: {},
     matchLogReport: null,
     campaignResultMeta: null
