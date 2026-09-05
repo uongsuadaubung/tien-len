@@ -41,6 +41,7 @@ export const OnlineRoomStateSchema = z.object({
   betAmount: z.number().nonnegative().default(1000),
   settlementRule: GameSettlementRuleSchema.default('COUNT_CARDS'),
   choppingMultiplier: z.number().min(1).max(5).default(1),
+  congMultiplier: z.number().min(1).max(5).default(1),
   congEnabled: z.boolean().default(true),
   prohibitEndingWithTwo: z.boolean().default(true),
   allowFourPairsCutAnytime: z.boolean().default(true),
@@ -66,6 +67,7 @@ export const PublicRoomSummarySchema = z.object({
   betAmount: z.number(),
   settlementRule: GameSettlementRuleSchema,
   choppingMultiplier: z.number(),
+  congMultiplier: z.number().default(1),
   congEnabled: z.boolean(),
   prohibitEndingWithTwo: z.boolean(),
   allowFourPairsCutAnytime: z.boolean(),
@@ -101,13 +103,29 @@ export const DealHandPacketSchema = z.object({
 
 export type DealHandPacket = z.infer<typeof DealHandPacketSchema>;
 
+// Thông tin thông báo chặt heo qua mạng
+export const NetworkChopNotificationSchema = z.object({
+  visible: z.boolean(),
+  chopperName: z.string(),
+  targetName: z.string(),
+  amount: z.number(),
+  isCascade: z.boolean(),
+  chainCount: z.number()
+});
+
+export type NetworkChopNotification = z.infer<typeof NetworkChopNotificationSchema>;
+
 // Gói tin đồng bộ bàn chơi công khai
 export const TableStateSyncPacketSchema = z.object({
   currentTurnPlayerId: z.string().nullable(),
   leadPlayerId: z.string().nullable(),
   currentMoveCards: z.array(NetworkCardSchema).optional(),
   currentMovePlayerId: z.string().optional(),
+  currentMoveCombinationType: z.string().optional(),
   remainingCardCounts: z.record(z.string(), z.number()),
+  passedPlayerIds: z.array(z.string()).default([]),
+  roundNumber: z.number().default(1),
+  chopNotification: NetworkChopNotificationSchema.nullable().optional(),
   winners: z.array(z.string()),
   isGameOver: z.boolean(),
   lastActionMessage: z.string().optional(),

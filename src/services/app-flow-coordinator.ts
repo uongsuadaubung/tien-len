@@ -110,7 +110,7 @@ export class AppFlowCoordinator {
           .withCong(cg => cg
             .enabled(config.congEnabled)
             .penaltyCards(config.congEnabled ? 26 : 0)
-            .multiplier(config.choppingMultiplier)
+            .multiplier(config.congMultiplier ?? 1)
           )
           .withGameFlow(f => f
             .prohibitEndingWithTwo(config.prohibitEndingWithTwo)
@@ -269,7 +269,11 @@ export class AppFlowCoordinator {
 
     // 2. Tính cọc và trừ cọc an toàn
     const multiplier = config.rules.chopping.multiplier || 1;
-    const targetDeposit = calculateRequiredDeposit(betAmount);
+    const targetDeposit = calculateRequiredDeposit(
+      betAmount,
+      config.rules.cong.multiplier ?? 1,
+      config.rules.cong.enabled ?? true
+    );
     let actualDeposit = 0;
     if (betAmount > 0) {
       actualDeposit = Math.min(currentProfile.coins, targetDeposit);
@@ -477,7 +481,11 @@ export class AppFlowCoordinator {
 
     // Trừ cọc cho ván mới
     const multiplier = driver.tableConfig.rules.chopping.multiplier || 1;
-    const targetDeposit = calculateRequiredDeposit(betAmount);
+    const targetDeposit = calculateRequiredDeposit(
+      betAmount,
+      driver.tableConfig.rules.cong.multiplier ?? 1,
+      driver.tableConfig.rules.cong.enabled ?? true
+    );
     let actualDeposit = 0;
     if (betAmount > 0) {
       actualDeposit = Math.min(liveProfile.coins, targetDeposit);

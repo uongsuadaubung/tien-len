@@ -85,6 +85,7 @@ export class HostEngineDriver implements IMatchDriver {
       )
       .withCong(cg => cg
         .enabled(this.roomState.congEnabled)
+        .multiplier(this.roomState.congMultiplier ?? 1)
       )
       .withGameFlow(gf => gf
         .prohibitEndingWithTwo(this.roomState.prohibitEndingWithTwo)
@@ -356,7 +357,11 @@ export class HostEngineDriver implements IMatchDriver {
       leadPlayerId: leadId,
       currentMoveCards,
       currentMovePlayerId: lastMove?.playerId,
+      currentMoveCombinationType: lastMove?.combination.type,
       remainingCardCounts,
+      passedPlayerIds: [...this.engine.currentRound.passedPlayerIds],
+      roundNumber: this.engine.roundNumber,
+      chopNotification: null,
       winners: this.engine.winners.map(w => w.id),
       isGameOver: this.engine.isGameOver,
       lastActionMessage: message,
@@ -443,6 +448,7 @@ export class HostEngineDriver implements IMatchDriver {
       streaksByPlayer,
       isBankLoanActive: false,
       penaltyMultiplier: this.roomState.choppingMultiplier,
+      congMultiplier: this.roomState.congMultiplier ?? 1,
       isThreeSpadesWin: this.engine.isThreeSpadesWin,
       isInstantWin: !!this.engine.instantWinner
     });

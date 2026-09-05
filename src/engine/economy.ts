@@ -127,17 +127,18 @@ export function calculateRottenPenalty(hand: Card[], betAmount: number, penaltyM
 
 /**
  * Tính toán tiền phạt Cóng (Cháy bài)
- * - Cóng đền cố định 26 mức cược (13 lá x 2 theo luật Tiến Lên Miền Nam chuẩn).
- * - Hệ số nhân Chặt/Thối (choppingMultiplier) KHÔNG áp dụng cho số lá đếm bài và Cóng.
+ * - Cóng đền 26 mức cược (13 lá x 2 theo luật Tiến Lên Miền Nam chuẩn).
+ * - Có áp dụng hệ số nhân phạt Cóng riêng biệt (congMultiplier), độc lập với hệ số phạt Chặt/Thối.
  */
-export function calculateCongPenalty(betAmount: number): number {
-  return 26 * betAmount;
+export function calculateCongPenalty(betAmount: number, congMultiplier: number = 1): number {
+  const mult = getMultiplier(congMultiplier);
+  return 26 * betAmount * mult;
 }
 
 /**
  * Tính toán kết quả cho chế độ Đếm Lá (Card-Count / Sát Phạt)
  * - Ván dừng khi 1 người về Nhất.
- * - Người thua bị phạt: (Số lá còn lại × Cược × Mult) + Thối heo/hàng + Cóng.
+ * - Người thua bị phạt: Số lá còn lại × Cược + Thối heo/hàng (nhân penaltyMultiplier) + Cóng (nhân congMultiplier).
  * - Nếu Về 3 Bích (isThreeSpadesWin), toàn bộ tiền phạt từ người thua được nhân 2.
  * - Người về Nhất ăn trọn số tiền phạt này.
  */
@@ -146,7 +147,8 @@ export function calculateCountCardsSettlement(
   winnerId: string,
   betAmount: number,
   penaltyMultiplier: number = 1,
-  isThreeSpadesWin: boolean = false
+  isThreeSpadesWin: boolean = false,
+  congMultiplier: number = 1
 ): Record<string, number> {
   const payouts: Record<string, number> = {};
   players.forEach(p => { payouts[p.id] = 0; });
@@ -160,13 +162,13 @@ export function calculateCountCardsSettlement(
       let lossAmount = 0;
       // Kiểm tra Cóng (13 lá và chưa đánh ra được lá nào)
       if (player.hand.length === 13 && !player.hasPlayedFirstCard) {
-        lossAmount += calculateCongPenalty(betAmount);
+        lossAmount += calculateCongPenalty(betAmount, congMultiplier);
       } else {
         // Tiền đếm lá rác bình thường: Số lá x Mức cược (KHÔNG nhân multiplier!)
         lossAmount += player.hand.length * betAmount;
       }
 
-      // Thối heo / thối hàng (áp dụng multiplier)
+      // Thối heo / thối hàng (áp dụng penaltyMultiplier)
       const rotten = calculateRottenPenalty(player.hand, betAmount, mult);
       lossAmount += rotten;
 
@@ -184,7 +186,7 @@ export function calculateCountCardsSettlement(
 
 /**
  * Tính toán kết quả cho chế độ Nhất Ăn Tất (Winner-Takes-All)
- * - Mỗi người thua mất 1 mức cược cơ bản + Thối heo/hàng + Cóng.
+ * - Mỗi người thua mất 1 mức cược cơ bản + Thối heo/hàng (nhân penaltyMultiplier) + Cóng (nhân congMultiplier).
  * - Nếu Về 3 Bích (isThreeSpadesWin), toàn bộ tiền phạt từ người thua được nhân 2.
  * - Người về Nhất ăn trọn.
  */
@@ -193,7 +195,8 @@ export function calculateWinnerTakesAllSettlement(
   winnerId: string,
   betAmount: number,
   penaltyMultiplier: number = 1,
-  isThreeSpadesWin: boolean = false
+  isThreeSpadesWin: boolean = false,
+  congMultiplier: number = 1
 ): Record<string, number> {
   const payouts: Record<string, number> = {};
   players.forEach(p => { payouts[p.id] = 0; });
@@ -208,7 +211,7 @@ export function calculateWinnerTakesAllSettlement(
       let lossAmount = betAmount;
 
       if (player.hand.length === 13 && !player.hasPlayedFirstCard) {
-        lossAmount += calculateCongPenalty(betAmount);
+        lossAmount += calculateCongPenalty(betAmount, congMultiplier);
       }
 
       const rotten = calculateRottenPenalty(player.hand, betAmount, mult);
@@ -234,7 +237,8 @@ export function calculateTraditionalSettlement(
   winners: readonly Player[],
   betAmount: number,
   penaltyMultiplier: number = 1,
-  isThreeSpadesWin: boolean = false
+  isThreeSpadesWin: boolean = false,
+  congMultiplier: number = 1
 ): Record<string, number> {
   const payouts: Record<string, number> = {};
   players.forEach(p => { payouts[p.id] = 0; });
@@ -269,7 +273,7 @@ export function calculateTraditionalSettlement(
       }
 
       if (player.hand.length === 13 && !player.hasPlayedFirstCard) {
-        let cong = calculateCongPenalty(betAmount);
+        let cong = calculateCongPenalty(betAmount, congMultiplier);
         cong *= threeSpadesMultiplier;
         payouts[player.id] = (payouts[player.id] || 0) - cong;
         if (winnerFirst) {

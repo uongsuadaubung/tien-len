@@ -66,6 +66,7 @@ export interface MatchSettlementContext {
   readonly isBankLoanActive: boolean;
   readonly campaignReward?: number;
   readonly penaltyMultiplier: number;
+  readonly congMultiplier?: number;
   readonly isThreeSpadesWin: boolean;
   readonly isInstantWin: boolean;
 }
@@ -262,6 +263,11 @@ export class TraditionalModeStrategy implements GameModeStrategy {
         .allowFourPairsCutAnytime(context.customRules?.chopping?.allowFourPairsCutAnytime ?? context.customSettings?.allowFourPairsCutAnytime ?? true)
         .multiplier(context.customRules?.chopping?.multiplier ?? 1)
       )
+      .withCong(cg => cg
+        .enabled(context.customRules?.cong?.enabled ?? true)
+        .penaltyCards(context.customRules?.cong?.penaltyCards ?? 26)
+        .multiplier(context.customRules?.cong?.multiplier ?? 1)
+      )
       .withTable(t => t
         .playerCount(playerCount)
         .betAmount(betAmount)
@@ -274,12 +280,14 @@ export class TraditionalModeStrategy implements GameModeStrategy {
   }
 
   settleMatch(context: MatchSettlementContext): MatchSettlementResult {
+    const congMult = context.congMultiplier ?? 1;
     const payouts = calculateTraditionalSettlement(
       context.players,
       context.winners,
       context.betAmount,
       context.penaltyMultiplier,
-      context.isThreeSpadesWin
+      context.isThreeSpadesWin,
+      congMult
     );
 
     const eloRes = computeMatchEloDelta(context);
@@ -344,12 +352,14 @@ export class CountCardsModeStrategy implements GameModeStrategy {
     if (!winnerFirst) {
       throw new Error(`[${this.id}] Không thể kết toán ván đấu khi danh sách winners rỗng!`);
     }
+    const congMult = context.congMultiplier ?? 1;
     const payouts = calculateCountCardsSettlement(
       context.players,
       winnerFirst.id,
       context.betAmount,
       context.penaltyMultiplier,
-      context.isThreeSpadesWin
+      context.isThreeSpadesWin,
+      congMult
     );
 
     const eloRes = computeMatchEloDelta(context);
@@ -471,12 +481,14 @@ export class WinnerTakesAllModeStrategy implements GameModeStrategy {
     if (!winnerFirst) {
       throw new Error(`[${this.id}] Không thể kết toán ván đấu khi danh sách winners rỗng!`);
     }
+    const congMult = context.congMultiplier ?? 1;
     const payouts = calculateWinnerTakesAllSettlement(
       context.players,
       winnerFirst.id,
       context.betAmount,
       context.penaltyMultiplier,
-      context.isThreeSpadesWin
+      context.isThreeSpadesWin,
+      congMult
     );
 
     const eloRes = computeMatchEloDelta(context);

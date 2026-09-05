@@ -17,6 +17,7 @@ export interface CreateRoomOptions {
   playerCount: 2 | 3 | 4;
   settlementRule: GameSettlementRule;
   choppingMultiplier?: number;
+  congMultiplier?: number;
   congEnabled?: boolean;
   prohibitEndingWithTwo?: boolean;
   allowFourPairsCutAnytime?: boolean;

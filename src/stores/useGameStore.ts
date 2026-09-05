@@ -11,6 +11,15 @@ import {
   updateTupleAt
 } from '../engine/types';
 import { type MatchState, mapMatchStateToSnapshot } from '../engine/state-machine';
+import { 
+  createPlayingTurnMatchState, 
+  type PlayingTurnMatchState, 
+  type GameOverMatchState 
+} from '../engine/state-machine/types';
+import { createCard } from '../engine/card';
+import { identifyCombination } from '../engine/combinations';
+import { GameEventBus } from '../engine/events/game-event-bus';
+import { type TableStateSyncPacket } from '../engine/network/network.schema';
 import { BotConfig } from '../ai/types';
 import { GameSettingsSchema, QuickTableConfigSchema, type QuickTableConfig } from '../engine/schemas/settings.schema';
 import { CampaignChapter } from '../engine/campaign';
@@ -203,6 +212,7 @@ interface GameState {
   setMatchLogReport: (report: MatchLogReport | null) => void;
   setMatchState: (state: MatchState) => void;
   applyMatchState: (state: MatchState) => void;
+  applyAuthoritativeTableSync: (sync: TableStateSyncPacket) => void;
   applyMatchSnapshot: (snapshot: Partial<{
     gameNumber: number;
     players: Player[];
@@ -403,30 +413,40 @@ export const useGameStore = create<GameState>((set) => ({
   applyMatchState: (matchState) => {
     const snapshot = mapMatchStateToSnapshot(matchState);
     const hasEconomy = matchState.status === 'INSTANT_WIN' || matchState.status === 'GAME_OVER';
-    set((state) => ({
-      ...state,
-      matchState,
-      gameNumber: snapshot.gameNumber,
-      players: snapshot.players,
-      currentTurnPlayerId: snapshot.currentTurnPlayerId,
-      leadPlayerId: snapshot.leadPlayerId,
-      currentMove: snapshot.currentMove,
-      winners: snapshot.winners,
-      isGameOver: snapshot.isGameOver,
-      instantWinType: snapshot.instantWinType,
-      isDealing: snapshot.isDealing,
-      dealtCounts: snapshot.dealtCounts,
-      dealBanner: snapshot.dealBanner,
-      chopNotification: snapshot.chopNotification,
-      botThinkingThought: snapshot.botThinkingThought,
-      isFirstMoveOfGame: snapshot.isFirstMoveOfGame,
-      isLeadMove: snapshot.isLeadMove,
-      ...(hasEconomy ? {
-        matchPayouts: { ...matchState.matchPayouts },
-        allEloDeltas: { ...matchState.eloDeltas },
-        matchLogReport: matchState.matchLogReport
-      } : {})
-    }));
+    set((state) => {
+      const mergedDealtCounts = { ...state.dealtCounts, ...snapshot.dealtCounts };
+      for (const p of snapshot.players) {
+        if (p.hand && p.hand.length > 0) {
+          mergedDealtCounts[p.id] = p.hand.length;
+        } else if (state.dealtCounts[p.id] !== undefined && state.dealtCounts[p.id] > 0) {
+          mergedDealtCounts[p.id] = state.dealtCounts[p.id];
+        }
+      }
+      return {
+        ...state,
+        matchState,
+        gameNumber: snapshot.gameNumber,
+        players: snapshot.players,
+        currentTurnPlayerId: snapshot.currentTurnPlayerId,
+        leadPlayerId: snapshot.leadPlayerId,
+        currentMove: snapshot.currentMove,
+        winners: snapshot.winners,
+        isGameOver: snapshot.isGameOver,
+        instantWinType: snapshot.instantWinType,
+        isDealing: snapshot.isDealing,
+        dealtCounts: mergedDealtCounts,
+        dealBanner: snapshot.dealBanner,
+        chopNotification: snapshot.chopNotification,
+        botThinkingThought: snapshot.botThinkingThought,
+        isFirstMoveOfGame: snapshot.isFirstMoveOfGame,
+        isLeadMove: snapshot.isLeadMove,
+        ...(hasEconomy ? {
+          matchPayouts: { ...matchState.matchPayouts },
+          allEloDeltas: { ...matchState.eloDeltas },
+          matchLogReport: matchState.matchLogReport
+        } : {})
+      };
+    });
   },
   applyMatchSnapshot: (snapshot) => set((state) => ({
     ...state,
@@ -446,6 +466,126 @@ export const useGameStore = create<GameState>((set) => ({
     isFirstMoveOfGame: snapshot.isFirstMoveOfGame ?? false,
     isLeadMove: snapshot.isLeadMove ?? true
   })),
+  applyAuthoritativeTableSync: (sync: TableStateSyncPacket) => {
+    let leadingMove: PlayedMove | null = null;
+    if (sync.currentMoveCards && sync.currentMoveCards.length > 0) {
+      const moveCards = sync.currentMoveCards.map(c => createCard(c.rank, c.suit));
+      const combo = identifyCombination(moveCards);
+      if (combo) {
+        leadingMove = {
+          playerId: sync.currentMovePlayerId || '',
+          combination: combo,
+          timestamp: Date.now(),
+          isChop: false
+        };
+      }
+    }
+
+    const currentTurnId = sync.currentTurnPlayerId || '';
+    const leadId = sync.leadPlayerId || '';
+    const isLead = sync.isLeadMove ?? (leadingMove === null);
+
+    set((state) => {
+      // 1. Merge card counts từ số lượng bài chính thức của Host (Fog of War safe)
+      const mergedDealtCounts = { ...state.dealtCounts, ...sync.remainingCardCounts };
+      for (const p of state.players) {
+        if (p.hand && p.hand.length > 0) {
+          mergedDealtCounts[p.id] = p.hand.length;
+        } else if (sync.remainingCardCounts[p.id] !== undefined) {
+          mergedDealtCounts[p.id] = sync.remainingCardCounts[p.id];
+        }
+      }
+
+      // 2. Tái tạo Authoritative MatchState nguyên tử
+      let nextMatchState: MatchState = state.matchState;
+      if (sync.isGameOver) {
+        const winningPlayers = sync.winners
+          .map(id => state.players.find(p => p.id === id))
+          .filter((p): p is Player => p !== undefined && p !== null);
+        const gameOverState: GameOverMatchState = {
+          status: 'GAME_OVER',
+          gameNumber: sync.gameNumber || state.gameNumber,
+          players: state.players,
+          winners: winningPlayers,
+          isThreeSpadesWin: false,
+          matchPayouts: state.matchPayouts,
+          eloDeltas: state.allEloDeltas,
+          matchLogReport: state.matchLogReport,
+          rules: state.gameRules
+        };
+        nextMatchState = gameOverState;
+      } else if (currentTurnId && leadId) {
+        const playingState: PlayingTurnMatchState = createPlayingTurnMatchState({
+          status: 'PLAYING',
+          gameNumber: sync.gameNumber || state.gameNumber,
+          roundNumber: sync.roundNumber || (state.matchState.status === 'PLAYING' ? state.matchState.roundNumber : 1),
+          players: state.players,
+          currentTurnPlayerId: currentTurnId,
+          leadPlayerId: leadId,
+          roundMoves: leadingMove ? [leadingMove] : [],
+          leadingMove,
+          isLeadMove: isLead,
+          isFirstMoveOfGame: sync.isFirstMoveOfGame ?? (state.matchState.status === 'PLAYING' ? state.matchState.isFirstMoveOfGame : false),
+          passedPlayerIds: sync.passedPlayerIds || [],
+          chopNotification: sync.chopNotification ? {
+            visible: sync.chopNotification.visible,
+            chopperName: sync.chopNotification.chopperName,
+            targetName: sync.chopNotification.targetName,
+            amount: sync.chopNotification.amount,
+            isCascade: sync.chopNotification.isCascade,
+            chainCount: sync.chopNotification.chainCount
+          } : null,
+          botThinkingThought: null,
+          rules: state.gameRules
+        });
+        nextMatchState = playingState;
+      }
+
+      return {
+        ...state,
+        matchState: nextMatchState,
+        gameNumber: sync.gameNumber || state.gameNumber,
+        currentTurnPlayerId: sync.currentTurnPlayerId,
+        leadPlayerId: sync.leadPlayerId ?? null,
+        currentMove: leadingMove,
+        isLeadMove: isLead,
+        isFirstMoveOfGame: sync.isFirstMoveOfGame ?? state.isFirstMoveOfGame,
+        dealtCounts: mergedDealtCounts,
+        isDealing: false,
+        isGameOver: sync.isGameOver,
+        winners: sync.isGameOver
+          ? sync.winners
+              .map(id => state.players.find(p => p.id === id))
+              .filter((p): p is Player => p !== undefined && p !== null)
+          : []
+      };
+    });
+
+    // 3. Kích hoạt hiệu ứng âm thanh & hoạt ảnh bài trượt từ sự kiện chính chủ
+    if (leadingMove) {
+      GameEventBus.getInstance().emit({
+        type: 'CARD_PLAYED',
+        playerId: leadingMove.playerId,
+        cards: [...leadingMove.combination.cards],
+        combination: leadingMove.combination,
+        remainingCardsCount: sync.remainingCardCounts[leadingMove.playerId] ?? 0
+      });
+    }
+
+    if (sync.lastActionMessage && sync.lastActionMessage.includes('bỏ lượt')) {
+      GameEventBus.getInstance().emit({
+        type: 'TURN_PASSED',
+        playerId: sync.currentTurnPlayerId || ''
+      });
+    }
+
+    if (!sync.isGameOver) {
+      useViewStore.getState().closeModal('VICTORY');
+      useViewStore.getState().closeModal('ONLINE_ROOM');
+    } else {
+      useViewStore.getState().openModal('VICTORY');
+    }
+  },
   resetMatchState: () => set({
     matchState: DEFAULT_MATCH_STATE,
     isDealing: false,

@@ -122,6 +122,7 @@ export const QuickTableConfigSchema = z.object({
   betAmount: z.number().nonnegative().default(1000),
   settlementRule: GameSettlementRuleSchema.default('COUNT_CARDS'),
   choppingMultiplier: z.number().min(1).max(5).default(1),
+  congMultiplier: z.number().min(1).max(5).default(1),
   congEnabled: z.boolean().default(true),
   prohibitEndingWithTwo: z.boolean().default(true),
   allowFourPairsCutAnytime: z.boolean().default(true),

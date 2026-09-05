@@ -75,6 +75,7 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
       )
       .withCong((cg: CongRulesBuilder) => cg
         .enabled(updatedState.congEnabled)
+        .multiplier(updatedState.congMultiplier ?? 1)
       )
       .withGameFlow((f: GameFlowRulesBuilder) => f
         .prohibitEndingWithTwo(updatedState.prohibitEndingWithTwo)

@@ -109,6 +109,7 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
           mode: quickTableConfig.settlementRule,
           betAmount: quickTableConfig.betAmount,
           choppingMultiplier: quickTableConfig.choppingMultiplier,
+          congMultiplier: quickTableConfig.congMultiplier,
           congEnabled: quickTableConfig.congEnabled,
           prohibitEndingWithTwo: quickTableConfig.prohibitEndingWithTwo,
           allowFourPairsCutAnytime: quickTableConfig.allowFourPairsCutAnytime,

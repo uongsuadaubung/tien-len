@@ -59,4 +59,23 @@ describe('Kiểm Thử Kinh Tế & Tiền Cọc Khi Bấm Ván Tiếp Theo (Mult
     // Chuẩn bị vào Ván 4: 13,000 Xu >= 500 Xu cược -> Vẫn chơi tiếp được!
     expect(wallet).toBeGreaterThanOrEqual(betAmount);
   });
+
+  it('3. Công thức tính tiền cọc an toàn & số dư vào bàn co giãn linh hoạt theo Cóng', () => {
+    const bet = 1000;
+
+    // Khi Cóng bật, congMultiplier mặc định x1: 26 lá = 26,000 Xu
+    expect(calculateRequiredDeposit(bet)).toBe(26000);
+    expect(calculateRequiredDeposit(bet, 1, true)).toBe(26000);
+
+    // Khi Cóng bật, congMultiplier x2: 52 lá = 52,000 Xu
+    expect(calculateRequiredDeposit(bet, 2, true)).toBe(52000);
+
+    // Khi Cóng bật, congMultiplier x3: 78 lá = 78,000 Xu
+    expect(calculateRequiredDeposit(bet, 3, true)).toBe(78000);
+
+    // Khi Cóng tắt: chỉ cần cọc 13 lá = 13,000 Xu
+    expect(calculateRequiredDeposit(bet, 1, false)).toBe(13000);
+    expect(calculateRequiredDeposit(bet, 2, false)).toBe(13000);
+  });
 });
+

@@ -34,6 +34,7 @@ describe('OnlineSessionState & State Pattern (P2P Multiplayer Online Room Sessio
     betAmount: 1000,
     settlementRule: 'COUNT_CARDS',
     choppingMultiplier: 1,
+    congMultiplier: 1,
     congEnabled: true,
     prohibitEndingWithTwo: true,
     allowFourPairsCutAnytime: true,

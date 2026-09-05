@@ -23,6 +23,7 @@ export interface TableConfigState {
   mode: GameMode;
   betAmount: number;
   choppingMultiplier: number;
+  congMultiplier: number;
   congEnabled: boolean;
   prohibitEndingWithTwo: boolean;
   allowFourPairsCutAnytime: boolean;
@@ -75,21 +76,23 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
 
   // Tính toán tiền cọc an toàn
   const currentMultiplier = config.choppingMultiplier;
-  const depositRequired = calculateRequiredDeposit(config.betAmount);
-  const depositPercent = playerCoins > 0 ? (depositRequired / playerCoins) * 100 : 100;
-  const isInsufficientCoins = !canAffordDeposit(playerCoins, config.betAmount);
-
-  const congPenaltyAmount = config.betAmount * 26;
-  const minThoiAmount = config.betAmount * 0.5 * currentMultiplier;
-  const maxThoiAmount = config.betAmount * 4 * currentMultiplier;
-  const fourPairsRewardAmount = config.betAmount * 4 * currentMultiplier;
-
+  const currentCongMultiplier = config.congMultiplier ?? 1;
+  const isCongEnabled = config.congEnabled;
   const isProhibitEndingWithTwo = config.prohibitEndingWithTwo;
   const isAllowFourPairsCutAnytime = config.allowFourPairsCutAnytime;
   const isThreeSpadesEndingBonus = config.threeSpadesEndingBonus;
   const isCascadeChopEnabled = config.cascadeChopEnabled;
-  const isCongEnabled = config.congEnabled;
   const isInstantWinEnabled = config.instantWinEnabled;
+
+  const depositRequired = calculateRequiredDeposit(config.betAmount, currentCongMultiplier, isCongEnabled);
+  const depositPercent = playerCoins > 0 ? (depositRequired / playerCoins) * 100 : 100;
+  const isInsufficientCoins = !canAffordDeposit(playerCoins, config.betAmount, currentCongMultiplier, isCongEnabled);
+
+  const congPenaltyCards = isCongEnabled ? 26 * currentCongMultiplier : 13;
+  const congPenaltyAmount = config.betAmount * congPenaltyCards;
+  const minThoiAmount = config.betAmount * 0.5 * currentMultiplier;
+  const maxThoiAmount = config.betAmount * 4 * currentMultiplier;
+  const fourPairsRewardAmount = config.betAmount * 4 * currentMultiplier;
 
   let riskBadgeVariant: 'gold' | 'neutral' | 'danger' = 'neutral';
   let riskBadgeText = t('tableConfig.depositSafe');
@@ -140,8 +143,8 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
       return;
     }
 
-    const reqDeposit = calculateRequiredDeposit(parsed);
-    if (!canAffordDeposit(playerCoins, parsed)) {
+    const reqDeposit = calculateRequiredDeposit(parsed, currentCongMultiplier, isCongEnabled);
+    if (!canAffordDeposit(playerCoins, parsed, currentCongMultiplier, isCongEnabled)) {
       setBetError(t('tableConfig.betInputErrorDeposit', { deposit: reqDeposit.toLocaleString(), coins: playerCoins.toLocaleString() }));
     } else {
       setBetError(null);
@@ -151,7 +154,7 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
   };
 
   const handleApplyQuickPercent = (fraction: number) => {
-    const maxSafeBet = calculateMaxSafeBet(playerCoins, fraction);
+    const maxSafeBet = calculateMaxSafeBet(playerCoins, fraction, currentCongMultiplier, isCongEnabled);
     setBetError(null);
     setCustomBetInput(maxSafeBet.toString());
     onChange({ betAmount: maxSafeBet });
@@ -279,10 +282,14 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
               badge: t('tableConfig.modeCountCardsBadge', { amount: config.betAmount.toLocaleString() }),
               desc: t('tableConfig.modeCountCardsDesc'),
               maxWin: t('tableConfig.modeCountCardsMaxWin', { amount: (activeBotCount * 13 * config.betAmount).toLocaleString() }),
-              maxLoss: t('tableConfig.modeCountCardsMaxLoss', { 
-                amount: congPenaltyAmount.toLocaleString(),
-                cards: '26'
-              })
+              maxLoss: isCongEnabled
+                ? t('tableConfig.modeCountCardsMaxLoss', { 
+                    amount: congPenaltyAmount.toLocaleString(),
+                    cards: congPenaltyCards.toString()
+                  })
+                : t('tableConfig.modeCountCardsNoCongMaxLoss', { 
+                    amount: (13 * config.betAmount).toLocaleString() 
+                  })
             },
             WINNER_TAKES_ALL: {
               title: t('tableConfig.modeWinnerTakesAllTitle'),
@@ -364,8 +371,8 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {PRESET_BETS.map(amt => {
             const isSelected = !isCustomBet && config.betAmount === amt;
-            const requiredDepositForPreset = calculateRequiredDeposit(amt);
-            const isPresetDisabled = !canAffordDeposit(playerCoins, amt);
+            const requiredDepositForPreset = calculateRequiredDeposit(amt, currentCongMultiplier, isCongEnabled);
+            const isPresetDisabled = !canAffordDeposit(playerCoins, amt, currentCongMultiplier, isCongEnabled);
 
             return (
               <button
@@ -478,7 +485,7 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
         )}
       </Card>
 
-      {/* 5. HỆ SỐ PHẠT CHẶT */}
+      {/* 5. HỆ SỐ PHẠT CHẶT & THỐI */}
       <Card variant="surface" className="p-3.5 space-y-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -518,6 +525,59 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
                 }`}
               >
                 <div className="text-xs font-bold">{item.label}</div>
+                <div className="text-[9px] opacity-70 mt-0.5">{item.desc}</div>
+              </button>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* 5.1 HỆ SỐ PHẠT CÓNG (CHÁY BÀI) */}
+      <Card variant="surface" className={`p-3.5 space-y-2 transition-all ${!isCongEnabled ? 'opacity-50' : ''}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Snowflake className="w-4 h-4 text-[#60a5fa]" />
+            <div>
+              <div className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
+                <span>{t('tableConfig.congMultiplierLabel')}</span>
+                <Badge variant={isCongEnabled ? 'gold' : 'neutral'} size="sm">
+                  {isCongEnabled 
+                    ? t('tableConfig.congMultBadge', { multiplier: currentCongMultiplier, cards: 26 * currentCongMultiplier })
+                    : t('tableConfig.ruleCongDisabled')}
+                </Badge>
+              </div>
+              <div className="text-[10px] text-[var(--text-muted)]">
+                {t('tableConfig.congMultiplierDesc')}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 pt-1">
+          {[
+            { mult: 1, label: 'x1', cards: t('tableConfig.cardsCountLabel', { count: 26 }), desc: t('tableConfig.congMultSafe') },
+            { mult: 2, label: 'x2', cards: t('tableConfig.cardsCountLabel', { count: 52 }), desc: t('tableConfig.congMultHeavy') },
+            { mult: 3, label: 'x3', cards: t('tableConfig.cardsCountLabel', { count: 78 }), desc: t('tableConfig.congMultFierce') }
+          ].map(item => {
+            const isSelected = isCongEnabled && currentCongMultiplier === item.mult;
+            return (
+              <button
+                key={item.mult}
+                type="button"
+                disabled={!isCongEnabled}
+                onClick={() => onChange({ congMultiplier: item.mult })}
+                className={`py-2 px-2 rounded-xl text-center border transition-all ${
+                  !isCongEnabled
+                    ? 'bg-[var(--bg-card)] border-[var(--border-card)] text-[var(--text-muted)] cursor-not-allowed opacity-40'
+                    : isSelected
+                    ? 'bg-[var(--bg-card-active)] border-2 border-[var(--color-gold)] text-[var(--color-gold)] font-bold shadow-sm cursor-pointer'
+                    : 'bg-[var(--bg-card)] hover:bg-[var(--bg-card-hover)] border-[var(--border-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer'
+                }`}
+              >
+                <div className="text-xs font-bold flex items-center justify-center gap-1">
+                  <span>{item.label}</span>
+                  <span className="text-[10px] text-[var(--text-secondary)] font-normal">({item.cards})</span>
+                </div>
                 <div className="text-[9px] opacity-70 mt-0.5">{item.desc}</div>
               </button>
             );
@@ -642,7 +702,9 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
                     {t('tableConfig.ruleCong')}
                   </div>
                   <div className="text-[10px] text-[var(--text-muted)] mt-0.5 leading-tight">
-                    {t('tableConfig.ruleCongDesc', { count: 26, cards: 26, amount: congPenaltyAmount.toLocaleString() })}
+                    {isCongEnabled
+                      ? t('tableConfig.ruleCongDesc', { count: congPenaltyCards, cards: congPenaltyCards, amount: congPenaltyAmount.toLocaleString() })
+                      : t('tableConfig.ruleCongDisabled')}
                   </div>
                 </div>
               </div>

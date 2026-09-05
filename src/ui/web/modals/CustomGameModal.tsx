@@ -63,6 +63,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
     settings,
     botPersonaIds,
     choppingMultiplier,
+    congMultiplier,
     congEnabled,
     activeTab,
     setActiveTab,
@@ -163,6 +164,7 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
             ...settings,
             playerCount,
             choppingMultiplier,
+            congMultiplier,
             congEnabled
           }}
           onChange={handleTableConfigChange}

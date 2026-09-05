@@ -119,7 +119,8 @@ export function settleCompletedMatch(engine: GameEngine): void {
     streaksByPlayer,
     isBankLoanActive,
     campaignReward: currentCampaignChapter?.rewardCoins,
-    penaltyMultiplier: engine.rules.chopping.multiplier || engine.rules.cong.multiplier || 1,
+    penaltyMultiplier: engine.rules.chopping.multiplier || 1,
+    congMultiplier: engine.rules.cong.multiplier || 1,
     isThreeSpadesWin: engine.isThreeSpadesWin,
     isInstantWin: !!engine.instantWinner
   });

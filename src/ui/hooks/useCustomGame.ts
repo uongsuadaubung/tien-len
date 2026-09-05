@@ -42,6 +42,8 @@ export interface UseCustomGameReturn {
   setCustomBotConfigs: React.Dispatch<React.SetStateAction<CustomBotConfigTuple<BotConfig>>>;
   choppingMultiplier: number;
   setChoppingMultiplier: (multiplier: number) => void;
+  congMultiplier: number;
+  setCongMultiplier: (multiplier: number) => void;
   congEnabled: boolean;
   setCongEnabled: (enabled: boolean) => void;
   activeTab: CustomGameTabType;
@@ -127,12 +129,13 @@ export function useCustomGame({
   const [customBotConfigs, setCustomBotConfigs] = useState<CustomBotConfigTuple<BotConfig>>(initialResolved.customBotConfigs);
 
   const [choppingMultiplier, setChoppingMultiplier] = useState<number>(1);
+  const [congMultiplier, setCongMultiplier] = useState<number>(1);
   const [congEnabled, setCongEnabled] = useState<boolean>(true);
 
   const [activeTab, setActiveTab] = useState<CustomGameTabType>('MODE_RULES');
   const [activeBotSeatIndex, setActiveBotSeatIndex] = useState<number>(0);
 
-  const depositRequired = calculateRequiredDeposit(settings.betAmount);
+  const depositRequired = calculateRequiredDeposit(settings.betAmount, congMultiplier, congEnabled);
   const isInsufficientCoins = playerCoins < settings.betAmount;
   const actualDeposit = Math.min(playerCoins, depositRequired);
 
@@ -173,6 +176,9 @@ export function useCustomGame({
     }
     if (updated.choppingMultiplier !== undefined) {
       setChoppingMultiplier(updated.choppingMultiplier);
+    }
+    if (updated.congMultiplier !== undefined) {
+      setCongMultiplier(updated.congMultiplier);
     }
     if (updated.congEnabled !== undefined) {
       setCongEnabled(updated.congEnabled);
@@ -228,6 +234,8 @@ export function useCustomGame({
     setCustomBotConfigs,
     choppingMultiplier,
     setChoppingMultiplier,
+    congMultiplier,
+    setCongMultiplier,
     congEnabled,
     setCongEnabled,
     activeTab,

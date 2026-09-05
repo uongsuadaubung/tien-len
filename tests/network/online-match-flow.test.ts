@@ -689,6 +689,89 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     });
     expect(validation.valid).toBe(true);
   });
+
+  it('14. Đồng bộ TableCenter & HUD Client: Khi Host đánh bài, Client thấy lá bài trên bàn và thấy đúng số bài Host còn lại', () => {
+    const profileGuest = { ...loadPlayerProfile(), name: 'Guest Tester', coins: 50000 };
+    useOnlineStore.getState().joinRoom(profileGuest, 'TL-4444');
+
+    const hostId = 'host_p0';
+    const guestId = profileGuest.id;
+
+    useOnlineStore.setState({
+      roomState: {
+        ...useOnlineStore.getState().roomState!,
+        players: [
+          { peerId: 'host_peer_123', playerId: hostId, name: 'Host Pro', avatar: '🤠', elo: 1000, coins: 50000, isHost: true, isReady: true, isBot: false },
+          { peerId: 'guest_peer_456', playerId: guestId, name: profileGuest.name, avatar: profileGuest.avatar, elo: profileGuest.elo, coins: profileGuest.coins, isHost: false, isReady: true, isBot: false }
+        ]
+      }
+    });
+
+    const card3S = createCard(3, 'SPADES');
+    const guestCards = [card3S, ...Array.from({ length: 12 }, (_, i) => createCard(((i % 11) + 4) as any, 'CLUBS'))];
+
+    // 1. Giả lập Host chia bài cho Client
+    const onDealHandFn = (globalP2PClient as any).onDealHandCallbacks?.[0];
+    onDealHandFn({
+      playerId: guestId,
+      cards: guestCards.map(c => ({ rank: c.rank, suit: c.suit, id: c.id })),
+      leadPlayerId: hostId,
+      firstTurnPlayerId: hostId,
+      gameNumber: 1,
+      isFirstMoveOfGame: true,
+      isLeadMove: true
+    });
+
+    const store = useGameStore.getState();
+    expect(store.matchState.status).toBe('PLAYING');
+    expect(store.currentTurnPlayerId).toBe(hostId);
+    expect(store.dealtCounts[hostId]).toBe(13);
+    expect(store.dealtCounts[guestId]).toBe(13);
+
+    // 2. Host đánh ra lá bài 3 Bích (SINGLE [3S])
+    const onTableSyncFn = (globalP2PClient as any).onTableSyncCallbacks?.[0];
+    expect(typeof onTableSyncFn).toBe('function');
+
+    onTableSyncFn({
+      currentTurnPlayerId: guestId, // Chuyển lượt sang Client
+      leadPlayerId: hostId,
+      currentMoveCards: [{ rank: 3, suit: 'SPADES', id: '3_SPADES' }],
+      currentMovePlayerId: hostId,
+      remainingCardCounts: {
+        [hostId]: 12, // Host còn 12 lá
+        [guestId]: 13 // Guest còn 13 lá
+      },
+      winners: [],
+      isGameOver: false,
+      lastActionMessage: 'Chủ Bàn đã đánh bài',
+      gameNumber: 1,
+      isFirstMoveOfGame: false,
+      isLeadMove: false
+    });
+
+    const updatedStore = useGameStore.getState();
+
+    // 3. Kiểm tra lá bài hiển thị trên bàn (TableCenter):
+    // gameStore.currentMove và matchState.leadingMove BẢO ĐẢM KHÔNG BỊ NULL
+    expect(updatedStore.currentMove).not.toBeNull();
+    expect(updatedStore.currentMove?.playerId).toBe(hostId);
+    expect(updatedStore.currentMove?.combination.type).toBe('SINGLE');
+    expect(updatedStore.currentMove?.combination.cards[0].rank).toBe(3);
+    expect(updatedStore.currentMove?.combination.cards[0].suit).toBe('SPADES');
+
+    // Kiểm tra matchState.leadingMove và isLeadMove
+    expect(updatedStore.matchState.status).toBe('PLAYING');
+    if (updatedStore.matchState.status === 'PLAYING') {
+      expect(updatedStore.matchState.isLeadMove).toBe(false);
+      expect(updatedStore.matchState.leadingMove).not.toBeNull();
+      expect(updatedStore.matchState.leadingMove?.playerId).toBe(hostId);
+      expect(updatedStore.matchState.leadingMove?.combination.cards[0].rank).toBe(3);
+    }
+
+    // 4. Kiểm tra HUD số lá bài của Host: Phải là 12, không bao giờ bị 0 hay rỗng
+    expect(updatedStore.dealtCounts[hostId]).toBe(12);
+    expect(updatedStore.dealtCounts[guestId]).toBe(13);
+  });
 });
 
 

@@ -62,6 +62,7 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
     settings,
     botPersonaIds,
     choppingMultiplier,
+    congMultiplier,
     congEnabled,
     activeTab,
     setActiveTab,
@@ -159,6 +160,7 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
               ...settings,
               playerCount,
               choppingMultiplier,
+              congMultiplier,
               congEnabled
             }}
             onChange={handleTableConfigChange}

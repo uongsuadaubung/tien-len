@@ -134,10 +134,17 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
 
     const payouts = calculateCountCardsSettlement(players, 'p0', BET, 2);
 
+    // Mặc định congMultiplier = 1 (An toàn chuẩn 26 lá):
     expect(payouts['p1']).toBe(-1000);
     expect(payouts['p2']).toBe(-1500);
     expect(payouts['p3']).toBe(-15000);
     expect(payouts['p0']).toBe(17500);
+
+    // Khi cấu hình phạt Cóng nhân x2 riêng biệt (congMultiplier = 2):
+    const payoutsCongX2 = calculateCountCardsSettlement(players, 'p0', BET, 2, false, 2);
+    // Bot 3: Cóng (26 x 500 x 2 = 26,000) + thối heo đỏ x2 (2,000) = -28,000
+    expect(payoutsCongX2['p3']).toBe(-28000);
+    expect(payoutsCongX2['p0']).toBe(30500);
   });
 
   test('4. Chế độ Nhất Ăn Tất (WINNER_TAKES_ALL): Người về Nhất ăn trọn tiền cược cơ bản từ tất cả người thua', () => {

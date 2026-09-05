@@ -141,6 +141,7 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
     mode: 'COUNT_CARDS',
     betAmount: 1000,
     choppingMultiplier: 1,
+    congMultiplier: 1,
     congEnabled: true,
     prohibitEndingWithTwo: true,
     allowFourPairsCutAnytime: true,
@@ -166,7 +167,11 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
     return inputPin.replace(/^TL-/i, '').replace(/[^0-9A-Z]/gi, '').slice(0, 4);
   }, [inputPin]);
 
-  const depositRequired = calculateRequiredDeposit(tableConfig.betAmount);
+  const depositRequired = calculateRequiredDeposit(
+    tableConfig.betAmount,
+    tableConfig.congMultiplier ?? 1,
+    tableConfig.congEnabled ?? true
+  );
   const canAffordBet = profile.coins >= depositRequired || profile.coins >= tableConfig.betAmount;
   const isRoomFull = activeRoom !== null ? activeRoom.roomState.players.length >= activeRoom.roomState.playerCount : false;
 
@@ -254,6 +259,7 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
       betAmount: tableConfig.betAmount,
       settlementRule: currentSettlementRule,
       choppingMultiplier: tableConfig.choppingMultiplier ?? 1,
+      congMultiplier: tableConfig.congMultiplier ?? 1,
       congEnabled: tableConfig.congEnabled ?? true,
       prohibitEndingWithTwo: tableConfig.prohibitEndingWithTwo ?? true,
       allowFourPairsCutAnytime: tableConfig.allowFourPairsCutAnytime ?? true,

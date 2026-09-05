@@ -9,8 +9,6 @@ import {
   type PublicRoomSummary
 } from '../../engine/network/network.schema';
 import { createCard } from '../../engine/card';
-import { identifyCombination } from '../../engine/combinations';
-import { GameEventBus } from '../../engine/events/game-event-bus';
 import { useGameStore } from '../useGameStore';
 import { useViewStore } from '../useViewStore';
 import { useUserStore } from '../useUserStore';
@@ -20,7 +18,7 @@ import {
   type ChoppingRulesBuilder,
   type CongRulesBuilder,
   type GameFlowRulesBuilder,
-  type TableRulesBuilder 
+  type TableRulesBuilder
 } from '../../engine/types';
 import { type PlayerProfile, savePlayerProfile, loadPlayerProfile } from '../../engine/storage';
 import { createPlayer, createBotPlayer } from '../../engine/player-factory';
@@ -69,6 +67,7 @@ function syncLobbyBroadcast(roomState: OnlineRoomState): void {
     betAmount: roomState.betAmount,
     settlementRule: roomState.settlementRule,
     choppingMultiplier: roomState.choppingMultiplier,
+    congMultiplier: roomState.congMultiplier ?? 1,
     congEnabled: roomState.congEnabled,
     prohibitEndingWithTwo: roomState.prohibitEndingWithTwo,
     allowFourPairsCutAnytime: roomState.allowFourPairsCutAnytime,
@@ -172,6 +171,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       betAmount: options.betAmount,
       settlementRule: options.settlementRule,
       choppingMultiplier: options.choppingMultiplier ?? 1,
+      congMultiplier: options.congMultiplier ?? 1,
       congEnabled: options.congEnabled ?? true,
       prohibitEndingWithTwo: options.prohibitEndingWithTwo ?? true,
       allowFourPairsCutAnytime: true,
@@ -406,6 +406,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
           )
           .withCong((cg: CongRulesBuilder) => cg
             .enabled(roomState.congEnabled)
+            .multiplier(roomState.congMultiplier ?? 1)
           )
           .withGameFlow((f: GameFlowRulesBuilder) => f
             .prohibitEndingWithTwo(roomState.prohibitEndingWithTwo)
@@ -531,97 +532,10 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       useViewStore.getState().closeModal('ONLINE_ROOM');
     });
 
-    // Client lắng nghe đồng bộ bàn đấu công khai
+    // Client lắng nghe đồng bộ bàn đấu công khai từ Host (Authoritative Single Source of Truth)
     globalP2PClient.onTableSync((sync: TableStateSyncPacket) => {
-      const gameStore = useGameStore.getState();
       set({ lastTableSync: sync });
-
-      if (sync.gameNumber) {
-        gameStore.setGameNumber(sync.gameNumber);
-      }
-      gameStore.setCurrentTurnPlayerId(sync.currentTurnPlayerId);
-      gameStore.setLeadPlayerId(sync.leadPlayerId ?? null);
-
-      if (sync.currentMoveCards && sync.currentMoveCards.length > 0) {
-        const moveCards = sync.currentMoveCards.map(c => createCard(c.rank, c.suit));
-        const combo = identifyCombination(moveCards);
-        if (combo) {
-          gameStore.setCurrentMove({
-            playerId: sync.currentMovePlayerId || '',
-            combination: combo,
-            timestamp: Date.now(),
-            isChop: false
-          });
-          GameEventBus.getInstance().emit({
-            type: 'CARD_PLAYED',
-            playerId: sync.currentMovePlayerId || '',
-            cards: [...moveCards],
-            combination: combo,
-            remainingCardsCount: 0
-          });
-        }
-      } else {
-        gameStore.setCurrentMove(null);
-      }
-
-      if (sync.isFirstMoveOfGame !== undefined) {
-        gameStore.setIsFirstMoveOfGame(sync.isFirstMoveOfGame);
-      }
-      if (sync.isLeadMove !== undefined) {
-        gameStore.setIsLeadMove(sync.isLeadMove);
-      }
-
-      if (sync.lastActionMessage && sync.lastActionMessage.includes('bỏ lượt')) {
-        GameEventBus.getInstance().emit({
-          type: 'TURN_PASSED',
-          playerId: sync.currentTurnPlayerId || ''
-        });
-      }
-
-      if (sync.remainingCardCounts) {
-        gameStore.setDealtCounts(sync.remainingCardCounts);
-      }
-
-      if (!sync.isGameOver) {
-        useViewStore.getState().closeModal('VICTORY');
-        useViewStore.getState().closeModal('ONLINE_ROOM');
-
-        const currentTurnId = sync.currentTurnPlayerId || '';
-        const leadId = sync.leadPlayerId || '';
-        const isFirstMove = sync.isFirstMoveOfGame ?? (gameStore.matchState.status === 'PLAYING' ? gameStore.matchState.isFirstMoveOfGame : gameStore.isFirstMoveOfGame);
-        const isLead = sync.isLeadMove ?? (gameStore.currentMove === null);
-
-        if (currentTurnId && leadId) {
-          const playingState: PlayingTurnMatchState = createPlayingTurnMatchState({
-            status: 'PLAYING',
-            gameNumber: sync.gameNumber || gameStore.gameNumber,
-            roundNumber: gameStore.matchState.status === 'PLAYING' ? gameStore.matchState.roundNumber : 1,
-            players: gameStore.players,
-            currentTurnPlayerId: currentTurnId,
-            leadPlayerId: leadId,
-            roundMoves: [],
-            leadingMove: gameStore.currentMove,
-            isLeadMove: isLead,
-            isFirstMoveOfGame: isFirstMove,
-            passedPlayerIds: [],
-            chopNotification: null,
-            botThinkingThought: null,
-            rules: gameStore.gameRules
-          });
-          gameStore.setMatchState(playingState);
-        }
-      }
-
-      if (sync.isGameOver) {
-        gameStore.setIsGameOver(true);
-        if (sync.winners.length > 0) {
-          const winningPlayers = sync.winners
-            .map(id => gameStore.players.find(p => p.id === id))
-            .filter((p): p is Player => p !== undefined && p !== null);
-          gameStore.setWinners(winningPlayers);
-        }
-        useViewStore.getState().openModal('VICTORY');
-      }
+      useGameStore.getState().applyAuthoritativeTableSync(sync);
     });
 
     // Client lắng nghe gói tin kết thúc ván đấu & kết toán

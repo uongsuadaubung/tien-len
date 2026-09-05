@@ -231,26 +231,48 @@ export const ECONOMY_CONSTANTS = {
 } as const;
 
 /**
- * Tính tiền cọc an toàn yêu cầu cho bàn đấu:
- * - Dựa trên hình phạt Cóng tối đa: 26 mức cược (13 lá x 2 theo luật đếm lá chuẩn).
- * - Hệ số nhân Chặt/Thối không áp dụng cho số lá cọc an toàn.
+ * Tính số dư tối thiểu cần có trong ví để được phép vào bàn (tiền cọc an toàn):
+ * - Đảm bảo người chơi có đủ tiền chi trả nếu gặp ván thua nặng nhất (Cóng):
+ *   - Nếu Cóng BẬT: Cần tối thiểu 26 lá x betAmount x congMultiplier (mặc định x1 = 26 lá, x2 = 52 lá, x3 = 78 lá).
+ *   - Nếu Cóng TẮT: Người thua chỉ mất tối đa 13 lá bài rác, nên chỉ cần tối thiểu 13 lá x betAmount.
  * - Đảm bảo nguồn chân lý duy nhất (Single Source of Truth) cho toàn bộ hệ thống.
  */
-export function calculateRequiredDeposit(betAmount: number): number {
-  return ECONOMY_CONSTANTS.DEPOSIT_CARD_MULTIPLIER * betAmount;
+export function calculateRequiredDeposit(
+  betAmount: number,
+  congMultiplier: number = 1,
+  congEnabled: boolean = true
+): number {
+  if (!congEnabled) {
+    return 13 * betAmount;
+  }
+  const mult = Math.max(1, congMultiplier);
+  return ECONOMY_CONSTANTS.DEPOSIT_CARD_MULTIPLIER * betAmount * mult;
 }
 
 /**
  * Tính mức cược an toàn tối đa dựa trên số dư ví hiện có và tỷ lệ phân bổ (fraction)
  */
-export function calculateMaxSafeBet(coins: number, fraction: number = 1): number {
-  return Math.max(10, Math.floor((coins * fraction) / ECONOMY_CONSTANTS.DEPOSIT_CARD_MULTIPLIER));
+export function calculateMaxSafeBet(
+  coins: number, 
+  fraction: number = 1,
+  congMultiplier: number = 1,
+  congEnabled: boolean = true
+): number {
+  const cards = congEnabled 
+    ? (ECONOMY_CONSTANTS.DEPOSIT_CARD_MULTIPLIER * Math.max(1, congMultiplier)) 
+    : 13;
+  return Math.max(10, Math.floor((coins * fraction) / cards));
 }
 
 /**
- * Kiểm tra xem người chơi có đủ tiền cọc an toàn cho mức cược này không
+ * Kiểm tra xem người chơi có đủ số dư tối thiểu trong ví để vào bàn không
  */
-export function canAffordDeposit(coins: number, betAmount: number): boolean {
-  return coins >= calculateRequiredDeposit(betAmount);
+export function canAffordDeposit(
+  coins: number, 
+  betAmount: number,
+  congMultiplier: number = 1,
+  congEnabled: boolean = true
+): boolean {
+  return coins >= calculateRequiredDeposit(betAmount, congMultiplier, congEnabled);
 }
 

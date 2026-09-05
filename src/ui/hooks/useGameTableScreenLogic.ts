@@ -79,7 +79,8 @@ export function useGameTableScreenLogic({
     selectedCardIds,
     currentHint,
     gameRules,
-    setSelectedCardIds
+    setSelectedCardIds,
+    dealtCounts: storeDealtCounts
   } = useGameStore();
 
   // Xác định người chơi cục bộ theo perspective - Invariant Bàn Đấu
@@ -99,8 +100,26 @@ export function useGameTableScreenLogic({
   // 1. Phân giải trạng thái theo Type State Pattern (Discriminated Unions)
   const isDealing = matchState.status === 'DEALING';
   const isPlaying = matchState.status === 'PLAYING';
-  const dealtCounts = isDealing ? matchState.dealtCounts : {};
   const dealBanner = isDealing ? matchState.dealBanner : null;
+
+  // Tính toán số lượng bài hiển thị cho từng người chơi:
+  // - Khi đang chia bài (DEALING): lấy số lá đang chia animation (matchState.dealtCounts).
+  // - Khi đang chơi (PLAYING): ưu tiên số lá thực tế (p.hand.length), nếu p.hand rỗng (đối thủ Online bị che bài - Fog of War),
+  //   lấy từ storeDealtCounts (liên tục được Host đồng bộ qua sync packet).
+  const dealtCounts = useMemo(() => {
+    if (isDealing && matchState.status === 'DEALING') {
+      return matchState.dealtCounts;
+    }
+    const counts: Record<string, number> = { ...(storeDealtCounts || {}) };
+    for (const p of players) {
+      if (p.hand && p.hand.length > 0) {
+        counts[p.id] = p.hand.length;
+      } else if (counts[p.id] === undefined) {
+        counts[p.id] = 0;
+      }
+    }
+    return counts;
+  }, [isDealing, matchState, storeDealtCounts, players]);
 
   // 2. Khi đang ở trạng thái PLAYING: Lượt chơi và người cầm cái BẢO ĐẢM TỒN TẠI (non-nullable)
   const activeTurn = matchState.status === 'PLAYING' ? matchState : null;
