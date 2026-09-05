@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useCallback } from 'react';
+import { useEffect, useMemo, useCallback, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { Player, InstantWinType } from '../../engine/types';
 import { clearActiveMatchSession } from '../../engine/storage';
@@ -142,7 +142,38 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     URL.revokeObjectURL(url);
   }, []);
 
-  const humanPayout = payouts[myPlayerId] ?? 0;
+  // Caching payouts và eloDeltas trong suốt phiên mở Modal Victory để ngăn chặn mọi trường hợp nhấp nháy hoặc xóa dữ liệu
+  const cachedPayoutsRef = useRef<Record<string, number>>({});
+  const cachedEloDeltasRef = useRef<Record<string, number>>({});
+
+  useEffect(() => {
+    if (payouts && Object.keys(payouts).length > 0) {
+      cachedPayoutsRef.current = payouts;
+    }
+  }, [payouts]);
+
+  useEffect(() => {
+    if (allEloDeltas && Object.keys(allEloDeltas).length > 0) {
+      cachedEloDeltasRef.current = allEloDeltas;
+    }
+  }, [allEloDeltas]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      cachedPayoutsRef.current = {};
+      cachedEloDeltasRef.current = {};
+    }
+  }, [isOpen]);
+
+  const effectivePayouts = (payouts && Object.keys(payouts).length > 0)
+    ? payouts
+    : cachedPayoutsRef.current;
+
+  const effectiveEloDeltas = (allEloDeltas && Object.keys(allEloDeltas).length > 0)
+    ? allEloDeltas
+    : cachedEloDeltasRef.current;
+
+  const humanPayout = effectivePayouts[myPlayerId] ?? 0;
 
   // Sắp xếp người chơi theo kết quả
   const displayPlayers: Player[] = useMemo(() => {
@@ -307,10 +338,10 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     isThreeSpadesWin,
     betAmount,
     activeGameType,
-    payouts,
+    payouts: effectivePayouts,
     loanDeduction,
     eloDelta,
     lastEloBreakdown,
-    allEloDeltas
+    allEloDeltas: effectiveEloDeltas
   };
 }

@@ -36,7 +36,11 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
     const twoSafety = tracker.getTwoSafetyReport();
     const isEmergencyAntiLeader = Object.values(remainingPlayerCards).some(c => c === 1);
     const isNextPlayerOneCard = context.isNextPlayerOneCard ?? (remainingPlayerCards[nextPlayerId] === 1);
-    const activeOpponentsCount = Object.entries(remainingPlayerCards).filter(([id, cnt]) => id !== config.id && cnt > 0).length;
+    const totalActive = Object.values(remainingPlayerCards).filter(cnt => cnt > 0).length;
+    const hasExplicitSelf = config.id && Object.prototype.hasOwnProperty.call(remainingPlayerCards, config.id);
+    const activeOpponentsCount = hasExplicitSelf
+      ? Object.entries(remainingPlayerCards).filter(([id, cnt]) => id !== config.id && cnt > 0).length
+      : Math.max(1, totalActive - 1);
 
     const validSingleMoves = validMoves.filter(m => m.combination.type === 'SINGLE');
     const maxSingleWeight = validSingleMoves.length > 0
@@ -74,13 +78,31 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
       const targetProfile = context.opponentProfiles?.[targetPlayerId] ?? null;
       const remainingTargetCards = remainingPlayerCards[targetPlayerId] ?? 10;
 
+      const targetRank = targetCombo?.highestCard.rank ?? 0;
+      const hasFreeTrashBeat = targetCombo?.type === 'SINGLE' && partition.trashCards.some(tc =>
+        !isTwo(tc) &&
+        tc.rank > targetRank &&
+        (tc.rank - targetRank) <= 3
+      );
+
+      const opponentCardsList = Object.entries(remainingPlayerCards)
+        .filter(([id]) => id !== config.id)
+        .map(([, count]) => count);
+      const minOpponentCards = opponentCardsList.length > 0 ? Math.min(...opponentCardsList) : remainingTargetCards;
+
       const bluffCheck = CfrEngine.getInstance().evaluateBluffPass(
         hand,
         currentRoundLeadingMove,
         targetPlayerId,
         targetProfile,
         config,
-        remainingTargetCards
+        remainingTargetCards,
+        {
+          activeOpponentsCount,
+          gameMode: context.gameMode,
+          hasFreeTrashBeat,
+          minOpponentCards
+        }
       );
 
       if (bluffCheck.shouldBluffPass) {
@@ -215,10 +237,17 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
         }
       }
 
-      // 9. Cứu thua khẩn cấp
+      // 9. Cứu thua khẩn cấp & Chặn đầu đối thủ sắp dứt điểm cờ tàn
       if (isEmergencyAntiLeader) {
         score += AI_HEURISTIC_WEIGHTS.EMERGENCY_INTERCEPT_BONUS;
         reasons.push('Khẩn cấp chặn người 1 lá');
+      } else {
+        const remainingTargetCards = currentRoundLeadingMove ? (remainingPlayerCards[currentRoundLeadingMove.playerId] ?? 10) : 10;
+        const isNearFinishTarget = remainingTargetCards <= 3 || (activeOpponentsCount === 1 && remainingTargetCards <= 4);
+        if (isNearFinishTarget && !containsTwo) {
+          score += AI_HEURISTIC_WEIGHTS.EMERGENCY_INTERCEPT_BONUS * 0.5;
+          reasons.push('Chặn đầu đối thủ sắp dứt điểm');
+        }
       }
 
       // 9b. Chặn đầu người kế tiếp báo 1 lá (chống đền bài sinh tử)
@@ -333,7 +362,8 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
           targetCombo,
           tracker,
           config,
-          hand.length
+          hand.length,
+          activeOpponentsCount
         );
         if (!nash.shouldTakeAction) {
           return buildBotDecision('PASS', {

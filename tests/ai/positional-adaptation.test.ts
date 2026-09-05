@@ -261,7 +261,7 @@ describe('Positional Awareness & In-Match Fast Adaptation AI Verification', () =
       isFirstMoveOfGame: false,
       isLeadMove: false,
       tracker,
-      config: grandmasterConfig,
+      config: { ...grandmasterConfig, trapTendency: 0 },
       remainingPlayerCards: { BOT_ELO_2500: 7, p1: 7 },
       nextPlayerId: 'p1',
       rules: createDefaultGameRules(),

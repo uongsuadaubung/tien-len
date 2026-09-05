@@ -264,7 +264,7 @@ export class AppFlowCoordinator {
     });
 
     driver.onComplete((result: MatchCompletionResult) => {
-      settleCompletedMatch(result.engine);
+      settleCompletedMatch(result.engine, driver);
     });
 
     // 2. Tính cọc và trừ cọc an toàn

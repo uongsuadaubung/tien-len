@@ -4,6 +4,7 @@ import { TwoSafetyReport } from './types';
 
 export class CardTracker {
   private memoryDepth: number; // 0.0 -> 1.0
+  private playerCount: number = 4;
   private playedCards: Set<string> = new Set();
   private ownHandCardIds: Set<string> = new Set();
   private opponentPasses: Map<string, Set<CombinationType>> = new Map();
@@ -11,9 +12,14 @@ export class CardTracker {
   private opponentHighestRankPassed: Map<string, Map<CombinationType, number>> = new Map();
   private rankCountOnBoardAndHand: Map<Rank, number> = new Map();
 
-  constructor(initialHand: readonly Card[] = [], memoryDepth = 1.0) {
+  constructor(initialHand: readonly Card[] = [], memoryDepth = 1.0, playerCount = 4) {
     this.memoryDepth = memoryDepth;
+    this.playerCount = playerCount;
     this.updateOwnHand(initialHand);
+  }
+
+  public setPlayerCount(count: number): void {
+    this.playerCount = count;
   }
 
   public updateOwnHand(hand: readonly Card[] = []): void {
@@ -161,6 +167,17 @@ export class CardTracker {
     }
     riskScore = Math.min(100, riskScore);
 
+    // Rủi ro Hàng giảm theo quy mô bàn đấu do bài giấu trong Nọc úp:
+    // - Bàn 2 người (Solo 1v1): 26 lá bài giấu trong Nọc úp (50% cỗ bài) -> giảm 65% rủi ro
+    // - Bàn 3 người: 13 lá bài giấu trong Nọc úp (gần 70% xác suất 1 rank bất kỳ bị mẻ) -> giảm 30% rủi ro
+    if (this.playerCount === 2) {
+      riskScore *= 0.35; // Giảm 65% độ rủi ro trong 1v1 (tối đa 35 điểm)
+    } else if (this.playerCount === 3) {
+      riskScore *= 0.70; // Giảm 30% độ rủi ro trong bàn 3 người (tối đa 70 điểm)
+    }
+
+    riskScore = Math.min(100, Math.round(riskScore));
+
     return {
       isSafe: dangerousRanks.length === 0,
       dangerousFourOfAKindRanks: dangerousRanks,
@@ -178,6 +195,22 @@ export class CardTracker {
     const dangerousRanks = this.getDangerousFourOfAKindRanks();
     if (dangerousRanks.length === 0) return 0.0;
 
+    // 1. Trong bàn 2 người (Solo 1v1): Có tới 26 lá bài nằm trong nọc úp (50% cỗ bài)
+    if (this.playerCount === 2) {
+      const playedRatio = this.playedCards.size / 26;
+      const probability = Math.min(0.2, dangerousRanks.length * 0.03 * (1 + playedRatio));
+      return Number(probability.toFixed(3));
+    }
+
+    // 2. Trong bàn 3 người: Có 13 lá bài nằm trong nọc úp (25% cỗ bài)
+    // Gần 70% xác suất 1 rank bị mẻ ít nhất 1 lá vào nọc, làm giảm đáng kể khả năng gom Tứ Quý
+    if (this.playerCount === 3) {
+      const playedRatio = this.playedCards.size / 39;
+      const probability = Math.min(0.5, dangerousRanks.length * 0.12 * (1 + playedRatio));
+      return Number(probability.toFixed(3));
+    }
+
+    // 3. Trong bàn 4 người: Toàn bộ 52 lá đều được chia hết (0 lá nọc)
     const playedRatio = this.playedCards.size / 52;
     // Càng nhiều bài đã ra trên bàn mà rank vẫn 0 lá -> xác suất gom tứ quý càng cao
     const probability = Math.min(1.0, dangerousRanks.length * 0.25 * (1 + playedRatio));

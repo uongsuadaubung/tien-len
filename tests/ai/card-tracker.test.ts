@@ -89,4 +89,44 @@ describe('AI Card Tracker (Bộ Nhớ Đếm Bài & Suy Luận)', () => {
     // Bây giờ 2D trở thành to nhất!
     expect(tracker2.isStrongestRemainingSingle(parseCard('2D'))).toBe(true);
   });
+
+  test('Solo 1v1: Giảm rủi ro hoang tưởng và xác suất Tứ Quý do nọc 26 lá', () => {
+    const myHand = parseCards('3S 4S 5S 2H');
+    // Bàn 4 người bình thường
+    const tracker4 = new CardTracker(myHand, 1.0, 4);
+    const bombProb4 = tracker4.getBombProbability();
+    const safety4 = tracker4.getTwoSafetyReport();
+
+    // Bàn Solo 1v1 (playerCount = 2)
+    const tracker2 = new CardTracker(myHand, 1.0, 2);
+    const bombProb2 = tracker2.getBombProbability();
+    const safety2 = tracker2.getTwoSafetyReport();
+
+    // Xác suất bomb và riskScore trong 1v1 phải thấp hơn đáng kể so với bàn 4 người
+    expect(bombProb2).toBeLessThan(bombProb4);
+    expect(safety2.riskScore).toBeLessThan(safety4.riskScore);
+    expect(bombProb2).toBeLessThanOrEqual(0.2);
+  });
+
+  test('Bàn 3 người: Giảm rủi ro Tứ Quý do nọc 13 lá nằm giữa 1v1 và bàn 4 người', () => {
+    const myHand = parseCards('3S 4S 5S 2H');
+    const tracker4 = new CardTracker(myHand, 1.0, 4);
+    const tracker3 = new CardTracker(myHand, 1.0, 3);
+    const tracker2 = new CardTracker(myHand, 1.0, 2);
+
+    const bombProb4 = tracker4.getBombProbability();
+    const bombProb3 = tracker3.getBombProbability();
+    const bombProb2 = tracker2.getBombProbability();
+
+    const safety4 = tracker4.getTwoSafetyReport();
+    const safety3 = tracker3.getTwoSafetyReport();
+    const safety2 = tracker2.getTwoSafetyReport();
+
+    // Thứ tự rủi ro: 1v1 < Bàn 3 người < Bàn 4 người
+    expect(bombProb2).toBeLessThan(bombProb3);
+    expect(bombProb3).toBeLessThan(bombProb4);
+
+    expect(safety2.riskScore).toBeLessThan(safety3.riskScore);
+    expect(safety3.riskScore).toBeLessThan(safety4.riskScore);
+  });
 });

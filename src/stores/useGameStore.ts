@@ -441,9 +441,13 @@ export const useGameStore = create<GameState>((set) => ({
         isFirstMoveOfGame: snapshot.isFirstMoveOfGame,
         isLeadMove: snapshot.isLeadMove,
         ...(hasEconomy ? {
-          matchPayouts: { ...matchState.matchPayouts },
-          allEloDeltas: { ...matchState.eloDeltas },
-          matchLogReport: matchState.matchLogReport
+          matchPayouts: Object.keys(matchState.matchPayouts).length > 0 
+            ? { ...matchState.matchPayouts } 
+            : state.matchPayouts,
+          allEloDeltas: Object.keys(matchState.eloDeltas).length > 0 
+            ? { ...matchState.eloDeltas } 
+            : state.allEloDeltas,
+          matchLogReport: matchState.matchLogReport ?? state.matchLogReport
         } : {})
       };
     });

@@ -83,6 +83,12 @@ export function makeBotDecision(rawContext: DecisionContext | (BaseDecisionConte
     tracker 
   } = context;
 
+  // Tự động đồng bộ số lượng người chơi của bàn vào CardTracker (2 người trong Solo 1v1, 3 hoặc 4 người)
+  const totalPlayers = Object.keys(remainingPlayerCards).length;
+  if (totalPlayers > 0 && tracker) {
+    tracker.setPlayerCount(totalPlayers);
+  }
+
   // 1. Tự động định vị và hợp thành Composite Rule Strategy từ GameRules hoặc GameMode
   const compositeRuleStrategy = context.compositeRuleStrategy 
     || resolveCompositeRuleStrategy(context.rules, context.gameMode);

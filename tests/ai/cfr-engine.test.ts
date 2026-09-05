@@ -131,4 +131,95 @@ describe('CFR & Regret Matching Engine (Lý Thuyết Trò Chơi & Cân Bằng Na
 
     expect(bluffCount).toBeGreaterThan(0);
   });
+
+  it('6. Đánh giá Bluff Pass: Tuyệt đối KHÔNG Bluff Pass khi đối thủ ra Sám Cô (TRIPLE)', () => {
+    const hand = [createCard(15, 'HEARTS'), createCard(6, 'SPADES'), createCard(6, 'DIAMONDS'), createCard(6, 'HEARTS')];
+    const tripleFives = [createCard(5, 'SPADES'), createCard(5, 'CLUBS'), createCard(5, 'DIAMONDS')];
+    const leadingMove: PlayedMove = {
+      playerId: 'player_triple',
+      combination: identifyCombination(tripleFives)!,
+      timestamp: Date.now(),
+      isChop: false
+    };
+
+    const res = cfr.evaluateBluffPass(hand, leadingMove, 'player_triple', null, grandmasterBot, 10);
+    expect(res.shouldBluffPass).toBe(false);
+  });
+
+  it('7. Đánh giá Bluff Pass: Tuyệt đối KHÔNG Bluff Pass khi đối thủ sắp hết bài (<= 4 lá)', () => {
+    const hand = [createCard(15, 'HEARTS'), createCard(14, 'CLUBS')];
+    const nineSpades = createCard(9, 'SPADES');
+    const leadingMove: PlayedMove = {
+      playerId: 'player_near_win',
+      combination: identifyCombination([nineSpades])!,
+      timestamp: Date.now(),
+      isChop: false
+    };
+
+    // Đối thủ còn 4 lá -> Cực kỳ nguy hiểm, cấm Bluff Pass
+    const res4 = cfr.evaluateBluffPass(hand, leadingMove, 'player_near_win', null, grandmasterBot, 4);
+    expect(res4.shouldBluffPass).toBe(false);
+
+    // Đối thủ còn 3 lá -> Cấm Bluff Pass
+    const res3 = cfr.evaluateBluffPass(hand, leadingMove, 'player_near_win', null, grandmasterBot, 3);
+    expect(res3.shouldBluffPass).toBe(false);
+  });
+
+  it('8. Đánh giá Bluff Pass: Trong Solo 1v1, KHÔNG Bluff Pass nếu chỉ cầm Heo đơn lẻ (không có Hàng)', () => {
+    const hand = [createCard(15, 'DIAMONDS'), createCard(10, 'CLUBS'), createCard(11, 'HEARTS')];
+    const nineSpades = createCard(9, 'SPADES');
+    const leadingMove: PlayedMove = {
+      playerId: 'player_solo',
+      combination: identifyCombination([nineSpades])!,
+      timestamp: Date.now(),
+      isChop: false
+    };
+
+    // Solo 1v1 (activeOpponentsCount = 1), chỉ cầm Heo đỏ, không có Hàng -> Cấm Bluff Pass
+    const res = cfr.evaluateBluffPass(hand, leadingMove, 'player_solo', null, grandmasterBot, 8, {
+      activeOpponentsCount: 1
+    });
+    expect(res.shouldBluffPass).toBe(false);
+  });
+
+  it('9. Đánh giá Bluff Pass: Trong Đếm Lá (COUNT_CARDS), KHÔNG Bluff Pass khi Bot còn nhiều bài (>= 6 lá)', () => {
+    const hand = [
+      createCard(15, 'DIAMONDS'),
+      createCard(4, 'CLUBS'),
+      createCard(6, 'SPADES'),
+      createCard(7, 'HEARTS'),
+      createCard(8, 'DIAMONDS'),
+      createCard(10, 'CLUBS'),
+      createCard(11, 'HEARTS')
+    ];
+    const nineSpades = createCard(9, 'SPADES');
+    const leadingMove: PlayedMove = {
+      playerId: 'player_count',
+      combination: identifyCombination([nineSpades])!,
+      timestamp: Date.now(),
+      isChop: false
+    };
+
+    const res = cfr.evaluateBluffPass(hand, leadingMove, 'player_count', null, grandmasterBot, 7, {
+      gameMode: 'COUNT_CARDS'
+    });
+    expect(res.shouldBluffPass).toBe(false);
+  });
+
+  it('10. Đánh giá Bluff Pass: KHÔNG Bluff Pass khi Bot có rác tự do (free trash) đè vừa tầm', () => {
+    const hand = [createCard(15, 'HEARTS'), createCard(10, 'CLUBS')];
+    const nineSpades = createCard(9, 'SPADES');
+    const leadingMove: PlayedMove = {
+      playerId: 'player_trash',
+      combination: identifyCombination([nineSpades])!,
+      timestamp: Date.now(),
+      isChop: false
+    };
+
+    const res = cfr.evaluateBluffPass(hand, leadingMove, 'player_trash', null, grandmasterBot, 8, {
+      hasFreeTrashBeat: true
+    });
+    expect(res.shouldBluffPass).toBe(false);
+  });
 });
+

@@ -12,7 +12,8 @@
     "test:coverage": "bun test --coverage",
     "analyze:log": "bun run scripts/analyze-match-log.ts",
     "debug:log": "bun run scripts/debug-match-details.ts",
-    "verify:replay": "bun run scripts/verify-replay-fixes.ts"
+    "verify:replay": "bun run scripts/verify-replay-fixes.ts",
+    "benchmark:ai": "bun run scripts/benchmark-ai-correlation.ts"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.4",

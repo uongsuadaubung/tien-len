@@ -37,17 +37,21 @@ export class NashEquilibriumSolver {
     targetCombo: Combination | null,
     tracker: CardTracker,
     config: BotConfig,
-    remainingCardsCount: number
+    remainingCardsCount: number,
+    activeOpponentsCount: number = 3
   ): NashDecisionResult {
     const twoSafety = tracker.getTwoSafetyReport();
     const bombProb = tracker.getBombProbability();
+    const isSolo = activeOpponentsCount === 1;
 
-    // 1. Nếu thế bài còn quá ít lá (<= 3 lá): Luôn dứt điểm
-    if (remainingCardsCount <= 3) {
+    // 1. Nếu thế bài còn ít lá: Luôn dứt điểm
+    // (Bàn đông người: <= 3 lá, Solo 1v1: <= 5 lá)
+    const endgameThreshold = isSolo ? 5 : 3;
+    if (remainingCardsCount <= endgameThreshold) {
       return {
         shouldTakeAction: true,
         probability: 1.0,
-        reason: 'Cờ tàn dứt điểm: Không áp dụng ngẫu nhiên hóa'
+        reason: `${isSolo ? 'Solo 1v1' : 'Bàn đấu'} cờ tàn dứt điểm: Không áp dụng ngẫu nhiên hóa`
       };
     }
 
@@ -56,9 +60,19 @@ export class NashEquilibriumSolver {
     if (move.isChop) gain += 150;
     if (targetCombo && isTwo(targetCombo.highestCard)) gain += 80;
 
+    // Trong Solo 1v1: Cướp cái có giá trị cực lớn vì đối thủ không có đồng minh bọc lót
+    if (isSolo) {
+      gain += 60;
+    }
+
     // 3. Rủi ro bị chặt đè lại: Dựa trên xác suất Hàng và số Heo to còn lại
     let lossRisk = twoSafety.riskScore * 1.5;
     if (bombProb > 0.3) lossRisk += bombProb * 120;
+
+    // Trong Solo 1v1: Rủi ro bị chặt đè lại giảm mạnh do 26 lá bài giấu trong Nọc úp
+    if (isSolo) {
+      lossRisk *= 0.5;
+    }
 
     // Điều chỉnh theo khẩu vị rủi ro và chỉ số thích ứng của Bot
     gain *= config.riskAppetite + 0.5;

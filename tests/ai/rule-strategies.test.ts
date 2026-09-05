@@ -85,6 +85,45 @@ describe('RULE-FIRST AI STRATEGY SYSTEM TESTS', () => {
       expect(modifier).toBe(-100);
     });
 
+    it('TraditionalSettlementStrategy: Trong Solo 1v1 KHÔNG phạt xả Heo đầu ván để cướp cái', () => {
+      const strategy = new TraditionalSettlementStrategy();
+      const moveTwo: ValidMoveInfo = {
+        cards: [c2H],
+        combination: { type: 'SINGLE', cards: [c2H], highestCard: c2H, length: 1 },
+        isChop: false
+      };
+      const targetThree: PlayedMove = {
+        playerId: 'p1',
+        combination: { type: 'SINGLE' as const, cards: [c3S], highestCard: c3S, length: 1 },
+        timestamp: Date.now(),
+        isChop: false
+      };
+      const soloContext = createMockRuleDecisionContext({
+        remainingPlayerCards: { p0: 8, p1: 8 }
+      });
+      const modifier = strategy.getRespondingScoreModifier(moveTwo, 8, targetThree, soloContext);
+      expect(modifier).toBe(0);
+    });
+
+    it('CongRuleStrategy: Trong Solo 1v1 kích hoạt thoát cóng khẩn cấp ngay khi đối thủ còn <= 4 lá', () => {
+      const strategy = new CongRuleStrategy({ enabled: true, penaltyCards: 26, multiplier: 1 });
+      const moveSmall: ValidMoveInfo = {
+        cards: [c3S],
+        combination: { type: 'SINGLE', cards: [c3S], highestCard: c3S, length: 1 },
+        isChop: false
+      };
+      // Solo 1v1, đối thủ còn 4 lá, Bot chưa ra được lá nào (hasPlayedFirstCard = false)
+      const soloContext = createMockRuleDecisionContext({
+        remainingPlayerCards: { p0: 13, p1: 4 },
+        hasPlayedFirstCard: false,
+        isLeadMove: false
+      });
+      const action = strategy.evaluateEmergency(soloContext, [moveSmall]);
+      expect(action).not.toBeNull();
+      expect(action?.type).toBe('PLAY');
+      expect(action?.reason).toContain('Thoát Cóng');
+    });
+
     it('CountCardsSettlementStrategy: Ưu tiên xả Sảnh dài & thưởng lớn khi xả được nhiều lá', () => {
       const strategy = new CountCardsSettlementStrategy();
       const leadPolicy = strategy.contributeLeadPolicy({});

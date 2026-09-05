@@ -87,6 +87,8 @@ export class OfflineMatchDriver implements IMatchDriver {
   public chopNotification: ChopNotificationData | null = null;
   public botThinkingThought: { botId: string; text: string } | null = null;
   public instantWinType: InstantWinType | null = null;
+  public matchPayouts: Record<string, number> = {};
+  public eloDeltas: Record<string, number> = {};
 
   // Runtime control
   private isDisposed: boolean = false;
@@ -135,6 +137,12 @@ export class OfflineMatchDriver implements IMatchDriver {
     return () => {
       this.completionListeners.delete(listener);
     };
+  }
+
+  public setSettlementResult(payouts: Record<string, number>, eloDeltas: Record<string, number>): void {
+    this.matchPayouts = { ...payouts };
+    this.eloDeltas = { ...eloDeltas };
+    this.emitSnapshot();
   }
 
   private getEngine(): GameEngine {
@@ -200,8 +208,8 @@ export class OfflineMatchDriver implements IMatchDriver {
         players: [...this.engine.players],
         instantWinner: winner,
         instantWinType: this.instantWinType,
-        matchPayouts: {},
-        eloDeltas: {},
+        matchPayouts: { ...this.matchPayouts },
+        eloDeltas: { ...this.eloDeltas },
         matchLogReport: null,
         rules: this.engine.rules
       };
@@ -214,8 +222,8 @@ export class OfflineMatchDriver implements IMatchDriver {
         players: [...this.engine.players],
         winners: [...this.engine.winners],
         isThreeSpadesWin: this.engine.isThreeSpadesWin,
-        matchPayouts: {},
-        eloDeltas: {},
+        matchPayouts: { ...this.matchPayouts },
+        eloDeltas: { ...this.eloDeltas },
         matchLogReport: null,
         rules: this.engine.rules
       };
@@ -300,7 +308,7 @@ export class OfflineMatchDriver implements IMatchDriver {
       const memoryDepth = player.isBot
         ? getBotConfig(player.botPersonaId || 'BOT_ELO_1150').memoryDepth
         : 1.0;
-      newTrackers[player.id] = new CardTracker(player.hand, memoryDepth);
+      newTrackers[player.id] = new CardTracker(player.hand, memoryDepth, engine.players.length);
     }
     this.trackers = newTrackers;
   }
@@ -320,6 +328,8 @@ export class OfflineMatchDriver implements IMatchDriver {
     this.instantWinType = null;
     this.botThinkingThought = null;
     this.chopNotification = null;
+    this.matchPayouts = {};
+    this.eloDeltas = {};
 
     if (roundNumber > 1) {
       const betAmount = this.tableConfig.settings.betAmount;
@@ -341,7 +351,7 @@ export class OfflineMatchDriver implements IMatchDriver {
       const memoryDepth = player.isBot
         ? getBotConfig(player.botPersonaId || 'BOT_ELO_1150').memoryDepth
         : 1.0;
-      this.trackers[player.id] = new CardTracker(player.hand, memoryDepth);
+      this.trackers[player.id] = new CardTracker(player.hand, memoryDepth, this.engine.players.length);
     }
 
     // Hoạt ảnh chia bài
@@ -720,6 +730,7 @@ export class OfflineMatchDriver implements IMatchDriver {
 
   private handleGameOver(): void {
     if (!this.engine) return;
+    this.cleanupTimers();
     this.botThinkingThought = null;
     this.lastWinnerId = this.engine.winners[0]?.id || null;
     this.emitSnapshot();

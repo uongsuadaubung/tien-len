@@ -107,14 +107,19 @@ export class TraditionalSettlementStrategy implements RuleStrategyEvaluator {
   getRespondingScoreModifier(
     move: ValidMoveInfo,
     handSize: number,
-    targetMove: PlayedMove | null
+    targetMove: PlayedMove | null,
+    context?: RuleDecisionContext
   ): number {
     let modifier = 0;
     const containsTwo = move.cards.some(isTwo);
     const targetIsTwo = targetMove && targetMove.combination.cards.some(isTwo);
 
-    // Truyền thống: Phạt xả Heo đè rác nhỏ ở đầu ván để bảo toàn Heo đến cờ tàn
-    if (containsTwo && !targetIsTwo && handSize >= 6) {
+    const activeOpponents = context ? Object.values(context.remainingPlayerCards).filter(c => c > 0).length - 1 : 3;
+    const isSolo = activeOpponents <= 1;
+
+    // Truyền thống trong bàn 3-4 người: Phạt xả Heo đè rác nhỏ ở đầu ván để bảo toàn Heo đến cờ tàn
+    // Trong Solo 1v1: Không có hạng Nhì/Ba an ủi, xả Heo cướp cái để làm chủ trận đấu là hoàn toàn hợp lệ
+    if (containsTwo && !targetIsTwo && handSize >= 6 && !isSolo) {
       modifier -= 100;
     }
     return modifier;
@@ -195,13 +200,18 @@ export class CongRuleStrategy implements RuleStrategyEvaluator {
     // Chỉ kích hoạt khi Bot CHƯA RA ĐƯỢC LÁ BÀI NÀO
     if (context.hasPlayedFirstCard === true) return null;
 
-    // Kiểm tra xem có đối thủ nào sắp về Nhất (còn <= 3 lá bài)
+    // Kiểm tra xem có đối thủ nào sắp về Nhất
     const minOpponentCards = Math.min(
       ...Object.values(context.remainingPlayerCards).filter(c => c > 0)
     );
 
-    // Khi có đối thủ còn <= 3 lá mà mình chưa ra được lá nào: NGUY CƠ BỊ CÓNG CỰC CAO!
-    if (minOpponentCards <= 3 && !context.isLeadMove) {
+    const activeOpponents = Object.values(context.remainingPlayerCards).filter(c => c > 0).length - 1;
+    const isSolo = activeOpponents <= 1;
+    // Trong Solo 1v1: Nhịp đánh diễn ra cực nhanh, nâng ngưỡng cảnh báo nguy cơ bị Cóng lên <= 4 lá
+    const dangerThreshold = isSolo ? 4 : 3;
+
+    // Khi có đối thủ sắp về mà mình chưa ra được lá nào: NGUY CƠ BỊ CÓNG CỰC CAO!
+    if (minOpponentCards <= dangerThreshold && !context.isLeadMove) {
       // Ưu tiên: Đánh nước đi hợp lệ nhỏ nhất bất kỳ (để thoát cóng với chi phí bài thấp nhất)
       const nonTwoMoves = validMoves.filter(m => !m.cards.some(isTwo));
       const candidates = nonTwoMoves.length > 0 ? nonTwoMoves : validMoves;

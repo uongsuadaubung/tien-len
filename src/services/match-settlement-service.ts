@@ -17,6 +17,8 @@ import { assertEconomicBalance } from '../engine/invariants/match-invariants';
 import type { BotConfig } from '../ai/types';
 import { getBotConfig } from '../ai/bot-factory';
 import { dbUpdatePlayerMatchResult } from '../engine/db/indexed-db';
+import type { OfflineMatchDriver } from '../engine/offline-match-driver';
+import type { GameOverMatchState } from '../engine/state-machine/types';
 
 export type { CampaignResultMeta };
 
@@ -45,7 +47,7 @@ function triggerQuestToastIfNewlyCompleted(
  * Service kết toán trận đấu trực tiếp (Direct Domain Service)
  * Hoàn toàn không qua Event Bus hay React Hook lifecycle
  */
-export function settleCompletedMatch(engine: GameEngine): void {
+export function settleCompletedMatch(engine: GameEngine, driver?: OfflineMatchDriver): void {
   const gameStore = useGameStore.getState();
   const userStore = useUserStore.getState();
   const viewStore = useViewStore.getState();
@@ -134,6 +136,23 @@ export function settleCompletedMatch(engine: GameEngine): void {
   gameStore.setLastEloDelta(settlement.eloDelta);
   gameStore.setLastEloBreakdown(settlement.eloBreakdown ?? null);
   gameStore.setAllEloDeltas(settlement.allEloDeltas ?? {});
+
+  const gameOverState: GameOverMatchState = {
+    status: 'GAME_OVER',
+    gameNumber: engine.gameNumber,
+    players: engine.players.map(p => ({ ...p })),
+    winners: [...engine.winners],
+    isThreeSpadesWin: engine.isThreeSpadesWin,
+    matchPayouts: settlement.payouts,
+    eloDeltas: settlement.allEloDeltas ?? {},
+    matchLogReport: null,
+    rules: engine.rules
+  };
+  gameStore.setMatchState(gameOverState);
+
+  if (driver) {
+    driver.setSettlementResult(settlement.payouts, settlement.allEloDeltas ?? {});
+  }
 
   const session = getActiveMatchSession();
   const heldDeposit = session ? session.depositAmount : 0;

@@ -178,5 +178,30 @@ describe('AppFlowCoordinator Unit Tests (Kiểm Thử Cổng Điều Phối Chuy
 
     useUserStore.getState().setProfile(origProfile);
   });
+
+  it('7. Victory Modal Payout Persistence: Không bị xóa mất bảng tiền thưởng khi emit snapshot sau khi kết thúc ván', () => {
+    // Giả lập sau khi kết toán, store đã có matchPayouts hợp lệ
+    const dummyPayouts = { 'user_1': 26000, 'bot_1': -13000, 'bot_2': -13000 };
+    useGameStore.getState().setMatchPayouts(dummyPayouts);
+    expect(useGameStore.getState().matchPayouts).toEqual(dummyPayouts);
+
+    // Giả lập driver hoặc timer trễ kích hoạt applyMatchState với GameOverMatchState rỗng (như khi chưa có settlement)
+    const emptyGameOverState = {
+      status: 'GAME_OVER' as const,
+      gameNumber: 1,
+      players: [],
+      winners: [],
+      isThreeSpadesWin: false,
+      matchPayouts: {}, // Rỗng từ driver
+      eloDeltas: {},
+      matchLogReport: null,
+      rules: {} as any
+    };
+
+    useGameStore.getState().applyMatchState(emptyGameOverState);
+
+    // Bảo đảm matchPayouts không bị xóa trắng mà vẫn bảo toàn 100%
+    expect(useGameStore.getState().matchPayouts).toEqual(dummyPayouts);
+  });
 });
 
