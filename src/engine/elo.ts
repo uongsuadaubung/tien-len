@@ -58,7 +58,7 @@ export const RANK_TIERS: RankTierInfo[] = [
     minElo: 1800,
     maxElo: 2099,
     color: '#00FA9A',
-    description: 'Bán chuyên đẳng cấp, nhớ trọn 52 lá và tung hỏa mù CFR Bluffing.'
+    description: 'Bán chuyên đẳng cấp, nhớ trọn 52 lá và tối ưu hóa giải phóng bài rác.'
   },
   {
     id: 'DIAMOND',

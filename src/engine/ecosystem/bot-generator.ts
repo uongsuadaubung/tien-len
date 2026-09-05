@@ -179,7 +179,6 @@ export function createBotEntityFromDNA(
     mctsSimulations: basePersona.mctsSimulations || 0,
     useMinimaxEndgame: basePersona.useMinimaxEndgame || tierNum >= 7,
     useBayesianInference: basePersona.useBayesianInference || tierNum >= 8,
-    useNashEquilibrium: basePersona.useNashEquilibrium || tierNum >= 9,
     useDynamicRepartitioning: basePersona.useDynamicRepartitioning || tierNum >= 6,
     coins,
     currentStreak: 0,
@@ -226,7 +225,7 @@ export function generateInitial200Bots(): BotEntity[] {
 /**
  * Trích xuất chuẩn xác Bậc DNA (1..9) của Bot Entity:
  * 1. Đọc từ tiền tố ID chuẩn: bot_eco_t{tierNum}_...
- * 2. Đọc từ các cờ năng lực AI đặc thù (Nash, Bayesian, Minimax, Dynamic Repartitioning)
+ * 2. Đọc từ các cờ năng lực AI đặc thù (Bayesian, Minimax, Dynamic Repartitioning)
  * 3. Fallback theo điểm Elo nếu không có metadata ID
  */
 export function getBotDnaTier(bot: BotEntity): number {
@@ -244,7 +243,7 @@ export function getBotDnaTier(bot: BotEntity): number {
     }
   }
 
-  if (bot.useNashEquilibrium) return 9;
+  if (bot.useBayesianInference && bot.useMinimaxEndgame) return 9;
   if (bot.useBayesianInference) return 8;
   if (bot.useMinimaxEndgame) return 7;
   if (bot.useDynamicRepartitioning) return 6;
@@ -297,7 +296,7 @@ export function draftBotForTier(
   const index = Math.floor(Math.random() * 1000);
   const tier = Math.min(9, Math.max(1, targetTier));
   
-  // 1. Tạo bot mang đầy đủ bộ não / AI DNA của targetTier (Minimax, Bayesian, Nash, Lookahead...)
+  // 1. Tạo bot mang đầy đủ bộ não / AI DNA của targetTier (Minimax, Bayesian, Lookahead...)
   const bot = createBotEntityFromDNA(tier, index, existingNames);
 
   // 2. Thiết lập Elo xuất phát điểm chuẩn 1.000 Elo (như người chơi thật mới tạo tài khoản)

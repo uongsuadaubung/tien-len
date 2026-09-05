@@ -9,10 +9,8 @@ import {
 import { isTwo } from '../../engine/card';
 import { createDefaultGameRules } from '../../engine/types';
 import { partitionHand } from '../hand-partitioner';
-import { CfrEngine } from '../cfr-engine';
 import { RuleDecisionContext } from '../rule-strategies';
 import { BotCandidateEvaluation } from '../../engine/match-logger';
-import { NashEquilibriumSolver } from '../solvers/nash-equilibrium-solver';
 import { 
   evaluateChoppingScore,
   evaluateTwoManagementScore,
@@ -71,46 +69,35 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
     };
 
     // =========================================================================
-    // CFR BLUFF PASS CHECK (Tung hỏa mù theo lý thuyết trò chơi CFR)
+    // CỬA 1: DỨT ĐIỂM TOÀN BỘ BÀI TRÊN TAY (Endgame Instant Win Gate)
     // =========================================================================
-    if (currentRoundLeadingMove && config.elo >= 1600 && !isEmergencyAntiLeader) {
-      const targetPlayerId = currentRoundLeadingMove.playerId;
-      const targetProfile = context.opponentProfiles?.[targetPlayerId] ?? null;
-      const remainingTargetCards = remainingPlayerCards[targetPlayerId] ?? 10;
+    const finishMove = validMoves.find(m => m.cards.length === hand.length);
+    if (finishMove) {
+      return buildBotDecision('PLAY', {
+        cards: finishMove.cards,
+        combination: finishMove.combination,
+        reason: 'Cờ tàn dứt điểm: Đánh hết toàn bộ bài trên tay để về Nhất',
+        strategyUsed: 'ENDGAME_INSTANT_WIN',
+        evaluationScore: 1000
+      });
+    }
 
-      const targetRank = targetCombo?.highestCard.rank ?? 0;
-      const hasFreeTrashBeat = targetCombo?.type === 'SINGLE' && partition.trashCards.some(tc =>
-        !isTwo(tc) &&
-        tc.rank > targetRank &&
-        (tc.rank - targetRank) <= 3
+    // =========================================================================
+    // CỬA 2: CHỐNG ĐỀN BÀI SINH TỬ KHI NGƯỜI KẾ TIẾP BÁO 1 LÁ (Anti-Feeding Gate)
+    // Luật Tiến Lên Miền Nam: Khi người kế tiếp chỉ còn 1 lá và lượt này đánh bài lẻ,
+    // bắt buộc phải đánh lá bài lẻ to nhất có thể để chặn đầu, chống đền bài cho cả làng.
+    // =========================================================================
+    if (isNextPlayerOneCard && targetCombo?.type === 'SINGLE' && validSingleMoves.length > 0) {
+      const highestSingleMove = validSingleMoves.reduce((best, cur) =>
+        cur.combination.highestCard.weight > best.combination.highestCard.weight ? cur : best
       );
-
-      const opponentCardsList = Object.entries(remainingPlayerCards)
-        .filter(([id]) => id !== config.id)
-        .map(([, count]) => count);
-      const minOpponentCards = opponentCardsList.length > 0 ? Math.min(...opponentCardsList) : remainingTargetCards;
-
-      const bluffCheck = CfrEngine.getInstance().evaluateBluffPass(
-        hand,
-        currentRoundLeadingMove,
-        targetPlayerId,
-        targetProfile,
-        config,
-        remainingTargetCards,
-        {
-          activeOpponentsCount,
-          gameMode: context.gameMode,
-          hasFreeTrashBeat,
-          minOpponentCards
-        }
-      );
-
-      if (bluffCheck.shouldBluffPass) {
-        return buildBotDecision('PASS', {
-          reason: bluffCheck.reason,
-          strategyUsed: 'CFR_BLUFF_PASS'
-        });
-      }
+      return buildBotDecision('PLAY', {
+        cards: highestSingleMove.cards,
+        combination: highestSingleMove.combination,
+        reason: `Chống đền bài: Bắt buộc đè lá bài to nhất [ ${highestSingleMove.cards.map(c => c.code).join(' ')} ] chặn người kế tiếp 1 lá`,
+        strategyUsed: 'ANTI_ONE_CARD_INTERCEPT',
+        evaluationScore: 1000
+      });
     }
 
     let bestMoveScore = -9999;
@@ -289,7 +276,7 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
       const moveCardIds = new Set(move.cards.map(c => c.id));
       const remainingAfterMove = hand.filter(c => !moveCardIds.has(c.id));
       const isExhaustedTrash =
-        remainingAfterMove.length > 0 &&
+        remainingAfterMove.length >= 2 &&
         remainingAfterMove.length <= 3 &&
         !remainingAfterMove.some(isTwo) &&
         remainingAfterMove.every(c => c.rank <= 7) &&
@@ -304,9 +291,15 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
         const exhaustionPenalty = AI_HEURISTIC_WEIGHTS.ENDGAME_EXHAUSTION_PENALTY + (3 - remainingAfterMove.length) * 30;
         score -= exhaustionPenalty;
         reasons.push(`Nguy cơ cạn kiệt lực cờ tàn (-${Math.round(exhaustionPenalty)})`);
-      } else if (hand.length <= 3 || hand.length - move.cards.length <= 2) {
+      } else if (hand.length <= 3 || remainingAfterMove.length <= 1) {
         score += AI_HEURISTIC_WEIGHTS.ENDGAME_SPRINT_BONUS;
-        reasons.push('Tăng tốc cờ tàn');
+        reasons.push('Tăng tốc cờ tàn dứt điểm');
+      }
+
+      // 12b. Áp đảo dứt điểm cờ tàn trong Solo 1v1
+      if (activeOpponentsCount === 1 && !isExhaustedTrash && (hand.length <= 2 || remainingAfterMove.length <= 1) && !containsTwo) {
+        score += 150;
+        reasons.push('Cờ tàn Solo: Quyết liệt cướp cái về bài (+150)');
       }
 
       // 13. Khai thác lá bài to nhất tuyệt đối
@@ -353,34 +346,15 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
 
     const sortedCandidates = [...evaluatedCandidateList].sort((a, b) => b.score - a.score).slice(0, 5);
 
-    // Nash Equilibrium Mixed-Strategy Check (cho Tier 8, 9 hoặc khi kích hoạt useNashEquilibrium)
-    if (bestMove && bestMoveScore > 0 && (config.useNashEquilibrium || config.elo >= 2700)) {
-      const containsTwo = bestMove.cards.some(isTwo);
-      if (bestMove.isChop || containsTwo) {
-        const nash = NashEquilibriumSolver.evaluateNashChoppingAction(
-          bestMove,
-          targetCombo,
-          tracker,
-          config,
-          hand.length,
-          activeOpponentsCount
-        );
-        if (!nash.shouldTakeAction) {
-          return buildBotDecision('PASS', {
-            reason: nash.reason,
-            strategyUsed: 'NASH_MIXED_PASS',
-            evaluationScore: Math.round(bestMoveScore),
-            candidatesEvaluated: sortedCandidates
-          });
-        }
-      }
-    }
+    const isCrucialEndgameMove = hand.length <= 2 && bestMove !== null;
 
-    if (bestMove && bestMoveScore > 0) {
+    if (bestMove && (bestMoveScore > 0 || isCrucialEndgameMove)) {
       return buildBotDecision('PLAY', {
         cards: bestMove.cards,
         combination: bestMove.combination,
-        reason: `Đánh giá Heuristics (${Math.round(bestMoveScore)} điểm): Đánh ${bestMove.combination.type} [ ${bestMove.cards.map(c => c.code).join(' ')} ]`,
+        reason: isCrucialEndgameMove && bestMoveScore <= 0
+          ? `Cờ tàn sinh tử: Bắt buộc đè bài dứt điểm [ ${bestMove.cards.map(c => c.code).join(' ')} ]`
+          : `Đánh giá Heuristics (${Math.round(bestMoveScore)} điểm): Đánh ${bestMove.combination.type} [ ${bestMove.cards.map(c => c.code).join(' ')} ]`,
         strategyUsed: 'HEURISTIC_EVALUATION',
         evaluationScore: Math.round(bestMoveScore),
         candidatesEvaluated: sortedCandidates

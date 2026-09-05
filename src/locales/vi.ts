@@ -591,8 +591,6 @@ export const vi = {
     minimaxEndgameDesc: 'Tính trước toàn bộ nước bài cuối ván để tìm đường về Nhất chắc thắng',
     bayesianInference: 'Đoán Bài Ẩn Qua Nhịp Bỏ Lượt',
     bayesianInferenceDesc: 'Phán đoán bài trên tay đối thủ dựa vào các lượt bỏ bài',
-    nashEquilibrium: 'Lối Đánh Biến Ảo Khó Lường',
-    nashEquilibriumDesc: 'Chiến thuật đánh biến hóa ngẫu nhiên chống bị bắt bài',
     dynamicRepartitioning: 'Tái Cấu Trúc Bộ Bài Linh Hoạt',
     dynamicRepartitioningDesc: 'Linh hoạt phá sảnh, xé đôi để thoát bài cứu Cóng'
   },

@@ -156,7 +156,6 @@ export function useEcosystem(): UseEcosystemResult {
     simulationLookahead: 3,
     useMinimaxEndgame: false,
     useBayesianInference: false,
-    useNashEquilibrium: false,
     useDynamicRepartitioning: false,
     currentStreak: profile.stats.currentStreak || 0,
     highestStreak: profile.stats.highestStreak || 0,

@@ -62,7 +62,6 @@ export const BotEntitySchema = z.object({
   simulationLookahead: z.number().nonnegative().default(0),
   useMinimaxEndgame: z.boolean().default(false),
   useBayesianInference: z.boolean().default(false),
-  useNashEquilibrium: z.boolean().default(false),
   useDynamicRepartitioning: z.boolean().default(false)
 });
 

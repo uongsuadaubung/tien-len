@@ -37,7 +37,7 @@ describe('Campaign Mode 9 Esports Chapters & Grand Finale', () => {
     }
   });
 
-  test('4. Chương 8 & Chương 9 trang bị AI Đỉnh Cao (Minimax, Bayesian, Nash, MCTS)', () => {
+  test('4. Chương 8 & Chương 9 trang bị AI Đỉnh Cao (Minimax, Bayesian, MCTS)', () => {
     const chapter8Bots = CAMPAIGN_CHAPTERS[7].bots;
     const chapter9Bots = CAMPAIGN_CHAPTERS[8].bots;
 
@@ -53,7 +53,6 @@ describe('Campaign Mode 9 Esports Chapters & Grand Finale', () => {
       expect(bot.elo).toBe(3200);
       expect(bot.useMinimaxEndgame).toBe(true);
       expect(bot.useBayesianInference).toBe(true);
-      expect(bot.useNashEquilibrium).toBe(true);
       expect(bot.mctsSimulations).toBeGreaterThanOrEqual(30);
     }
   });

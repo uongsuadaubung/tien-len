@@ -25,7 +25,7 @@
   - **Chain of Responsibility**: 5 tầng xử lý quyết định tuần tự: `Emergency` $\to$ `Endgame` $\to$ `Lead` $\to$ `Responding` $\to$ `Fallback`.
   - **CardTracker & Bayesian Inference**: Đếm bài, theo dõi rác/heo và suy luận khả năng có Hàng của đối thủ.
   - **Opponent Dynamic Profiling (`OpponentProfiler`)**: Ghi nhớ và đọc vị thói quen tâm lý (ham giữ Heo, nhát tay, gài bẫy) của người chơi qua nhiều ván đấu.
-  - **Game Theory & Nash Equilibrium (`CfrEngine`)**: Áp dụng Counterfactual Regret Minimization cho chiến thuật hỗn hợp và tung hỏa mù (Bluff Pass).
+  - **Endgame Exhaustion & Minimax Solver**: Giải thuật vét cờ tàn vét sạch bài đối thủ và Minimax Alpha-Beta tìm chuỗi đánh bất bại.
   - **Scaled ISMCTS Solver (Monte Carlo Tree Search)**: Mô phỏng song song 100 - 500+ kịch bản cây ván đấu sâu cho các đối thủ bậc Thần Bài.
 * 💾 **Tầng Lưu Trữ Vĩnh Viễn (100% Pure Dexie IndexedDB + RAM Cache 0ms)**:
   - Loại bỏ hoàn toàn `localStorage`, sử dụng Dexie IndexedDB (`TIEN_LEN_DEXIE_DB_V1`) với 8 bảng dữ liệu an toàn.

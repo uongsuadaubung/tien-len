@@ -45,7 +45,6 @@ describe('9 Esports Tiers & Boss Bot Verification Unit Tests', () => {
     expect(bossConfig.elo).toBe(3200);
     expect(bossConfig.useMinimaxEndgame).toBe(true);
     expect(bossConfig.useBayesianInference).toBe(true);
-    expect(bossConfig.useNashEquilibrium).toBe(true);
     expect(bossConfig.mctsSimulations).toBeGreaterThanOrEqual(30);
   });
 

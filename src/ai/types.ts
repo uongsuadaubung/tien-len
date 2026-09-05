@@ -25,7 +25,6 @@ export interface BotConfig {
   simulationLookahead: number;         // Độ sâu dự đoán nước đi tiếp theo (0 -> 4)
   useMinimaxEndgame: boolean;          // Kích hoạt Minimax Alpha-Beta Solver cờ tàn (Tier 8 & 9)
   useBayesianInference: boolean;       // Kích hoạt suy luận xác suất Bayes đoán bài đối thủ (Tier 7+)
-  useNashEquilibrium: boolean;         // Kích hoạt chiến lược hỗn hợp Nash chống bị bắt bài (Tier 8+)
   useDynamicRepartitioning: boolean;   // Kích hoạt tái cấu trúc bài động Branch & Bound (Tier 6+)
 }
 

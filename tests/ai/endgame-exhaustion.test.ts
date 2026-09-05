@@ -83,4 +83,62 @@ describe('AI Endgame Trash Exhaustion Prevention (Chống cạn kiệt lực c�
     // Có Heo 2H thì không bị coi là cạn kiệt rác nhỏ helpless
     expect(decision.type).toBe('PLAY');
   });
+
+  test('Bot cầm 2 lá [ 6H KH ] trong Solo 1v1 khi đối thủ đánh 7H: Bắt buộc đánh KH để dứt điểm lá cuối (Match Point)', () => {
+    // Tái hiện chính xác tình huống lượt #11 từ match log thực tế
+    const hand = parseCards('6H KH');
+    const leadingMove: PlayedMove = {
+      playerId: 'p0',
+      combination: {
+        type: 'SINGLE',
+        cards: parseCards('7H'),
+        highestCard: parseCards('7H')[0],
+        length: 1
+      },
+      timestamp: Date.now(),
+      isChop: false
+    };
+
+    const ctx = createMockContext({
+      hand,
+      currentRoundLeadingMove: leadingMove,
+      remainingPlayerCards: { p0: 10 }
+    });
+
+    const decision = makeBotDecision(ctx);
+
+    // Kỳ vọng: Quyết định phải là PLAY [ KH ] để cướp cái về nhất lá 6H, KHÔNG ĐƯỢC PASS
+    expect(decision.type).toBe('PLAY');
+    expect(decision.cards).toBeDefined();
+    expect(decision.cards![0].code).toBe('KH');
+    expect(decision.strategyUsed).toBe('HEURISTIC_EVALUATION');
+  });
+
+  test('Bàn Solo 1v1 cờ tàn còn <= 2 lá không được bỏ lượt tự sát khi có nước đi hợp lệ', () => {
+    const hand = parseCards('3D AD');
+    const leadingMove: PlayedMove = {
+      playerId: 'p0',
+      combination: {
+        type: 'SINGLE',
+        cards: parseCards('QD'),
+        highestCard: parseCards('QD')[0],
+        length: 1
+      },
+      timestamp: Date.now(),
+      isChop: false
+    };
+
+    const ctx = createMockContext({
+      hand,
+      currentRoundLeadingMove: leadingMove,
+      remainingPlayerCards: { p0: 5 }
+    });
+
+    const decision = makeBotDecision(ctx);
+
+    // Đánh AD để còn 1 lá 3D về bài, không được bỏ lượt
+    expect(decision.type).toBe('PLAY');
+    expect(decision.cards![0].code).toBe('AD');
+  });
 });
+

@@ -114,7 +114,6 @@ describe('Thế Giới Sới Bạc 200 Bot (Living Bot Ecosystem Tests)', () => 
       expect(newBossSmurf.coins).toBe(50000);
       expect(newBossSmurf.useMinimaxEndgame).toBe(true);
       expect(newBossSmurf.useBayesianInference).toBe(true);
-      expect(newBossSmurf.useNashEquilibrium).toBe(true);
       expect(newBossSmurf.title).toBe('Tân Binh Giang Hồ');
       expect(existingNames.has(newBossSmurf.name || '')).toBe(false);
 

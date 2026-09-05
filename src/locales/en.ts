@@ -593,8 +593,6 @@ export const en: LocaleDictionary = {
     minimaxEndgameDesc: 'Solve all terminal endgame branches to secure guaranteed 1st place wins',
     bayesianInference: 'Bayesian Pass Deduction',
     bayesianInferenceDesc: 'Deduce hidden card distributions based on opponent passes',
-    nashEquilibrium: 'Nash Equilibrium Randomized Plays',
-    nashEquilibriumDesc: 'Randomize move selections to avoid predictable play patterns',
     dynamicRepartitioning: 'Dynamic Hand Repartitioning',
     dynamicRepartitioningDesc: 'Flexibly break straights and pairs to escape frozen states'
   },

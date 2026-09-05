@@ -470,19 +470,6 @@ export const MobileCustomGameView: React.FC<MobileCustomGameViewProps> = ({
                     />
                   </label>
 
-                  {/* Unpredictable play */}
-                  <label className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] cursor-pointer hover:border-[var(--border-gold)] transition-colors">
-                    <div>
-                      <div className="text-xs font-bold text-[var(--text-primary)]">{t('customGame.nashEquilibrium')}</div>
-                      <div className="text-[10px] text-[var(--text-muted)]">{t('customGame.nashEquilibriumDesc')}</div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={Boolean(currentConfig.useNashEquilibrium)}
-                      onChange={(e) => handleConfigChange('useNashEquilibrium', e.target.checked)}
-                      className="w-4 h-4 accent-[var(--color-gold)] cursor-pointer"
-                    />
-                  </label>
 
                   {/* Dynamic Repartitioning */}
                   <label className="flex items-center justify-between p-2.5 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] cursor-pointer hover:border-[var(--border-gold)] transition-colors">

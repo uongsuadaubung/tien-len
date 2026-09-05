@@ -243,7 +243,7 @@ export const BOT_LINEUP_PRESETS: BotLineupPreset[] = [
     id: 'GOD_MODE',
     name: 'Siêu Trí Tuệ & Thần Bài (God Mode)',
     icon: '👑',
-    description: 'Alpha Mind, Oracle, Nova (Tier 8-9: Minimax, Bayesian, Nash)',
+    description: 'Alpha Mind, Oracle, Nova (Tier 8-9: Minimax, Bayesian, Card Tracker)',
     botIds: ['BOT_ELO_3200', 'BOT_ELO_2750', 'BOT_ELO_2500']
   }
 ];

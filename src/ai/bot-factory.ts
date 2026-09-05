@@ -1,12 +1,11 @@
 import { getTierFromElo } from "../engine/ecosystem/ecosystem-types";
 import { BotConfig } from "./types";
 
-type BotPersonaRaw = Omit<BotConfig, 'name' | 'avatar' | 'useMinimaxEndgame' | 'useBayesianInference' | 'useNashEquilibrium' | 'useDynamicRepartitioning'> & {
+type BotPersonaRaw = Omit<BotConfig, 'name' | 'avatar' | 'useMinimaxEndgame' | 'useBayesianInference' | 'useDynamicRepartitioning'> & {
   name?: string;
   avatar?: string;
   useMinimaxEndgame?: boolean;
   useBayesianInference?: boolean;
-  useNashEquilibrium?: boolean;
   useDynamicRepartitioning?: boolean;
 };
 
@@ -536,7 +535,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     simulationLookahead: 4,
     mctsSimulations: 50,
     useMinimaxEndgame: true,
-    useNashEquilibrium: true,
     useBayesianInference: true,
     useDynamicRepartitioning: true
   }
@@ -601,7 +599,6 @@ export const BOT_PERSONAS: Record<string, BotConfig> = Object.fromEntries(
       {
         useMinimaxEndgame: false,
         useBayesianInference: false,
-        useNashEquilibrium: false,
         useDynamicRepartitioning: false,
         ...v,
         name: v.name || defaultName,
@@ -708,7 +705,7 @@ export const GLOBAL_NICKNAMES_BY_TIER: Record<number, string[]> = {
   5: ['Elite', 'Mind Reader', 'Predator', 'Pro Ace', 'Vanguard', 'Executioner'],
   6: ['Master', 'Warlock', 'Shadow Master', 'Phantom', 'Nexus', 'Zenith'],
   7: ['Grandmaster', 'Bayesian Mind', 'Oracle', 'Overlord', 'Dominator'],
-  8: ['Mythic Legend', 'Endgame King', 'Nash Master', 'Apex Predator', 'Immortal'],
+  8: ['Mythic Legend', 'Endgame King', 'Master Tactician', 'Apex Predator', 'Immortal'],
   9: ['Supreme AI', 'Alpha Mind', 'Zero Defeat', 'God of Cards', 'Singularity']
 };
 

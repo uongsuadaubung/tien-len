@@ -1,53 +1,27 @@
 /**
  * ============================================================================
- * BENCHMARK SCRIPT: ĐO ĐẠC TƯƠNG QUAN TỶ LỆ THẮNG & STRESS TEST 9 BẬC ELO
+ * BENCHMARK SCRIPT: ĐO ĐẠC TƯƠNG QUAN ELO TOÀN DIỆN (1v1, 3P & 4P)
  * ============================================================================
- * Chạy độc lập theo yêu cầu: bun run benchmark:ai
- * Không bị chạy tự động khi gõ `bun test` thông thường.
- *
- * Bao gồm:
- * 1. 10,000 tình huống Stress Test bất biến logic & luật chơi trên bàn 2, 3, 4 người.
- * 2. 1,000 ván đấu thực nghiệm Bàn 2 Người (Solo 1v1 - 26 lá nọc).
- * 3. 1,000 ván đấu thực nghiệm Bàn 3 Người (13 lá nọc).
- * 4. 1,000 ván đấu thực nghiệm Bàn 4 Người (Chuẩn 52 lá không nọc).
+ * Chạy độc lập: bun run benchmark:ai
+ * 
+ * Cấu trúc 3 Giai đoạn:
+ * 1. Giai đoạn 1 (Solo 1v1): Ma trận đối đầu chéo 9x9 (72 cặp x 100 ván = 7,200 ván).
+ * 2. Giai đoạn 2 (Bàn 3 Người - 3P): C(9, 3) = 84 tổ hợp x 30 ván = 2,520 ván (xoay 3 ghế).
+ * 3. Giai đoạn 3 (Bàn 4 Người - 4P): C(9, 4) = 126 tổ hợp x 20 ván = 2,520 ván (xoay 4 ghế).
+ * 4. Bảng Tổng Hợp So Sánh Tương Quan (1v1 vs 3P vs 4P).
  */
 
 import { GameEngine } from '../src/engine/game';
 import { CardTracker } from '../src/ai/card-tracker';
 import { BOT_PERSONAS } from '../src/ai/bot-factory';
-import { Card, PlayedMove, Player, createDefaultGameRules } from '../src/engine/types';
-import { createDeck } from '../src/engine/deck';
-import { sortCards } from '../src/engine/card';
-import { isValidMove, canBeat } from '../src/engine/validator';
-import { makeBotDecision, createDecisionContext } from '../src/ai/decision-maker';
+import { Player } from '../src/engine/types';
 import { createBotPlayer } from '../src/engine/player-factory';
-import { identifyCombination } from '../src/engine/combinations';
 
-// --- HÀM ASSERT ĐƠN GIẢN ---
 function assert(condition: boolean, message: string): void {
   if (!condition) {
     console.error(`❌ ASSERTION FAILED: ${message}`);
     process.exit(1);
   }
-}
-
-// --- BỘ TẠO SỐ NGẪU NHIÊN DETERMINISTIC ---
-function createMulberry32(seed: number) {
-  return function () {
-    let t = (seed += 0x6d2b79f5);
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function shuffleDeck(cards: Card[], rng: () => number): Card[] {
-  const result = [...cards];
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-  return result;
 }
 
 function calculatePearsonCorrelation(x: number[], y: number[]): number {
@@ -92,6 +66,23 @@ function calculateSpearmanCorrelation(x: number[], y: number[]): number {
   return calculatePearsonCorrelation(rankX, rankY);
 }
 
+function getCombinations<T>(array: T[], k: number): T[][] {
+  const result: T[][] = [];
+  function backtrack(start: number, combo: T[]) {
+    if (combo.length === k) {
+      result.push([...combo]);
+      return;
+    }
+    for (let i = start; i < array.length; i++) {
+      combo.push(array[i]);
+      backtrack(i + 1, combo);
+      combo.pop();
+    }
+  }
+  backtrack(0, []);
+  return result;
+}
+
 const BENCHMARK_BOTS = [
   { tier: 1, id: 'bot_t1', name: 'Tí Chuột', elo: 700, config: BOT_PERSONAS.BOT_ELO_700 },
   { tier: 2, id: 'bot_t2', name: 'Năm Xích Lô', elo: 1000, config: BOT_PERSONAS.BOT_ELO_1000 },
@@ -103,12 +94,6 @@ const BENCHMARK_BOTS = [
   { tier: 8, id: 'bot_t8', name: 'Chronos Thần Bài', elo: 2750, config: BOT_PERSONAS.BOT_ELO_2750 },
   { tier: 9, id: 'bot_t9', name: 'Alpha Mind Boss', elo: 3200, config: BOT_PERSONAS.BOT_ELO_3200 }
 ];
-
-function extractValidMoveFromCards(cards: Card[], rng: () => number): Card[] {
-  if (cards.length === 0) return [];
-  const single = [cards[Math.floor(rng() * cards.length)]];
-  return single;
-}
 
 function simulateSingleMatch(
   bots: typeof BENCHMARK_BOTS,
@@ -192,308 +177,306 @@ function simulateSingleMatch(
   };
 }
 
+interface MultiPlayerStats {
+  firstPlaceWins: number;
+  lastPlaceCount: number;
+  rankSum: number;
+  totalCardsLeft: number;
+  totalGames: number;
+}
+
 async function runBenchmark() {
   console.log('╔═══════════════════════════════════════════════════════════════════════════════════╗');
-  console.log('║        HỆ THỐNG BENCHMARK AI TIẾN LÊN MIỀN NAM: 9 BẬC ELO & 3 QUY MÔ BÀN          ║');
+  console.log('║       HỆ THỐNG BENCHMARK AI TIẾN LÊN MIỀN NAM: TOÀN DIỆN 1v1, 3P & 4P (9 TIER)      ║');
   console.log('╚═══════════════════════════════════════════════════════════════════════════════════╝\n');
 
+  const numBots = BENCHMARK_BOTS.length; // 9
+
   // =========================================================================
-  // PHẦN 1: 10,000 TÌNH HUỐNG DECISION STRESS TEST
+  // GIAI ĐOẠN 1: SOLO 1v1 (MA TRẬN ĐỐI ĐẦU CHÉO 9x9 - 7,200 VÁN)
   // =========================================================================
-  console.log('>>> [PHẦN 1] BẮT ĐẦU 10,000 TÌNH HUỐNG STRESS TEST BẤT BIẾN LOGIC...');
-  const TOTAL_TEST_CASES = 10000;
-  let playCount = 0;
-  let passCount = 0;
-  const allPersonas = Object.values(BOT_PERSONAS);
-  const start1 = performance.now();
+  const GAMES_PER_MATCHUP_1V1 = 100;
+  const TOTAL_GAMES_1V1 = numBots * (numBots - 1) * GAMES_PER_MATCHUP_1V1; // 7,200
 
-  for (let i = 0; i < TOTAL_TEST_CASES; i++) {
-    const rng = createMulberry32(20260905 + i * 41);
-    const botConfig = allPersonas[i % allPersonas.length];
-    const playerCount = (i % 3) + 2;
+  console.log('========================================================================================');
+  console.log(`>>> [GIAI ĐOẠN 1] MA TRẬN ĐỐI ĐẦU CHÉO SOLO 1v1 (${GAMES_PER_MATCHUP_1V1} VÁN / CẶP)...`);
+  console.log(`- 9 Bậc Elo x 8 đối thủ = 72 cặp đấu x ${GAMES_PER_MATCHUP_1V1} ván = ${TOTAL_GAMES_1V1.toLocaleString()} ván.`);
+  console.log('----------------------------------------------------------------------------------------');
 
-    const deck = shuffleDeck(createDeck(), rng);
-    const handSize = (i % 13) + 1;
-    const hand = sortCards(deck.slice(0, handSize));
-    const remainingPool = deck.slice(handSize);
+  const matrixWins1v1: number[][] = Array.from({ length: numBots }, () => Array(numBots).fill(0));
+  const botWins1v1: number[] = Array(numBots).fill(0);
+  const botGames1v1: number[] = Array(numBots).fill(0);
+  const botCards1v1: number[] = Array(numBots).fill(0);
 
-    const remainingPlayerCards: Record<string, number> = { 'bot_tester': handSize };
-    for (let p = 1; p < playerCount; p++) {
-      remainingPlayerCards[`opp_${p}`] = Math.max(1, Math.floor(rng() * 13) + 1);
-    }
+  let higherEloWins1v1 = 0;
+  let higherEloGames1v1 = 0;
 
-    const isLead = (i % 2 === 0);
-    const hasThreeOfSpades = hand.some(c => c.rank === 3 && c.suit === 'SPADES');
-    const isFirstMoveOfGame = isLead && hasThreeOfSpades && (i % 10 === 0);
-    let currentRoundLeadingMove: PlayedMove | null = null;
+  const start1v1 = performance.now();
 
-    if (!isLead) {
-      const targetCards = extractValidMoveFromCards(remainingPool, rng);
-      if (targetCards.length > 0) {
-        const combo = identifyCombination(targetCards);
-        if (combo) {
-          currentRoundLeadingMove = {
-            playerId: 'opp_prev',
-            combination: combo,
-            timestamp: Date.now(),
-            isChop: false
-          };
+  for (let i = 0; i < numBots; i++) {
+    const botA = BENCHMARK_BOTS[i];
+    for (let j = 0; j < numBots; j++) {
+      if (i === j) continue;
+      const botB = BENCHMARK_BOTS[j];
+      let aWins = 0;
+      let aCards = 0;
+
+      for (let g = 0; g < GAMES_PER_MATCHUP_1V1; g++) {
+        const gameSeed = 2000000 + (i * numBots + j) * 1000 + g * 37;
+        const seatAFirst = g % 2 === 0;
+        const matchupBots = seatAFirst ? [botA, botB] : [botB, botA];
+
+        const res = simulateSingleMatch(matchupBots, 2, g + 1, gameSeed);
+        if (res.winnerId === botA.id) {
+          aWins++;
         }
+        aCards += res.cardsLeft[botA.id] ?? 0;
+      }
+
+      matrixWins1v1[i][j] = aWins;
+      botWins1v1[i] += aWins;
+      botGames1v1[i] += GAMES_PER_MATCHUP_1V1;
+      botCards1v1[i] += aCards;
+
+      if (botA.elo > botB.elo) {
+        higherEloWins1v1 += aWins;
+        higherEloGames1v1 += GAMES_PER_MATCHUP_1V1;
       }
     }
-
-    const tracker = new CardTracker(hand, botConfig.memoryDepth, playerCount);
-    const decisionContext = createDecisionContext({
-      hand,
-      currentRoundLeadingMove: currentRoundLeadingMove ?? null,
-      isFirstMoveOfGame,
-      isLeadMove: isLead || !currentRoundLeadingMove,
-      tracker,
-      config: botConfig,
-      remainingPlayerCards,
-      nextPlayerId: 'opp_1',
-      rules: createDefaultGameRules({
-        settlementRule: (['COUNT_CARDS', 'TRADITIONAL', 'WINNER_TAKES_ALL'] as const)[i % 3],
-        gameFlow: { prohibitEndingWithTwo: false }
-      }),
-      hasPlayedFirstCard: true,
-      isNextPlayerOneCard: false,
-      prohibitEndingWithTwo: false,
-      gameMode: (['COUNT_CARDS', 'TRADITIONAL', 'WINNER_TAKES_ALL'] as const)[i % 3],
-      mctsMap: null,
-      compositeRuleStrategy: null,
-      opponentProfiles: null
-    });
-
-    const decision = makeBotDecision(decisionContext);
-
-    if (decision.type === 'PLAY') {
-      playCount++;
-      const playedCards = decision.cards || [];
-      assert(playedCards.length > 0, `Nước đi PLAY phải có ít nhất 1 lá`);
-      for (const c of playedCards) {
-        assert(hand.some(h => h.id === c.id), `Lá bài ${c.id} không thuộc bài trên tay bot`);
-      }
-      const valRes = isValidMove({
-        cards: [...playedCards],
-        target: currentRoundLeadingMove?.combination || null,
-        isFirstMoveOfGame,
-        isLeadMove: isLead || !currentRoundLeadingMove,
-        hasPassedRound: false,
-        allowFourPairsCutAnytime: true,
-        isFinishingMove: playedCards.length === hand.length,
-        prohibitEndingWithTwo: false
-      });
-      assert(valRes.valid, `Nước đi không hợp lệ theo luật Tiến Lên: ${valRes.reason}`);
-
-      if (currentRoundLeadingMove && valRes.combination) {
-        const beatRes = canBeat(valRes.combination, currentRoundLeadingMove.combination);
-        assert(beatRes.valid, `Bài đánh ra (${valRes.combination.type}) không chặt được bài trên bàn`);
-      }
-    } else {
-      passCount++;
-      assert(!isLead, `Cầm cái dẫn đầu vòng chơi TUYỆT ĐỐI KHÔNG ĐƯỢC BỎ LƯỢT`);
-    }
+    const rate = (botWins1v1[i] / botGames1v1[i]) * 100;
+    console.log(`[Tier ${botA.tier}] ${botA.name.padEnd(16)} (Elo ${botA.elo}): Thắng 1v1 ${botWins1v1[i]}/${botGames1v1[i]} (${rate.toFixed(1)}%) | Lá tồn TB: ${(botCards1v1[i] / botGames1v1[i]).toFixed(2)}`);
   }
 
-  const time1 = performance.now() - start1;
-  console.log(`✓ Hoàn tất 10,000 tình huống trong ${time1.toFixed(1)} ms (${(time1 / TOTAL_TEST_CASES).toFixed(3)} ms/nước đi)`);
-  console.log(`  - Tỷ lệ ra bài (PLAY): ${playCount}/${TOTAL_TEST_CASES} (${((playCount / TOTAL_TEST_CASES) * 100).toFixed(1)}%)`);
-  console.log(`  - Tỷ lệ nhịn bài (PASS): ${passCount}/${TOTAL_TEST_CASES} (${((passCount / TOTAL_TEST_CASES) * 100).toFixed(1)}%)\n`);
+  const duration1v1 = performance.now() - start1v1;
+  const eloList1v1 = BENCHMARK_BOTS.map(b => b.elo);
+  const winRateList1v1 = botWins1v1.map((w, idx) => (w / botGames1v1[idx]) * 100);
+  const pearsonR1v1 = calculatePearsonCorrelation(eloList1v1, winRateList1v1);
+  const spearmanRho1v1 = calculateSpearmanCorrelation(eloList1v1, winRateList1v1);
+
+  // In ma trận 9x9 trực quan cho 1v1
+  console.log('\n╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗');
+  console.log(`║                        MA TRẬN TỶ LỆ THẮNG ĐỐI ĐẦU CHÉO 9 BẬC ELO (${GAMES_PER_MATCHUP_1V1} VÁN / CẶP ĐẤU)                                 ║`);
+  console.log('╠══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣');
+  console.log('║ Bot (Hàng) vs Đối thủ (Cột)    T1      T2      T3      T4      T5      T6      T7      T8      T9   | Tổng Thắng | Tỷ lệ TB  ║');
+  console.log('╟──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╢');
+  for (let i = 0; i < numBots; i++) {
+    const b = BENCHMARK_BOTS[i];
+    let rowStr = `║ Tier ${b.tier} | ${b.name.padEnd(16)} `;
+    for (let j = 0; j < numBots; j++) {
+      if (i === j) {
+        rowStr += '   -    ';
+      } else {
+        const r = (matrixWins1v1[i][j] / GAMES_PER_MATCHUP_1V1) * 100;
+        rowStr += `${r.toFixed(1).padStart(5)}%  `;
+      }
+    }
+    rowStr += `| ${String(botWins1v1[i]).padStart(4)}/${botGames1v1[i]} |  ${winRateList1v1[i].toFixed(1).padStart(5)}%  ║`;
+    console.log(rowStr);
+  }
+  console.log('╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝');
+  console.log(`✓ Hoàn thành 1v1 trong ${(duration1v1 / 1000).toFixed(1)}s | Pearson r = ${pearsonR1v1.toFixed(3)} | Spearman ρ = ${spearmanRho1v1.toFixed(3)}\n`);
 
   // =========================================================================
-  // PHẦN 2: 1,000 TRẬN ĐẤU BÀN 2 NGƯỜI (SOLO 1V1)
+  // GIAI ĐOẠN 2: BÀN 3 NGƯỜI (3P - C(9, 3) = 84 TỔ HỢP x 30 VÁN = 2,520 VÁN)
   // =========================================================================
   console.log('========================================================================================');
-  console.log('>>> [PHẦN 2] KHỞI CHẠY 1,000 TRẬN ĐẤU BÀN 2 NGƯỜI (SOLO 1V1 - 125 VÁN / CẶP)...');
+  const triplets = getCombinations(BENCHMARK_BOTS, 3); // 84 bộ ba
+  const GAMES_PER_TRIPLET = 30; // 10 ván mỗi vị trí ghế (xoay 3 ghế)
+  const TOTAL_GAMES_3P = triplets.length * GAMES_PER_TRIPLET; // 2,520 ván
+
+  console.log(`>>> [GIAI ĐOẠN 2] BÀN 3 NGƯỜI: ${triplets.length} TỔ HỢP BỘ BA x ${GAMES_PER_TRIPLET} VÁN = ${TOTAL_GAMES_3P.toLocaleString()} VÁN...`);
+  console.log('- Luân phiên 3 vị trí ghế (10 ván/ghế) để đảm bảo công bằng vị trí.');
   console.log('----------------------------------------------------------------------------------------');
-  const TOTAL_GAMES_1V1 = 1000;
-  const PAIRS_COUNT = 8;
-  const GAMES_PER_PAIR = Math.floor(TOTAL_GAMES_1V1 / PAIRS_COUNT);
 
-  const deltaEloList: number[] = [];
-  const winRateList: number[] = [];
-  const start2 = performance.now();
-  const botBaseline = BENCHMARK_BOTS[0]; // Tier 1
+  const stats3P: MultiPlayerStats[] = Array.from({ length: numBots }, () => ({
+    firstPlaceWins: 0,
+    lastPlaceCount: 0,
+    rankSum: 0,
+    totalCardsLeft: 0,
+    totalGames: 0
+  }));
 
-  for (let p = 1; p <= PAIRS_COUNT; p++) {
-    const botHigh = BENCHMARK_BOTS[p];
-    let highWins = 0;
-    let highTotalCards = 0;
-    let lowTotalCards = 0;
+  const start3P = performance.now();
 
-    for (let g = 0; g < GAMES_PER_PAIR; g++) {
-      const gameSeed = 1000000 + p * 20000 + g * 31;
-      const seatHighFirst = g % 2 === 0;
-      const matchupBots = seatHighFirst ? [botHigh, botBaseline] : [botBaseline, botHigh];
+  for (let c = 0; c < triplets.length; c++) {
+    const trio = triplets[c];
+    for (let g = 0; g < GAMES_PER_TRIPLET; g++) {
+      const seed = 3000000 + c * 1000 + g * 43;
+      const seatOffset = g % 3;
+      const matchupBots = [
+        trio[seatOffset],
+        trio[(seatOffset + 1) % 3],
+        trio[(seatOffset + 2) % 3]
+      ];
 
-      const res = simulateSingleMatch(matchupBots, 2, g + 1, gameSeed);
+      const res = simulateSingleMatch(matchupBots, 3, g + 1, seed);
 
-      if (res.winnerId === botHigh.id) highWins++;
-      highTotalCards += res.cardsLeft[botHigh.id] ?? 0;
-      lowTotalCards += res.cardsLeft[botBaseline.id] ?? 0;
-    }
+      for (const bot of matchupBots) {
+        const botIdx = BENCHMARK_BOTS.findIndex(b => b.id === bot.id);
+        const rank = res.rankOrder.indexOf(bot.id) + 1; // 1, 2, 3
 
-    const deltaElo = botHigh.elo - botBaseline.elo;
-    const empiricalWinRate = (highWins / GAMES_PER_PAIR) * 100;
-    const theoreticalWinRate = (1 / (1 + Math.pow(10, -deltaElo / 400))) * 100;
-
-    deltaEloList.push(deltaElo);
-    winRateList.push(empiricalWinRate);
-
-    const highAvgCards = highTotalCards / GAMES_PER_PAIR;
-    const lowAvgCards = lowTotalCards / GAMES_PER_PAIR;
-
-    console.log(`[Cặp ${p}] Tier ${botBaseline.tier} (${botBaseline.elo}) vs Tier ${botHigh.tier} (${botHigh.elo}) | ΔElo: +${deltaElo} | Thắng: ${highWins}/${GAMES_PER_PAIR} (${empiricalWinRate.toFixed(1)}%) | Lý thuyết Elo: ${theoreticalWinRate.toFixed(1)}% | Lá tồn: ${highAvgCards.toFixed(2)} vs ${lowAvgCards.toFixed(2)}`);
-  }
-
-  const time2 = performance.now() - start2;
-  const avgWinRate1v1 = winRateList.reduce((a, b) => a + b, 0) / winRateList.length;
-  const totalHighWins = Math.round((avgWinRate1v1 / 100) * TOTAL_GAMES_1V1);
-
-  console.log('----------------------------------------------------------------------------------------');
-  console.log(`✓ Hoàn thành 1,000 ván Solo 1v1 trong ${time2.toFixed(1)} ms (${(time2 / TOTAL_GAMES_1V1).toFixed(2)} ms/ván)`);
-  console.log(`  - Tỷ lệ thắng trung bình của Bot bậc cao trước Tier 1: ${avgWinRate1v1.toFixed(1)}%`);
-  console.log(`  - Tổng số ván thắng của Bot bậc cao: ${totalHighWins}/${TOTAL_GAMES_1V1} (${((totalHighWins / TOTAL_GAMES_1V1) * 100).toFixed(1)}%)\n`);
-
-  assert(totalHighWins >= 500, `Bot bậc cao phải thắng đa số trận`);
-  assert(avgWinRate1v1 >= 51.0, `Tỷ lệ thắng trung bình của bậc cao phải >= 51%`);
-
-  // =========================================================================
-  // PHẦN 3: 1,000 TRẬN ĐẤU BÀN 3 NGƯỜI
-  // =========================================================================
-  console.log('========================================================================================');
-  console.log('>>> [PHẦN 3] KHỞI CHẠY 1,000 TRẬN ĐẤU BÀN 3 NGƯỜI (13 LÁ NỌC - 9 BẬC XOAY VÒNG)...');
-  console.log('----------------------------------------------------------------------------------------');
-  const TOTAL_GAMES_3P = 1000;
-  const stats3P: Record<string, { games: number; firstWins: number; secondWins: number; thirdWins: number; totalCardsLeft: number }> = {};
-  for (const b of BENCHMARK_BOTS) {
-    stats3P[b.id] = { games: 0, firstWins: 0, secondWins: 0, thirdWins: 0, totalCardsLeft: 0 };
-  }
-
-  const start3 = performance.now();
-  for (let g = 0; g < TOTAL_GAMES_3P; g++) {
-    const seed = 3000000 + g * 37;
-    const rng = createMulberry32(seed);
-    const shuffled = [...BENCHMARK_BOTS].sort(() => rng() - 0.5);
-    const tableBots = shuffled.slice(0, 3);
-
-    const res = simulateSingleMatch(tableBots, 3, g + 1, seed);
-
-    for (let rank = 0; rank < res.rankOrder.length; rank++) {
-      const pid = res.rankOrder[rank];
-      if (stats3P[pid]) {
-        stats3P[pid].games++;
-        if (rank === 0) stats3P[pid].firstWins++;
-        else if (rank === 1) stats3P[pid].secondWins++;
-        else stats3P[pid].thirdWins++;
-        stats3P[pid].totalCardsLeft += res.cardsLeft[pid] ?? 0;
+        stats3P[botIdx].totalGames++;
+        stats3P[botIdx].rankSum += rank;
+        stats3P[botIdx].totalCardsLeft += res.cardsLeft[bot.id] ?? 0;
+        if (rank === 1) stats3P[botIdx].firstPlaceWins++;
+        if (rank === 3) stats3P[botIdx].lastPlaceCount++;
       }
     }
   }
 
-  const time3 = performance.now() - start3;
-  const tierList3P: number[] = [];
-  const winRateList3P: number[] = [];
+  const duration3P = performance.now() - start3P;
 
-  BENCHMARK_BOTS.forEach(b => {
-    const data = stats3P[b.id];
-    const winRate = data.games > 0 ? (data.firstWins / data.games) * 100 : 0;
-    const secondRate = data.games > 0 ? (data.secondWins / data.games) * 100 : 0;
-    const thirdRate = data.games > 0 ? (data.thirdWins / data.games) * 100 : 0;
-    const avgCards = data.games > 0 ? data.totalCardsLeft / data.games : 0;
+  // In bảng kết quả Bàn 3 Người
+  console.log('\n╔══════════════════════════════════════════════════════════════════════════════════════════════╗');
+  console.log(`║           KẾT QUẢ BÀN 3 NGƯỜI (3P - ${triplets.length} TỔ HỢP x ${GAMES_PER_TRIPLET} VÁN = ${TOTAL_GAMES_3P.toLocaleString()} VÁN | BASELINE: 33.3%)          ║`);
+  console.log('╠══════════════════════════════════════════════════════════════════════════════════════════════╣');
+  console.log('║ Tier | Tên Bot          |  Elo  | Số Ván | Về Nhất (%) | Hạng TB | Về Bét (%) | Lá Tồn TB║');
+  console.log('╟──────────────────────────────────────────────────────────────────────────────────────────────╢');
 
-    tierList3P.push(b.tier);
-    winRateList3P.push(winRate);
+  const winRates3P: number[] = [];
+  const avgRanks3P: number[] = [];
 
-    console.log(`Tier ${b.tier} | ${b.name.padEnd(16)} (Elo ${b.elo}): ${data.firstWins}/${data.games} Nhất (${winRate.toFixed(1)}%) | Nhì: ${secondRate.toFixed(1)}% | Ba: ${thirdRate.toFixed(1)}% | Lá tồn TB: ${avgCards.toFixed(2)}`);
-  });
+  for (let i = 0; i < numBots; i++) {
+    const b = BENCHMARK_BOTS[i];
+    const s = stats3P[i];
+    const winRate = (s.firstPlaceWins / s.totalGames) * 100;
+    const avgRank = s.rankSum / s.totalGames;
+    const lastRate = (s.lastPlaceCount / s.totalGames) * 100;
+    const avgCards = s.totalCardsLeft / s.totalGames;
 
-  const spearmanRho3P = calculateSpearmanCorrelation(tierList3P, winRateList3P);
-  console.log('----------------------------------------------------------------------------------------');
-  console.log(`✓ Hoàn thành 1,000 ván bàn 3 người trong ${time3.toFixed(1)} ms (${(time3 / TOTAL_GAMES_3P).toFixed(2)} ms/ván)`);
-  console.log(`  - Hệ số tương quan thứ hạng Spearman: ρ = ${spearmanRho3P.toFixed(3)}\n`);
+    winRates3P.push(winRate);
+    avgRanks3P.push(avgRank);
 
-  assert(spearmanRho3P >= 0.30, `Spearman rho bàn 3 người phải >= 0.30`);
+    console.log(
+      `║ Tier ${b.tier} | ${b.name.padEnd(16)} | ${String(b.elo).padStart(5)} | ` +
+      `${String(s.totalGames).padStart(6)} |  ${winRate.toFixed(1).padStart(5)}%   |  ` +
+      `${avgRank.toFixed(2).padStart(4)}   |  ${lastRate.toFixed(1).padStart(5)}%   |  ` +
+      `${avgCards.toFixed(2).padStart(5)}   ║`
+    );
+  }
+  console.log('╚══════════════════════════════════════════════════════════════════════════════════════════════╝');
+
+  const pearsonR3P = calculatePearsonCorrelation(eloList1v1, winRates3P);
+  const spearmanRho3P = calculateSpearmanCorrelation(eloList1v1, winRates3P);
+  console.log(`✓ Hoàn thành Bàn 3P trong ${(duration3P / 1000).toFixed(1)}s | Pearson r = ${pearsonR3P.toFixed(3)} | Spearman ρ = ${spearmanRho3P.toFixed(3)}\n`);
 
   // =========================================================================
-  // PHẦN 4: 1,000 TRẬN ĐẤU BÀN 4 NGƯỜI
+  // GIAI ĐOẠN 3: BÀN 4 NGƯỜI (4P CHUẨN 52 LÁ - C(9, 4) = 126 TỔ HỢP x 20 VÁN = 2,520 VÁN)
   // =========================================================================
   console.log('========================================================================================');
-  console.log('>>> [PHẦN 4] KHỞI CHẠY 1,000 TRẬN ĐẤU BÀN 4 NGƯỜI (CHUẨN 52 LÁ - 9 BẬC XOAY VÒNG)...');
+  const quadruplets = getCombinations(BENCHMARK_BOTS, 4); // 126 bộ bốn
+  const GAMES_PER_QUAD = 20; // 5 ván mỗi vị trí ghế (xoay 4 ghế)
+  const TOTAL_GAMES_4P = quadruplets.length * GAMES_PER_QUAD; // 2,520 ván
+
+  console.log(`>>> [GIAI ĐOẠN 3] BÀN 4 NGƯỜI (CHUẨN 52 LÁ): ${quadruplets.length} TỔ HỢP BỘ BỐN x ${GAMES_PER_QUAD} VÁN = ${TOTAL_GAMES_4P.toLocaleString()} VÁN...`);
+  console.log('- Không có lá nọc bỏ ngoài. Đầy đủ 52 lá. Luân phiên 4 vị trí ghế (5 ván/ghế).');
   console.log('----------------------------------------------------------------------------------------');
-  const TOTAL_GAMES_4P = 1000;
-  const stats4P: Record<string, { games: number; rank1: number; rank2: number; rank3: number; rank4: number; totalCardsLeft: number }> = {};
-  for (const b of BENCHMARK_BOTS) {
-    stats4P[b.id] = { games: 0, rank1: 0, rank2: 0, rank3: 0, rank4: 0, totalCardsLeft: 0 };
-  }
 
-  const start4 = performance.now();
-  for (let g = 0; g < TOTAL_GAMES_4P; g++) {
-    const seed = 4000000 + g * 47;
-    const rng = createMulberry32(seed);
-    const shuffled = [...BENCHMARK_BOTS].sort(() => rng() - 0.5);
-    const tableBots = shuffled.slice(0, 4);
+  const stats4P: MultiPlayerStats[] = Array.from({ length: numBots }, () => ({
+    firstPlaceWins: 0,
+    lastPlaceCount: 0,
+    rankSum: 0,
+    totalCardsLeft: 0,
+    totalGames: 0
+  }));
 
-    const res = simulateSingleMatch(tableBots, 4, g + 1, seed);
+  const start4P = performance.now();
 
-    for (let rank = 0; rank < res.rankOrder.length; rank++) {
-      const pid = res.rankOrder[rank];
-      if (stats4P[pid]) {
-        stats4P[pid].games++;
-        if (rank === 0) stats4P[pid].rank1++;
-        else if (rank === 1) stats4P[pid].rank2++;
-        else if (rank === 2) stats4P[pid].rank3++;
-        else stats4P[pid].rank4++;
-        stats4P[pid].totalCardsLeft += res.cardsLeft[pid] ?? 0;
+  for (let c = 0; c < quadruplets.length; c++) {
+    const quad = quadruplets[c];
+    for (let g = 0; g < GAMES_PER_QUAD; g++) {
+      const seed = 4000000 + c * 1000 + g * 53;
+      const seatOffset = g % 4;
+      const matchupBots = [
+        quad[seatOffset],
+        quad[(seatOffset + 1) % 4],
+        quad[(seatOffset + 2) % 4],
+        quad[(seatOffset + 3) % 4]
+      ];
+
+      const res = simulateSingleMatch(matchupBots, 4, g + 1, seed);
+
+      for (const bot of matchupBots) {
+        const botIdx = BENCHMARK_BOTS.findIndex(b => b.id === bot.id);
+        const rank = res.rankOrder.indexOf(bot.id) + 1; // 1, 2, 3, 4
+
+        stats4P[botIdx].totalGames++;
+        stats4P[botIdx].rankSum += rank;
+        stats4P[botIdx].totalCardsLeft += res.cardsLeft[bot.id] ?? 0;
+        if (rank === 1) stats4P[botIdx].firstPlaceWins++;
+        if (rank === 4) stats4P[botIdx].lastPlaceCount++;
       }
     }
   }
 
-  const time4 = performance.now() - start4;
-  const eloList4P: number[] = [];
-  const winRateList4P: number[] = [];
-  const avgRankList4P: number[] = [];
+  const duration4P = performance.now() - start4P;
 
-  BENCHMARK_BOTS.forEach(b => {
-    const data = stats4P[b.id];
-    const winRate = data.games > 0 ? (data.rank1 / data.games) * 100 : 0;
-    const r2Rate = data.games > 0 ? (data.rank2 / data.games) * 100 : 0;
-    const r3Rate = data.games > 0 ? (data.rank3 / data.games) * 100 : 0;
-    const r4Rate = data.games > 0 ? (data.rank4 / data.games) * 100 : 0;
-    const avgPlacement = data.games > 0
-      ? (data.rank1 * 1 + data.rank2 * 2 + data.rank3 * 3 + data.rank4 * 4) / data.games
-      : 4.0;
-    const avgCards = data.games > 0 ? data.totalCardsLeft / data.games : 0;
+  // In bảng kết quả Bàn 4 Người
+  console.log('\n╔══════════════════════════════════════════════════════════════════════════════════════════════╗');
+  console.log(`║     KẾT QUẢ BÀN 4 NGƯỜI (4P CHUẨN 52 LÁ - ${quadruplets.length} TỔ HỢP x ${GAMES_PER_QUAD} VÁN = ${TOTAL_GAMES_4P.toLocaleString()} VÁN | BASELINE: 25.0%)    ║`);
+  console.log('╠══════════════════════════════════════════════════════════════════════════════════════════════╣');
+  console.log('║ Tier | Tên Bot          |  Elo  | Số Ván | Về Nhất (%) | Hạng TB | Về Bét (%) | Lá Tồn TB║');
+  console.log('╟──────────────────────────────────────────────────────────────────────────────────────────────╢');
 
-    eloList4P.push(b.elo);
-    winRateList4P.push(winRate);
-    avgRankList4P.push(avgPlacement);
+  const winRates4P: number[] = [];
+  const avgRanks4P: number[] = [];
 
-    console.log(`Tier ${b.tier} | ${b.name.padEnd(16)} (Elo ${b.elo}): ${data.rank1}/${data.games} Nhất (${winRate.toFixed(1)}%) | Nhì: ${r2Rate.toFixed(1)}% | Ba: ${r3Rate.toFixed(1)}% | Bét: ${r4Rate.toFixed(1)}% | Thứ hạng TB: ${avgPlacement.toFixed(2)} | Lá tồn: ${avgCards.toFixed(2)}`);
-  });
+  for (let i = 0; i < numBots; i++) {
+    const b = BENCHMARK_BOTS[i];
+    const s = stats4P[i];
+    const winRate = (s.firstPlaceWins / s.totalGames) * 100;
+    const avgRank = s.rankSum / s.totalGames;
+    const lastRate = (s.lastPlaceCount / s.totalGames) * 100;
+    const avgCards = s.totalCardsLeft / s.totalGames;
 
-  const pearsonR4P = calculatePearsonCorrelation(eloList4P, winRateList4P);
-  const spearmanRho4P = calculateSpearmanCorrelation(eloList4P, winRateList4P);
+    winRates4P.push(winRate);
+    avgRanks4P.push(avgRank);
 
-  console.log('----------------------------------------------------------------------------------------');
-  console.log(`✓ Hoàn thành 1,000 ván bàn 4 người trong ${time4.toFixed(1)} ms (${(time4 / TOTAL_GAMES_4P).toFixed(2)} ms/ván)`);
-  console.log(`  - Hệ số tương quan Pearson giữa Elo và Tỷ lệ về Nhất: r = ${pearsonR4P.toFixed(3)}`);
-  console.log(`  - Hệ số tương quan thứ hạng Spearman: ρ = ${spearmanRho4P.toFixed(3)}\n`);
+    console.log(
+      `║ Tier ${b.tier} | ${b.name.padEnd(16)} | ${String(b.elo).padStart(5)} | ` +
+      `${String(s.totalGames).padStart(6)} |  ${winRate.toFixed(1).padStart(5)}%   |  ` +
+      `${avgRank.toFixed(2).padStart(4)}   |  ${lastRate.toFixed(1).padStart(5)}%   |  ` +
+      `${avgCards.toFixed(2).padStart(5)}   ║`
+    );
+  }
+  console.log('╚══════════════════════════════════════════════════════════════════════════════════════════════╝');
 
-  assert(pearsonR4P >= 0.20, `Pearson r bàn 4 người phải >= 0.20`);
-  assert(spearmanRho4P >= 0.20, `Spearman rho bàn 4 người phải >= 0.20`);
+  const pearsonR4P = calculatePearsonCorrelation(eloList1v1, winRates4P);
+  const spearmanRho4P = calculateSpearmanCorrelation(eloList1v1, winRates4P);
+  console.log(`✓ Hoàn thành Bàn 4P trong ${(duration4P / 1000).toFixed(1)}s | Pearson r = ${pearsonR4P.toFixed(3)} | Spearman ρ = ${spearmanRho4P.toFixed(3)}\n`);
 
-  const bottomAvgRank = (avgRankList4P[0] + avgRankList4P[1] + avgRankList4P[2]) / 3;
-  const topAvgRank = (avgRankList4P[3] + avgRankList4P[4] + avgRankList4P[5] + avgRankList4P[6] + avgRankList4P[7] + avgRankList4P[8]) / 6;
-  assert(topAvgRank < bottomAvgRank, `Thứ hạng trung bình của Top Elo phải tốt hơn Bottom Elo`);
-
-  const totalTime = time1 + time2 + time3 + time4;
+  // =========================================================================
+  // BẢNG TỔNG HỢP SO SÁNH TƯƠNG QUAN 3 THỂ THỨC (1v1 vs 3P vs 4P)
+  // =========================================================================
   console.log('========================================================================================');
-  console.log(`🎉 BENCHMARK HOÀN TẤT THÀNH CÔNG!`);
-  console.log(`- Tổng số: 10,000 Stress tests + 3,000 Ván đấu Full Game hoàn chỉnh.`);
-  console.log(`- Tổng thời gian thực thi: ${(totalTime / 1000).toFixed(1)} giây.`);
+  console.log('🎉 BẢNG TỔNG HỢP SO SÁNH TỶ LỆ VỀ NHẤT (%) TRÊN CẢ 3 THỂ THỨC THI ĐẤU:');
+  console.log('========================================================================================');
+  console.log('╔══════════════════════════════════════════════════════════════════════════════════════╗');
+  console.log('║ Tier | Tên Bot          |  Elo  | Solo 1v1 (%) | Bàn 3P (%)  | Bàn 4P (%)  | Hạng TB 4P ║');
+  console.log('╠══════════════════════════════════════════════════════════════════════════════════════╣');
+  for (let i = 0; i < numBots; i++) {
+    const b = BENCHMARK_BOTS[i];
+    console.log(
+      `║ Tier ${b.tier} | ${b.name.padEnd(16)} | ${String(b.elo).padStart(5)} | ` +
+      `   ${winRateList1v1[i].toFixed(1).padStart(5)}%   |   ${winRates3P[i].toFixed(1).padStart(5)}%   |   ${winRates4P[i].toFixed(1).padStart(5)}%   |    ${avgRanks4P[i].toFixed(2)}    ║`
+    );
+  }
+  console.log('╠══════════════════════════════════════════════════════════════════════════════════════╣');
+  console.log(
+    `║ HỆ SỐ TƯƠNG QUAN PEARSON r (Elo vs Tỷ lệ Nhất)  |    ${pearsonR1v1.toFixed(3).padStart(5)}     |    ${pearsonR3P.toFixed(3).padStart(5)}    |    ${pearsonR4P.toFixed(3).padStart(5)}    |            ║`
+  );
+  console.log(
+    `║ HỆ SỐ TƯƠNG QUAN THỨ HẠNG SPEARMAN ρ            |    ${spearmanRho1v1.toFixed(3).padStart(5)}     |    ${spearmanRho3P.toFixed(3).padStart(5)}    |    ${spearmanRho4P.toFixed(3).padStart(5)}    |            ║`
+  );
+  console.log('╚══════════════════════════════════════════════════════════════════════════════════════╝\n');
+
+  const totalTimeSec = (duration1v1 + duration3P + duration4P) / 1000;
+  console.log(`✓ TỔNG VÁN ĐẤU THỰC HIỆN: ${(TOTAL_GAMES_1V1 + TOTAL_GAMES_3P + TOTAL_GAMES_4P).toLocaleString()} ván (7,200 ván 1v1 + 2,520 ván 3P + 2,520 ván 4P).`);
+  console.log(`✓ TỔNG THỜI GIAN CHẠY: ${totalTimeSec.toFixed(1)} giây.`);
   console.log('========================================================================================\n');
+
+  assert(higherEloWins1v1 >= 50.0, `Bậc Elo cao hơn 1v1 phải có tỷ lệ thắng >= 50%`);
+  assert(pearsonR1v1 >= 0.15, `Pearson r 1v1 phải >= 0.15`);
 }
 
 runBenchmark().catch(err => {

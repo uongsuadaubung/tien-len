@@ -146,7 +146,7 @@ export function useCustomGame({
   const handleApplyGodModeAll = useCallback(() => {
     setBotPersonaIds(['BOT_ELO_3200', 'BOT_ELO_2750', 'BOT_ELO_2500']);
     setCustomBotConfigs([
-      { mctsSimulations: 50, memoryDepth: 1.0, tempoControl: 1.0, damageControl: 1.0, antiLeaderAggression: 1.0, baitingTendency: 1.0, useMinimaxEndgame: true, useBayesianInference: true, useNashEquilibrium: true },
+      { mctsSimulations: 50, memoryDepth: 1.0, tempoControl: 1.0, damageControl: 1.0, antiLeaderAggression: 1.0, baitingTendency: 1.0, useMinimaxEndgame: true, useBayesianInference: true },
       { mctsSimulations: 30, memoryDepth: 1.0, tempoControl: 1.0, damageControl: 1.0, antiLeaderAggression: 1.0, baitingTendency: 0.95, useMinimaxEndgame: true, useBayesianInference: true },
       { mctsSimulations: 20, memoryDepth: 1.0, tempoControl: 0.98, damageControl: 0.98, antiLeaderAggression: 1.0, baitingTendency: 0.90, useMinimaxEndgame: true }
     ]);

@@ -88,8 +88,7 @@ export function simulateSingleTableMatch(
       ...bot,
       mctsSimulations: 0,
       useMinimaxEndgame: false,
-      useBayesianInference: false,
-      useNashEquilibrium: false
+      useBayesianInference: false
     };
     const result = engine.executeBotTurn(fastBotConfig, tracker);
     if (result.isGameOver || engine.isGameOver) {
