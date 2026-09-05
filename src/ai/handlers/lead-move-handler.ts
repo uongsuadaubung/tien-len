@@ -34,6 +34,11 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
     const handStrength = evaluateHandStrength(hand, partition);
     const isEmergencyAntiLeader = Object.values(remainingPlayerCards).some(c => c === 1);
     const isNextPlayerOneCard = context.isNextPlayerOneCard ?? (remainingPlayerCards[nextPlayerId] === 1);
+    const totalActive = Object.values(remainingPlayerCards).filter(cnt => cnt > 0).length;
+    const hasExplicitSelf = config.id && Object.prototype.hasOwnProperty.call(remainingPlayerCards, config.id);
+    const activeOpponentsCount = hasExplicitSelf
+      ? Object.entries(remainingPlayerCards).filter(([id, cnt]) => id !== config.id && cnt > 0).length
+      : Math.max(1, totalActive - 1);
 
     const nonTwoTrash = partition.trashCards.filter(c => !isTwo(c));
     const regularNonTwoCombos = partition.combinations.filter(
@@ -226,26 +231,52 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
       });
 
       const longestCombo = sortedCombos[0];
-      const move = validMoves.find(
-        m =>
-          m.combination.type === longestCombo.type &&
-          m.cards.length === longestCombo.cards.length &&
-          m.combination.highestCard.id === longestCombo.highestCard.id
-      );
-      if (move) {
-        const reason = isEmergencyAntiLeader
-          ? `Có người báo 1 lá: Đánh bộ (${longestCombo.type} ${longestCombo.cards.length} lá) để khóa đối thủ không cho về bài`
-          : `Chiến thuật Rule-Driven: Xả tổ hợp dài nhất (${longestCombo.type} ${longestCombo.cards.length} lá) trước để giảm số lá tồn`;
-        const strategyUsed = isEmergencyAntiLeader
-          ? 'COMBO_LOCK_ONE_CARD_OPPONENT'
-          : 'RULE_DRIVEN_LONGEST_COMBO';
 
-        return buildBotDecision('PLAY', {
-          cards: move.cards,
-          combination: move.combination,
-          reason,
-          strategyUsed
-        });
+      // ĐIỀU KIỆN AN TOÀN KHI XẢ COMBO DÀI (TRÁNH XẢ ĐÔI TO KHI CÒN RÁC NHỎ):
+      // 1. Khi có người 1 lá (isEmergencyAntiLeader): Đánh bất kỳ bộ nào (đôi/sám/sảnh) để khóa họ.
+      // 2. Khi áp dụng preferLongestComboFirst trong Đếm Lá:
+      //    - Nếu combo dài >= 3 lá (Sảnh 3-6 lá, Sám 3 lá): Luôn xả trước!
+      //    - Nếu combo dài nhất chỉ là ĐÔI (cards.length === 2):
+      //      + Sạch rác (nonTwoTrash.length === 0): Được xả đôi để dứt điểm.
+      //      + Còn rác lẻ (nonTwoTrash.length > 0):
+      //        * Nếu là Đôi To (rank >= 12: Q, K, A) và (nonTwoTrash.length >= 2 || activeOpponentsCount === 1):
+      //          TUYỆT ĐỐI KHÔNG XẢ TRƯỚC! Nhường quyền cho khối 4B tẩu rác nhỏ trước để giữ đôi to làm bệ phóng cướp cái ở cờ tàn.
+      let canLeadCombo = true;
+      if (!isEmergencyAntiLeader && leadPolicy.preferLongestComboFirst) {
+        if (longestCombo.cards.length < 3) {
+          if (nonTwoTrash.length > 0) {
+            const isHighPair = longestCombo.highestCard.rank >= 12;
+            const isSolo = activeOpponentsCount === 1;
+            const hasMultipleTrash = nonTwoTrash.length >= 2;
+            if (isHighPair && (hasMultipleTrash || isSolo)) {
+              canLeadCombo = false;
+            }
+          }
+        }
+      }
+
+      if (canLeadCombo) {
+        const move = validMoves.find(
+          m =>
+            m.combination.type === longestCombo.type &&
+            m.cards.length === longestCombo.cards.length &&
+            m.combination.highestCard.id === longestCombo.highestCard.id
+        );
+        if (move) {
+          const reason = isEmergencyAntiLeader
+            ? `Có người báo 1 lá: Đánh bộ (${longestCombo.type} ${longestCombo.cards.length} lá) để khóa đối thủ không cho về bài`
+            : `Chiến thuật Rule-Driven: Xả tổ hợp dài nhất (${longestCombo.type} ${longestCombo.cards.length} lá) trước để giảm số lá tồn`;
+          const strategyUsed = isEmergencyAntiLeader
+            ? 'COMBO_LOCK_ONE_CARD_OPPONENT'
+            : 'RULE_DRIVEN_LONGEST_COMBO';
+
+          return buildBotDecision('PLAY', {
+            cards: move.cards,
+            combination: move.combination,
+            reason,
+            strategyUsed
+          });
+        }
       }
     }
 

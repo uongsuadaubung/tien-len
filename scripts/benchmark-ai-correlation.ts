@@ -12,13 +12,16 @@
  * 4. 1,000 ván đấu thực nghiệm Bàn 4 Người (Chuẩn 52 lá không nọc).
  */
 
-import { GameEngine } from '../src/engine/game-engine';
+import { GameEngine } from '../src/engine/game';
 import { CardTracker } from '../src/ai/card-tracker';
-import { BOT_PERSONAS } from '../src/ai/bot-personas';
-import { Card, PlayedMove, Player } from '../src/types/game';
-import { createDeck, sortCards, isValidMove } from '../src/utils/card-utils';
-import { makeBotDecision } from '../src/ai/decision-maker';
-import { PerformanceTimer } from '../src/utils/performance-timer';
+import { BOT_PERSONAS } from '../src/ai/bot-factory';
+import { Card, PlayedMove, Player, createDefaultGameRules } from '../src/engine/types';
+import { createDeck } from '../src/engine/deck';
+import { sortCards } from '../src/engine/card';
+import { isValidMove, canBeat } from '../src/engine/validator';
+import { makeBotDecision, createDecisionContext } from '../src/ai/decision-maker';
+import { createBotPlayer } from '../src/engine/player-factory';
+import { identifyCombination } from '../src/engine/combinations';
 
 // --- HÀM ASSERT ĐƠN GIẢN ---
 function assert(condition: boolean, message: string): void {
@@ -90,15 +93,15 @@ function calculateSpearmanCorrelation(x: number[], y: number[]): number {
 }
 
 const BENCHMARK_BOTS = [
-  { tier: 1, id: 'bot_t1', name: 'Tí Chuột', elo: 700, config: BOT_PERSONAS.TIER1_ROOKIE },
-  { tier: 2, id: 'bot_t2', name: 'Năm Xích Lô', elo: 1000, config: BOT_PERSONAS.TIER2_AMATEUR },
-  { tier: 3, id: 'bot_t3', name: 'Zane Bạc', elo: 1350, config: BOT_PERSONAS.TIER3_CASUAL },
-  { tier: 4, id: 'bot_t4', name: 'Bác Sáu Vàng', elo: 1600, config: BOT_PERSONAS.TIER4_TACTICIAN },
-  { tier: 5, id: 'bot_t5', name: 'Đại Gia Long', elo: 1850, config: BOT_PERSONAS.TIER5_STRATEGIST },
-  { tier: 6, id: 'bot_t6', name: 'Bạch Hổ KC', elo: 2050, config: BOT_PERSONAS.TIER6_MASTER },
-  { tier: 7, id: 'bot_t7', name: 'Alpha-TL Master', elo: 2500, config: BOT_PERSONAS.TIER7_GRANDMASTER },
-  { tier: 8, id: 'bot_t8', name: 'Chronos Thần Bài', elo: 2750, config: BOT_PERSONAS.TIER8_CHAMPION },
-  { tier: 9, id: 'bot_t9', name: 'Alpha Mind Boss', elo: 3200, config: BOT_PERSONAS.TIER9_LEGEND }
+  { tier: 1, id: 'bot_t1', name: 'Tí Chuột', elo: 700, config: BOT_PERSONAS.BOT_ELO_700 },
+  { tier: 2, id: 'bot_t2', name: 'Năm Xích Lô', elo: 1000, config: BOT_PERSONAS.BOT_ELO_1000 },
+  { tier: 3, id: 'bot_t3', name: 'Zane Bạc', elo: 1350, config: BOT_PERSONAS.BOT_ELO_1350 },
+  { tier: 4, id: 'bot_t4', name: 'Bác Sáu Vàng', elo: 1600, config: BOT_PERSONAS.BOT_ELO_1600 },
+  { tier: 5, id: 'bot_t5', name: 'Đại Gia Long', elo: 1850, config: BOT_PERSONAS.BOT_ELO_1850 },
+  { tier: 6, id: 'bot_t6', name: 'Bạch Hổ KC', elo: 2050, config: BOT_PERSONAS.BOT_ELO_2050 },
+  { tier: 7, id: 'bot_t7', name: 'Alpha-TL Master', elo: 2500, config: BOT_PERSONAS.BOT_ELO_2500 },
+  { tier: 8, id: 'bot_t8', name: 'Chronos Thần Bài', elo: 2750, config: BOT_PERSONAS.BOT_ELO_2750 },
+  { tier: 9, id: 'bot_t9', name: 'Alpha Mind Boss', elo: 3200, config: BOT_PERSONAS.BOT_ELO_3200 }
 ];
 
 function extractValidMoveFromCards(cards: Card[], rng: () => number): Card[] {
@@ -109,7 +112,7 @@ function extractValidMoveFromCards(cards: Card[], rng: () => number): Card[] {
 
 function simulateSingleMatch(
   bots: typeof BENCHMARK_BOTS,
-  playerCount: number,
+  playerCount: 2 | 3 | 4,
   gameNumber: number,
   seed: number
 ): {
@@ -117,17 +120,12 @@ function simulateSingleMatch(
   rankOrder: string[];
   cardsLeft: Record<string, number>;
 } {
-  const players: Player[] = bots.map((b) => ({
-    id: b.id,
-    name: b.name,
-    isBot: true,
-    hand: [],
-    status: 'ACTIVE',
-    consecutivePasses: 0
+  const players: Player[] = bots.map((b) => createBotPlayer(b.id, b.config.id, {
+    name: b.name
   }));
 
-  const game = new GameEngine(players, { mode: 'COUNT_CARDS', betAmount: 100 });
-  const initRes = game.startNewGame(gameNumber, undefined, seed);
+  const game = new GameEngine(players, { mode: 'COUNT_CARDS', betAmount: 100, playerCount });
+  const initRes = game.startNewGame(gameNumber, null, seed);
 
   if (initRes.instantWin && initRes.instantWinner) {
     const cardsLeft: Record<string, number> = {};
@@ -158,8 +156,7 @@ function simulateSingleMatch(
     const tracker = trackers[currentTurnPlayer.id];
     tracker.updateOwnHand(currentTurnPlayer.hand);
 
-    const fastConfig = { ...botObj.config, mctsSimulations: 0 };
-    const result = game.executeBotTurn(fastConfig, tracker);
+    const result = game.executeBotTurn(botObj.config, tracker);
 
     if (result.action === 'PLAY' && result.playedMove) {
       for (const t of Object.values(trackers)) {
@@ -226,50 +223,72 @@ async function runBenchmark() {
     }
 
     const isLead = (i % 2 === 0);
+    const hasThreeOfSpades = hand.some(c => c.rank === 3 && c.suit === 'SPADES');
+    const isFirstMoveOfGame = isLead && hasThreeOfSpades && (i % 10 === 0);
     let currentRoundLeadingMove: PlayedMove | null = null;
 
     if (!isLead) {
       const targetCards = extractValidMoveFromCards(remainingPool, rng);
       if (targetCards.length > 0) {
-        const comboRes = isValidMove(targetCards);
-        if (comboRes.valid && comboRes.combination) {
+        const combo = identifyCombination(targetCards);
+        if (combo) {
           currentRoundLeadingMove = {
             playerId: 'opp_prev',
-            combination: comboRes.combination
+            combination: combo,
+            timestamp: Date.now(),
+            isChop: false
           };
         }
       }
     }
 
     const tracker = new CardTracker(hand, botConfig.memoryDepth, playerCount);
-    const decision = makeBotDecision({
+    const decisionContext = createDecisionContext({
       hand,
-      currentRoundLeadingMove,
-      isFirstTurnOfRound: isLead,
-      isFirstTurnOfGame: (i % 50 === 0),
-      botConfig,
-      timer: new PerformanceTimer(100),
-      gameMode: (['COUNT_CARDS', 'TRADITIONAL', 'WINNER_TAKES_ALL'] as const)[i % 3],
+      currentRoundLeadingMove: currentRoundLeadingMove ?? null,
+      isFirstMoveOfGame,
+      isLeadMove: isLead || !currentRoundLeadingMove,
+      tracker,
+      config: botConfig,
       remainingPlayerCards,
-      playerId: 'bot_tester',
       nextPlayerId: 'opp_1',
-      playerCount,
-      tracker
+      rules: createDefaultGameRules({
+        settlementRule: (['COUNT_CARDS', 'TRADITIONAL', 'WINNER_TAKES_ALL'] as const)[i % 3],
+        gameFlow: { prohibitEndingWithTwo: false }
+      }),
+      hasPlayedFirstCard: true,
+      isNextPlayerOneCard: false,
+      prohibitEndingWithTwo: false,
+      gameMode: (['COUNT_CARDS', 'TRADITIONAL', 'WINNER_TAKES_ALL'] as const)[i % 3],
+      mctsMap: null,
+      compositeRuleStrategy: null,
+      opponentProfiles: null
     });
 
-    if (decision.action === 'PLAY') {
+    const decision = makeBotDecision(decisionContext);
+
+    if (decision.type === 'PLAY') {
       playCount++;
-      assert(decision.cards.length > 0, `Nước đi PLAY phải có ít nhất 1 lá`);
-      for (const c of decision.cards) {
+      const playedCards = decision.cards || [];
+      assert(playedCards.length > 0, `Nước đi PLAY phải có ít nhất 1 lá`);
+      for (const c of playedCards) {
         assert(hand.some(h => h.id === c.id), `Lá bài ${c.id} không thuộc bài trên tay bot`);
       }
-      const valRes = isValidMove(decision.cards);
-      assert(valRes.valid, `Nước đi không hợp lệ theo luật Tiến Lên`);
+      const valRes = isValidMove({
+        cards: [...playedCards],
+        target: currentRoundLeadingMove?.combination || null,
+        isFirstMoveOfGame,
+        isLeadMove: isLead || !currentRoundLeadingMove,
+        hasPassedRound: false,
+        allowFourPairsCutAnytime: true,
+        isFinishingMove: playedCards.length === hand.length,
+        prohibitEndingWithTwo: false
+      });
+      assert(valRes.valid, `Nước đi không hợp lệ theo luật Tiến Lên: ${valRes.reason}`);
 
-      if (currentRoundLeadingMove) {
-        const { canBeat } = await import('../src/utils/card-utils');
-        const beatRes = canBeat(currentRoundLeadingMove.combination, valRes.combination!);
-        assert(beatRes.canBeat, `Bài đánh ra (${valRes.combination?.type}) không chặt được bài trên bàn`);
+      if (currentRoundLeadingMove && valRes.combination) {
+        const beatRes = canBeat(valRes.combination, currentRoundLeadingMove.combination);
+        assert(beatRes.valid, `Bài đánh ra (${valRes.combination.type}) không chặt được bài trên bàn`);
       }
     } else {
       passCount++;

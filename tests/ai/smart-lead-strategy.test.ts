@@ -207,4 +207,71 @@ describe('Chiến Thuật Ra Bài Cầm Cái & Mở Màn 3 Bích Chuẩn Tiến 
     expect(decision.combination?.type).toBe('SINGLE');
     expect(decision.cards?.[0].rank).toBe(3);
   });
+
+  test('7. Tái hiện Match Log (Đếm Lá Solo 1v1): Bot có Đôi K, Đôi A và rác nhỏ (3♦, 4♦, 6♦, 9♠, Q♥) -> Phải tẩu rác nhỏ 3♦, TUYỆT ĐỐI KHÔNG xả Đôi K hay Đôi A', () => {
+    // Tái hiện chính xác tình huống Lượt 4 trong match log 1788610867844
+    // Bot còn 9 lá: 3♦, 4♦, 6♦, 9♠, Q♥, Đôi K (K♠ K♣), Đôi A (A♠ A♦)
+    const hand: Card[] = [
+      createCard(3, 'DIAMONDS'),
+      createCard(4, 'DIAMONDS'),
+      createCard(6, 'DIAMONDS'),
+      createCard(9, 'SPADES'),
+      createCard(12, 'HEARTS'), // Q♥
+      createCard(13, 'SPADES'), // K♠
+      createCard(13, 'CLUBS'),  // K♣
+      createCard(14, 'SPADES'), // A♠
+      createCard(14, 'DIAMONDS')// A♦
+    ];
+
+    const decision = makeBotDecision(createMockDecisionContext({
+      hand,
+      currentRoundLeadingMove: null,
+      isLeadMove: true,
+      tracker,
+      config: BOT_PERSONAS.BOT_ELO_1150, // Nicholas / Fighter tầm ELO 1200
+      remainingPlayerCards: { p0: 9, p1: 9 }, // Solo 1v1
+      nextPlayerId: 'p0',
+      gameMode: 'COUNT_CARDS'
+    }));
+
+    expect(decision.type).toBe('PLAY');
+    // Tuyệt đối KHÔNG ĐƯỢC xả Đôi K hay Đôi A khi còn rác nhỏ!
+    expect(decision.combination?.type).not.toBe('PAIR');
+    expect(decision.cards?.some(c => c.rank >= 13)).toBe(false);
+
+    // Bắt buộc phải tẩu rác nhỏ nhất (3♦) trước
+    expect(decision.combination?.type).toBe('SINGLE');
+    expect(decision.cards?.[0].rank).toBe(3);
+  });
+
+  test('8. Đếm Lá có Sảnh dài (>= 3 lá): Bot có Sảnh 3-4-5-6 + Đôi K + rác -> Vẫn ưu tiên xả Sảnh dài 4 lá trước', () => {
+    // Sảnh 3-4-5-6 (4 lá), Đôi K (K♠ K♣), rác 9♠, Q♥
+    const hand: Card[] = [
+      createCard(3, 'DIAMONDS'),
+      createCard(4, 'DIAMONDS'),
+      createCard(5, 'DIAMONDS'),
+      createCard(6, 'DIAMONDS'), // Sảnh 4 lá
+      createCard(9, 'SPADES'),   // Rác
+      createCard(12, 'HEARTS'),  // Rác Q
+      createCard(13, 'SPADES'),  // Đôi K
+      createCard(13, 'CLUBS')
+    ];
+
+    const decision = makeBotDecision(createMockDecisionContext({
+      hand,
+      currentRoundLeadingMove: null,
+      isLeadMove: true,
+      tracker,
+      config: BOT_PERSONAS.BOT_ELO_1150,
+      remainingPlayerCards: { p0: 8, p1: 8 },
+      nextPlayerId: 'p0',
+      gameMode: 'COUNT_CARDS'
+    }));
+
+    expect(decision.type).toBe('PLAY');
+    // Với Sảnh dài 4 lá, ưu tiên xả Sảnh trước để giảm 4 lá tồn trong Đếm Lá
+    expect(decision.combination?.type).toBe('STRAIGHT');
+    expect(decision.cards?.length).toBe(4);
+    expect(decision.cards?.[0].rank).toBe(3);
+  });
 });
