@@ -22,6 +22,10 @@ export class CardTracker {
     this.playerCount = count;
   }
 
+  public getPlayerCount(): number {
+    return this.playerCount;
+  }
+
   public updateOwnHand(hand: readonly Card[] = []): void {
     this.ownHandCardIds.clear();
     for (const card of hand) {

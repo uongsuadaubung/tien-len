@@ -63,7 +63,7 @@ export function simulateSingleTableMatch(
     if (!p) {
       throw new Error(`[headless-sim] Invariant violated: Bot player ${bot.id} not found in engine`);
     }
-    trackersMap.set(bot.id, new CardTracker(p.hand, bot.memoryDepth));
+    trackersMap.set(bot.id, new CardTracker(p.hand, bot.memoryDepth, engine.players.length));
   }
 
   // 3. Vòng lặp giải quyết ván đấu đồng bộ 100% CPU (0ms delay)
@@ -80,7 +80,7 @@ export function simulateSingleTableMatch(
 
     let tracker = trackersMap.get(currentTurnId);
     if (!tracker) {
-      tracker = new CardTracker([], bot.memoryDepth);
+      tracker = new CardTracker([], bot.memoryDepth, engine.players.length);
       trackersMap.set(currentTurnId, tracker);
     }
 

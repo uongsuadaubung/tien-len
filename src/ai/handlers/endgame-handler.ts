@@ -5,8 +5,10 @@ import {
   BotDecision, 
   buildBotDecision 
 } from '../decision-types';
+import { Card } from '../../engine/types';
 import { isTwo, sortCards } from '../../engine/card';
 import { MinimaxEndgameSolver } from '../solvers/minimax-endgame-solver';
+import { BayesianCardInferenceEngine } from '../solvers/bayesian-card-tracker';
 
 /**
  * 2. Handler Cờ Tàn (Endgame Solver): Xử lý dứt điểm khi còn <= 4 lá bài
@@ -27,16 +29,16 @@ export class EndgameSolverHandler extends BotDecisionHandler {
       });
     }
 
-    // 2. MINIMAX ALPHA-BETA ENDGAME SOLVER (Kích hoạt cho Bot Cao Thủ Tier 7, 8, 9 hoặc khi cờ tàn hẹp)
-    const totalOpponentCards = Object.entries(remainingPlayerCards)
-      .filter(([pid, count]) => pid !== config.id && count > 0)
-      .reduce((sum, entry) => sum + entry[1], 0);
+    // 2. MINIMAX ALPHA-BETA ENDGAME SOLVER (Kích hoạt cho Bot Cao Thủ Tier 7, 8, 9)
+    const activeOpponents = Object.entries(remainingPlayerCards).filter(([pid, count]) => pid !== config.id && count > 0);
+    const totalOpponentCards = activeOpponents.reduce((sum, entry) => sum + entry[1], 0);
 
-    if ((config.useMinimaxEndgame || config.elo >= 2400) && hand.length <= 5 && totalOpponentCards <= 8) {
+    if ((config.useMinimaxEndgame || config.elo >= 2400) && hand.length <= 5) {
       const unseenCards = tracker.getUnseenCards();
-      if (unseenCards.length <= 8) {
-        const targetCombo = currentRoundLeadingMove?.combination || null;
+      const targetCombo = currentRoundLeadingMove?.combination || null;
 
+      if (unseenCards.length <= 8 && totalOpponentCards <= 8 && unseenCards.length === totalOpponentCards) {
+        // Chỉ giải Minimax khi toàn bộ bài chưa thấy đều nằm trên tay đối thủ (không có nọc úp)
         const minimaxResult = MinimaxEndgameSolver.solve1v1(
           hand,
           unseenCards,
@@ -62,7 +64,7 @@ export class EndgameSolverHandler extends BotDecisionHandler {
       return this.passToNext(context, validMoves);
     }
 
-    // 3. Trường hợp cờ tàn 2 lá không cấm 2 cuối (hoặc cấm 2 cuối nhưng không có Heo):
+    // 3. Trường hợp cờ tàn 2 lá:
     if (hand.length === 2) {
       const sortedHand = sortCards(hand);
       // Đôi 2 lá -> Đánh đôi về bài
@@ -78,8 +80,14 @@ export class EndgameSolverHandler extends BotDecisionHandler {
         }
       }
 
-      // 1 lá Rác nhỏ + 1 Heo/quân to giữ cái (luật thông thường không cấm 2 cuối):
-      if (!prohibitEndingWithTwo && (isTwo(sortedHand[1]) || sortedHand[1].rank >= 13 || tracker.isStrongestRemainingSingle(sortedHand[1]))) {
+      // 1 lá Rác nhỏ + 1 Heo/quân to giữ cái:
+      // Yêu cầu turnsToWinLookahead >= 0.35 (Tier 3+) để biết cách giữ Heo/bài to chốt hạ
+      const canHoldFinisher = !prohibitEndingWithTwo || !isTwo(sortedHand[1]);
+      if (
+        config.turnsToWinLookahead >= 0.35 &&
+        canHoldFinisher &&
+        (isTwo(sortedHand[1]) || sortedHand[1].rank >= 13 || tracker.isStrongestRemainingSingle(sortedHand[1]))
+      ) {
         const smallMove = validMoves.find(m => m.cards.length === 1 && m.cards[0].id === sortedHand[0].id);
         if (smallMove) {
           return buildBotDecision('PLAY', {
@@ -88,6 +96,39 @@ export class EndgameSolverHandler extends BotDecisionHandler {
             reason: 'Cờ tàn 2 lá: Đánh rác nhỏ trước, giữ Heo/bài to chốt hạ',
             strategyUsed: 'ENDGAME_SMALL_LEAD'
           });
+        }
+      }
+    }
+
+    // 4. Kỹ thuật cờ tàn 3 lá cho Cao Thủ (Tier 6+ với turnsToWinLookahead >= 0.85):
+    // Trường hợp: 1 Đôi + 1 Lá chốt hạ (Heo hoặc lá to nhất bàn)
+    if (config.turnsToWinLookahead >= 0.85 && hand.length === 3) {
+      const sortedHand = sortCards(hand);
+      let pairCards: Card[] | null = null;
+      let kicker: Card | null = null;
+
+      if (sortedHand[0].rank === sortedHand[1].rank) {
+        pairCards = [sortedHand[0], sortedHand[1]];
+        kicker = sortedHand[2];
+      } else if (sortedHand[1].rank === sortedHand[2].rank) {
+        pairCards = [sortedHand[1], sortedHand[2]];
+        kicker = sortedHand[0];
+      }
+
+      if (pairCards && kicker) {
+        const isKickerDominant = isTwo(kicker) || kicker.rank >= 14 || tracker.isStrongestRemainingSingle(kicker);
+        const canFinishWithKicker = !prohibitEndingWithTwo || !isTwo(kicker);
+
+        if (isKickerDominant && canFinishWithKicker) {
+          const pairMove = validMoves.find(m => m.combination.type === 'PAIR' && m.cards[0].rank === pairCards![0].rank);
+          if (pairMove) {
+            return buildBotDecision('PLAY', {
+              cards: pairMove.cards,
+              combination: pairMove.combination,
+              reason: 'Cờ tàn 3 lá cao cấp: Đánh đôi trước, giữ bài to chốt hạ',
+              strategyUsed: 'ENDGAME_ADVANCED_LEAD'
+            });
+          }
         }
       }
     }

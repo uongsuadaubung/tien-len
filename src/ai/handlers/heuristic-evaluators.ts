@@ -171,14 +171,25 @@ export function evaluateTwoManagementScore(
     }
   } else {
     // Đối phương KHÔNG ĐÁNH HEO (đối phương đánh bài thường 3..A):
-    if (isEmergencyAntiLeader) {
-      scoreMod += AI_HEURISTIC_WEIGHTS.EMERGENCY_TWO_DUMP_BONUS * config.antiLeaderAggression;
+    const remainingTargetCards = context.currentRoundLeadingMove
+      ? (context.remainingPlayerCards[context.currentRoundLeadingMove.playerId] ?? 10)
+      : 10;
+    const isTargetNearFinish = remainingTargetCards <= (activeOpponentsCount <= 2 ? 3 : 2);
+
+    if (isEmergencyAntiLeader || isTargetNearFinish) {
+      const threatMultiplier = isEmergencyAntiLeader ? 1.0 : 0.8;
+      scoreMod += AI_HEURISTIC_WEIGHTS.EMERGENCY_TWO_DUMP_BONUS * Math.max(0.5, config.antiLeaderAggression) * threatMultiplier;
     } else if (hand.length <= 4) {
       // Cờ tàn (<= 4 lá): Xả Heo cướp cái để dứt điểm về Nhất
       scoreMod += AI_HEURISTIC_WEIGHTS.ENDGAME_TWO_LEAD_GRAB;
     } else if (activeOpponentsCount === 1) {
-      // Solo 1v1: Cướp cái chắc chắn được quyền đi tiếp
-      scoreMod += AI_HEURISTIC_WEIGHTS.SOLO_TWO_AGGRESSION * config.antiLeaderAggression;
+      // Solo 1v1: Chỉ bung Heo đè rác nếu đối thủ đánh bài to (Át/K) hoặc bài mình đã ít (<= 5 lá)
+      // Không tự ý đốt Heo đè rác nhỏ (3..Q) ở đầu trận khi ván bài còn dài
+      if (targetCombo && targetCombo.highestCard.rank < 13 && hand.length > 5) {
+        scoreMod -= AI_HEURISTIC_WEIGHTS.WASTING_TWO_BASE_PENALTY * 0.6;
+      } else {
+        scoreMod += AI_HEURISTIC_WEIGHTS.SOLO_TWO_AGGRESSION * config.antiLeaderAggression;
+      }
     } else if (
       config.tempoControl >= 0.8 &&
       pendingCombosCardCount >= hand.length - 2 &&
@@ -263,8 +274,10 @@ export function evaluateComboIntegrityCost(
   }
 
   const penaltyDiscount =
-    hand.length <= 4 || isEmergencyAntiLeader || (activeOpponentsCount === 1 && !breaksBomb)
+    hand.length <= 4 || isEmergencyAntiLeader
       ? 0.0
+      : activeOpponentsCount === 1 && !breaksBomb
+      ? 0.55
       : 0.7;
 
   totalCost += comboBreakSeverity * config.handPartitioningOptimality * penaltyDiscount;

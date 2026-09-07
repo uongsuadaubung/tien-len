@@ -104,7 +104,7 @@ describe('5 Cơ Chế Ra Quyết Định Cấp Đại Kiện Tướng Cho AI Bot
       createCard(8, 'DIAMONDS'),
       createCard(8, 'HEARTS'), // Tứ Quý 8
       createCard(10, 'SPADES'),
-      createCard(14, 'SPADES')  // Át Bích làm mồi
+      createCard(14, 'HEARTS')  // Át Cơ làm mồi
     ];
 
     const decision = makeBotDecision(createMockContext({

@@ -139,7 +139,9 @@ export class CountCardsSettlementStrategy implements RuleStrategyEvaluator {
 
   getRespondingScoreModifier(
     move: ValidMoveInfo,
-    handSize: number
+    handSize: number,
+    _targetMove?: PlayedMove | null,
+    context?: RuleDecisionContext
   ): number {
     let bonus = 0;
     // Khuyến khích đè bài khi xả được nhiều lá (Sảnh dài >= 4 lá hoặc Sám cô / Đôi)
@@ -149,9 +151,13 @@ export class CountCardsSettlementStrategy implements RuleStrategyEvaluator {
       bonus += 50;
     }
 
-    // Khi bài đối thủ đã ít (còn <= 6 lá): Không om Heo/Hàng quá lâu, sẵn sàng xả để tránh thối
+    // Khi bài đối thủ đã ít (còn <= 6 lá) HOẶC bài mình ít (<= 6 lá):
+    // Không om Heo/Hàng quá lâu, sẵn sàng xả để tránh thối
     const containsTwo = move.cards.some(isTwo);
-    if (containsTwo && handSize <= 6) {
+    const minOpponentCards = context
+      ? Math.min(...Object.values(context.remainingPlayerCards).filter(c => c > 0))
+      : 13;
+    if (containsTwo && (handSize <= 6 || minOpponentCards <= 6)) {
       bonus += 80;
     }
     return bonus;
@@ -522,9 +528,15 @@ export class TableScaleRuleStrategy implements RuleStrategyEvaluator {
     _targetMove: PlayedMove | null,
     context: RuleDecisionContext
   ): number {
+    const aggression = context.antiLeaderAggression || 0.8;
     if (this.config.playerCount === 2) {
-      // Trong Solo 1v1: Đè bài thành công là 100% cướp được cái -> Tăng điểm mạnh
-      return 90 * (context.antiLeaderAggression || 0.8);
+      // Trong Solo 1v1: Đè bài thành công là 100% cướp được cái -> Thưởng nhịp độ (+90),
+      // đóng vai trò nguồn điều chỉnh duy nhất cho quy mô bàn, thay thế Step 6 trong handler
+      return 90 * aggression;
+    }
+    if (this.config.playerCount === 3) {
+      // Trong 3P: Vòng xoay ngắn hơn 4P, cơ hội cướp cái cao hơn
+      return 30 * aggression;
     }
     return 0;
   }

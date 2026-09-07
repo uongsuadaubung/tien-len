@@ -194,12 +194,7 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
         }
       }
 
-      // 6. Áp đảo trong Solo 1v1
-      if (activeOpponentsCount === 1 && !containsTwo) {
-        score += AI_HEURISTIC_WEIGHTS.SOLO_NORMAL_MOVE_AGGRESSION * config.antiLeaderAggression;
-      }
-
-      // 7. Điểm điều chỉnh từ GameRules composite strategy
+      // 7. Điểm điều chỉnh từ GameRules composite strategy (bao gồm TableScaleRuleStrategy)
       if (compositeStrategy) {
         const ruleScore = compositeStrategy.getCompositeRespondingScoreModifier(
           move, 
@@ -213,27 +208,30 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
         }
       }
 
-      // 8. Đánh giá MCTS Rollouts
+      // 8. Đánh giá MCTS Rollouts (chuẩn hóa dynamic baseline theo số người chơi)
       if (mctsMap) {
         const key = move.cards.map(c => c.id).sort().join('_');
         if (mctsMap.has(key)) {
           const winRate = mctsMap.get(key)!;
-          const mctsDelta = (winRate - 0.25) * 40;
+          const baselineWinRate = 1 / Math.max(2, totalActive);
+          const mctsDelta = (winRate - baselineWinRate) * 25;
           score += mctsDelta;
           reasons.push(`MCTS Winrate ${(winRate * 100).toFixed(0)}% (${mctsDelta > 0 ? '+' : ''}${Math.round(mctsDelta)})`);
         }
       }
 
       // 9. Cứu thua khẩn cấp & Chặn đầu đối thủ sắp dứt điểm cờ tàn
+      const antiScale = Math.max(0.5, config.antiLeaderAggression);
       if (isEmergencyAntiLeader) {
-        score += AI_HEURISTIC_WEIGHTS.EMERGENCY_INTERCEPT_BONUS;
-        reasons.push('Khẩn cấp chặn người 1 lá');
+        score += AI_HEURISTIC_WEIGHTS.EMERGENCY_INTERCEPT_BONUS * antiScale;
+        reasons.push(`Khẩn cấp chặn người 1 lá (x${antiScale.toFixed(2)})`);
       } else {
         const remainingTargetCards = currentRoundLeadingMove ? (remainingPlayerCards[currentRoundLeadingMove.playerId] ?? 10) : 10;
-        const isNearFinishTarget = remainingTargetCards <= 3 || (activeOpponentsCount === 1 && remainingTargetCards <= 4);
-        if (isNearFinishTarget && !containsTwo) {
-          score += AI_HEURISTIC_WEIGHTS.EMERGENCY_INTERCEPT_BONUS * 0.5;
-          reasons.push('Chặn đầu đối thủ sắp dứt điểm');
+        const isNearFinishTarget = remainingTargetCards <= (activeOpponentsCount <= 2 ? 3 : 2);
+        if (isNearFinishTarget) {
+          const threatBonus = AI_HEURISTIC_WEIGHTS.EMERGENCY_INTERCEPT_BONUS * 0.7 * antiScale;
+          score += threatBonus;
+          reasons.push(`Chặn đầu đối thủ sắp dứt điểm (${remainingTargetCards} lá, +${Math.round(threatBonus)})`);
         }
       }
 
@@ -275,6 +273,17 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
       // 12. Cờ tàn tăng tốc dứt điểm & Chống cạn kiệt lực cờ tàn (Endgame Trash Exhaustion)
       const moveCardIds = new Set(move.cards.map(c => c.id));
       const remainingAfterMove = hand.filter(c => !moveCardIds.has(c.id));
+
+      // 12a. TUYỆT ĐỐI KHÔNG ĐỂ LẠI HEO LÀM LÁ BÀI CUỐI KHI CẤM 2 CUỐI:
+      if (
+        context.prohibitEndingWithTwo &&
+        remainingAfterMove.length > 0 &&
+        remainingAfterMove.every(isTwo)
+      ) {
+        score -= 9999;
+        reasons.push('Tử huyệt: Đánh nước này sẽ để lại Heo làm lá bài cuối (Cấm về bằng 2, -9999)');
+      }
+
       const isExhaustedTrash =
         remainingAfterMove.length >= 2 &&
         remainingAfterMove.length <= 3 &&
