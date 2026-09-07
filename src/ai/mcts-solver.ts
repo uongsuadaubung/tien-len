@@ -159,23 +159,43 @@ export class MctsSolver {
       let newCombo: Combination | null = null;
 
       if (!currentCombo) {
-        // Mở vòng: Tìm nhanh Sảnh hoặc Đôi để mở bài
+        // Mở vòng: Tìm nhanh Sảnh, Sám hoặc Đôi để mở bài
         let foundCombo = false;
         const nonTwos = playerHand.filter(c => !isTwo(c));
 
-        // Thử tìm sảnh từ 3-5 lá
-        for (let len = 5; len >= 3 && !foundCombo; len--) {
-          for (let i = 0; i <= nonTwos.length - len; i++) {
-            const straightSample: Card[] = [nonTwos[i]];
-            let curRank = nonTwos[i].rank;
-            for (let j = i + 1; j < nonTwos.length && straightSample.length < len; j++) {
-              if (nonTwos[j].rank === curRank + 1) {
-                straightSample.push(nonTwos[j]);
-                curRank = nonTwos[j].rank;
+        // 1. Thử tìm sảnh từ 3-5 lá dùng distinctRanks chuẩn xác
+        const distinctRanks = Array.from(new Set(nonTwos.map(c => c.rank))).sort((a, b) => a - b);
+        for (let len = Math.min(5, distinctRanks.length); len >= 3 && !foundCombo; len--) {
+          for (let i = 0; i <= distinctRanks.length - len; i++) {
+            let isConsecutive = true;
+            for (let k = 0; k < len - 1; k++) {
+              if (distinctRanks[i + k + 1] !== distinctRanks[i + k] + 1) {
+                isConsecutive = false;
+                break;
               }
             }
-            if (straightSample.length === len) {
-              chosenCards = straightSample;
+            if (isConsecutive) {
+              const targetRanks = distinctRanks.slice(i, i + len);
+              const sample: Card[] = [];
+              for (const r of targetRanks) {
+                const c = nonTwos.find(card => card.rank === r);
+                if (c) sample.push(c);
+              }
+              if (sample.length === len) {
+                chosenCards = sample;
+                newCombo = identifyCombination(chosenCards);
+                foundCombo = true;
+                break;
+              }
+            }
+          }
+        }
+
+        // 2. Thử tìm Sám cô (Triple)
+        if (!foundCombo) {
+          for (let i = 0; i < playerHand.length - 2; i++) {
+            if (playerHand[i].rank === playerHand[i + 1].rank && playerHand[i + 1].rank === playerHand[i + 2].rank) {
+              chosenCards = [playerHand[i], playerHand[i + 1], playerHand[i + 2]];
               newCombo = identifyCombination(chosenCards);
               foundCombo = true;
               break;
@@ -183,7 +203,7 @@ export class MctsSolver {
           }
         }
 
-        // Thử tìm đôi
+        // 3. Thử tìm đôi
         if (!foundCombo) {
           for (let i = 0; i < playerHand.length - 1; i++) {
             if (playerHand[i].rank === playerHand[i + 1].rank) {
@@ -195,7 +215,7 @@ export class MctsSolver {
           }
         }
 
-        // Đánh rác nhỏ nhất (tránh đánh Heo nếu đó là lá duy nhất còn lại)
+        // 4. Đánh rác nhỏ nhất (tránh đánh Heo nếu đó là lá duy nhất còn lại)
         if (!foundCombo) {
           const nonTwos = playerHand.filter(c => !isTwo(c));
           if (nonTwos.length > 0) {
@@ -227,22 +247,40 @@ export class MctsSolver {
               }
             }
           }
+        } else if (currentCombo.type === 'TRIPLE') {
+          for (let i = 0; i < playerHand.length - 2; i++) {
+            if (playerHand[i].rank === playerHand[i + 1].rank && playerHand[i + 1].rank === playerHand[i + 2].rank) {
+              if (playerHand[i + 2].weight > currentCombo.highestCard.weight) {
+                chosenCards = [playerHand[i], playerHand[i + 1], playerHand[i + 2]];
+                newCombo = identifyCombination(chosenCards);
+                break;
+              }
+            }
+          }
         } else if (currentCombo.type === 'STRAIGHT') {
           const nonTwos = playerHand.filter(c => !isTwo(c));
           const len = currentCombo.length;
-          for (let i = 0; i <= nonTwos.length - len; i++) {
-            const straightSample: Card[] = [nonTwos[i]];
-            let curRank = nonTwos[i].rank;
-            for (let j = i + 1; j < nonTwos.length && straightSample.length < len; j++) {
-              if (nonTwos[j].rank === curRank + 1) {
-                straightSample.push(nonTwos[j]);
-                curRank = nonTwos[j].rank;
+          const distinctRanks = Array.from(new Set(nonTwos.map(c => c.rank))).sort((a, b) => a - b);
+          for (let i = 0; i <= distinctRanks.length - len; i++) {
+            let isConsecutive = true;
+            for (let k = 0; k < len - 1; k++) {
+              if (distinctRanks[i + k + 1] !== distinctRanks[i + k] + 1) {
+                isConsecutive = false;
+                break;
               }
             }
-            if (straightSample.length === len && straightSample[len - 1].weight > currentCombo.highestCard.weight) {
-              chosenCards = straightSample;
-              newCombo = identifyCombination(chosenCards);
-              break;
+            if (isConsecutive) {
+              const targetRanks = distinctRanks.slice(i, i + len);
+              const sample: Card[] = [];
+              for (const r of targetRanks) {
+                const c = nonTwos.find(card => card.rank === r);
+                if (c) sample.push(c);
+              }
+              if (sample.length === len && sample[len - 1].weight > currentCombo.highestCard.weight) {
+                chosenCards = sample;
+                newCombo = identifyCombination(chosenCards);
+                break;
+              }
             }
           }
         }

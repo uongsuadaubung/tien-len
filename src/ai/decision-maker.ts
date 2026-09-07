@@ -158,6 +158,7 @@ export function makeBotDecision(rawContext: DecisionContext | (BaseDecisionConte
 
     const telemetry: BotDecisionTelemetry = {
       chosenReason: emptyDecision.reason || 'Bỏ lượt',
+      reason: emptyDecision.reason || 'Bỏ lượt',
       strategyUsed: emptyDecision.strategyUsed || 'NO_VALID_MOVES',
       heuristicScore: null,
       evaluatedCandidatesCount: 0,
@@ -235,6 +236,7 @@ export function makeBotDecision(rawContext: DecisionContext | (BaseDecisionConte
 
   const telemetry: BotDecisionTelemetry = {
     chosenReason: decision.reason || (decision.type === 'PLAY' ? 'Đánh bài theo chiến thuật' : 'Bỏ lượt'),
+    reason: decision.reason || (decision.type === 'PLAY' ? 'Đánh bài theo chiến thuật' : 'Bỏ lượt'),
     strategyUsed: decision.strategyUsed || (isLeadMove ? 'LEAD_STRATEGY' : 'RESPONSE_STRATEGY'),
     heuristicScore: decision.evaluationScore !== undefined ? decision.evaluationScore : null,
     evaluatedCandidatesCount: validMoves.length,

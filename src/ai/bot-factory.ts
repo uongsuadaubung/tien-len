@@ -1,4 +1,5 @@
 import { getTierFromElo } from "../engine/ecosystem/ecosystem-types";
+import { RANK_TIERS, getTierInfoByTierNum } from "../engine/constants/ranks";
 import { BotConfig } from "./types";
 
 type BotPersonaRaw = Omit<BotConfig, 'name' | 'avatar' | 'useMinimaxEndgame' | 'useBayesianInference' | 'useDynamicRepartitioning'> & {
@@ -11,26 +12,26 @@ type BotPersonaRaw = Omit<BotConfig, 'name' | 'avatar' | 'useMinimaxEndgame' | '
 
 const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   // ==========================================
-  // TIER 1: TÂN THỦ / BEGINNER (ELO 600 - 899)
+  // TIER 1: TÂN THỦ / BEGINNER (ELO 0 - 899)
   // ==========================================
   BOT_ELO_700: {
     id: 'BOT_ELO_700',
     elo: 700,
     description: 'Chơi ngây thơ hồn nhiên, có bài gì nhỏ nhất đánh nấy, không nhớ bài.',
     memoryDepth: 0.05,
-    riskAppetite: 0.8,
+    riskAppetite: 0.7,
     trapTendency: 0.0,
     baitingTendency: 0.0,
-    antiLeaderAggression: 0.2,
-    tempoControl: 0.1,
-    damageControl: 0.1,
+    antiLeaderAggression: 0.85,
+    tempoControl: 0.05,
+    damageControl: 0.05,
     turnsToWinLookahead: 0.0,
     dynamicHandSacrifice: 0.0,
     bombInferenceRate: 0.0,
     semiCooperativeCooperation: 0.0,
     positionalAwareness: 0.0,
     inMatchAdaptationRate: 0.0,
-    handPartitioningOptimality: 0.3,
+    handPartitioningOptimality: 0.50,
     simulationLookahead: 0,
     mctsSimulations: 0
   },
@@ -42,7 +43,7 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     riskAppetite: 0.8,
     trapTendency: 0.0,
     baitingTendency: 0.0,
-    antiLeaderAggression: 0.25,
+    antiLeaderAggression: 0.85,
     tempoControl: 0.15,
     damageControl: 0.15,
     turnsToWinLookahead: 0.0,
@@ -51,7 +52,7 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     semiCooperativeCooperation: 0.0,
     positionalAwareness: 0.0,
     inMatchAdaptationRate: 0.0,
-    handPartitioningOptimality: 0.35,
+    handPartitioningOptimality: 0.50,
     simulationLookahead: 0,
     mctsSimulations: 0
   },
@@ -63,7 +64,7 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     riskAppetite: 0.8,
     trapTendency: 0.0,
     baitingTendency: 0.0,
-    antiLeaderAggression: 0.3,
+    antiLeaderAggression: 0.85,
     tempoControl: 0.2,
     damageControl: 0.2,
     turnsToWinLookahead: 0.0,
@@ -72,10 +73,14 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     semiCooperativeCooperation: 0.0,
     positionalAwareness: 0.0,
     inMatchAdaptationRate: 0.0,
-    handPartitioningOptimality: 0.35,
+    handPartitioningOptimality: 0.50,
     simulationLookahead: 0,
     mctsSimulations: 0
   },
+
+  // ==========================================
+  // TIER 2: TẬP SỰ / NOVICE (ELO 900 - 1299)
+  // ==========================================
   BOT_ELO_900: {
     id: 'BOT_ELO_900',
     elo: 900,
@@ -84,7 +89,7 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     riskAppetite: 0.85,
     trapTendency: 0.0,
     baitingTendency: 0.0,
-    antiLeaderAggression: 0.35,
+    antiLeaderAggression: 0.85,
     tempoControl: 0.2,
     damageControl: 0.2,
     turnsToWinLookahead: 0.0,
@@ -93,7 +98,7 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     semiCooperativeCooperation: 0.0,
     positionalAwareness: 0.0,
     inMatchAdaptationRate: 0.0,
-    handPartitioningOptimality: 0.35,
+    handPartitioningOptimality: 0.55,
     simulationLookahead: 0,
     mctsSimulations: 0
   },
@@ -105,7 +110,7 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     riskAppetite: 0.75,
     trapTendency: 0.1,
     baitingTendency: 0.0,
-    antiLeaderAggression: 0.38,
+    antiLeaderAggression: 0.85,
     tempoControl: 0.25,
     damageControl: 0.25,
     turnsToWinLookahead: 0.0,
@@ -114,7 +119,7 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     semiCooperativeCooperation: 0.0,
     positionalAwareness: 0.0,
     inMatchAdaptationRate: 0.0,
-    handPartitioningOptimality: 0.4,
+    handPartitioningOptimality: 0.55,
     simulationLookahead: 0,
     mctsSimulations: 0
   },
@@ -122,27 +127,23 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     id: 'BOT_ELO_1000',
     elo: 1000,
     description: 'Bắt đầu biết gom đôi và sảnh nhỏ.',
-    memoryDepth: 0.25,
-    riskAppetite: 0.75,
-    trapTendency: 0.1,
+    memoryDepth: 0.2,
+    riskAppetite: 0.8,
+    trapTendency: 0.05,
     baitingTendency: 0.0,
-    antiLeaderAggression: 0.4,
-    tempoControl: 0.25,
-    damageControl: 0.25,
+    antiLeaderAggression: 0.85,
+    tempoControl: 0.15,
+    damageControl: 0.15,
     turnsToWinLookahead: 0.0,
     dynamicHandSacrifice: 0.0,
     bombInferenceRate: 0.0,
     semiCooperativeCooperation: 0.0,
     positionalAwareness: 0.0,
     inMatchAdaptationRate: 0.0,
-    handPartitioningOptimality: 0.45,
+    handPartitioningOptimality: 0.55,
     simulationLookahead: 0,
     mctsSimulations: 0
   },
-
-  // ==========================================
-  // TIER 2: ĐỒNG (ELO 1150)
-  // ==========================================
   BOT_ELO_1150: {
     id: 'BOT_ELO_1150',
     elo: 1150,
@@ -151,11 +152,11 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     riskAppetite: 0.75,
     trapTendency: 0.25,
     baitingTendency: 0.1,
-    antiLeaderAggression: 0.5,
-    tempoControl: 0.45,
-    damageControl: 0.45,
-    turnsToWinLookahead: 0.3,
-    dynamicHandSacrifice: 0.4,
+    antiLeaderAggression: 0.88,
+    tempoControl: 0.35,
+    damageControl: 0.35,
+    turnsToWinLookahead: 0.4,
+    dynamicHandSacrifice: 0.15,
     bombInferenceRate: 0.0,
     semiCooperativeCooperation: 0.0,
     positionalAwareness: 0.3,
@@ -172,11 +173,11 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     riskAppetite: 0.8,
     trapTendency: 0.2,
     baitingTendency: 0.1,
-    antiLeaderAggression: 0.52,
-    tempoControl: 0.45,
-    damageControl: 0.45,
-    turnsToWinLookahead: 0.3,
-    dynamicHandSacrifice: 0.4,
+    antiLeaderAggression: 0.88,
+    tempoControl: 0.35,
+    damageControl: 0.35,
+    turnsToWinLookahead: 0.4,
+    dynamicHandSacrifice: 0.15,
     bombInferenceRate: 0.0,
     semiCooperativeCooperation: 0.0,
     positionalAwareness: 0.3,
@@ -193,33 +194,12 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     riskAppetite: 0.8,
     trapTendency: 0.3,
     baitingTendency: 0.15,
-    antiLeaderAggression: 0.55,
-    tempoControl: 0.5,
-    damageControl: 0.5,
-    turnsToWinLookahead: 0.3,
-    dynamicHandSacrifice: 0.4,
+    antiLeaderAggression: 0.88,
+    tempoControl: 0.40,
+    damageControl: 0.40,
+    turnsToWinLookahead: 0.4,
+    dynamicHandSacrifice: 0.15,
     bombInferenceRate: 0.0,
-    semiCooperativeCooperation: 0.0,
-    positionalAwareness: 0.35,
-    inMatchAdaptationRate: 0.25,
-    handPartitioningOptimality: 0.6,
-    simulationLookahead: 1,
-    mctsSimulations: 0
-  },
-  BOT_ELO_1350: {
-    id: 'BOT_ELO_1350',
-    elo: 1350,
-    description: 'Biết canh me lúc đối thủ sơ hở để xả rác.',
-    memoryDepth: 0.5,
-    riskAppetite: 0.75,
-    trapTendency: 0.35,
-    baitingTendency: 0.2,
-    antiLeaderAggression: 0.6,
-    tempoControl: 0.55,
-    damageControl: 0.55,
-    turnsToWinLookahead: 0.35,
-    dynamicHandSacrifice: 0.45,
-    bombInferenceRate: 0.1,
     semiCooperativeCooperation: 0.0,
     positionalAwareness: 0.35,
     inMatchAdaptationRate: 0.25,
@@ -229,8 +209,29 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
 
   // ==========================================
-  // TIER 4: VÀNG (ELO 1450 - 1650)
+  // TIER 3: LÀNH NGHỀ / SKILLED (ELO 1300 - 1699)
   // ==========================================
+  BOT_ELO_1350: {
+    id: 'BOT_ELO_1350',
+    elo: 1350,
+    description: 'Biết canh me lúc đối thủ sơ hở để xả rác.',
+    memoryDepth: 0.5,
+    riskAppetite: 0.72,
+    trapTendency: 0.35,
+    baitingTendency: 0.2,
+    antiLeaderAggression: 0.88,
+    tempoControl: 0.45,
+    damageControl: 0.45,
+    turnsToWinLookahead: 0.35,
+    dynamicHandSacrifice: 0.45,
+    bombInferenceRate: 0.1,
+    semiCooperativeCooperation: 0.0,
+    positionalAwareness: 0.35,
+    inMatchAdaptationRate: 0.25,
+    handPartitioningOptimality: 0.55,
+    simulationLookahead: 1,
+    mctsSimulations: 0
+  },
   BOT_ELO_1450: {
     id: 'BOT_ELO_1450',
     elo: 1450,
@@ -239,7 +240,7 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     riskAppetite: 0.6,
     trapTendency: 0.5,
     baitingTendency: 0.4,
-    antiLeaderAggression: 0.7,
+    antiLeaderAggression: 0.90,
     tempoControl: 0.7,
     damageControl: 0.7,
     turnsToWinLookahead: 0.6,
@@ -260,7 +261,7 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     riskAppetite: 0.6,
     trapTendency: 0.6,
     baitingTendency: 0.45,
-    antiLeaderAggression: 0.75,
+    antiLeaderAggression: 0.90,
     tempoControl: 0.75,
     damageControl: 0.7,
     turnsToWinLookahead: 0.65,
@@ -278,19 +279,19 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     elo: 1600,
     description: 'Rất giỏi nhớ Heo, chỉ rình Heo Đỏ của đối thủ để xả bài đè chết.',
     memoryDepth: 0.85,
-    riskAppetite: 0.65,
+    riskAppetite: 0.64,
     trapTendency: 0.35,
     baitingTendency: 0.25,
-    antiLeaderAggression: 0.8,
-    tempoControl: 0.75,
-    damageControl: 0.75,
-    turnsToWinLookahead: 0.65,
-    dynamicHandSacrifice: 0.7,
+    antiLeaderAggression: 0.90,
+    tempoControl: 0.62,
+    damageControl: 0.65,
+    turnsToWinLookahead: 0.55,
+    dynamicHandSacrifice: 0.65,
     bombInferenceRate: 0.55,
     semiCooperativeCooperation: 0.5,
     positionalAwareness: 0.65,
     inMatchAdaptationRate: 0.65,
-    handPartitioningOptimality: 0.78,
+    handPartitioningOptimality: 0.70,
     simulationLookahead: 2,
     mctsSimulations: 0
   },
@@ -317,7 +318,7 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   },
 
   // ==========================================
-  // TIER 5: BẠCH KIM (ELO 1750 - 1950)
+  // TIER 4: CAO THỦ / MASTER (ELO 1700 - 2099)
   // ==========================================
   BOT_ELO_1750: {
     id: 'BOT_ELO_1750',
@@ -345,19 +346,19 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     elo: 1850,
     description: 'Tính toán số nhịp về bài tối ưu, chuyên gia nhốt đối thủ gần về nhất.',
     memoryDepth: 0.95,
-    riskAppetite: 0.7,
+    riskAppetite: 0.70,
     trapTendency: 0.55,
     baitingTendency: 0.8,
     antiLeaderAggression: 0.92,
-    tempoControl: 0.88,
-    damageControl: 0.88,
-    turnsToWinLookahead: 0.85,
-    dynamicHandSacrifice: 0.9,
+    tempoControl: 0.72,
+    damageControl: 0.78,
+    turnsToWinLookahead: 0.75,
+    dynamicHandSacrifice: 0.8,
     bombInferenceRate: 0.85,
     semiCooperativeCooperation: 0.8,
     positionalAwareness: 0.88,
     inMatchAdaptationRate: 0.85,
-    handPartitioningOptimality: 0.85,
+    handPartitioningOptimality: 0.82,
     simulationLookahead: 3,
     mctsSimulations: 0
   },
@@ -403,10 +404,6 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     simulationLookahead: 3,
     mctsSimulations: 0
   },
-
-  // ==========================================
-  // TIER 6: KIM CƯƠNG (ELO 2050 - 2300)
-  // ==========================================
   BOT_ELO_2050: {
     id: 'BOT_ELO_2050',
     elo: 2050,
@@ -415,28 +412,32 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     riskAppetite: 0.75,
     trapTendency: 0.55,
     baitingTendency: 0.7,
-    antiLeaderAggression: 1.0,
-    tempoControl: 0.95,
-    damageControl: 0.95,
-    turnsToWinLookahead: 0.95,
-    dynamicHandSacrifice: 0.95,
+    antiLeaderAggression: 0.95,
+    tempoControl: 0.85,
+    damageControl: 0.85,
+    turnsToWinLookahead: 0.85,
+    dynamicHandSacrifice: 0.88,
     bombInferenceRate: 0.95,
     semiCooperativeCooperation: 1.0,
     positionalAwareness: 0.95,
     inMatchAdaptationRate: 0.95,
-    handPartitioningOptimality: 0.9,
+    handPartitioningOptimality: 0.88,
     simulationLookahead: 4,
     mctsSimulations: 0
   },
+
+  // ==========================================
+  // TIER 5: THẦN BÀI / GRANDMASTER (ELO >= 2100)
+  // ==========================================
   BOT_ELO_2150: {
     id: 'BOT_ELO_2150',
     elo: 2150,
     description: 'Đoán chính xác 95% bài đối thủ, khai thác triệt để mọi điểm mù.',
     memoryDepth: 1.0,
-    riskAppetite: 0.7,
-    trapTendency: 0.55,
-    baitingTendency: 0.65,
-    antiLeaderAggression: 1.05,
+    riskAppetite: 0.75,
+    trapTendency: 0.35,
+    baitingTendency: 0.30,
+    antiLeaderAggression: 1.0,
     tempoControl: 0.98,
     damageControl: 0.98,
     turnsToWinLookahead: 1.0,
@@ -454,10 +455,10 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     elo: 2300,
     description: 'Chế độ Max Cấu Hình: Kiểm soát nhịp độ, bẫy Heo hoàn hảo, không để lại sơ hở.',
     memoryDepth: 1.0,
-    riskAppetite: 0.7,
+    riskAppetite: 0.75,
     trapTendency: 0.5,
-    baitingTendency: 0.6,
-    antiLeaderAggression: 1.1,
+    baitingTendency: 0.30,
+    antiLeaderAggression: 1.0,
     tempoControl: 1.0,
     damageControl: 1.0,
     turnsToWinLookahead: 1.0,
@@ -475,19 +476,19 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     elo: 2500,
     description: 'Trí tuệ nhân tạo tối cao: Đọc vị đối thủ, giữ bài bọc lót hoàn hảo, dứt điểm cờ tàn chuẩn xác.',
     memoryDepth: 1.0,
-    riskAppetite: 0.7,
-    trapTendency: 0.5,
-    baitingTendency: 0.6,
-    antiLeaderAggression: 1.15,
-    tempoControl: 1.0,
-    damageControl: 1.0,
-    turnsToWinLookahead: 1.0,
-    dynamicHandSacrifice: 1.0,
+    riskAppetite: 0.75,
+    trapTendency: 0.35,
+    baitingTendency: 0.3,
+    antiLeaderAggression: 0.96,
+    tempoControl: 0.92,
+    damageControl: 0.95,
+    turnsToWinLookahead: 0.95,
+    dynamicHandSacrifice: 0.95,
     bombInferenceRate: 1.0,
     semiCooperativeCooperation: 1.0,
     positionalAwareness: 1.0,
     inMatchAdaptationRate: 1.0,
-    handPartitioningOptimality: 0.93,
+    handPartitioningOptimality: 0.94,
     simulationLookahead: 4,
     mctsSimulations: 0
   },
@@ -497,20 +498,20 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     description: 'Thần bài cờ tàn: Vét cạn Minimax Alpha-Beta tìm chuỗi Forced-Win tất thắng.',
     memoryDepth: 1.0,
     riskAppetite: 0.75,
-    trapTendency: 0.45,
-    baitingTendency: 0.55,
-    antiLeaderAggression: 1.2,
-    tempoControl: 1.0,
-    damageControl: 1.0,
+    trapTendency: 0.35,
+    baitingTendency: 0.3,
+    antiLeaderAggression: 0.98,
+    tempoControl: 0.96,
+    damageControl: 0.98,
     turnsToWinLookahead: 1.0,
     dynamicHandSacrifice: 1.0,
     bombInferenceRate: 1.0,
     semiCooperativeCooperation: 1.0,
     positionalAwareness: 1.0,
     inMatchAdaptationRate: 1.0,
-    handPartitioningOptimality: 0.96,
+    handPartitioningOptimality: 0.92,
     simulationLookahead: 4,
-    mctsSimulations: 30,
+    mctsSimulations: 0,
     useMinimaxEndgame: true,
     useBayesianInference: true
   },
@@ -519,10 +520,10 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     elo: 3200,
     description: 'BOSS Alpha Mind: Hợp nhất toàn bộ siêu thuật toán, tính toán xác suất Bayes và cờ tàn hoàn hảo.',
     memoryDepth: 1.0,
-    riskAppetite: 0.8,
-    trapTendency: 0.4,
-    baitingTendency: 0.5,
-    antiLeaderAggression: 1.25,
+    riskAppetite: 0.75,
+    trapTendency: 0.35,
+    baitingTendency: 0.30,
+    antiLeaderAggression: 1.0,
     tempoControl: 1.0,
     damageControl: 1.0,
     turnsToWinLookahead: 1.0,
@@ -531,7 +532,7 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     semiCooperativeCooperation: 1.0,
     positionalAwareness: 1.0,
     inMatchAdaptationRate: 1.0,
-    handPartitioningOptimality: 1.0,
+    handPartitioningOptimality: 0.92,
     simulationLookahead: 4,
     mctsSimulations: 50,
     useMinimaxEndgame: true,
@@ -541,15 +542,11 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
 };
 
 export const GLOBAL_AVATARS_BY_TIER: Record<number, string[]> = {
-  1: ['🤠', '👶', '🧒', '🧢', '🎣', '🎯'],
-  2: ['🧔', '👨', '👩', '👧', '🧓', '🥋'],
-  3: ['😎', '🧐', '🕵️‍♂️', '🏹', '💼', '🎲'],
-  4: ['🥷', '🧙‍♂️', '🦁', '🐺', '🦊', '⚡'],
-  5: ['🤴', '👸', '👑', '🦅', '🦈', '🔥'],
-  6: ['💎', '🏆', '🐉', '🐯', '🦍', '🌪️'],
-  7: ['🦹‍♂️', '🤺', '🦄', '🐍', '🪙', '💰'],
-  8: ['🃏', '💥', '✨', '🌟', '🛡️', '⚔️'],
-  9: ['🤖', '🧠', '👽', '🔮', '🪐', '💫']
+  1: ['🤠', '👶', '🧒', '🧢', '🎣', '🎯', '🍀'],
+  2: ['🧔', '👨', '👩', '👧', '🧓', '🥋', '🎩', '🪙'],
+  3: ['😎', '🧐', '🕵️‍♂️', '🏹', '💼', '🎲', '🦊', '🐺'],
+  4: ['🥷', '🧙‍♂️', '🦁', '⚡', '🐉', '🐯', '🌪️', '⚔️', '🛡️'],
+  5: ['👑', '🤴', '👸', '💎', '🏆', '🤖', '🧠', '👽', '🔮', '🪐', '🦅', '🦈', '🔥', '🃏', '✨', '🌟']
 };
 
 export const GLOBAL_AVATARS: readonly string[] = [
@@ -697,29 +694,49 @@ export const GLOBAL_BOT_NAMES = [
   'Vanguard', 'Apex', 'Matrix', 'Nexus', 'Pulse', 'Rogue', 'Specter', 'Striker', 'Phantom', 'Zenith'
 ];
 
-export const GLOBAL_NICKNAMES_BY_TIER: Record<number, string[]> = {
-  1: ['Rookie', 'Newbie', 'Starter', 'Cadet', 'Trainee', 'Apprentice'],
-  2: ['Novice', 'Striker', 'Wildcard', 'Blitzer', 'Gambit', 'Rebel'],
-  3: ['Amateur', 'Fighter', 'Brawler', 'Tactician', 'Scout', 'Duelist'],
-  4: ['Veteran', 'Card Hunter', 'Strategist', 'Sniper', 'Sentinel', 'Tracker'],
-  5: ['Elite', 'Mind Reader', 'Predator', 'Pro Ace', 'Vanguard', 'Executioner'],
-  6: ['Master', 'Warlock', 'Shadow Master', 'Phantom', 'Nexus', 'Zenith'],
-  7: ['Grandmaster', 'Bayesian Mind', 'Oracle', 'Overlord', 'Dominator'],
-  8: ['Mythic Legend', 'Endgame King', 'Master Tactician', 'Apex Predator', 'Immortal'],
-  9: ['Supreme AI', 'Alpha Mind', 'Zero Defeat', 'God of Cards', 'Singularity']
-};
+/**
+ * Auto-Classification: Tự động phân loại tất cả Bot Persona theo Bậc Rank dựa vào Elo.
+ * Developer chỉ cần thêm bot vào BOT_PERSONAS, hệ thống tự động phân hạng 100%!
+ */
+export function getPersonasForTier(tierNum: number): (keyof typeof BOT_PERSONAS)[] {
+  const tier = getTierInfoByTierNum(tierNum);
+  const matched = (Object.keys(BOT_PERSONAS) as (keyof typeof BOT_PERSONAS)[]).filter(key => {
+    const persona = BOT_PERSONAS[key];
+    return persona.elo >= tier.minElo && persona.elo <= tier.maxElo;
+  });
+  return matched.length > 0 ? matched : ['BOT_ELO_1150'];
+}
 
-export const TIER_BASE_PERSONAS: Record<number, (keyof typeof BOT_PERSONAS)[]> = {
-  1: ['BOT_ELO_700', 'BOT_ELO_750'],
-  2: ['BOT_ELO_950', 'BOT_ELO_1000', 'BOT_ELO_1150'],
-  3: ['BOT_ELO_1200', 'BOT_ELO_1250', 'BOT_ELO_1350'],
-  4: ['BOT_ELO_1450', 'BOT_ELO_1550', 'BOT_ELO_1600'],
-  5: ['BOT_ELO_1650', 'BOT_ELO_1750', 'BOT_ELO_1850'],
-  6: ['BOT_ELO_1900', 'BOT_ELO_1950', 'BOT_ELO_2050'],
-  7: ['BOT_ELO_2150', 'BOT_ELO_2300', 'BOT_ELO_2500'],
-  8: ['BOT_ELO_2750'],
-  9: ['BOT_ELO_3200']
-};
+/**
+ * Proxy tương thích ngược: Bất kỳ truy vấn TIER_BASE_PERSONAS[tierNum] nào
+ * đều tự động phân loại theo Elo mà không cần khai báo danh sách cứng!
+ */
+export const TIER_BASE_PERSONAS: Record<number, (keyof typeof BOT_PERSONAS)[]> = new Proxy(
+  {} as Record<number, (keyof typeof BOT_PERSONAS)[]>,
+  {
+    get(_target, prop) {
+      const num = Number(prop);
+      if (!isNaN(num) && num >= 1) {
+        return getPersonasForTier(num);
+      }
+      return getPersonasForTier(2);
+    }
+  }
+);
+
+/**
+ * Proxy tương thích ngược: Biệt danh phái sinh trực tiếp từ SSOT RANK_TIERS
+ */
+export const GLOBAL_NICKNAMES_BY_TIER: Record<number, string[]> = new Proxy(
+  {} as Record<number, string[]>,
+  {
+    get(_target, prop) {
+      const num = Number(prop);
+      const tier = getTierInfoByTierNum(isNaN(num) ? 2 : num);
+      return tier.nicknames as string[];
+    }
+  }
+);
 
 /**
  * Sinh cấu hình Bot ngẫu nhiên chuẩn Quốc tế / Esports
@@ -732,8 +749,8 @@ export function generateRandomBotConfig(
     baseId?: string;
   }
 ): BotConfig {
-  const normalizedTier = Math.max(1, Math.min(9, tier));
-  const candidateIds = TIER_BASE_PERSONAS[normalizedTier] || TIER_BASE_PERSONAS[2];
+  const normalizedTier = Math.max(1, Math.min(RANK_TIERS.length, tier));
+  const candidateIds = getPersonasForTier(normalizedTier);
   const chosenBaseId = options?.baseId || candidateIds[Math.floor(Math.random() * candidateIds.length)];
   const baseConfig = BOT_PERSONAS[chosenBaseId] || BOT_PERSONAS.BOT_ELO_1150;
 

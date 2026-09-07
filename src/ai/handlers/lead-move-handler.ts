@@ -42,7 +42,7 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
     const activeOpponentsCount = hasExplicitSelf
       ? Object.entries(remainingPlayerCards).filter(([id, cnt]) => id !== config.id && cnt > 0).length
       : Math.max(1, totalActive - 1);
-    const isNearFinishDanger = minOpponentCards <= (activeOpponentsCount <= 2 ? 3 : 2) && config.turnsToWinLookahead >= 0.5;
+    const isNearFinishDanger = minOpponentCards <= (activeOpponentsCount <= 2 ? 3 : 2);
     const isNextPlayerOneCard = context.isNextPlayerOneCard ?? (remainingPlayerCards[nextPlayerId] === 1);
 
     const nonTwoTrash = partition.trashCards.filter(c => !isTwo(c));
@@ -66,25 +66,53 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
     };
 
     // =========================================================================
+    // CỬA 0: DỨT ĐIỂM TOÀN BỘ BÀI TRÊN TAY (Endgame Instant Win Gate)
+    // =========================================================================
+    const finishMove = validMoves.find(m => {
+      if (m.cards.length !== hand.length) return false;
+      if (context.prohibitEndingWithTwo && m.cards.every(isTwo)) return false;
+      return true;
+    });
+    if (finishMove) {
+      return buildBotDecision('PLAY', {
+        cards: finishMove.cards,
+        combination: finishMove.combination,
+        reason: 'Đánh dứt điểm toàn bộ bài trên tay để Về Nhất ngay lập tức!',
+        strategyUsed: 'ENDGAME_INSTANT_WIN'
+      });
+    }
+
+    // =========================================================================
     // 0A. CỜ TÀN BẢO HIỂM THỐI HEO KHI CẤM 2 CUỐI (PROHIBIT ENDING WITH TWO)
     // =========================================================================
-    if (context.prohibitEndingWithTwo && hand.some(isTwo) && hand.some(c => !isTwo(c)) && hand.length <= 4 && !isNextPlayerOneCard) {
-      const twoSingleMoves = validMoves.filter(m => m.combination.type === 'SINGLE' && isTwo(m.cards[0]));
-      if (twoSingleMoves.length > 0) {
-        const smallestTwoMove = twoSingleMoves.sort((a, b) => a.combination.highestCard.weight - b.combination.highestCard.weight)[0];
-        return buildBotDecision('PLAY', {
-          cards: smallestTwoMove.cards,
-          combination: smallestTwoMove.combination,
-          reason: 'Cấm 2 cuối: Bung Heo trước để cướp cái và giữ bài thường về Nhất, chống thối Heo',
-          strategyUsed: 'PROHIBIT_ENDING_TWO_LEAD_DUMP'
-        });
+    // Chỉ bung Heo dẫn đường khi: Phần bài thường còn lại CÓ THỂ VỀ TRỌN VẸN TRONG 1 LƯỢT (turnsToClear === 1).
+    // Ví dụ: Còn [2, Đôi 5] hoặc [2, Sảnh 3 lá] hoặc [2, 1 rác lẻ duy nhất]. Khi đó bung Heo xong là cầm chắc về Nhất.
+    // Nếu sau khi bung Heo vẫn còn >= 2 lượt (ví dụ còn 2 rác lẻ [3, 10]), tuyệt đối không bung Heo vì sẽ mất thế chủ động và thua ngược!
+    if (context.prohibitEndingWithTwo && hand.some(isTwo) && hand.some(c => !isTwo(c)) && hand.length <= 5 && !isNextPlayerOneCard) {
+      const nonTwoCards = hand.filter(c => !isTwo(c));
+      const nonTwoPartition = partitionHand(nonTwoCards, config.handPartitioningOptimality);
+      const turnsToClearNonTwo = calculateTurnsToClearHand(nonTwoCards, nonTwoPartition);
+
+      if (turnsToClearNonTwo <= 1) {
+        const twoSingleMoves = validMoves.filter(m => m.combination.type === 'SINGLE' && isTwo(m.cards[0]));
+        if (twoSingleMoves.length > 0) {
+          const smallestTwoMove = twoSingleMoves.sort((a, b) => a.combination.highestCard.weight - b.combination.highestCard.weight)[0];
+          return buildBotDecision('PLAY', {
+            cards: smallestTwoMove.cards,
+            combination: smallestTwoMove.combination,
+            reason: 'Cấm 2 cuối: Bung Heo dọn đường vì phần bài còn lại chắc chắn về trong 1 nhịp, chống thối Heo',
+            strategyUsed: 'PROHIBIT_ENDING_TWO_LEAD_DUMP'
+          });
+        }
       }
     }
 
     // =========================================================================
     // 0. CHẶN ĐẦU ĐỀN BÀI SINH TỬ BẰNG BẺ BÀI (DYNAMIC SACRIFICE / SPLITTING)
     // =========================================================================
-    if (isNextPlayerOneCard) {
+    // CHỈ XẢ BÀI LẺ CHẶN ĐẦU KHI TRÊN TAY HOÀN TOÀN KHÔNG CÓ BỘ (ĐÔI/SẢNH/SÁM)!
+    // Nếu có bộ, bot BẮT BUỘC ĐÁNH BỘ (xuống Section 3) để khóa cứng người 1 lá (người 1 lá không thể đỡ bộ).
+    if (isNextPlayerOneCard && regularNonTwoCombos.length === 0) {
       if (config.dynamicHandSacrifice >= 0.4) {
         const sortedHand = sortCards(hand);
         const absoluteHighestCard = sortedHand[sortedHand.length - 1];
@@ -119,7 +147,12 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
     // =========================================================================
     // 1. KHAI THÁC ĐIỂM YẾU & BẮT BÀI ĐỐI THỦ (IN-MATCH ADAPTATION & WEAKNESS EXPLOITATION)
     // =========================================================================
+    // KHÔNG áp dụng bắt bài nếu bot đang nắm lực bài áp đảo (Dominant Hand >= 2 Heo) hoặc
+    // trong chế độ Đếm Lá cần ưu tiên xả Sảnh dài nhiều lá trước (preferLongestComboFirst).
+    // Khi bắt bài, CHỈ chọn trong số các bộ có độ dài lớn nhất (không hạ cấp từ Sảnh dài xuống Đôi nhỏ).
+    const isDominantHand = handStrength.tier === 'DOMINANT' || (handStrength.tier === 'STRONG' && handStrength.twoCount >= 2);
     if (
+      !isDominantHand &&
       (config.memoryDepth >= 0.4 || config.inMatchAdaptationRate >= 0.3) &&
       regularNonTwoCombos.length > 0 &&
       !isEmergencyAntiLeader &&
@@ -136,7 +169,7 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
         const passedCombos = tracker.getOpponentWeaknessCombos(targetOpponentId);
         const targetProfile = context.opponentProfiles?.[targetOpponentId] ?? OpponentProfiler.getInstance().getProfile(targetOpponentId);
 
-        for (const combo of regularNonTwoCombos) {
+        const matchingWeaknessCombos = regularNonTwoCombos.filter(combo => {
           let matchesWeakness = passedCombos.has(combo.type);
           if (combo.type === 'STRAIGHT' && tracker.hasOpponentPassedOnStraightLength(targetOpponentId, combo.length)) {
             matchesWeakness = true;
@@ -147,21 +180,27 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
               matchesWeakness = true;
             }
           }
+          return matchesWeakness;
+        });
 
-          if (matchesWeakness) {
-            const move = validMoves.find(
-              m => m.combination.type === combo.type &&
-                   m.cards.length === combo.cards.length &&
-                   m.combination.highestCard.rank === combo.highestCard.rank
-            );
-            if (move) {
-              return buildBotDecision('PLAY', {
-                cards: move.cards,
-                combination: move.combination,
-                reason: `Khai thác điểm yếu & bắt bài (In-Match Adaptation): Đánh ${combo.type} do đối thủ (${targetOpponentId}) có tỉ lệ bỏ lượt cao`,
-                strategyUsed: 'IN_MATCH_ADAPTATION'
-              });
-            }
+        if (matchingWeaknessCombos.length > 0) {
+          matchingWeaknessCombos.sort((a, b) => {
+            if (b.cards.length !== a.cards.length) return b.cards.length - a.cards.length;
+            return a.highestCard.weight - b.highestCard.weight;
+          });
+          const bestAdaptedCombo = matchingWeaknessCombos[0];
+          const move = validMoves.find(
+            m => m.combination.type === bestAdaptedCombo.type &&
+                 m.cards.length === bestAdaptedCombo.cards.length &&
+                 m.combination.highestCard.rank === bestAdaptedCombo.highestCard.rank
+          );
+          if (move) {
+            return buildBotDecision('PLAY', {
+              cards: move.cards,
+              combination: move.combination,
+              reason: `Khai thác điểm yếu & bắt bài (In-Match Adaptation): Đánh ${bestAdaptedCombo.type} do đối thủ (${targetOpponentId}) có tỉ lệ bỏ lượt cao`,
+              strategyUsed: 'IN_MATCH_ADAPTATION'
+            });
           }
         }
       }
@@ -216,41 +255,65 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
       }
     }
 
+
     // =========================================================================
     // 3. CHÍNH SÁCH RA BÀI HỢP THÀNH TỪ CÁC RULE ACTIVE (COMPOSITE LEAD POLICY)
     // =========================================================================
-    // A. Ưu tiên xả Sảnh dài (4-6 lá) & Bộ thường nhiều lá trước (Luật Đếm Lá, hoặc khi có người sắp về mà ta có bộ để khóa họ)
+    // A. Ưu tiên xả Sảnh dài (4-6 lá) & Bộ thường nhiều lá trước (Luật Đếm Lá, Solo 1v1 hoặc khi có người sắp về mà ta có bộ để khóa họ)
+    const isSolo = activeOpponentsCount === 1;
+    const hasBomb = partition.combinations.some(
+      c =>
+        c.type === 'FOUR_OF_A_KIND' ||
+        c.type === 'THREE_PAIRS_SEQUENTIAL' ||
+        c.type === 'FOUR_PAIRS_SEQUENTIAL'
+    );
+    const turnsToClear = calculateTurnsToClearHand(hand, partition);
+    const isSprintToFinish = turnsToClear <= 2 && config.turnsToWinLookahead >= 0.6 && !hasBomb;
+
+    const canPreferLongestCombo = (leadPolicy.preferLongestComboFirst || (isSolo && config.tempoControl >= 0.8)) && config.handPartitioningOptimality >= 0.55;
+    const isComboLockThreat = isEmergencyAntiLeader || isNearFinishDanger || isNextPlayerOneCard;
     if (
-      (leadPolicy.preferLongestComboFirst || isEmergencyAntiLeader || isNearFinishDanger) &&
-      regularNonTwoCombos.length > 0 &&
-      !isNextPlayerOneCard
+      (canPreferLongestCombo || isComboLockThreat) &&
+      regularNonTwoCombos.length > 0
     ) {
       const sortedCombos = [...regularNonTwoCombos].sort((a, b) => {
         if (b.cards.length !== a.cards.length) {
           return b.cards.length - a.cards.length;
+        }
+        if (isComboLockThreat) {
+          return b.highestCard.weight - a.highestCard.weight;
         }
         return a.highestCard.weight - b.highestCard.weight;
       });
 
       const longestCombo = sortedCombos[0];
 
-      // ĐIỀU KIỆN AN TOÀN KHI XẢ COMBO DÀI (TRÁNH XẢ ĐÔI TO KHI CÒN RÁC NHỎ):
-      // 1. Khi có người sắp về bài (isEmergencyAntiLeader || isNearFinishDanger): Đánh bất kỳ bộ nào (đôi/sám/sảnh) để khóa họ.
-      // 2. Khi áp dụng preferLongestComboFirst trong Đếm Lá:
-      //    - Nếu combo dài >= 3 lá (Sảnh 3-6 lá, Sám 3 lá): Luôn xả trước!
-      //    - Nếu combo dài nhất chỉ là ĐÔI (cards.length === 2):
-      //      + Sạch rác (nonTwoTrash.length === 0): Được xả đôi để dứt điểm.
-      //      + Còn rác lẻ (nonTwoTrash.length > 0):
-      //        * Nếu là Đôi To (rank >= 12: Q, K, A) và (nonTwoTrash.length >= 2 || activeOpponentsCount === 1):
-      //          TUYỆT ĐỐI KHÔNG XẢ TRƯỚC! Nhường quyền cho khối tẩu rác nhỏ trước để giữ đôi to làm bệ phóng cướp cái ở cờ tàn.
+      // ĐIỀU KIỆN AN TOÀN KHI XẢ COMBO DÀI (QUẢN LÝ ĐÔI KHI CÒN RÁC LẺ):
+      // 1. Khi có người sắp về bài (isEmergencyAntiLeader || isNearFinishDanger): Đánh bất kỳ bộ nào để khóa họ.
+      // 2. Khi combo dài nhất CHỈ LÀ ĐÔI (cards.length === 2) và còn rác lẻ (nonTwoTrash.length > 0):
+      //    - Đôi Nhỏ (rank < 11: 3..10): Tuyệt đối KHÔNG xả trước vì rất dễ bị đè cướp cái, kẹt lại rác lẻ!
+      //      -> Nhường quyền cho tẩu rác nhỏ trước (canLeadCombo = false).
+      //    - Đôi To (rank >= 11: J, Q, K, A):
+      //      + Trong Solo 1v1 (isSolo): ĐƯỢC XẢ ĐÔI TO! Đôi to trong 1v1 có tỷ lệ kiểm soát nhịp rất cao.
+      //      + Trong bàn đông người (!isSolo):
+      //        * Nếu còn nhiều rác (nonTwoTrash.length >= 2 && hand.length > 5): Giữ đôi to làm bệ phóng cướp cái, tẩu rác trước (canLeadCombo = false).
+      //        * Nếu chỉ còn 1 rác hoặc cờ tàn (hand.length <= 5): Được xả đôi to để dứt điểm về bài.
       let canLeadCombo = true;
       if (!isEmergencyAntiLeader && !isNearFinishDanger && leadPolicy.preferLongestComboFirst) {
+        // 1. Nếu combo dài nhất là Sảnh 3 lá nhỏ (rank < 11) và còn rác lẻ, hoặc chưa phải dứt điểm:
+        // Tuyệt đối không xả sảnh 3 lá nhỏ ra đầu vì đối thủ rất dễ có sảnh 3 lá cao hơn để đè cướp cái!
+        if (longestCombo.type === 'STRAIGHT' && longestCombo.cards.length === 3) {
+          if (longestCombo.highestCard.rank < 11 && (nonTwoTrash.length > 0 || isSolo) && !isSprintToFinish) {
+            canLeadCombo = false;
+          }
+        }
+
+        // 2. Nếu combo dài nhất là Đôi (cards.length === 2) và còn rác lẻ:
         if (longestCombo.cards.length < 3) {
           if (nonTwoTrash.length > 0) {
-            const isHighPair = longestCombo.highestCard.rank >= 12;
-            const isSolo = activeOpponentsCount === 1;
+            const isSmallPair = longestCombo.highestCard.rank < 11;
             const hasMultipleTrash = nonTwoTrash.length >= 2;
-            if (isHighPair && (hasMultipleTrash || isSolo)) {
+            if (isSmallPair || (hasMultipleTrash && hand.length > 5)) {
               canLeadCombo = false;
             }
           }
@@ -272,7 +335,7 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
             m.combination.highestCard.id === longestCombo.highestCard.id
         );
         if (move) {
-          const isThreatLock = isEmergencyAntiLeader || isNearFinishDanger;
+          const isThreatLock = isEmergencyAntiLeader || isNearFinishDanger || isNextPlayerOneCard;
           const reason = isThreatLock
             ? `Khóa đối thủ sắp về (${minOpponentCards} lá): Đánh bộ (${longestCombo.type} ${longestCombo.cards.length} lá) để chặn đứng đối thủ`
             : `Chiến thuật Rule-Driven: Xả tổ hợp dài nhất (${longestCombo.type} ${longestCombo.cards.length} lá) trước để giảm số lá tồn`;
@@ -290,18 +353,6 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
       }
     }
 
-    // 4. Kiểm tra có Hàng Chặt (Bom) không
-    const hasBomb = partition.combinations.some(
-      c =>
-        c.type === 'FOUR_OF_A_KIND' ||
-        c.type === 'THREE_PAIRS_SEQUENTIAL' ||
-        c.type === 'FOUR_PAIRS_SEQUENTIAL'
-    );
-
-    // Tính số nhịp về bài để xác định có thể Tốc Chiến Tốc Thắng không (chỉ sprint khi không ôm bom rình bẫy)
-    const turnsToClear = calculateTurnsToClearHand(hand, partition);
-    const isSprintToFinish = turnsToClear <= 2 && config.turnsToWinLookahead >= 0.6 && !hasBomb;
-
     // =========================================================================
     // 3B. TỐC CHIẾN TỐC THẮNG (SPRINT TO FINISH CHO BOT CAO THỦ - Nhịp về bài <= 2)
     // =========================================================================
@@ -314,21 +365,37 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
           }
           return true;
         })
-        .sort((a, b) => b.cards.length - a.cards.length);
+        .sort((a, b) => {
+          if (b.cards.length !== a.cards.length) {
+            return b.cards.length - a.cards.length;
+          }
+          return b.highestCard.weight - a.highestCard.weight;
+        });
+
       if (sprintCombos.length > 0) {
         const bestSprintCombo = sprintCombos[0];
-        const move = validMoves.find(
-          m => m.combination.type === bestSprintCombo.type &&
-               m.cards.length === bestSprintCombo.cards.length &&
-               m.combination.highestCard.id === bestSprintCombo.highestCard.id
-        );
-        if (move) {
-          return buildBotDecision('PLAY', {
-            cards: move.cards,
-            combination: move.combination,
-            reason: `Tốc chiến tốc thắng (Sprint-to-Finish): Xả ${bestSprintCombo.type} dứt điểm cờ tàn (${turnsToClear} nhịp)`,
-            strategyUsed: 'SPRINT_TO_FINISH'
-          });
+        // ĐIỀU KIỆN AN TOÀN:
+        // Nếu còn rác lẻ (nonTwoTrash.length > 0):
+        // Chỉ được Sprint bằng Combo nếu combo đó ĐỦ MẠNH để giữ quyền cầm cái (Đôi >= Q/K/A: rank >= 12, hoặc Sảnh >= 4 lá hoặc Sảnh to rank >= 12)!
+        // Nếu combo là Đôi nhỏ (rank < 12: 3..J) hoặc Sảnh 3 lá nhỏ: Tuyệt đối KHÔNG đánh trước rác lẻ vì sẽ bị đối thủ đè mất cái và kẹt lại rác!
+        const isWeakCombo =
+          (bestSprintCombo.cards.length === 2 && bestSprintCombo.highestCard.rank < 12) ||
+          (bestSprintCombo.type === 'STRAIGHT' && bestSprintCombo.cards.length === 3 && bestSprintCombo.highestCard.rank < 12);
+
+        if (!(nonTwoTrash.length > 0 && isWeakCombo)) {
+          const move = validMoves.find(
+            m => m.combination.type === bestSprintCombo.type &&
+                 m.cards.length === bestSprintCombo.cards.length &&
+                 m.combination.highestCard.id === bestSprintCombo.highestCard.id
+          );
+          if (move) {
+            return buildBotDecision('PLAY', {
+              cards: move.cards,
+              combination: move.combination,
+              reason: `Tốc chiến tốc thắng (Sprint-to-Finish): Xả ${bestSprintCombo.type} dứt điểm cờ tàn (${turnsToClear} nhịp)`,
+              strategyUsed: 'SPRINT_TO_FINISH'
+            });
+          }
         }
       }
     }
@@ -402,7 +469,7 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
           }
         }
 
-        // Mặc định an toàn: Tống rác nhỏ nhất (3, 4, 5...)
+        // Mặc định chuẩn mực: Tống rác nhỏ nhất (3, 4, 5...) để giải phóng bài yếu
         const smallestTrash = nonTwoTrash[0];
         const move = validMoves.find(
           m => m.combination.type === 'SINGLE' && m.cards[0].id === smallestTrash.id

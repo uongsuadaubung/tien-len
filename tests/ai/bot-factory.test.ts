@@ -9,17 +9,17 @@ describe('Bot Factory & Dynamic Matchmaking Verification', () => {
     const dynamicId1 = 'dyn_BOT_ELO_1900_1724567890123_456';
     const config1 = getBotConfig(dynamicId1);
     expect(config1.elo).toBe(1900);
-    expect(getTierFromElo(config1.elo).label).toBe('Bạch Kim');
+    expect(getTierFromElo(config1.elo).label).toBe('Cao Thủ');
 
     const dynamicId2 = 'dyn_BOT_ELO_850_1724567890123_789';
     const config2 = getBotConfig(dynamicId2);
     expect(config2.elo).toBe(850);
-    expect(getTierFromElo(config2.elo).label).toBe('Sắt');
+    expect(getTierFromElo(config2.elo).label).toBe('Tân Thủ');
 
     const dynamicId3 = 'dyn_BOT_ELO_2300_1724567890123_101';
     const config3 = getBotConfig(dynamicId3);
     expect(config3.elo).toBe(2300);
-    expect(getTierFromElo(config3.elo).label).toBe('Kim Cương');
+    expect(getTierFromElo(config3.elo).label).toBe('Thần Bài');
   });
 
   test('2. getRandomBotConfigsForTable sinh ra 3 Bot có Elo, Tên và Avatar đa dạng không trùng lặp', () => {

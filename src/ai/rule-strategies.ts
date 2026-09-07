@@ -432,9 +432,10 @@ export class GameFlowRuleStrategy implements RuleStrategyEvaluator {
         const nonTwoPartition = partitionHand(nonTwos, 1.0);
         const totalNonTwoTurns = nonTwoPartition.combinations.length + nonTwoPartition.trashCards.length;
 
-        // Khi phần bài thường nonTwos chỉ còn đúng 1 lượt dứt điểm:
+        // Khi phần bài thường nonTwos chỉ còn <= 2 lượt dứt điểm và ván bài đã vào cờ tàn (hand <= 6 lá),
+        // hoặc khi nonTwos chỉ còn đúng 1 lượt:
         // Bắt buộc xả Heo / bộ Heo trước để cướp nhịp và tránh bị thối Heo!
-        if (totalNonTwoTurns === 1) {
+        if (totalNonTwoTurns === 1 || (totalNonTwoTurns <= 2 && hand.length <= 6)) {
           const twoComboMove = validMoves.find(m => m.cards.length === twos.length && m.cards.every(isTwo))
             || validMoves.find(m => m.cards.every(isTwo));
 
@@ -523,19 +524,53 @@ export class TableScaleRuleStrategy implements RuleStrategyEvaluator {
   }
 
   getRespondingScoreModifier(
-    _move: ValidMoveInfo,
+    move: ValidMoveInfo,
     _handSize: number,
     _targetMove: PlayedMove | null,
     context: RuleDecisionContext
   ): number {
     const aggression = context.antiLeaderAggression || 0.8;
     if (this.config.playerCount === 2) {
-      // Trong Solo 1v1: Đè bài thành công là 100% cướp được cái -> Thưởng nhịp độ (+90),
-      // đóng vai trò nguồn điều chỉnh duy nhất cho quy mô bàn, thay thế Step 6 trong handler
+      // Trong Solo 1v1: Đè bài thành công là 100% cướp được cái -> Thưởng nhịp độ (+90)
+      // NHƯNG: Tuyệt đối KHÔNG thưởng cướp cái khi nước đi này xé nát combo (đôi, sám, sảnh, hàng) của chính mình
+      // trừ khi đang là cờ tàn dứt điểm (hand <= 4 lá) hoặc đối thủ sắp về (isNextPlayerOneCard)
+      const hand = context.hand;
+      const isUrgent = context.isNextPlayerOneCard;
+      if (hand && hand.length > 4 && !isUrgent) {
+        const partition = partitionHand(hand, 1.0);
+        const moveCardIds = new Set(move.cards.map(c => c.id));
+        const breaksCombo = partition.combinations.some(combo => {
+          const overlap = combo.cards.filter(c => moveCardIds.has(c.id)).length;
+          return overlap > 0 && overlap < combo.cards.length;
+        });
+        if (breaksCombo) {
+          return 0;
+        }
+
+        // Không thưởng điểm cướp cái nếu lãng phí Heo vào bài rác nhỏ khi bài còn nhiều
+        const containsTwo = move.cards.some(isTwo);
+        const isTargetSmall = _targetMove && _targetMove.combination.highestCard.rank < 13;
+        if (containsTwo && isTargetSmall && hand.length > 5) {
+          return 0;
+        }
+      }
       return 90 * aggression;
     }
     if (this.config.playerCount === 3) {
       // Trong 3P: Vòng xoay ngắn hơn 4P, cơ hội cướp cái cao hơn
+      const hand = context.hand;
+      const isUrgent = context.isNextPlayerOneCard;
+      if (hand && hand.length > 4 && !isUrgent) {
+        const partition = partitionHand(hand, 1.0);
+        const moveCardIds = new Set(move.cards.map(c => c.id));
+        const breaksCombo = partition.combinations.some(combo => {
+          const overlap = combo.cards.filter(c => moveCardIds.has(c.id)).length;
+          return overlap > 0 && overlap < combo.cards.length;
+        });
+        if (breaksCombo) {
+          return 0;
+        }
+      }
       return 30 * aggression;
     }
     return 0;

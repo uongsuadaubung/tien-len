@@ -2,10 +2,10 @@ import { describe, expect, test } from 'bun:test';
 import { CAMPAIGN_CHAPTERS } from '../../src/engine/campaign';
 import { getTierFromElo } from '../../src/engine/ecosystem/ecosystem-types';
 
-describe('Campaign Mode 9 Esports Chapters & Grand Finale', () => {
-  test('1. Có đủ 9 Chương Ải tương ứng 9 Bậc Rank Esports theo thứ tự độ khó tăng dần', () => {
-    expect(CAMPAIGN_CHAPTERS.length).toBe(9);
-    for (let i = 0; i < 9; i++) {
+describe('Campaign Mode 5 Chapters & Grand Finale', () => {
+  test('1. Có đủ 5 Chương Ải tương ứng 5 Bậc Rank theo thứ tự độ khó tăng dần', () => {
+    expect(CAMPAIGN_CHAPTERS.length).toBe(5);
+    for (let i = 0; i < 5; i++) {
       expect(CAMPAIGN_CHAPTERS[i].id).toBe(i + 1);
       expect(CAMPAIGN_CHAPTERS[i].bots.length).toBe(3);
     }
@@ -20,12 +20,12 @@ describe('Campaign Mode 9 Esports Chapters & Grand Finale', () => {
       expect(next.rewardCoins).toBeGreaterThan(current.rewardCoins);
     }
 
-    // Phần thưởng chương 9 cao nhất: 3.000.000 Xu
-    expect(CAMPAIGN_CHAPTERS[8].rewardCoins).toBe(3000000);
-    expect(CAMPAIGN_CHAPTERS[8].rewardTitle).toBe('Bá Chủ Thần Bài Tối Thượng');
+    // Phần thưởng chương 5 cao nhất: 3.000.000 Xu
+    expect(CAMPAIGN_CHAPTERS[4].rewardCoins).toBe(3000000);
+    expect(CAMPAIGN_CHAPTERS[4].rewardTitle).toBe('Bá Chủ Thần Bài Tối Thượng');
   });
 
-  test('3. Toàn bộ Bot trong 9 Chương đều có định danh Tên, Avatar và Elo đồng bộ chuẩn', () => {
+  test('3. Toàn bộ Bot trong 5 Chương đều có định danh Tên, Avatar và Elo đồng bộ chuẩn', () => {
     for (const chapter of CAMPAIGN_CHAPTERS) {
       for (const bot of chapter.bots) {
         expect(bot.name).toBeDefined();
@@ -37,23 +37,14 @@ describe('Campaign Mode 9 Esports Chapters & Grand Finale', () => {
     }
   });
 
-  test('4. Chương 8 & Chương 9 trang bị AI Đỉnh Cao (Minimax, Bayesian, MCTS)', () => {
-    const chapter8Bots = CAMPAIGN_CHAPTERS[7].bots;
-    const chapter9Bots = CAMPAIGN_CHAPTERS[8].bots;
+  test('4. Chương 5 trang bị AI Đỉnh Cao (Minimax, Bayesian, MCTS)', () => {
+    const chapter5Bots = CAMPAIGN_CHAPTERS[4].bots;
 
-    // Chương 8 (Thần Bài - Elo 2750)
-    for (const bot of chapter8Bots) {
-      expect(bot.elo).toBe(2750);
-      expect(bot.useMinimaxEndgame).toBe(true);
-      expect(bot.useBayesianInference).toBe(true);
-    }
-
-    // Chương 9 (Siêu Trí Tuệ Boss - Elo 3200)
-    for (const bot of chapter9Bots) {
-      expect(bot.elo).toBe(3200);
-      expect(bot.useMinimaxEndgame).toBe(true);
-      expect(bot.useBayesianInference).toBe(true);
-      expect(bot.mctsSimulations).toBeGreaterThanOrEqual(30);
-    }
+    // Chương 5 (Thần Bài & Boss Tối Thượng)
+    const alphaMind = chapter5Bots.find(b => b.elo === 3200);
+    expect(alphaMind).toBeDefined();
+    expect(alphaMind!.useMinimaxEndgame).toBe(true);
+    expect(alphaMind!.useBayesianInference).toBe(true);
+    expect(alphaMind!.mctsSimulations).toBeGreaterThanOrEqual(30);
   });
 });

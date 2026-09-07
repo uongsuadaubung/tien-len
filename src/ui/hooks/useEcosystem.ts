@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { useViewStore } from '../../stores/useViewStore';
 import { useUserStore } from '../../stores/useUserStore';
-import { BotActivityStatus, BotEntity, EcosystemNewsItem, getTierFromElo } from '../../engine/ecosystem/ecosystem-types';
+import { BotActivityStatus, BotEntity, EcosystemNewsItem, getTierFromElo, RANK_TIERS } from '../../engine/ecosystem/ecosystem-types';
 import { t } from '../../locales';
 
 export const PAGE_SIZE = 15;
@@ -41,7 +41,10 @@ export interface EcosystemTableItem {
   rawBot: BotEntity | null;
 }
 
-export const TIER_FILTERS: readonly (number | 'ALL')[] = ['ALL', 9, 8, 7, 6, 5, 4, 3, 2, 1];
+export const TIER_FILTERS: readonly (number | 'ALL')[] = [
+  'ALL',
+  ...RANK_TIERS.map(t => t.tierNum).reverse()
+];
 
 export interface UseEcosystemResult {
   activeTab: EcosystemTab;

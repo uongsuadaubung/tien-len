@@ -23,9 +23,9 @@ export interface BaseDecisionContext {
   isNextPlayerOneCard: boolean;
   prohibitEndingWithTwo: boolean;
   gameMode: string;    // Chế độ chơi
-  mctsMap: Map<string, number> | null;
-  compositeRuleStrategy: CompositeRuleStrategy | null;
-  opponentProfiles: Record<string, OpponentBehaviorProfile> | null;
+  mctsMap?: Map<string, number> | null;
+  compositeRuleStrategy?: CompositeRuleStrategy | null;
+  opponentProfiles?: Record<string, OpponentBehaviorProfile> | null;
 }
 
 export interface LeadDecisionContext extends BaseDecisionContext {
@@ -44,15 +44,21 @@ export function createDecisionContext(params: BaseDecisionContext & {
   isLeadMove: boolean;
   currentRoundLeadingMove?: PlayedMove | null;
 }): DecisionContext {
+  const normalizedParams = {
+    ...params,
+    mctsMap: params.mctsMap ?? null,
+    compositeRuleStrategy: params.compositeRuleStrategy ?? null,
+    opponentProfiles: params.opponentProfiles ?? null,
+  };
   if (params.isLeadMove || !params.currentRoundLeadingMove) {
     return {
-      ...params,
+      ...normalizedParams,
       isLeadMove: true,
       currentRoundLeadingMove: params.currentRoundLeadingMove ?? null
     };
   }
   return {
-    ...params,
+    ...normalizedParams,
     isLeadMove: false,
     currentRoundLeadingMove: params.currentRoundLeadingMove
   };
@@ -148,12 +154,12 @@ export const AI_HEURISTIC_WEIGHTS = {
   TIER_LOOKAHEAD_BONUS: 25,
 
   // 6. Chi Phí Phá Vỡ Bộ Bài (Combo Breaking Penalty)
-  BREAK_BOMB_COST: 120,
-  BREAK_STRAIGHT_MIDDLE_COST: 35,
-  BREAK_STRAIGHT_END_COST: 8,
-  BREAK_TRIPLE_COST: 12,
-  BREAK_PAIR_COST: 6,
-  BREAK_3_STRAIGHT_COST: 18
+  BREAK_BOMB_COST: 350,
+  BREAK_STRAIGHT_MIDDLE_COST: 200,
+  BREAK_STRAIGHT_END_COST: 140,
+  BREAK_TRIPLE_COST: 140,
+  BREAK_PAIR_COST: 140,
+  BREAK_3_STRAIGHT_COST: 35
 } as const;
 
 /**

@@ -29,7 +29,7 @@ describe('Kiểm chứng Tái Cấu Trúc Độ Ưu Tiên & Sửa Lỗi Ra Bài 
     mctsMap: partial.mctsMap ?? null,
     compositeRuleStrategy: partial.compositeRuleStrategy ?? null,
     opponentProfiles: partial.opponentProfiles ?? null
-  });
+  } as unknown as DecisionContext);
 
   test('1. Tái hiện tình huống Turn 1 ván log thực tế: Bot KHÔNG ĐƯỢC vứt AC đi nhử khi còn rác nhỏ 3S, 4C, 6C', () => {
     // Bài của Bot Kasper trong file log: 13 lá

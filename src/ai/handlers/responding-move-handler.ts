@@ -32,8 +32,11 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
     const targetCombo = currentRoundLeadingMove?.combination || null;
     const partition = partitionHand(hand, config.handPartitioningOptimality);
     const twoSafety = tracker.getTwoSafetyReport();
-    const isEmergencyAntiLeader = Object.values(remainingPlayerCards).some(c => c === 1);
+    const leaderWithOneCardId = Object.entries(remainingPlayerCards).find(([pid, cnt]) => pid !== config.id && cnt === 1)?.[0];
+    const hasAnyOneCardLeader = leaderWithOneCardId !== undefined;
+    const isDirectLeaderOneCard = leaderWithOneCardId !== undefined && currentRoundLeadingMove?.playerId === leaderWithOneCardId;
     const isNextPlayerOneCard = context.isNextPlayerOneCard ?? (remainingPlayerCards[nextPlayerId] === 1);
+    const isEmergencyAntiLeader = isDirectLeaderOneCard || (isNextPlayerOneCard && targetCombo?.type === 'SINGLE');
     const totalActive = Object.values(remainingPlayerCards).filter(cnt => cnt > 0).length;
     const hasExplicitSelf = config.id && Object.prototype.hasOwnProperty.call(remainingPlayerCards, config.id);
     const activeOpponentsCount = hasExplicitSelf
@@ -87,7 +90,11 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
     // Luật Tiến Lên Miền Nam: Khi người kế tiếp chỉ còn 1 lá và lượt này đánh bài lẻ,
     // bắt buộc phải đánh lá bài lẻ to nhất có thể để chặn đầu, chống đền bài cho cả làng.
     // =========================================================================
-    if (isNextPlayerOneCard && targetCombo?.type === 'SINGLE' && validSingleMoves.length > 0) {
+    if (
+      isNextPlayerOneCard &&
+      targetCombo?.type === 'SINGLE' &&
+      validSingleMoves.length > 0
+    ) {
       const highestSingleMove = validSingleMoves.reduce((best, cur) =>
         cur.combination.highestCard.weight > best.combination.highestCard.weight ? cur : best
       );
@@ -138,21 +145,27 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
         reasons.push(`Quản lý Heo (${twoScore > 0 ? '+' : ''}${Math.round(twoScore)})`);
       }
 
-      // 3. Liên minh tạm thời dìm người dẫn đầu bàn 4 người (Semi-Cooperative Passing)
+      // 3. Nhường lượt chiến thuật khi đối thủ khác đã chặn người 1 lá (Tactical Pass on Intercepted Leader)
+      // Khi một người chơi khác (không phải người 1 lá) vừa tung đòn chặn mạnh (Heo hoặc lá bài to >= 13),
+      // việc ta đè tiếp bằng Heo của mình mà bản thân không thể về ngay (còn nhiều rác không dứt điểm được)
+      // sẽ tự sát phá vỡ thế bài của chính ta và mớm chiến thắng cho người 1 lá khi ta phải đi đầu sau đó.
       if (
         config.semiCooperativeCooperation >= 0.5 &&
-        (context.gameMode === 'TRADITIONAL' || context.gameMode === 'QUICK') &&
-        isEmergencyAntiLeader &&
         activeOpponentsCount >= 2 &&
-        currentRoundLeadingMove
+        currentRoundLeadingMove &&
+        hasAnyOneCardLeader
       ) {
-        const leaderId = Object.entries(remainingPlayerCards).find(([pid, cnt]) => pid !== config.id && cnt === 1)?.[0];
-        const currentLeadingPlayerId = currentRoundLeadingMove.playerId;
-        if (currentLeadingPlayerId !== leaderId) {
-          const isAllyMoveStrong = currentRoundLeadingMove.combination.highestCard.rank >= 13 || isTwo(currentRoundLeadingMove.combination.highestCard);
-          if (isAllyMoveStrong) {
+        const isMoveByOtherNonLeader = leaderWithOneCardId && currentRoundLeadingMove.playerId !== leaderWithOneCardId;
+        const isLeadStrongBlock = currentRoundLeadingMove.combination.cards.some(isTwo) || currentRoundLeadingMove.combination.highestCard.rank >= 13;
+        
+        if (isMoveByOtherNonLeader && isLeadStrongBlock) {
+          const moveUsesTwo = move.cards.some(isTwo);
+          const turnsToClear = calculateTurnsToClearHand(hand, partition);
+          const cannotFinishSoon = turnsToClear > 1 && (hand.length - move.cards.length >= 2);
+          
+          if (moveUsesTwo && cannotFinishSoon) {
             score -= AI_HEURISTIC_WEIGHTS.SEMI_COOP_PASS_DEDUCTION * config.semiCooperativeCooperation;
-            reasons.push('Nhường đồng minh dìm người 1 lá');
+            reasons.push('Nhường lượt chiến thuật: Đã có người chặn người 1 lá, giữ Heo phòng thủ');
           }
         }
       }
@@ -174,22 +187,36 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
 
       // 5. Kiểm soát nhịp độ & Lợi thế bài thường
       if (config.tempoControl > 0.2 && !containsTwo) {
-        score += leadValueRatio * AI_HEURISTIC_WEIGHTS.LEAD_TEMPO_FACTOR * config.tempoControl;
+        const isLateGameOrSprint = hand.length <= 5 || (hand.length - move.cards.length <= 3);
+        const isTargetHighCard = targetCombo !== null && targetCombo.highestCard.rank >= 11;
+        const turnsToClear = calculateTurnsToClearHand(hand, partition);
+        const canFinishSoon = turnsToClear <= 2;
+        const hasHoldOpportunity = twoSafety.unseenTwosCount === 0 || hand.some(isTwo) || isLateGameOrSprint || isTargetHighCard;
+
+        if (hasHoldOpportunity) {
+          score += leadValueRatio * AI_HEURISTIC_WEIGHTS.LEAD_TEMPO_FACTOR * config.tempoControl;
+        }
 
         // Chỉ thưởng điểm cướp cái bằng bài to (K, A) khi:
         // - Cờ tàn (hand.length <= 5 hoặc đánh xong còn <= 3 lá), HOẶC
         // - Đối phương đánh bài đã là bài to (targetCombo.highestCard.rank >= 11), HOẶC
         // - Bài còn lại có khả năng dứt điểm ngay (turns to clear <= 2).
-        // Tuyệt đối không quăng K, A vào rác nhỏ (3..8) ở đầu ván khi còn nhiều bài!
-        const isLateGameOrSprint = hand.length <= 5 || (hand.length - move.cards.length <= 3);
-        const isTargetHighCard = targetCombo !== null && targetCombo.highestCard.rank >= 11;
-        const turnsToClear = calculateTurnsToClearHand(hand, partition);
-        const canFinishSoon = turnsToClear <= 2;
+        // Tuyệt đối không quăng K, A vào rác nhỏ (3..10) ở đầu ván khi còn nhiều bài!
+        if (move.combination.highestCard.rank >= 13) {
+          if (isLateGameOrSprint || isTargetHighCard || canFinishSoon) {
+            if (leadValueRatio > 0.35) {
+              score += AI_HEURISTIC_WEIGHTS.HIGH_CARD_TEMPO_BONUS * config.tempoControl;
+              reasons.push('Kiểm soát nhịp độ bài to (K/A)');
+            }
+          }
+        }
 
-        if (move.combination.highestCard.rank >= 13 && (isLateGameOrSprint || isTargetHighCard || canFinishSoon)) {
-          if (leadValueRatio > 0.35) {
-            score += AI_HEURISTIC_WEIGHTS.HIGH_CARD_TEMPO_BONUS * config.tempoControl;
-            reasons.push('Kiểm soát nhịp độ bài to (K/A)');
+        // SOLO 1v1 CƯỚP CÁI: Trong 1v1, cướp cái bằng bài rác (không phá combo) để giành thế thượng phong
+        if (activeOpponentsCount === 1 && !move.isChop && move.cards.length === 1) {
+          const isTrashCard = !partition.combinations.some(combo => combo.cards.some(c => c.id === move.cards[0]?.id));
+          if (isTrashCard) {
+            score += AI_HEURISTIC_WEIGHTS.SOLO_NORMAL_MOVE_AGGRESSION * config.tempoControl;
+            reasons.push('Solo 1v1: Cướp quyền Cầm Cái bằng rác lẻ');
           }
         }
       }
@@ -214,24 +241,34 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
         if (mctsMap.has(key)) {
           const winRate = mctsMap.get(key)!;
           const baselineWinRate = 1 / Math.max(2, totalActive);
-          const mctsDelta = (winRate - baselineWinRate) * 25;
+          const scaleFactor = totalActive <= 2 ? 15 : totalActive === 3 ? 30 : 12;
+          const clampLimit = totalActive <= 2 ? 10 : totalActive === 3 ? 18 : 8;
+          const mctsDelta = Math.max(-clampLimit, Math.min(clampLimit, (winRate - baselineWinRate) * scaleFactor));
           score += mctsDelta;
           reasons.push(`MCTS Winrate ${(winRate * 100).toFixed(0)}% (${mctsDelta > 0 ? '+' : ''}${Math.round(mctsDelta)})`);
         }
       }
 
       // 9. Cứu thua khẩn cấp & Chặn đầu đối thủ sắp dứt điểm cờ tàn
-      const antiScale = Math.max(0.5, config.antiLeaderAggression);
+      const antiScale = Math.max(0.85, config.antiLeaderAggression ?? 0.85);
       if (isEmergencyAntiLeader) {
         score += AI_HEURISTIC_WEIGHTS.EMERGENCY_INTERCEPT_BONUS * antiScale;
         reasons.push(`Khẩn cấp chặn người 1 lá (x${antiScale.toFixed(2)})`);
       } else {
         const remainingTargetCards = currentRoundLeadingMove ? (remainingPlayerCards[currentRoundLeadingMove.playerId] ?? 10) : 10;
         const isNearFinishTarget = remainingTargetCards <= (activeOpponentsCount <= 2 ? 3 : 2);
-        if (isNearFinishTarget) {
-          const threatBonus = AI_HEURISTIC_WEIGHTS.EMERGENCY_INTERCEPT_BONUS * 0.7 * antiScale;
+        const turnsToClear = calculateTurnsToClearHand(hand, partition);
+        const isSelfNearFinish = turnsToClear <= 2 || hand.length <= 4;
+        // Bot tự thân ưu tiên về Nhất (Self-Interest):
+        // Chỉ dồn lực chặn đối thủ sắp về khi BẢN THÂN CÓ KHẢ NĂNG CƯỚP CÁI ĐỂ VỀ NHẤT (isSelfNearFinish)
+        // hoặc trong Solo 1v1 (activeOpponentsCount === 1).
+        // Tuyệt đối KHÔNG tự sát làm bia đỡ đạn cho cả làng khi bản thân còn nhiều bài!
+        const canSeizeWin = isSelfNearFinish || activeOpponentsCount === 1;
+
+        if (isNearFinishTarget && canSeizeWin) {
+          const threatBonus = AI_HEURISTIC_WEIGHTS.EMERGENCY_INTERCEPT_BONUS * 0.6 * antiScale;
           score += threatBonus;
-          reasons.push(`Chặn đầu đối thủ sắp dứt điểm (${remainingTargetCards} lá, +${Math.round(threatBonus)})`);
+          reasons.push(`Chặn đầu cướp cái dứt điểm về Nhất (${remainingTargetCards} lá, +${Math.round(threatBonus)})`);
         }
       }
 
@@ -313,17 +350,20 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
 
       // 13. Khai thác lá bài to nhất tuyệt đối
       if (move.cards.length === 1 && tracker.isStrongestRemainingSingle(move.cards[0])) {
-        if (hand.length <= 4 || leadValueRatio > 0.3) {
+        const isTargetHighCard = targetCombo !== null && targetCombo.highestCard.rank >= 11;
+        const turnsToClear = calculateTurnsToClearHand(hand, partition);
+        if (hand.length <= 5 || isTargetHighCard || turnsToClear <= 2) {
           score += AI_HEURISTIC_WEIGHTS.STRONGEST_SINGLE_BONUS * config.tempoControl;
           reasons.push('Cầm trịch lá to nhất bàn');
         }
       }
 
       // 14. Minimum Sufficient Beat (Đè bằng lá nhỏ nhất vừa đủ, bảo toàn bài to)
+      // Đóng vai trò tie-breaker nhẹ nhàng (hệ số 0.2), ưu tiên lá nhỏ hơn vừa đủ nhưng KHÔNG ép bot bỏ lượt
       // KHÔNG áp dụng hình phạt này khi người kế tiếp đang báo 1 lá (vì đang cần đè bằng lá to nhất để chống đền bài)!
       if (targetCombo && !move.cards.some(isTwo) && !(isNextPlayerOneCard && move.combination.type === 'SINGLE')) {
         const weightDiff = move.combination.highestCard.weight - targetCombo.highestCard.weight;
-        score -= weightDiff * 0.75 * config.handPartitioningOptimality;
+        score -= weightDiff * 0.2;
       }
 
       // 15. Nhận thức chiến lược cao cấp
@@ -333,11 +373,21 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
         }
       }
 
-      // 16. Sai số ngẫu nhiên của tân thủ (Tier 1/2)
-      if (config.simulationLookahead === 0) {
-        score += (Math.random() - 0.5) * 50;
-      } else if (config.simulationLookahead === 1) {
-        score += (Math.random() - 0.5) * 20;
+      // 16. Tối ưu hóa số nhịp về bài (Turns-to-Clear Lookahead):
+      // Bot có tầm nhìn chiến lược (turnsToWinLookahead >= 0.35) đánh giá xem nước đi có giúp rút ngắn nhịp về bài không
+      if (config.turnsToWinLookahead >= 0.35) {
+        const remainingHand = hand.filter(c => !move.cards.some(mc => mc.id === c.id));
+        const currentTurns = calculateTurnsToClearHand(hand, partition);
+        const nextPartition = partitionHand(remainingHand, config.handPartitioningOptimality);
+        const nextTurns = calculateTurnsToClearHand(remainingHand, nextPartition);
+        const turnsReduced = currentTurns - nextTurns;
+        if (turnsReduced > 0) {
+          score += turnsReduced * 35 * config.turnsToWinLookahead;
+          reasons.push(`Rút ngắn ${turnsReduced} nhịp về bài (+${Math.round(turnsReduced * 35 * config.turnsToWinLookahead)})`);
+        } else if (turnsReduced < 0 && hand.length <= 6) {
+          score += turnsReduced * 30 * config.turnsToWinLookahead;
+          reasons.push(`Kéo dài ${-turnsReduced} nhịp về bài (${Math.round(turnsReduced * 30 * config.turnsToWinLookahead)})`);
+        }
       }
 
       evaluatedCandidateList.push({

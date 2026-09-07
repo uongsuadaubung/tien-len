@@ -10,7 +10,7 @@ import {
 import { BotConfig } from '../../ai/types';
 import { ECOSYSTEM_CONSTANTS } from '../constants/ecosystem';
 import { ECONOMY_CONSTANTS } from '../constants/economy';
-import { BotEntity, getTierFromElo } from './ecosystem-types';
+import { BotEntity, getTierFromElo, RANK_TIERS, getTierInfoByTierNum } from './ecosystem-types';
 
 /**
  * Hàm phụ trợ tính Gaussian Jitter (Độ lệch chuẩn ngẫu nhiên kẹp trong min/max)
@@ -107,16 +107,9 @@ export function createBotEntityFromDNA(
   const avatar = sanitizeAvatar(rawAvatar, index + tierNum);
 
   // 2. Tính Elo với Jitter
-  let minElo = 600;
-  let maxElo = 899;
-  if (tierNum === 2) { minElo = 900; maxElo = 1199; }
-  else if (tierNum === 3) { minElo = 1200; maxElo = 1499; }
-  else if (tierNum === 4) { minElo = 1500; maxElo = 1799; }
-  else if (tierNum === 5) { minElo = 1800; maxElo = 2099; }
-  else if (tierNum === 6) { minElo = 2100; maxElo = 2399; }
-  else if (tierNum === 7) { minElo = 2400; maxElo = 2699; }
-  else if (tierNum === 8) { minElo = 2700; maxElo = 2999; }
-  else if (tierNum === 9) { minElo = 3000; maxElo = 3400; }
+  const tierInfo = getTierInfoByTierNum(tierNum);
+  const minElo = tierInfo.minElo;
+  const maxElo = Math.min(tierInfo.maxElo, tierNum === RANK_TIERS.length ? 3400 : tierInfo.maxElo);
 
   const baseElo = basePersona.elo;
   const eloOffset = (Math.random() - 0.5) * 80;
@@ -128,7 +121,7 @@ export function createBotEntityFromDNA(
   const riskAppetite = applyJitter(basePersona.riskAppetite, 0.1, 0.1, 0.95);
   const trapTendency = applyJitter(basePersona.trapTendency, 0.1, 0.05, 0.95);
   const baitingTendency = applyJitter(basePersona.baitingTendency, 0.1, 0.05, 0.95);
-  const antiLeaderAggression = applyJitter(basePersona.antiLeaderAggression ?? 0.5, 0.08, 0.1, 0.95);
+  const antiLeaderAggression = applyJitter(basePersona.antiLeaderAggression ?? 0.88, 0.05, 0.8, 1.0);
   const tempoControl = applyJitter(basePersona.tempoControl ?? 0.5, 0.08, 0.1, 0.95);
   const damageControl = applyJitter(basePersona.damageControl, 0.1, 0.1, 0.95);
   const turnsToWinLookahead = applyJitter(basePersona.turnsToWinLookahead, 0.08, 0.1, 0.95);
@@ -137,7 +130,7 @@ export function createBotEntityFromDNA(
   const semiCooperativeCooperation = applyJitter(basePersona.semiCooperativeCooperation ?? 0.5, 0.08, 0.1, 0.95);
   const positionalAwareness = applyJitter(basePersona.positionalAwareness, 0.1, 0.1, 0.95);
   const inMatchAdaptationRate = applyJitter(basePersona.inMatchAdaptationRate ?? 0.5, 0.08, 0.1, 0.95);
-  const handPartitioningOptimality = applyJitter(basePersona.handPartitioningOptimality ?? 0.5, 0.08, 0.1, 0.95);
+  const handPartitioningOptimality = applyJitter(basePersona.handPartitioningOptimality ?? 0.6, 0.05, 0.5, 1.0);
   const simulationLookahead = basePersona.simulationLookahead ?? (tierNum >= 5 ? 2 : 1);
 
   const personalityTags = generatePersonalityTags({
@@ -152,7 +145,7 @@ export function createBotEntityFromDNA(
   });
 
   const coins = generateEcosystemBankroll(tierNum, riskAppetite);
-  const title = tierNum >= 9 ? 'Siêu Trí Tuệ Boss' : tierNum >= 8 ? 'Thần Bài' : tierNum >= 7 ? 'Đại Cao Thủ' : nickname;
+  const title = tierInfo.name;
 
   return {
     id: `bot_eco_t${tierNum}_${index}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
@@ -177,9 +170,9 @@ export function createBotEntityFromDNA(
     handPartitioningOptimality,
     simulationLookahead,
     mctsSimulations: basePersona.mctsSimulations || 0,
-    useMinimaxEndgame: basePersona.useMinimaxEndgame || tierNum >= 7,
-    useBayesianInference: basePersona.useBayesianInference || tierNum >= 8,
-    useDynamicRepartitioning: basePersona.useDynamicRepartitioning || tierNum >= 6,
+    useMinimaxEndgame: basePersona.useMinimaxEndgame || tierNum >= 5,
+    useBayesianInference: basePersona.useBayesianInference || tierNum >= 5,
+    useDynamicRepartitioning: basePersona.useDynamicRepartitioning || tierNum >= 4,
     coins,
     currentStreak: 0,
     highestStreak: 0,
@@ -211,8 +204,9 @@ export function generateInitial200Bots(): BotEntity[] {
   const bots: BotEntity[] = [];
   const usedNames = new Set<string>();
 
-  for (let tier = 1; tier <= 9; tier++) {
-    const count = ECOSYSTEM_CONSTANTS.TIER_DISTRIBUTION[tier] || 20;
+  for (const tierDef of RANK_TIERS) {
+    const tier = tierDef.tierNum;
+    const count = ECOSYSTEM_CONSTANTS.TIER_DISTRIBUTION[tier] || tierDef.targetBotQuota;
     for (let i = 0; i < count; i++) {
       const bot = createBotEntityFromDNA(tier, i, usedNames);
       bots.push(bot);
@@ -229,7 +223,7 @@ export function generateInitial200Bots(): BotEntity[] {
  * 3. Fallback theo điểm Elo nếu không có metadata ID
  */
 export function getBotDnaTier(bot: BotEntity): number {
-  if (typeof bot.dnaTier === 'number' && bot.dnaTier >= 1 && bot.dnaTier <= 9) {
+  if (typeof bot.dnaTier === 'number' && bot.dnaTier >= 1 && bot.dnaTier <= RANK_TIERS.length) {
     return bot.dnaTier;
   }
 
@@ -237,16 +231,15 @@ export function getBotDnaTier(bot: BotEntity): number {
     const match = bot.id.match(/^bot_eco_t(\d+)_/);
     if (match) {
       const tier = parseInt(match[1], 10);
-      if (tier >= 1 && tier <= 9) {
+      if (tier >= 1 && tier <= RANK_TIERS.length) {
         return tier;
       }
     }
   }
 
-  if (bot.useBayesianInference && bot.useMinimaxEndgame) return 9;
-  if (bot.useBayesianInference) return 8;
-  if (bot.useMinimaxEndgame) return 7;
-  if (bot.useDynamicRepartitioning) return 6;
+  if (bot.useBayesianInference && bot.useMinimaxEndgame) return 5;
+  if (bot.useMinimaxEndgame) return 5;
+  if (bot.useDynamicRepartitioning) return 4;
 
   return getTierFromElo(bot.elo).tierNum;
 }
@@ -259,9 +252,10 @@ export function getBotDnaTier(bot: BotEntity): number {
  * - Khi Bậc đó đã đủ số lượng, tự động chuyển xuống bậc tiếp theo.
  */
 export function findUnderfilledTier(activeBots: BotEntity[]): number {
-  const currentCounts: Record<number, number> = {
-    1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0
-  };
+  const currentCounts: Record<number, number> = {};
+  for (const t of RANK_TIERS) {
+    currentCounts[t.tierNum] = 0;
+  }
 
   for (const bot of activeBots) {
     if (bot.status === 'ACTIVE') {
@@ -270,12 +264,13 @@ export function findUnderfilledTier(activeBots: BotEntity[]): number {
     }
   }
 
-  // Duyệt từ đỉnh tháp (Tier 9) xuống đáy tháp (Tier 1) để tìm vị trí thiếu hụt cao nhất
-  for (let tier = 9; tier >= 1; tier--) {
-    const quota = ECOSYSTEM_CONSTANTS.TIER_DISTRIBUTION[tier] || 0;
-    const current = currentCounts[tier] || 0;
+  // Duyệt từ đỉnh tháp xuống đáy tháp để tìm vị trí thiếu hụt cao nhất
+  const sortedTiers = [...RANK_TIERS].sort((a, b) => b.tierNum - a.tierNum);
+  for (const tier of sortedTiers) {
+    const quota = ECOSYSTEM_CONSTANTS.TIER_DISTRIBUTION[tier.tierNum] || tier.targetBotQuota;
+    const current = currentCounts[tier.tierNum] || 0;
     if (current < quota) {
-      return tier;
+      return tier.tierNum;
     }
   }
 
@@ -294,7 +289,7 @@ export function draftBotForTier(
   targetTier: number
 ): BotEntity {
   const index = Math.floor(Math.random() * 1000);
-  const tier = Math.min(9, Math.max(1, targetTier));
+  const tier = Math.min(RANK_TIERS.length, Math.max(1, targetTier));
   
   // 1. Tạo bot mang đầy đủ bộ não / AI DNA của targetTier (Minimax, Bayesian, Lookahead...)
   const bot = createBotEntityFromDNA(tier, index, existingNames);

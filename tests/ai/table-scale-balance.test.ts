@@ -54,7 +54,8 @@ describe('Table Scale Balance (2P, 3P & 4P)', () => {
           highestCard: opponentCard,
           length: 1
         },
-        cards: [opponentCard]
+        isChop: false,
+        timestamp: Date.now()
       },
       tracker,
       config: BOT_PERSONAS.BOT_ELO_2500,
@@ -94,13 +95,14 @@ describe('Table Scale Balance (2P, 3P & 4P)', () => {
     // Simulate that all 4 Twos have already been played!
     tracker.recordMove({
       playerId: 'opp',
-      cards: [createCard(15, 'SPADES'), createCard(15, 'CLUBS'), createCard(15, 'DIAMONDS'), createCard(15, 'HEARTS')],
       combination: {
         type: 'FOUR_OF_A_KIND',
         cards: [createCard(15, 'SPADES'), createCard(15, 'CLUBS'), createCard(15, 'DIAMONDS'), createCard(15, 'HEARTS')],
         highestCard: createCard(15, 'HEARTS'),
         length: 4
-      }
+      },
+      isChop: false,
+      timestamp: Date.now()
     });
 
     const context = createDecisionContext({

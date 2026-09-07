@@ -165,9 +165,9 @@ export class CardTracker {
     const unseenRedTwos = unseenTwos.filter(isRedTwo);
 
     // Tính điểm rủi ro từ 0 (cực an toàn) -> 100 (cực nguy hiểm)
-    let riskScore = dangerousRanks.length * 20;
+    let riskScore = dangerousRanks.length * 7;
     if (unseenRedTwos.length > 0) {
-      riskScore += unseenRedTwos.length * 10;
+      riskScore += unseenRedTwos.length * 8;
     }
     riskScore = Math.min(100, riskScore);
 
@@ -202,7 +202,7 @@ export class CardTracker {
     // 1. Trong bàn 2 người (Solo 1v1): Có tới 26 lá bài nằm trong nọc úp (50% cỗ bài)
     if (this.playerCount === 2) {
       const playedRatio = this.playedCards.size / 26;
-      const probability = Math.min(0.2, dangerousRanks.length * 0.03 * (1 + playedRatio));
+      const probability = Math.min(0.2, dangerousRanks.length * 0.015 * (1 + playedRatio));
       return Number(probability.toFixed(3));
     }
 
@@ -210,15 +210,16 @@ export class CardTracker {
     // Gần 70% xác suất 1 rank bị mẻ ít nhất 1 lá vào nọc, làm giảm đáng kể khả năng gom Tứ Quý
     if (this.playerCount === 3) {
       const playedRatio = this.playedCards.size / 39;
-      const probability = Math.min(0.5, dangerousRanks.length * 0.12 * (1 + playedRatio));
+      const probability = Math.min(0.4, dangerousRanks.length * 0.025 * (1 + playedRatio));
       return Number(probability.toFixed(3));
     }
 
     // 3. Trong bàn 4 người: Toàn bộ 52 lá đều được chia hết (0 lá nọc)
     const playedRatio = this.playedCards.size / 52;
-    // Càng nhiều bài đã ra trên bàn mà rank vẫn 0 lá -> xác suất gom tứ quý càng cao
-    const probability = Math.min(1.0, dangerousRanks.length * 0.25 * (1 + playedRatio));
-    return probability;
+    // Mỗi rank chưa lộ diện có xác suất tổ hợp thực tế gom đủ 4 lá vào tay người chơi khác
+    const baseProbPerRank = 0.045;
+    const probability = Math.min(0.75, dangerousRanks.length * baseProbPerRank * (1 + playedRatio * 2));
+    return Number(probability.toFixed(3));
   }
 
   /**
@@ -245,6 +246,41 @@ export class CardTracker {
       }
     }
     return true;
+  }
+
+  /**
+   * Kiểm tra xem một Đôi có chắc chắn là Đôi to nhất còn lại trên bàn hay không
+   */
+  public isStrongestRemainingPair(rank: Rank): boolean {
+    if (rank === 15) {
+      const unseenTwos = this.getUnseenTwos();
+      return unseenTwos.length < 2;
+    }
+
+    const unseenTwos = this.getUnseenTwos();
+    if (unseenTwos.length >= 2) return false;
+
+    // Kiểm tra chính rank này: nếu đối thủ còn >= 2 lá cùng rank thì vẫn có thể có đôi
+    const countSeenOwnRank = this.rankCountOnBoardAndHand.get(rank) || 0;
+    if (4 - countSeenOwnRank >= 2) {
+      return false;
+    }
+
+    for (let r = rank + 1; r < 15; r++) {
+      const countSeen = this.rankCountOnBoardAndHand.get(r as Rank) || 0;
+      const remainingForOpponents = 4 - countSeen;
+      if (remainingForOpponents >= 2) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Lấy Rank cao nhất mà đối thủ từng bỏ lượt ở một loại tổ hợp (ví dụ đã từng bỏ lượt Đôi 8)
+   */
+  public getHighestRankPassed(playerId: string, type: CombinationType): number | null {
+    return this.opponentHighestRankPassed.get(playerId)?.get(type) ?? null;
   }
 
   public getOpponentBlindspotsSummary(): Record<string, string[]> {

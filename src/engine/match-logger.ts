@@ -16,6 +16,7 @@ export interface BotCandidateEvaluation {
  */
 export interface BotDecisionTelemetry {
   chosenReason: string | null;
+  reason?: string | null;
   strategyUsed: string | null;
   heuristicScore: number | null;
   evaluatedCandidatesCount: number;

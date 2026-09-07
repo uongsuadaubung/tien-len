@@ -5,9 +5,9 @@
  * Chạy độc lập: bun run benchmark:ai
  * 
  * Cấu trúc 3 Giai đoạn:
- * 1. Giai đoạn 1 (Solo 1v1): Ma trận đối đầu chéo 9x9 (72 cặp x 100 ván = 7,200 ván).
- * 2. Giai đoạn 2 (Bàn 3 Người - 3P): C(9, 3) = 84 tổ hợp x 30 ván = 2,520 ván (xoay 3 ghế).
- * 3. Giai đoạn 3 (Bàn 4 Người - 4P): C(9, 4) = 126 tổ hợp x 20 ván = 2,520 ván (xoay 4 ghế).
+ * 1. Giai đoạn 1 (Solo 1v1): Ma trận đối đầu chéo 5x5 (20 cặp x 100 ván = 2,000 ván).
+ * 2. Giai đoạn 2 (Bàn 3 Người - 3P): C(5, 3) = 10 tổ hợp x 30 ván = 300 ván (xoay 3 ghế).
+ * 3. Giai đoạn 3 (Bàn 4 Người - 4P): C(5, 4) = 5 tổ hợp x 20 ván = 100 ván (xoay 4 ghế).
  * 4. Bảng Tổng Hợp So Sánh Tương Quan (1v1 vs 3P vs 4P).
  */
 
@@ -85,14 +85,10 @@ function getCombinations<T>(array: T[], k: number): T[][] {
 
 const BENCHMARK_BOTS = [
   { tier: 1, id: 'bot_t1', name: 'Tí Chuột', elo: 700, config: BOT_PERSONAS.BOT_ELO_700 },
-  { tier: 2, id: 'bot_t2', name: 'Năm Xích Lô', elo: 1000, config: BOT_PERSONAS.BOT_ELO_1000 },
-  { tier: 3, id: 'bot_t3', name: 'Zane Bạc', elo: 1350, config: BOT_PERSONAS.BOT_ELO_1350 },
-  { tier: 4, id: 'bot_t4', name: 'Bác Sáu Vàng', elo: 1600, config: BOT_PERSONAS.BOT_ELO_1600 },
-  { tier: 5, id: 'bot_t5', name: 'Đại Gia Long', elo: 1850, config: BOT_PERSONAS.BOT_ELO_1850 },
-  { tier: 6, id: 'bot_t6', name: 'Bạch Hổ KC', elo: 2050, config: BOT_PERSONAS.BOT_ELO_2050 },
-  { tier: 7, id: 'bot_t7', name: 'Alpha-TL Master', elo: 2500, config: BOT_PERSONAS.BOT_ELO_2500 },
-  { tier: 8, id: 'bot_t8', name: 'Chronos Thần Bài', elo: 2750, config: BOT_PERSONAS.BOT_ELO_2750 },
-  { tier: 9, id: 'bot_t9', name: 'Alpha Mind Boss', elo: 3200, config: BOT_PERSONAS.BOT_ELO_3200 }
+  { tier: 2, id: 'bot_t2', name: 'Năm Xích Lô', elo: 1150, config: BOT_PERSONAS.BOT_ELO_1150 },
+  { tier: 3, id: 'bot_t3', name: 'Bác Sáu Vàng', elo: 1600, config: BOT_PERSONAS.BOT_ELO_1600 },
+  { tier: 4, id: 'bot_t4', name: 'Bạch Hổ KC', elo: 2150, config: BOT_PERSONAS.BOT_ELO_2150 },
+  { tier: 5, id: 'bot_t5', name: 'Alpha Mind Boss', elo: 3200, config: BOT_PERSONAS.BOT_ELO_3200 }
 ];
 
 function simulateSingleMatch(
@@ -283,12 +279,17 @@ async function runBenchmark() {
   const pearsonR1v1 = calculatePearsonCorrelation(eloList1v1, winRateList1v1);
   const spearmanRho1v1 = calculateSpearmanCorrelation(eloList1v1, winRateList1v1);
 
-  // In ma trận 9x9 trực quan cho 1v1
-  console.log('\n╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗');
-  console.log(`║                        MA TRẬN TỶ LỆ THẮNG ĐỐI ĐẦU CHÉO 9 BẬC ELO (${GAMES_PER_MATCHUP_1V1} VÁN / CẶP ĐẤU)                                 ║`);
-  console.log('╠══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣');
-  console.log('║ Bot (Hàng) vs Đối thủ (Cột)    T1      T2      T3      T4      T5      T6      T7      T8      T9   | Tổng Thắng | Tỷ lệ TB  ║');
-  console.log('╟──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╢');
+  // In ma trận trực quan cho 1v1
+  console.log('\n╔' + '═'.repeat(30 + numBots * 8 + 25) + '╗');
+  console.log(`║      MA TRẬN TỶ LỆ THẮNG ĐỐI ĐẦU CHÉO ${numBots} BẬC ELO (${GAMES_PER_MATCHUP_1V1} VÁN / CẶP ĐẤU)`.padEnd(30 + numBots * 8 + 25) + '║');
+  console.log('╠' + '═'.repeat(30 + numBots * 8 + 25) + '╣');
+  let headerRow = '║ Bot (Hàng) vs Đối thủ (Cột)    ';
+  for (let i = 0; i < numBots; i++) {
+    headerRow += `T${BENCHMARK_BOTS[i].tier}     `;
+  }
+  headerRow += '| Tổng Thắng | Tỷ lệ TB  ║';
+  console.log(headerRow);
+  console.log('╟' + '─'.repeat(30 + numBots * 8 + 25) + '╢');
   for (let i = 0; i < numBots; i++) {
     const b = BENCHMARK_BOTS[i];
     let rowStr = `║ Tier ${b.tier} | ${b.name.padEnd(16)} `;
@@ -303,18 +304,18 @@ async function runBenchmark() {
     rowStr += `| ${String(botWins1v1[i]).padStart(4)}/${botGames1v1[i]} |  ${winRateList1v1[i].toFixed(1).padStart(5)}%  ║`;
     console.log(rowStr);
   }
-  console.log('╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝');
+  console.log('╚' + '═'.repeat(30 + numBots * 8 + 25) + '╝');
   console.log(`✓ Hoàn thành 1v1 trong ${(duration1v1 / 1000).toFixed(1)}s | Pearson r = ${pearsonR1v1.toFixed(3)} | Spearman ρ = ${spearmanRho1v1.toFixed(3)}\n`);
 
   // =========================================================================
-  // GIAI ĐOẠN 2: BÀN 3 NGƯỜI (3P - C(9, 3) = 84 TỔ HỢP x 15 VÁN = 1,260 VÁN)
+  // GIAI ĐOẠN 2: BÀN 3 NGƯỜI (3P - C(N, 3) TỔ HỢP)
   // =========================================================================
   console.log('========================================================================================');
-  const triplets = getCombinations(BENCHMARK_BOTS, 3); // 84 bộ ba
-  const BOARDS_PER_TRIPLET = 5; // 5 cỗ bài chuẩn
+  const triplets = getCombinations(BENCHMARK_BOTS, 3);
+  const BOARDS_PER_TRIPLET = numBots <= 5 ? 10 : 5; // 10 cỗ bài cho 5 bot = 30 ván/tổ hợp
   const ROTATIONS_PER_BOARD_3P = 3; // 3 vòng xoay ghế trên cùng 1 cỗ bài
-  const GAMES_PER_TRIPLET = BOARDS_PER_TRIPLET * ROTATIONS_PER_BOARD_3P; // 15 ván
-  const TOTAL_GAMES_3P = triplets.length * GAMES_PER_TRIPLET; // 1,260 ván
+  const GAMES_PER_TRIPLET = BOARDS_PER_TRIPLET * ROTATIONS_PER_BOARD_3P;
+  const TOTAL_GAMES_3P = triplets.length * GAMES_PER_TRIPLET;
 
   console.log(`>>> [GIAI ĐOẠN 2] BÀN 3 NGƯỜI DUPLICATE ROTATION (${triplets.length} TỔ HỢP x ${BOARDS_PER_TRIPLET} CỖ BÀI x 3 VÒNG XOAY = ${TOTAL_GAMES_3P.toLocaleString()} VÁN)...`);
   console.log('- Với mỗi cỗ bài: Xoay đúng 3 vòng để cả 3 bot đều lần lượt cầm đúng cả 3 bộ bài của ván đó.');
@@ -398,11 +399,11 @@ async function runBenchmark() {
   // GIAI ĐOẠN 3: BÀN 4 NGƯỜI DUPLICATE (4P CHUẨN 52 LÁ - C(9, 4) = 126 TỔ HỢP x 8 VÁN = 1,008 VÁN)
   // =========================================================================
   console.log('========================================================================================');
-  const quadruplets = getCombinations(BENCHMARK_BOTS, 4); // 126 bộ bốn
-  const BOARDS_PER_QUAD = 2; // 2 cỗ bài chuẩn
+  const quadruplets = getCombinations(BENCHMARK_BOTS, 4);
+  const BOARDS_PER_QUAD = numBots <= 5 ? 10 : 2; // 10 cỗ bài cho 5 bot = 40 ván/tổ hợp
   const ROTATIONS_PER_BOARD_4P = 4; // 4 vòng xoay ghế trên cùng 1 cỗ bài
-  const GAMES_PER_QUAD = BOARDS_PER_QUAD * ROTATIONS_PER_BOARD_4P; // 8 ván
-  const TOTAL_GAMES_4P = quadruplets.length * GAMES_PER_QUAD; // 1,008 ván
+  const GAMES_PER_QUAD = BOARDS_PER_QUAD * ROTATIONS_PER_BOARD_4P;
+  const TOTAL_GAMES_4P = quadruplets.length * GAMES_PER_QUAD;
 
   console.log(`>>> [GIAI ĐOẠN 3] BÀN 4 NGƯỜI DUPLICATE ROTATION (${quadruplets.length} TỔ HỢP x ${BOARDS_PER_QUAD} CỖ BÀI x 4 VÒNG XOAY = ${TOTAL_GAMES_4P.toLocaleString()} VÁN)...`);
   console.log('- Với mỗi cỗ bài: Xoay đúng 4 vòng để cả 4 bot đều lần lượt cầm đúng cả 4 bộ bài của ván đó.');

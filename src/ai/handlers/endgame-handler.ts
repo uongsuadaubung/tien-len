@@ -7,6 +7,7 @@ import {
 } from '../decision-types';
 import { Card } from '../../engine/types';
 import { isTwo, sortCards } from '../../engine/card';
+import { identifyCombination } from '../../engine/combinations';
 import { MinimaxEndgameSolver } from '../solvers/minimax-endgame-solver';
 import { BayesianCardInferenceEngine } from '../solvers/bayesian-card-tracker';
 
@@ -38,7 +39,6 @@ export class EndgameSolverHandler extends BotDecisionHandler {
       const targetCombo = currentRoundLeadingMove?.combination || null;
 
       if (unseenCards.length <= 8 && totalOpponentCards <= 8 && unseenCards.length === totalOpponentCards) {
-        // Chỉ giải Minimax khi toàn bộ bài chưa thấy đều nằm trên tay đối thủ (không có nọc úp)
         const minimaxResult = MinimaxEndgameSolver.solve1v1(
           hand,
           unseenCards,
@@ -60,7 +60,36 @@ export class EndgameSolverHandler extends BotDecisionHandler {
       }
     }
 
+    // 2B. CỜ TÀN ĐỠ BÀI (RESPONDING ENDGAME FORCED WIN GRAB)
+    // Khi còn <= 4 lá: Nếu có nước đi cướp cái bằng Heo hoặc bài to nhất, và các lá còn lại bảo đảm dứt điểm được
     if (!isLeadMove) {
+      if (config.turnsToWinLookahead >= 0.5 && hand.length <= 4) {
+        for (const m of validMoves) {
+          const isTwoCard = m.cards.some(isTwo);
+          const isDominant = isTwoCard ||
+            (m.cards.length === 1 && tracker.isStrongestRemainingSingle(m.cards[0])) ||
+            (m.combination.type === 'PAIR' && tracker.isStrongestRemainingPair(m.combination.highestCard.rank));
+
+          if (isDominant) {
+            const mIds = new Set(m.cards.map(c => c.id));
+            const remaining = hand.filter(c => !mIds.has(c.id));
+            const remainingCombo = remaining.length > 0 ? identifyCombination(remaining) : null;
+            const canFinishRemaining = remaining.length === 0 ||
+              (remaining.length === 1 && (!prohibitEndingWithTwo || !isTwo(remaining[0]))) ||
+              (remainingCombo !== null && (!prohibitEndingWithTwo || !remainingCombo.cards.some(isTwo)));
+
+            if (canFinishRemaining) {
+              return buildBotDecision('PLAY', {
+                cards: m.cards,
+                combination: m.combination,
+                reason: 'Cờ tàn dứt điểm: Cướp cái bằng bài to để lập tức về Nhất ở lượt sau',
+                strategyUsed: 'ENDGAME_RESPONDING_WIN_GRAB',
+                evaluationScore: 1000
+              });
+            }
+          }
+        }
+      }
       return this.passToNext(context, validMoves);
     }
 
