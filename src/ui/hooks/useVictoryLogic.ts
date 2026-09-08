@@ -6,8 +6,19 @@ import { MatchLogger } from '../../engine/match-logger';
 import { ActiveGameType, useGameStore, CampaignResultMeta } from '../../stores/useGameStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { useOnlineStore } from '../../stores/useOnlineStore';
-import { useI18n } from '../../locales';
+import { useI18n, type I18nKeyPath } from '../../locales';
 import { EloDeltaResult } from '../../engine/elo';
+
+export type { InstantWinType };
+
+export const INSTANT_WIN_KEY_MAP: Record<InstantWinType, I18nKeyPath> = {
+  DRAGON_STRAIGHT: 'victory.instantWinTypes.DRAGON_STRAIGHT',
+  FOUR_TWOS: 'victory.instantWinTypes.FOUR_TWOS',
+  FIVE_PAIRS_SEQUENTIAL: 'victory.instantWinTypes.FIVE_PAIRS_SEQUENTIAL',
+  SIX_PAIRS: 'victory.instantWinTypes.SIX_PAIRS',
+  SAME_COLOR_13: 'victory.instantWinTypes.SAME_COLOR_13',
+  FIRST_ROUND_FOUR_THREES: 'victory.instantWinTypes.FIRST_ROUND_FOUR_THREES'
+};
 
 export type PrimaryBtnIconType = 'PLAY' | 'CHECK' | 'SWORDS' | 'ROTATE_CCW' | 'HOME' | 'BANK' | 'SPINNER';
 export type SecondaryBtnIconType = 'HOME' | 'MAP';
@@ -58,6 +69,7 @@ export interface VictoryLogicResult {
   winners: Player[];
   allPlayers: Player[];
   instantWinType: InstantWinType | null;
+  getInstantWinTitle: (type: InstantWinType | null) => string;
   isThreeSpadesWin: boolean;
   betAmount: number;
   activeGameType: ActiveGameType;
@@ -301,6 +313,13 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     }
   }
 
+  const getInstantWinTitle = useCallback((type: InstantWinType | null): string => {
+    if (type && INSTANT_WIN_KEY_MAP[type]) {
+      return t(INSTANT_WIN_KEY_MAP[type]);
+    }
+    return '';
+  }, [t]);
+
   return {
     isHumanWinner,
     isCampaign,
@@ -335,6 +354,7 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     winners,
     allPlayers,
     instantWinType,
+    getInstantWinTitle,
     isThreeSpadesWin,
     betAmount,
     activeGameType,

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { WebApp } from './web/WebApp';
 import { MobileApp } from './mobile/MobileApp';
 import { SplashScreen } from './components/SplashScreen';
+import type { AppScreenProps } from './types';
 import { CustomGameModalConfig } from './web/modals/CustomGameModal';
 import { QuickSetupConfig } from './web/modals/QuickSetupModal';
 import { CampaignChapter } from '../engine/campaign';
@@ -183,7 +184,7 @@ export const App: React.FC = () => {
     );
   }
 
-  const appProps = {
+  const appProps: AppScreenProps = {
     campaignResultMeta,
     handleNextGame,
     handlePlaySelectedCards,

@@ -166,7 +166,7 @@ const CAMPAIGN_POLICY = new CampaignAIModePolicy();
  * Resolver Factory: Định vị và trả về AI Mode Strategy tương ứng
  */
 export function resolveAIModePolicy(gameMode?: string): AIModePolicyStrategy {
-  const normalizedMode = (gameMode || 'TRADITIONAL').toUpperCase();
+  const normalizedMode = (gameMode || 'COUNT_CARDS').toUpperCase();
 
   switch (normalizedMode) {
     case 'COUNT_CARDS':
@@ -179,9 +179,12 @@ export function resolveAIModePolicy(gameMode?: string): AIModePolicyStrategy {
       return CAMPAIGN_POLICY;
 
     case 'TRADITIONAL':
+    case 'RANKED':
+      return TRADITIONAL_POLICY;
+
     case 'CUSTOM':
     case 'QUICK':
     default:
-      return TRADITIONAL_POLICY;
+      return COUNT_CARDS_POLICY;
   }
 }

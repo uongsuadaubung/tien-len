@@ -27,13 +27,14 @@ import {
 } from '../engine/storage';
 import { matchBotsForPlayerTable } from '../engine/ecosystem/matchmaker';
 import { getRandomBotConfigsForTable, getBotConfig } from '../ai/bot-factory';
-import type { QuickTableConfig } from '../engine/schemas/settings.schema';
+import type { QuickTableConfig, GameSettlementRule } from '../engine/schemas/settings.schema';
 import type { CampaignChapter } from '../engine/campaign';
 import type { CustomGameModalConfig } from '../ui/web/modals/CustomGameModal';
 import type { BotConfig } from '../ai/types';
 import { assertValidMatchStartup } from '../engine/invariants/match-invariants';
 import { settleCompletedMatch } from './match-settlement-service';
 import { CardTracker } from '../ai/card-tracker';
+import { dbSaveGameSettings } from '../engine/db/indexed-db';
 
 export class AppFlowCoordinator {
   private static instance: AppFlowCoordinator | null = null;
@@ -104,6 +105,7 @@ export class AppFlowCoordinator {
           .withChopping(c => c
             .multiplier(config.choppingMultiplier)
             .allowFourPairsCutAnytime(config.allowFourPairsCutAnytime)
+            .cascadeMultiplier(config.cascadeChopEnabled)
             .allowThreePairsCutTwo(true)
             .allowFourOfAKindCutPairsOfTwos(true)
           )
@@ -114,6 +116,7 @@ export class AppFlowCoordinator {
           )
           .withGameFlow(f => f
             .prohibitEndingWithTwo(config.prohibitEndingWithTwo)
+            .threeSpadesEndingBonus(config.threeSpadesEndingBonus)
           )
           .withTable(t => t
             .playerCount(config.playerCount)
@@ -121,16 +124,29 @@ export class AppFlowCoordinator {
           )
           .build();
 
+        const quickSettings: GameSettings = {
+          mode: config.settlementRule,
+          betAmount: config.betAmount,
+          playerCount: config.playerCount,
+          allowFourPairsCutAnytime: config.allowFourPairsCutAnytime,
+          instantWinEnabled: true,
+          soundEnabled: true,
+          prohibitEndingWithTwo: config.prohibitEndingWithTwo,
+          threeSpadesEndingBonus: config.threeSpadesEndingBonus,
+          cascadeChopEnabled: config.cascadeChopEnabled
+        };
+
+        // Lưu cấu hình bàn chơi và GameSettings ngay khi vào trận (Zero-Fallback)
+        useGameStore.getState().setGameSettings(quickSettings);
+        dbSaveGameSettings(quickSettings).catch(() => {});
+
         const strategy = resolveStrategyForMatch('QUICK', config.settlementRule);
         const setup = strategy.setupMatch({
           profile: liveProfile,
+          rules: customRules,
+          settings: quickSettings,
           customRules,
-          customSettings: {
-            mode: config.settlementRule,
-            betAmount: config.betAmount,
-            playerCount: config.playerCount,
-            prohibitEndingWithTwo: config.prohibitEndingWithTwo
-          },
+          customSettings: quickSettings,
           customBotPersonaIds: botIds,
           customBotConfigs: botConfigs,
           playerCount: config.playerCount
@@ -159,8 +175,34 @@ export class AppFlowCoordinator {
 
     const liveProfile = useUserStore.getState().profile;
     const strategy = resolveStrategyForMatch('CAMPAIGN', 'COUNT_CARDS');
+
+    const campaignSettings: GameSettings = {
+      mode: 'COUNT_CARDS',
+      betAmount: chapter.betAmount,
+      playerCount: 4,
+      allowFourPairsCutAnytime: true,
+      instantWinEnabled: true,
+      soundEnabled: true,
+      prohibitEndingWithTwo: true,
+      threeSpadesEndingBonus: true,
+      cascadeChopEnabled: true
+    };
+    const campaignRules = GameRulesBuilder.countCards()
+      .withTable(t => t
+        .playerCount(4)
+        .betAmount(chapter.betAmount)
+      )
+      .build();
+
+    useGameStore.getState().setGameSettings(campaignSettings);
+    dbSaveGameSettings(campaignSettings).catch(() => {});
+
     const setup = strategy.setupMatch({
       profile: liveProfile,
+      rules: campaignRules,
+      settings: campaignSettings,
+      customRules: campaignRules,
+      customSettings: campaignSettings,
       campaignChapter: chapter,
       playerCount: 4
     });
@@ -179,16 +221,39 @@ export class AppFlowCoordinator {
   }
 
   /**
-   * Bắt đầu Trận Tùy Chỉnh Sandbox (Custom Game Mode)
+   * Bắt đầu Trận Tùy Chỉnh (Custom Sandbox Match)
    */
   public async enterCustomMatch(config: CustomGameModalConfig): Promise<boolean> {
     const liveProfile = useUserStore.getState().profile;
-    if (liveProfile.coins < config.settings.betAmount) {
+    const choppingMultiplier = config.choppingMultiplier ?? 1;
+    const congMultiplier = config.congMultiplier ?? 1;
+    const congEnabled = config.congEnabled ?? true;
+    const requiredDeposit = calculateRequiredDeposit(config.settings.betAmount, congMultiplier, congEnabled);
+
+    if (liveProfile.coins < requiredDeposit) {
       useViewStore.getState().openModal('BANK');
       return false;
     }
 
     useViewStore.getState().closeModal('CUSTOM_GAME');
+
+    const settlementRule: GameSettlementRule = config.settings.mode;
+
+    // Lưu cấu hình vào store và IndexedDB ngay khi vào trận (Zero-Fallback Pre-initialization)
+    useGameStore.getState().setGameSettings(config.settings);
+    dbSaveGameSettings(config.settings).catch(() => {});
+    useGameStore.getState().setQuickTableConfig({
+      playerCount: config.playerCount ?? 4,
+      settlementRule,
+      betAmount: config.settings.betAmount,
+      choppingMultiplier,
+      congMultiplier,
+      congEnabled,
+      prohibitEndingWithTwo: config.settings.prohibitEndingWithTwo,
+      allowFourPairsCutAnytime: config.settings.allowFourPairsCutAnytime,
+      threeSpadesEndingBonus: config.settings.threeSpadesEndingBonus,
+      cascadeChopEnabled: config.settings.cascadeChopEnabled
+    });
 
     const modeTitle = config.settings.mode === 'COUNT_CARDS'
       ? 'Đếm Lá Tùy Chỉnh'
@@ -207,9 +272,39 @@ export class AppFlowCoordinator {
       botConfigs: resolvedBotConfigs,
       playerCount: config.playerCount ?? 4,
       onStart: () => {
-        const strategy = resolveStrategyForMatch('QUICK', config.settings.mode);
+        const customRules = new GameRulesBuilder()
+          .withSettlement(settlementRule)
+          .withChopping(c => c
+            .allowFourPairsCutAnytime(config.settings.allowFourPairsCutAnytime)
+            .cascadeMultiplier(config.settings.cascadeChopEnabled)
+            .allowThreePairsCutTwo(true)
+            .allowFourOfAKindCutPairsOfTwos(true)
+            .multiplier(choppingMultiplier)
+          )
+          .withCong(cg => cg
+            .enabled(congEnabled)
+            .penaltyCards(26)
+            .multiplier(congMultiplier)
+          )
+          .withGameFlow(f => f
+            .prohibitEndingWithTwo(config.settings.prohibitEndingWithTwo)
+            .threeSpadesEndingBonus(config.settings.threeSpadesEndingBonus)
+          )
+          .withInstantWin(iw => iw
+            .enabled(config.settings.instantWinEnabled)
+          )
+          .withTable(t => t
+            .playerCount(config.playerCount ?? 4)
+            .betAmount(config.settings.betAmount)
+          )
+          .build();
+
+        const strategy = resolveStrategyForMatch('CUSTOM', config.settings.mode);
         const setup = strategy.setupMatch({
           profile: liveProfile,
+          rules: customRules,
+          settings: config.settings,
+          customRules,
           customSettings: config.settings,
           customBotPersonaIds: config.botPersonaIds,
           customBotConfigs: config.customBotConfigs,
@@ -245,7 +340,9 @@ export class AppFlowCoordinator {
       betAmount,
       playerCoins: currentProfile.coins,
       playerCount: config.playerCount,
-      activeGameType: config.gameType
+      activeGameType: config.gameType,
+      rules: config.rules,
+      settings: config.settings
     });
 
     // 1. Quản lý vòng đời Driver
@@ -313,6 +410,7 @@ export class AppFlowCoordinator {
     gameStore.setCurrentCampaignChapter(config.campaignChapter);
     gameStore.setGameRules(config.rules);
     gameStore.setGameSettings(config.settings);
+    dbSaveGameSettings(config.settings).catch(() => {});
     gameStore.setBotPersonaIds(config.botPersonaIds);
     gameStore.setCustomBotConfigs(config.customBotConfigs);
     gameStore.setPlayerCount(config.playerCount);
@@ -349,6 +447,8 @@ export class AppFlowCoordinator {
       const strategy = resolveStrategyForMatch(gameType, mode);
       const setup = strategy.setupMatch({
         profile,
+        rules: options?.customRules as GameRules | undefined,
+        settings: options?.customSettings as GameSettings | undefined,
         customRules: options?.customRules,
         customSettings: options?.customSettings,
         customBotPersonaIds: options?.customBotPersonaIds,

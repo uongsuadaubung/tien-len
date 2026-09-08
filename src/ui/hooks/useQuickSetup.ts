@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { GameSettlementRule } from '../../engine/types';
 import { ECONOMY_CONSTANTS, calculateRequiredDeposit } from '../../engine/constants/economy';
 import { TableConfigState } from '../components/TableRulesConfigPanel';
@@ -70,15 +70,6 @@ export function useQuickSetup({
     resolveQuickSetupConfig(initialConfig)
   );
 
-  useEffect(() => {
-    if (initialConfig) {
-      setConfig(prev => ({
-        ...prev,
-        ...resolveQuickSetupConfig({ ...prev, ...initialConfig })
-      }));
-    }
-  }, [initialConfig]);
-
   const depositRequired = calculateRequiredDeposit(
     config.betAmount,
     config.congMultiplier ?? 1,
@@ -103,7 +94,7 @@ export function useQuickSetup({
     onStartGame({
       playerCount: config.playerCount,
       betAmount: Math.max(10, config.betAmount),
-      settlementRule: config.mode === 'CUSTOM' ? 'COUNT_CARDS' : config.mode,
+      settlementRule: config.mode,
       choppingMultiplier: config.choppingMultiplier,
       congMultiplier: config.congMultiplier,
       congEnabled: config.congEnabled,

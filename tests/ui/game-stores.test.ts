@@ -146,4 +146,59 @@ describe('Zustand State Stores Integration Tests (Kiểm Thử Tích Hợp State
     const resetId = useUserStore.getState().profile.id;
     expect(useGameStore.getState().myPlayerId).toBe(resetId);
   });
+
+  it('7. useGameSetupConfigs & computeGameSetupConfigs: Cung cấp cấu hình khởi tạo đồng nhất 100% cho cả Web và Mobile không bị phân mảnh', () => {
+    const { computeGameSetupConfigs } = require('../../src/ui/hooks/useGameSetupConfigs');
+
+    // Thiết lập cấu hình tùy biến trong store
+    useGameStore.getState().setPlayerCount(3);
+    useGameStore.getState().setQuickTableConfig({
+      playerCount: 3,
+      settlementRule: 'WINNER_TAKES_ALL',
+      betAmount: 2000,
+      choppingMultiplier: 4,
+      congMultiplier: 3,
+      congEnabled: true,
+      prohibitEndingWithTwo: false,
+      allowFourPairsCutAnytime: false,
+      threeSpadesEndingBonus: true,
+      cascadeChopEnabled: false
+    });
+
+    useGameStore.getState().setGameSettings({
+      mode: 'WINNER_TAKES_ALL',
+      playerCount: 3,
+      betAmount: 2000,
+      prohibitEndingWithTwo: false,
+      allowFourPairsCutAnytime: false,
+      threeSpadesEndingBonus: true,
+      cascadeChopEnabled: false,
+      instantWinEnabled: false,
+      soundEnabled: true
+    });
+
+    const state = useGameStore.getState();
+    const configs = computeGameSetupConfigs({
+      gameSettings: state.gameSettings,
+      quickTableConfig: state.quickTableConfig,
+      playerCount: state.playerCount,
+      botPersonaIds: state.botPersonaIds,
+      customBotConfigs: state.customBotConfigs
+    });
+
+    // 1. Kiểm tra quickSetupInitialConfig
+    expect(configs.quickSetupInitialConfig.playerCount).toBe(3);
+    expect(configs.quickSetupInitialConfig.mode).toBe('WINNER_TAKES_ALL');
+    expect(configs.quickSetupInitialConfig.choppingMultiplier).toBe(4);
+    expect(configs.quickSetupInitialConfig.congMultiplier).toBe(3);
+    expect(configs.quickSetupInitialConfig.prohibitEndingWithTwo).toBe(false);
+
+    // 2. Kiểm tra customGameInitialConfig
+    expect(configs.customGameInitialConfig.selectedModeId).toBe('WINNER_TAKES_ALL');
+    expect(configs.customGameInitialConfig.playerCount).toBe(3);
+    expect(configs.customGameInitialConfig.settings.mode).toBe('WINNER_TAKES_ALL');
+    expect(configs.customGameInitialConfig.settings.prohibitEndingWithTwo).toBe(false);
+    expect(configs.customGameInitialConfig.choppingMultiplier).toBe(4);
+    expect(configs.customGameInitialConfig.congMultiplier).toBe(3);
+  });
 });

@@ -180,7 +180,7 @@ export const GAME_MODE_REGISTRY: GameModeDefinition[] = [
   },
   {
     id: 'CUSTOM_SANDBOX',
-    strategyId: 'TRADITIONAL',
+    strategyId: 'COUNT_CARDS',
     name: 'Xưởng Tùy Biến Tự Do (Sandbox)',
     tagline: 'Tự do thiết lập mọi quy tắc',
     description: 'Toàn quyền kiểm soát số người chơi, luật kết thúc, tốc độ đi bài và tinh chỉnh từng thông số thuật toán AI.',
@@ -194,8 +194,8 @@ export const GAME_MODE_REGISTRY: GameModeDefinition[] = [
       accent: 'bg-blue-600 hover:bg-blue-500'
     },
     defaultSettings: {
-      mode: 'TRADITIONAL',
-      settlementType: 'RANK_BASED',
+      mode: 'COUNT_CARDS',
+      settlementType: 'CARD_COUNT',
       allowFourPairsCutAnytime: true,
       instantWinEnabled: true,
       betAmount: 500,

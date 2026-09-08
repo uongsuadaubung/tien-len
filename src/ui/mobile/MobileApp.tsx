@@ -6,25 +6,9 @@ import { QuickSetupConfig } from '../web/modals/QuickSetupModal';
 import { CustomGameModalConfig } from '../web/modals/CustomGameModal';
 import { CampaignChapter } from '../../engine/campaign';
 import { useViewStore } from '../../stores/useViewStore';
-import type { CampaignResultMeta } from '../../stores/useGameStore';
+import type { MobileAppProps } from '../types';
 
-export interface MobileAppProps {
-  campaignResultMeta?: CampaignResultMeta | null;
-  handleNextGame: () => void;
-  handlePlaySelectedCards: () => void;
-  handlePassTurn: () => void;
-  handleAutoSort: () => void;
-  handleApplyAiHint: () => void;
-  handleDealCard: (playerIndex: number, currentCardCount: number) => void;
-  handleDealComplete: () => void;
-  handleForfeitMatch: () => void;
-  handleReturnToLobby: () => void;
-  handleRequestExitTable?: () => void;
-  handlePlayNowDefault: () => void;
-  handleStartQuickGame: (config: QuickSetupConfig) => void;
-  handleStartCustomGameWithConfig: (config: CustomGameModalConfig) => void;
-  handleStartCampaignChapter: (chapter: CampaignChapter) => void;
-}
+export type { MobileAppProps };
 
 export const MobileApp: React.FC<MobileAppProps> = ({
   campaignResultMeta,

@@ -250,8 +250,7 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
     setInputPin('');
   }, []);
 
-  const currentSettlementRule: GameSettlementRule = 
-    tableConfig.mode === 'CUSTOM' ? 'COUNT_CARDS' : tableConfig.mode;
+  const currentSettlementRule: GameSettlementRule = tableConfig.mode;
 
   const handleCreate = useCallback(() => {
     createRoom(profile, {

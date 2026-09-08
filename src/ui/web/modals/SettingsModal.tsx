@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { Modal, Button } from '../../primitives';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
-import { useSettingsSync } from '../../hooks/useSettingsSync';
+import { useSettingsSync, formatDateTime } from '../../hooks/useSettingsSync';
 import { useI18n } from '../../../locales';
 
 export interface SettingsModalProps {
@@ -47,17 +47,6 @@ const ToggleSwitch: React.FC<{ checked: boolean }> = ({ checked }) => (
     />
   </div>
 );
-
-function formatDateTime(timestamp: number, neverSyncedText: string = ''): string {
-  if (!timestamp) return neverSyncedText;
-  const d = new Date(timestamp);
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  return `${hours}:${minutes} - ${day}/${month}/${year}`;
-}
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   isOpen,

@@ -15,25 +15,11 @@ import { MobileScreenWrapper } from './MobileScreenWrapper';
 import { 
   useCustomGame, 
   CustomGameModalConfig, 
-  CustomGameTabType 
+  CustomGameTabType,
+  BOT_PRESETS
 } from '../../hooks/useCustomGame';
 import { useUserStore } from '../../../stores/useUserStore';
-import { useI18n, type I18nKeyPath } from '../../../locales';
-import type { BotPersonaIdTuple } from '../../../engine/types';
-
-interface BotPreset {
-  readonly id: string;
-  readonly nameKey: I18nKeyPath;
-  readonly descKey: I18nKeyPath;
-  readonly botIds: BotPersonaIdTuple;
-}
-
-const BOT_PRESETS: readonly BotPreset[] = [
-  { id: 'NEWBIE_TABLE', nameKey: 'customGame.presetNewbieName', descKey: 'customGame.presetNewbieDesc', botIds: ['BOT_ELO_700', 'BOT_ELO_750', 'BOT_ELO_850'] },
-  { id: 'CASUAL_STREET', nameKey: 'customGame.presetCasualName', descKey: 'customGame.presetCasualDesc', botIds: ['BOT_ELO_950', 'BOT_ELO_1000', 'BOT_ELO_1150'] },
-  { id: 'MID_TIER_PRO', nameKey: 'customGame.presetProName', descKey: 'customGame.presetProDesc', botIds: ['BOT_ELO_1500', 'BOT_ELO_1750', 'BOT_ELO_1800'] },
-  { id: 'ELITE_CLUB', nameKey: 'customGame.presetEliteName', descKey: 'customGame.presetEliteDesc', botIds: ['BOT_ELO_2000', 'BOT_ELO_2300', 'BOT_ELO_2500'] }
-];
+import { useI18n } from '../../../locales';
 
 export interface MobileCustomGameViewProps {
   isOpen: boolean;

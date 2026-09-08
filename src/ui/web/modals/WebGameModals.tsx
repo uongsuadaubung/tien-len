@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useViewStore } from '../../../stores/useViewStore';
 import { useGameStore, type CampaignResultMeta } from '../../../stores/useGameStore';
 import { QuestsModal } from './QuestsModal';
@@ -21,19 +21,11 @@ import { SyncConflictModal } from './SyncConflictModal';
 import { OnlineRoomModal } from './OnlineRoomModal';
 import { OnlineDisbandModal } from '../../components/OnlineDisbandModal';
 import { CampaignChapter } from '../../../engine/campaign';
-import { normalizePlayerCount } from '../../../engine/types';
+import { useGameSetupConfigs } from '../../hooks/useGameSetupConfigs';
 import { useMatchmakingStore } from '../../../stores/useMatchmakingStore';
+import type { WebGameModalsProps } from '../../types';
 
-export interface WebGameModalsProps {
-  onStartQuickGame: (config: QuickSetupConfig) => void;
-  onStartCustomGame: (config: CustomGameModalConfig) => void;
-  onSelectCampaignChapter: (chapter: CampaignChapter) => void;
-  onNextGame: () => void;
-  onReturnToLobby: () => void;
-  onConfirmForfeit: () => void;
-  campaignResultMeta?: CampaignResultMeta | null;
-  onOpenCampaignMap: (() => void) | null;
-}
+export type { WebGameModalsProps };
 
 export const WebGameModals: React.FC<WebGameModalsProps> = ({
   onStartQuickGame,
@@ -63,15 +55,8 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
     closeModal
   } = useViewStore();
 
-  // Game Store
-  const {
-    gameSettings,
-    quickTableConfig,
-    playerCount,
-    botPersonaIds,
-    customBotConfigs,
-    currentHint
-  } = useGameStore();
+  const currentHint = useGameStore(s => s.currentHint);
+  const { quickSetupInitialConfig, customGameInitialConfig } = useGameSetupConfigs();
 
   return (
     <>
@@ -104,18 +89,7 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
       <QuickSetupModal
         isOpen={isQuickSetupOpen}
         onClose={() => closeModal('QUICK_SETUP')}
-        initialConfig={{
-          playerCount: quickTableConfig.playerCount,
-          mode: quickTableConfig.settlementRule,
-          betAmount: quickTableConfig.betAmount,
-          choppingMultiplier: quickTableConfig.choppingMultiplier,
-          congMultiplier: quickTableConfig.congMultiplier,
-          congEnabled: quickTableConfig.congEnabled,
-          prohibitEndingWithTwo: quickTableConfig.prohibitEndingWithTwo,
-          allowFourPairsCutAnytime: quickTableConfig.allowFourPairsCutAnytime,
-          threeSpadesEndingBonus: quickTableConfig.threeSpadesEndingBonus,
-          cascadeChopEnabled: quickTableConfig.cascadeChopEnabled
-        }}
+        initialConfig={quickSetupInitialConfig}
         onStartGame={onStartQuickGame}
       />
 
@@ -132,13 +106,7 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
       <CustomGameModal
         isOpen={isCustomGameModalOpen}
         onClose={() => closeModal('CUSTOM_GAME')}
-        initialConfig={{
-          selectedModeId: gameSettings.mode === 'COUNT_CARDS' ? 'COUNT_CARDS' : gameSettings.mode === 'WINNER_TAKES_ALL' ? 'WINNER_TAKES_ALL' : 'TRADITIONAL',
-          settings: gameSettings,
-          playerCount: normalizePlayerCount(playerCount),
-          botPersonaIds: botPersonaIds,
-          customBotConfigs: customBotConfigs
-        }}
+        initialConfig={customGameInitialConfig}
         onStartCustomGame={onStartCustomGame}
       />
 

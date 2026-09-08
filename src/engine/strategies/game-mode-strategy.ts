@@ -24,13 +24,18 @@ import { PlayerProfile } from '../storage';
 import { getTierFromElo } from '../ecosystem/ecosystem-types';
 import { createPlayer, createBotPlayer } from '../player-factory';
 
+import { GameSettingsSchema, GameRulesSchema, type GameSettlementRule } from '../schemas/settings.schema';
+import { assertValidRulesAndSettings } from '../invariants/match-invariants';
+
 /**
  * Ngữ cảnh đầu vào để khởi tạo bàn đấu (Match Setup Context)
  */
 export interface MatchSetupContext {
   profile: PlayerProfile;
-  customRules?: DeepPartial<GameRules>;
-  customSettings?: Partial<GameSettings>;
+  rules?: GameRules;
+  settings?: GameSettings;
+  customRules?: GameRules | DeepPartial<GameRules>;
+  customSettings?: GameSettings | Partial<GameSettings>;
   customBotPersonaIds?: string[];
   customBotConfigs?: Partial<BotConfig>[];
   campaignChapter?: CampaignChapter;
@@ -148,11 +153,12 @@ function buildInitialPlayers(
 }
 
 /**
- * Helper chuẩn hóa dựng MatchSetupResult từ GameRules để loại bỏ code trùng lặp
+ * Helper chuẩn hóa dựng MatchSetupResult từ GameRules và GameSettings để loại bỏ code trùng lặp
  */
 function createMatchSetupResult(
   context: MatchSetupContext,
   rules: GameRules,
+  settings: GameSettings,
   defaultBotConfigs: BotConfig[]
 ): MatchSetupResult {
   const rawConfigs = context.customBotConfigs || [];
@@ -184,18 +190,6 @@ function createMatchSetupResult(
     ];
   }
 
-  const settings: GameSettings = {
-    mode: rules.settlementRule,
-    betAmount: rules.table.betAmount,
-    playerCount: rules.table.playerCount,
-    allowFourPairsCutAnytime: rules.chopping.allowFourPairsCutAnytime,
-    instantWinEnabled: rules.instantWin.enabled,
-    soundEnabled: rules.table.soundEnabled,
-    prohibitEndingWithTwo: rules.gameFlow.prohibitEndingWithTwo,
-    threeSpadesEndingBonus: rules.gameFlow.threeSpadesEndingBonus,
-    cascadeChopEnabled: rules.chopping.cascadeMultiplier
-  };
-
   const initialPlayers = buildInitialPlayers(context.profile, bConfigs, botPersonaIds, rules.table.playerCount, rules.table.betAmount);
 
   return {
@@ -206,6 +200,87 @@ function createMatchSetupResult(
     playerCount: rules.table.playerCount,
     initialPlayers
   };
+}
+
+/**
+ * Chuẩn hóa và khởi tạo cấu hình bàn đấu (Rules & Settings) theo kiến trúc Zero-Fallback Pre-initialization:
+ * - Nếu context đã cung cấp rules: Dùng trực tiếp rules đã khởi tạo và suy diễn settings tương thích.
+ * - Nếu context cung cấp settings: Parse qua Zod GameSettingsSchema để đảm bảo 100% thuộc tính hợp lệ (non-nullable),
+ *   sau đó khởi tạo rules trực tiếp từ settings đã xác thực.
+ * - Luôn thực thi assertValidMatchStartup để phát hiện Fail-fast mọi lệch pha hoặc dữ liệu thiếu sót.
+ */
+export function resolveMatchRulesAndSettings(
+  defaultMode: GameSettlementRule,
+  context: MatchSetupContext
+): { rules: GameRules; settings: GameSettings } {
+  // 1. Nếu context đã có rules từ trước: Parse qua GameRulesSchema để đảm bảo 100% dữ liệu đầy đủ, không dùng fallback
+  const rawRules = context.rules || context.customRules;
+  if (rawRules) {
+    const parsedRules = GameRulesSchema.parse({
+      ...rawRules,
+      settlementRule: rawRules.settlementRule || defaultMode,
+      table: {
+        ...(rawRules.table || {}),
+        playerCount: context.playerCount ? normalizePlayerCount(context.playerCount) : (rawRules.table?.playerCount || 4)
+      }
+    });
+
+    const candidateSettings: GameSettings = (context.settings || context.customSettings) as GameSettings || {
+      mode: parsedRules.settlementRule,
+      betAmount: parsedRules.table.betAmount,
+      playerCount: parsedRules.table.playerCount,
+      allowFourPairsCutAnytime: parsedRules.chopping.allowFourPairsCutAnytime,
+      instantWinEnabled: parsedRules.instantWin.enabled,
+      soundEnabled: parsedRules.table.soundEnabled,
+      prohibitEndingWithTwo: parsedRules.gameFlow.prohibitEndingWithTwo,
+      threeSpadesEndingBonus: parsedRules.gameFlow.threeSpadesEndingBonus,
+      cascadeChopEnabled: parsedRules.chopping.cascadeMultiplier
+    };
+
+    assertValidRulesAndSettings(parsedRules, candidateSettings);
+    return { rules: parsedRules, settings: candidateSettings };
+  }
+
+  // 2. Nếu context có settings (hoặc cần khởi tạo từ settings): Xác thực qua Zod Schema đảm bảo dữ liệu non-nullable
+  const rawSettings = (context.settings || context.customSettings || {}) as Partial<GameSettings>;
+  const validatedSettings = GameSettingsSchema.parse({
+    ...rawSettings,
+    mode: rawSettings.mode || defaultMode,
+    playerCount: context.playerCount ? normalizePlayerCount(context.playerCount) : (rawSettings.playerCount || 4)
+  });
+
+  const settlementRule: GameSettlementRule = validatedSettings.mode;
+
+  const rules = new GameRulesBuilder()
+    .withSettlement(settlementRule)
+    .withChopping(c => c
+      .allowFourPairsCutAnytime(validatedSettings.allowFourPairsCutAnytime)
+      .cascadeMultiplier(validatedSettings.cascadeChopEnabled)
+      .allowThreePairsCutTwo(true)
+      .allowFourOfAKindCutPairsOfTwos(true)
+      .multiplier(1)
+    )
+    .withCong(cg => cg
+      .enabled(true)
+      .penaltyCards(26)
+      .multiplier(1)
+    )
+    .withGameFlow(f => f
+      .prohibitEndingWithTwo(validatedSettings.prohibitEndingWithTwo)
+      .threeSpadesEndingBonus(validatedSettings.threeSpadesEndingBonus)
+    )
+    .withInstantWin(iw => iw
+      .enabled(validatedSettings.instantWinEnabled)
+    )
+    .withTable(t => t
+      .playerCount(validatedSettings.playerCount)
+      .betAmount(validatedSettings.betAmount)
+      .soundEnabled(validatedSettings.soundEnabled)
+    )
+    .build();
+
+  assertValidRulesAndSettings(rules, validatedSettings);
+  return { rules, settings: validatedSettings };
 }
 
 /**
@@ -254,29 +329,9 @@ export class TraditionalModeStrategy implements GameModeStrategy {
   readonly isFreeToPlay = false;
 
   setupMatch(context: MatchSetupContext): MatchSetupResult {
-    const playerCount = normalizePlayerCount(context.playerCount ?? context.customRules?.table?.playerCount ?? context.customSettings?.playerCount);
-    const betAmount = context.customRules?.table?.betAmount ?? context.customSettings?.betAmount ?? 100;
-
-    const rules = GameRulesBuilder.traditional()
-      .withSettlement(context.customRules?.settlementRule || 'TRADITIONAL')
-      .withChopping(c => c
-        .allowFourPairsCutAnytime(context.customRules?.chopping?.allowFourPairsCutAnytime ?? context.customSettings?.allowFourPairsCutAnytime ?? true)
-        .multiplier(context.customRules?.chopping?.multiplier ?? 1)
-      )
-      .withCong(cg => cg
-        .enabled(context.customRules?.cong?.enabled ?? true)
-        .penaltyCards(context.customRules?.cong?.penaltyCards ?? 26)
-        .multiplier(context.customRules?.cong?.multiplier ?? 1)
-      )
-      .withTable(t => t
-        .playerCount(playerCount)
-        .betAmount(betAmount)
-      )
-      .build();
-
-    // Tự động ghép đối thủ Bot theo mức Elo hiện tại của người chơi
+    const { rules, settings } = resolveMatchRulesAndSettings('TRADITIONAL', context);
     const defaultBots = matchmakeRankedOpponents(context.profile?.elo ?? 1000);
-    return createMatchSetupResult(context, rules, defaultBots);
+    return createMatchSetupResult(context, rules, settings, defaultBots);
   }
 
   settleMatch(context: MatchSettlementContext): MatchSettlementResult {
@@ -320,31 +375,9 @@ export class CountCardsModeStrategy implements GameModeStrategy {
   readonly isFreeToPlay = false;
 
   setupMatch(context: MatchSetupContext): MatchSetupResult {
-    const playerCount = normalizePlayerCount(context.playerCount ?? context.customRules?.table?.playerCount ?? context.customSettings?.playerCount);
-    const betAmount = context.customRules?.table?.betAmount ?? context.customSettings?.betAmount ?? 100;
-
-    const rules = GameRulesBuilder.countCards()
-      .withChopping(c => c
-        .allowFourPairsCutAnytime(context.customRules?.chopping?.allowFourPairsCutAnytime ?? context.customSettings?.allowFourPairsCutAnytime ?? true)
-        .multiplier(context.customRules?.chopping?.multiplier ?? 1)
-      )
-      .withCong(cg => cg
-        .enabled(context.customRules?.cong?.enabled ?? true)
-        .penaltyCards(context.customRules?.cong?.penaltyCards ?? 26)
-        .multiplier(context.customRules?.cong?.multiplier ?? 1)
-      )
-      .withGameFlow(f => f
-        .prohibitEndingWithTwo(context.customRules?.gameFlow?.prohibitEndingWithTwo ?? true)
-      )
-      .withTable(t => t
-        .playerCount(playerCount)
-        .betAmount(betAmount)
-      )
-      .build();
-
-    // Tự động ghép đối thủ Bot theo mức Elo hiện tại của người chơi
+    const { rules, settings } = resolveMatchRulesAndSettings('COUNT_CARDS', context);
     const defaultBots = matchmakeRankedOpponents(context.profile?.elo ?? 1000);
-    return createMatchSetupResult(context, rules, defaultBots);
+    return createMatchSetupResult(context, rules, settings, defaultBots);
   }
 
   settleMatch(context: MatchSettlementContext): MatchSettlementResult {
@@ -393,14 +426,28 @@ export class CampaignModeStrategy implements GameModeStrategy {
 
   setupMatch(context: MatchSetupContext): MatchSetupResult {
     const chapter = context.campaignChapter;
-    const betAmount = chapter?.betAmount ?? 100;
+    const betAmount = chapter ? chapter.betAmount : (context.rules?.table.betAmount ?? 100);
 
-    const rules = GameRulesBuilder.countCards()
+    const rules = (context.rules || context.customRules) as GameRules || GameRulesBuilder.countCards()
       .withTable(t => t
         .playerCount(4)
         .betAmount(betAmount)
       )
       .build();
+
+    const settings: GameSettings = (context.settings || context.customSettings) as GameSettings || {
+      mode: 'COUNT_CARDS',
+      betAmount,
+      playerCount: 4,
+      allowFourPairsCutAnytime: true,
+      instantWinEnabled: true,
+      soundEnabled: true,
+      prohibitEndingWithTwo: true,
+      threeSpadesEndingBonus: true,
+      cascadeChopEnabled: true
+    };
+
+    assertValidRulesAndSettings(rules, settings);
 
     const defaultBots = chapter ? Array.from(chapter.bots) : getRandomBotConfigsForTable([1, 2, 3], 3);
     const campaignContext: MatchSetupContext = {
@@ -408,7 +455,7 @@ export class CampaignModeStrategy implements GameModeStrategy {
       customBotPersonaIds: chapter ? [chapter.bots[0].id, chapter.bots[1].id, chapter.bots[2].id] : undefined,
       customBotConfigs: chapter ? [chapter.bots[0], chapter.bots[1], chapter.bots[2]] : undefined
     };
-    return createMatchSetupResult(campaignContext, rules, defaultBots);
+    return createMatchSetupResult(campaignContext, rules, settings, defaultBots);
   }
 
   settleMatch(context: MatchSettlementContext): MatchSettlementResult {
@@ -449,31 +496,9 @@ export class WinnerTakesAllModeStrategy implements GameModeStrategy {
   readonly isFreeToPlay = false;
 
   setupMatch(context: MatchSetupContext): MatchSetupResult {
-    const playerCount = normalizePlayerCount(context.playerCount ?? context.customRules?.table?.playerCount ?? context.customSettings?.playerCount);
-    const betAmount = context.customRules?.table?.betAmount ?? context.customSettings?.betAmount ?? 100;
-
-    const rules = GameRulesBuilder.winnerTakesAll()
-      .withChopping(c => c
-        .allowFourPairsCutAnytime(context.customRules?.chopping?.allowFourPairsCutAnytime ?? context.customSettings?.allowFourPairsCutAnytime ?? true)
-        .multiplier(context.customRules?.chopping?.multiplier ?? 1)
-      )
-      .withCong(cg => cg
-        .enabled(context.customRules?.cong?.enabled ?? true)
-        .penaltyCards(context.customRules?.cong?.penaltyCards ?? 26)
-        .multiplier(context.customRules?.cong?.multiplier ?? 1)
-      )
-      .withGameFlow(f => f
-        .prohibitEndingWithTwo(context.customRules?.gameFlow?.prohibitEndingWithTwo ?? true)
-      )
-      .withTable(t => t
-        .playerCount(playerCount)
-        .betAmount(betAmount)
-      )
-      .build();
-
-    // Tự động ghép đối thủ Bot theo mức Elo hiện tại của người chơi
+    const { rules, settings } = resolveMatchRulesAndSettings('WINNER_TAKES_ALL', context);
     const defaultBots = matchmakeRankedOpponents(context.profile?.elo ?? 1000);
-    return createMatchSetupResult(context, rules, defaultBots);
+    return createMatchSetupResult(context, rules, settings, defaultBots);
   }
 
   settleMatch(context: MatchSettlementContext): MatchSettlementResult {
@@ -521,7 +546,7 @@ export const GAME_MODE_STRATEGIES: Record<string, GameModeStrategy> = {
   CAMPAIGN: new CampaignModeStrategy(),
   WINNER_TAKES_ALL: new WinnerTakesAllModeStrategy(),
   SOLO_1V1: new CountCardsModeStrategy(),
-  CUSTOM_SANDBOX: new TraditionalModeStrategy()
+  CUSTOM_SANDBOX: new CountCardsModeStrategy()
 };
 
 /**
@@ -529,22 +554,23 @@ export const GAME_MODE_STRATEGIES: Record<string, GameModeStrategy> = {
  */
 export function getGameModeStrategy(strategyId: string): GameModeStrategy {
   const normalized = (strategyId || '').toUpperCase();
-  return GAME_MODE_STRATEGIES[normalized] || GAME_MODE_STRATEGIES.TRADITIONAL;
+  return GAME_MODE_STRATEGIES[normalized] || GAME_MODE_STRATEGIES.COUNT_CARDS;
 }
 
 /**
  * Định vị Strategy chính xác nhất cho phiên đấu hiện tại
- * @param activeGameType 'QUICK' | 'CAMPAIGN'
- * @param customMode 'TRADITIONAL' | 'COUNT_CARDS' | 'WINNER_TAKES_ALL' | 'CUSTOM'
+ * @param activeGameType 'QUICK' | 'CAMPAIGN' | 'CUSTOM'
+ * @param customMode 'TRADITIONAL' | 'COUNT_CARDS' | 'WINNER_TAKES_ALL'
  */
 export function resolveStrategyForMatch(
-  activeGameType: 'QUICK' | 'CAMPAIGN' | string,
-  customMode: string = 'TRADITIONAL'
+  activeGameType: 'QUICK' | 'CAMPAIGN' | 'CUSTOM' | string,
+  customMode: GameSettlementRule | string = 'COUNT_CARDS'
 ): GameModeStrategy {
   switch (activeGameType) {
     case 'CAMPAIGN':
       return GAME_MODE_STRATEGIES.CAMPAIGN;
     case 'QUICK':
+    case 'CUSTOM':
     default:
       if (customMode === 'COUNT_CARDS') {
         return GAME_MODE_STRATEGIES.COUNT_CARDS;
@@ -552,6 +578,9 @@ export function resolveStrategyForMatch(
       if (customMode === 'WINNER_TAKES_ALL') {
         return GAME_MODE_STRATEGIES.WINNER_TAKES_ALL;
       }
-      return GAME_MODE_STRATEGIES.TRADITIONAL;
+      if (customMode === 'TRADITIONAL') {
+        return GAME_MODE_STRATEGIES.TRADITIONAL;
+      }
+      return GAME_MODE_STRATEGIES.COUNT_CARDS;
   }
 }

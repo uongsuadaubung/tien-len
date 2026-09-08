@@ -304,13 +304,6 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
               desc: t('tableConfig.modeTraditionalDesc'),
               maxWin: t('tableConfig.modeTraditionalMaxWin', { amount: ((activeBotCount >= 3 ? 2 : activeBotCount >= 2 ? 2 : 1) * config.betAmount).toLocaleString() }),
               maxLoss: t('tableConfig.modeTraditionalMaxLoss', { amount: ((activeBotCount >= 3 ? 2 : activeBotCount >= 2 ? 2 : 1) * config.betAmount).toLocaleString() })
-            },
-            CUSTOM: {
-              title: t('tableConfig.modeCustomTitle'),
-              badge: t('tableConfig.modeCustomBadge'),
-              desc: t('tableConfig.modeCustomDesc'),
-              maxWin: t('tableConfig.modeCountCardsMaxWin', { amount: (activeBotCount * 13 * config.betAmount).toLocaleString() }),
-              maxLoss: `-${congPenaltyAmount.toLocaleString()} Xu`
             }
           };
 

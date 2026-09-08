@@ -18,9 +18,12 @@ import { useOnlineStore } from '../../../stores/useOnlineStore';
 import { MatchLogger } from '../../../engine/match-logger';
 import { Button } from '../../primitives';
 import { MiniCardView } from '../../components/CardView';
-import { useVictoryLogic, PrimaryBtnIconType, SecondaryBtnIconType } from '../../hooks/useVictoryLogic';
-import { useI18n, type I18nKeyPath } from '../../../locales';
-import type { InstantWinType } from '../../../engine/types';
+import { 
+  useVictoryLogic, 
+  PrimaryBtnIconType, 
+  SecondaryBtnIconType 
+} from '../../hooks/useVictoryLogic';
+import { useI18n } from '../../../locales';
 
 export interface MobileVictoryViewProps {
   isOpen: boolean;
@@ -29,15 +32,6 @@ export interface MobileVictoryViewProps {
   onOpenCampaignMap: (() => void) | null;
   campaignResultMeta?: CampaignResultMeta | null;
 }
-
-const INSTANT_WIN_KEY_MAP: Record<InstantWinType, I18nKeyPath> = {
-  DRAGON_STRAIGHT: 'victory.instantWinTypes.DRAGON_STRAIGHT',
-  FOUR_TWOS: 'victory.instantWinTypes.FOUR_TWOS',
-  FIVE_PAIRS_SEQUENTIAL: 'victory.instantWinTypes.FIVE_PAIRS_SEQUENTIAL',
-  SIX_PAIRS: 'victory.instantWinTypes.SIX_PAIRS',
-  SAME_COLOR_13: 'victory.instantWinTypes.SAME_COLOR_13',
-  FIRST_ROUND_FOUR_THREES: 'victory.instantWinTypes.FIRST_ROUND_FOUR_THREES'
-};
 
 const PRIMARY_ICON_MAP: Record<PrimaryBtnIconType, React.ReactNode> = {
   PLAY: <Play className="w-4 h-4 text-black fill-current" />,
@@ -65,13 +59,6 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
   const { githubToken, autoBackupOnMatchEnd } = useSettingsStore();
   const { myPlayerId } = useGameStore();
   const { roomState } = useOnlineStore();
-
-  const getInstantWinTitle = (type: InstantWinType | null) => {
-    if (type && INSTANT_WIN_KEY_MAP[type]) {
-      return t(INSTANT_WIN_KEY_MAP[type]);
-    }
-    return '';
-  };
 
   const {
     isCampaign,
@@ -102,6 +89,7 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
     winners,
     allPlayers,
     instantWinType,
+    getInstantWinTitle,
     isThreeSpadesWin,
     betAmount,
     activeGameType,

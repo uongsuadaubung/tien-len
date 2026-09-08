@@ -1,10 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { getRankTierByElo, RANK_TIERS } from '../../../engine/elo';
-import { useViewStore } from '../../../stores/useViewStore';
-import { useEcosystemStore } from '../../../stores/useEcosystemStore';
-import { useGameStore } from '../../../stores/useGameStore';
-import { useSettingsStore } from '../../../stores/useSettingsStore';
-import { useUserStore } from '../../../stores/useUserStore';
+import React from 'react';
 import { 
   Trophy, 
   MapPin, 
@@ -24,9 +18,7 @@ import {
   Wifi
 } from 'lucide-react';
 import { Badge, Card, Button } from '../../primitives';
-import { isFullScreen, toggleFullScreen, lockToLandscape } from '../../utils/fullscreen';
-import { useI18n } from '../../../locales';
-import { GameMode, GameSettlementRule } from '../../../engine/types';
+import { useLobbyLogic } from '../../hooks/useLobbyLogic';
 
 export interface MobileLobbyScreenProps {
   onPlayNow: (() => void) | null;
@@ -53,60 +45,21 @@ export const MobileLobbyScreen: React.FC<MobileLobbyScreenProps> = ({
   onOpenRules,
   onOpenNameSetup
 }) => {
-  const { t } = useI18n();
-  const { profile } = useUserStore();
-  const { openModal } = useViewStore();
-  const { newsfeed, initEcosystem } = useEcosystemStore();
-  const { quickTableConfig } = useGameStore();
-  const { onlineMultiplayerBetaEnabled } = useSettingsStore();
-  const [isFullscreenState, setIsFullscreenState] = useState(isFullScreen());
-
-  const getSettlementLabel = (rule?: GameSettlementRule | GameMode) => {
-    switch (rule) {
-      case 'WINNER_TAKES_ALL': return t('modes.winnerTakesAll');
-      case 'TRADITIONAL': return t('modes.traditional');
-      case 'COUNT_CARDS':
-      default: return t('modes.countCards');
-    }
-  };
-
-  useEffect(() => {
-    initEcosystem();
-  }, [initEcosystem]);
-
-  useEffect(() => {
-    const handleFsChange = () => {
-      setIsFullscreenState(isFullScreen());
-    };
-    document.addEventListener('fullscreenchange', handleFsChange);
-    document.addEventListener('webkitfullscreenchange', handleFsChange);
-    document.addEventListener('mozfullscreenchange', handleFsChange);
-    document.addEventListener('MSFullscreenChange', handleFsChange);
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFsChange);
-      document.removeEventListener('webkitfullscreenchange', handleFsChange);
-      document.removeEventListener('mozfullscreenchange', handleFsChange);
-      document.removeEventListener('MSFullscreenChange', handleFsChange);
-    };
-  }, []);
-
-  const currentRank = getRankTierByElo(profile.elo);
-
-  // Tính % tiến trình lên Rank tiếp theo
-  const currentTierIndex = RANK_TIERS.findIndex(t => t.id === currentRank.id);
-  const nextTier = RANK_TIERS[currentTierIndex + 1];
-  let eloProgress = 100;
-  if (nextTier) {
-    const tierSpan = nextTier.minElo - currentRank.minElo;
-    const progressInTier = profile.elo - currentRank.minElo;
-    eloProgress = Math.min(100, Math.max(0, Math.round((progressInTier / tierSpan) * 100)));
-  }
-
-  // Số lượng nhiệm vụ có thể nhận thưởng
-  const claimableQuestsCount =
-    profile.dailyQuests.filter(q => q.isCompleted && !q.isClaimed).length +
-    profile.achievements.filter(a => a.isCompleted && !a.isClaimed).length;
+  const {
+    t,
+    profile,
+    openModal,
+    newsfeed,
+    quickTableConfig,
+    onlineMultiplayerBetaEnabled,
+    isFullscreenState,
+    currentRank,
+    nextTier,
+    eloProgress,
+    claimableQuestsCount,
+    getSettlementLabel,
+    handleToggleFullScreen
+  } = useLobbyLogic();
 
   return (
     <div className="relative w-full h-[100dvh] max-h-[100dvh] flex flex-col justify-between bg-[var(--bg-canvas)] text-[var(--text-primary)] select-none font-sans overflow-hidden pt-[max(env(safe-area-inset-top),0.5rem)] pb-[max(env(safe-area-inset-bottom),0.5rem)] pl-[max(env(safe-area-inset-left),0.5rem)] pr-[max(env(safe-area-inset-right),0.5rem)] gap-1.5">
@@ -191,15 +144,7 @@ export const MobileLobbyScreen: React.FC<MobileLobbyScreenProps> = ({
 
             {/* Nút Fullscreen / Xoay Ngang */}
             <button
-              onClick={async () => {
-                if (isFullscreenState) {
-                  await toggleFullScreen();
-                  setIsFullscreenState(false);
-                } else {
-                  await lockToLandscape();
-                  setIsFullscreenState(isFullScreen());
-                }
-              }}
+              onClick={() => handleToggleFullScreen(true)}
               className="w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--text-secondary)] active:scale-95 transition-transform cursor-pointer"
               title={t('lobby.lockLandscapeTooltip')}
             >

@@ -746,12 +746,18 @@ export function resolveCompositeRuleStrategy(
       break;
 
     case 'TRADITIONAL':
+      defaultRules = createDefaultGameRules({
+        settlementRule: 'TRADITIONAL',
+        table: { playerCount: 4, betAmount: 500, soundEnabled: true }
+      });
+      break;
+
     case 'CUSTOM':
     case 'QUICK':
     default:
       defaultRules = createDefaultGameRules({
-        settlementRule: 'TRADITIONAL',
-        table: { playerCount: 4, betAmount: 500, soundEnabled: true }
+        settlementRule: 'COUNT_CARDS',
+        table: { playerCount: 4, betAmount: 1000, soundEnabled: true }
       });
       break;
   }

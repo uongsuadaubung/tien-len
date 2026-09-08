@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useViewStore } from '../../../stores/useViewStore';
 import { useGameStore, type CampaignResultMeta } from '../../../stores/useGameStore';
 import { MobileQuestsView } from '../views/MobileQuestsView';
@@ -24,19 +24,11 @@ import { MobileOnlineRoomView } from '../views/MobileOnlineRoomView';
 import { MobileOnlineDisbandView } from '../views/MobileOnlineDisbandView';
 import { useOnlineStore } from '../../../stores/useOnlineStore';
 import { CampaignChapter } from '../../../engine/campaign';
-import { normalizePlayerCount } from '../../../engine/types';
+import { useGameSetupConfigs } from '../../hooks/useGameSetupConfigs';
 import { useMatchmakingStore } from '../../../stores/useMatchmakingStore';
+import type { MobileGameSheetsProps } from '../../types';
 
-export interface MobileGameSheetsProps {
-  onStartQuickGame: (config: QuickSetupConfig) => void;
-  onStartCustomGame: (config: CustomGameModalConfig) => void;
-  onSelectCampaignChapter: (chapter: CampaignChapter) => void;
-  onNextGame: () => void;
-  onReturnToLobby: () => void;
-  onConfirmForfeit: () => void;
-  campaignResultMeta?: CampaignResultMeta | null;
-  onOpenCampaignMap: (() => void) | null;
-}
+export type { MobileGameSheetsProps };
 
 export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
   onStartQuickGame,
@@ -69,16 +61,8 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
   } = useViewStore();
 
   const { disbandNotice, clearDisbandNotice } = useOnlineStore();
-
-  // Game Store
-  const {
-    gameSettings,
-    quickTableConfig,
-    playerCount,
-    botPersonaIds,
-    customBotConfigs,
-    currentHint
-  } = useGameStore();
+  const currentHint = useGameStore(s => s.currentHint);
+  const { quickSetupInitialConfig, customGameInitialConfig } = useGameSetupConfigs();
 
   return (
     <>
@@ -95,13 +79,7 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
         <MobileCustomGameView
           isOpen={isCustomGameModalOpen}
           onClose={() => closeModal('CUSTOM_GAME')}
-          initialConfig={{
-            selectedModeId: gameSettings.mode === 'COUNT_CARDS' ? 'COUNT_CARDS' : gameSettings.mode === 'WINNER_TAKES_ALL' ? 'WINNER_TAKES_ALL' : 'TRADITIONAL',
-            settings: gameSettings,
-            playerCount: normalizePlayerCount(playerCount),
-            botPersonaIds: botPersonaIds,
-            customBotConfigs: customBotConfigs
-          }}
+          initialConfig={customGameInitialConfig}
           onStartCustomGame={onStartCustomGame}
         />
       )}
@@ -111,18 +89,7 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
         <MobileQuickSetupSheet
           isOpen={isQuickSetupOpen}
           onClose={() => closeModal('QUICK_SETUP')}
-          initialConfig={{
-            playerCount: quickTableConfig.playerCount,
-            mode: quickTableConfig.settlementRule,
-            betAmount: quickTableConfig.betAmount,
-            choppingMultiplier: quickTableConfig.choppingMultiplier,
-            congMultiplier: quickTableConfig.congMultiplier,
-            congEnabled: quickTableConfig.congEnabled,
-            prohibitEndingWithTwo: quickTableConfig.prohibitEndingWithTwo,
-            allowFourPairsCutAnytime: quickTableConfig.allowFourPairsCutAnytime,
-            threeSpadesEndingBonus: quickTableConfig.threeSpadesEndingBonus,
-            cascadeChopEnabled: quickTableConfig.cascadeChopEnabled
-          }}
+          initialConfig={quickSetupInitialConfig}
           onStartGame={onStartQuickGame}
         />
       )}

@@ -291,6 +291,8 @@ export class OfflineMatchDriver implements IMatchDriver {
 
     const setup = strategy.setupMatch({
       profile,
+      rules: config.rules,
+      settings: config.settings,
       customRules: config.rules,
       customSettings: config.settings,
       customBotPersonaIds: config.botPersonaIds,
@@ -408,6 +410,8 @@ export class OfflineMatchDriver implements IMatchDriver {
       const strategy = resolveStrategyForMatch(gameType, mode);
       const setup = strategy.setupMatch({
         profile: context.profile,
+        rules: context.rules ?? (context.customRules as GameRules | undefined),
+        settings: context.settings ?? (context.customSettings as GameSettings | undefined),
         customRules: context.customRules,
         customSettings: context.customSettings,
         customBotPersonaIds: context.customBotPersonaIds,

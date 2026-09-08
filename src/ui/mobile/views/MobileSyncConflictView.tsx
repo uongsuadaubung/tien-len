@@ -1,63 +1,27 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { AlertTriangle, CloudUpload, CloudDownload, Trophy, Coins, Calendar } from 'lucide-react';
 import { Button, Badge } from '../../primitives';
-import { getRankTierByElo } from '../../../engine/elo';
-import { forceUploadToCloud, forceDownloadFromCloud } from '../../../engine/sync/sync-service';
-import type { SyncConflictData } from '../../../stores/useViewStore';
 import { useI18n } from '../../../locales';
+import { useSyncConflictLogic, type UseSyncConflictLogicOptions } from '../../hooks/useSyncConflictLogic';
 
-export interface MobileSyncConflictViewProps {
-  conflictData: SyncConflictData;
-  onClose: () => void;
-}
-
-function formatTime(timestamp: number): string {
-  const d = new Date(timestamp);
-  const hours = String(d.getHours()).padStart(2, '0');
-  const minutes = String(d.getMinutes()).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const year = d.getFullYear();
-  return `${hours}:${minutes} • ${day}/${month}/${year}`;
-}
+export type MobileSyncConflictViewProps = UseSyncConflictLogicOptions;
 
 export const MobileSyncConflictView: React.FC<MobileSyncConflictViewProps> = ({
   conflictData,
   onClose
 }) => {
   const { t } = useI18n();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const { localData, cloudData } = conflictData;
-  const localRank = getRankTierByElo(localData.profile.elo);
-  const cloudRank = getRankTierByElo(cloudData.profile.elo);
-
-  const handleChooseLocal = async () => {
-    setIsProcessing(true);
-    setErrorMsg(null);
-    try {
-      await forceUploadToCloud();
-      onClose();
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : t('sync.conflictUploadError'));
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleChooseCloud = async () => {
-    setIsProcessing(true);
-    setErrorMsg(null);
-    try {
-      await forceDownloadFromCloud();
-      onClose();
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : t('sync.conflictDownloadError'));
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+  const {
+    localData,
+    cloudData,
+    localRank,
+    cloudRank,
+    isProcessing,
+    errorMsg,
+    handleChooseLocal,
+    handleChooseCloud,
+    formatTime
+  } = useSyncConflictLogic({ conflictData, onClose });
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-[#070b13] text-zinc-100 w-full h-full select-none animate-in fade-in duration-200 overflow-hidden">

@@ -53,11 +53,11 @@ import type {
   GameSettings
 } from './schemas/settings.schema';
 
-export type { GameSettlementRule };
-import { GameRulesSchema, StrictGameRulesSchema } from './schemas/settings.schema';
+import { GameRulesSchema, StrictGameRulesSchema, GameSettingsSchema } from './schemas/settings.schema';
 
 export type {
   GameMode,
+  GameSettlementRule,
   PlayerCount,
   ChoppingRules,
   CongRules,
@@ -223,36 +223,35 @@ export function getSettlementRuleLabel(rule?: GameSettlementRule | GameMode): st
 }
 
 /**
- * Chuyển đổi GameSettings sang GameRules
+ * Chuyển đổi GameSettings sang GameRules (Zero-Fallback: Xác thực qua Zod và gán trực tiếp dữ liệu chuẩn)
  */
 export function convertSettingsToGameRules(settings?: Partial<GameSettings>): GameRules {
-  const settlementRule: GameSettlementRule = (settings?.mode && settings.mode !== 'CUSTOM')
-    ? settings.mode
-    : 'COUNT_CARDS';
+  const validated = GameSettingsSchema.parse(settings || {});
+  const settlementRule: GameSettlementRule = validated.mode;
 
   return createDefaultGameRules({
     settlementRule,
     chopping: {
-      allowFourPairsCutAnytime: settings?.allowFourPairsCutAnytime ?? true,
+      allowFourPairsCutAnytime: validated.allowFourPairsCutAnytime,
       allowThreePairsCutTwo: true,
       allowFourOfAKindCutPairsOfTwos: true,
       multiplier: 1,
-      cascadeMultiplier: settings?.cascadeChopEnabled ?? true
+      cascadeMultiplier: validated.cascadeChopEnabled
     },
     instantWin: {
-      enabled: settings?.instantWinEnabled ?? true,
+      enabled: validated.instantWinEnabled,
       payoutMultiplier: 26
     },
     gameFlow: {
       firstGameRequireThreeOfSpades: true,
       winnerLeadsNextGame: true,
-      prohibitEndingWithTwo: settings?.prohibitEndingWithTwo ?? true,
-      threeSpadesEndingBonus: settings?.threeSpadesEndingBonus ?? true
+      prohibitEndingWithTwo: validated.prohibitEndingWithTwo,
+      threeSpadesEndingBonus: validated.threeSpadesEndingBonus
     },
     table: {
-      playerCount: normalizePlayerCount(settings?.playerCount),
-      betAmount: settings?.betAmount ?? 1000,
-      soundEnabled: settings?.soundEnabled ?? true
+      playerCount: validated.playerCount,
+      betAmount: validated.betAmount,
+      soundEnabled: validated.soundEnabled
     }
   });
 }

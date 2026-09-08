@@ -9,6 +9,31 @@ export const PAGE_SIZE = 15;
 
 export type EcosystemTab = 'LEADERBOARD' | 'NEWSFEED';
 
+export interface NewsStyle {
+  cardClass: string;
+  defaultAvatar: string;
+}
+
+export const NEWS_TYPE_STYLES: Record<string, NewsStyle> = {
+  BANKRUPTCY: {
+    cardClass: 'bg-[var(--color-ruby-bg)] border-[var(--color-ruby-border)] text-[var(--color-ruby-text)]',
+    defaultAvatar: '🚨'
+  },
+  WIN_STREAK: {
+    cardClass: 'border-orange-500/30 text-orange-200',
+    defaultAvatar: '🔥'
+  },
+  BIG_WIN: {
+    cardClass: 'border-[var(--color-gold-border)] bg-[var(--color-gold-dim)]',
+    defaultAvatar: '💰'
+  }
+};
+
+export const DEFAULT_NEWS_STYLE: NewsStyle = {
+  cardClass: 'border-[var(--border-card)]',
+  defaultAvatar: '🎉'
+};
+
 export interface EcosystemTableItem {
   id: string;
   name: string | null;

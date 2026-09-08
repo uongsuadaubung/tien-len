@@ -1,10 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { getRankTierByElo, RANK_TIERS } from '../../../engine/elo';
-import { useViewStore } from '../../../stores/useViewStore';
-import { useEcosystemStore } from '../../../stores/useEcosystemStore';
-import { useGameStore } from '../../../stores/useGameStore';
-import { useSettingsStore } from '../../../stores/useSettingsStore';
-import { useUserStore } from '../../../stores/useUserStore';
+import React from 'react';
 import { 
   Trophy, 
   Flame, 
@@ -14,20 +8,19 @@ import {
   Disc, 
   Landmark, 
   Settings, 
-  AlertCircle,
-  Sliders,
-  Edit2,
-  BookOpen,
-  ArrowRight,
-  Newspaper,
-  Maximize,
-  Minimize,
-  Wifi
+  AlertCircle, 
+  Sliders, 
+  Edit2, 
+  BookOpen, 
+  ArrowRight, 
+  Newspaper, 
+  Maximize, 
+  Minimize, 
+  Wifi 
 } from 'lucide-react';
 import { Button, Badge, Card, SectionHeader } from '../../primitives';
-import { isFullScreen, toggleFullScreen } from '../../utils/fullscreen';
-import { useI18n } from '../../../locales';
-import { GameMode, GameSettlementRule } from '../../../engine/types';
+import { useLobbyLogic } from '../../hooks/useLobbyLogic';
+
 export interface WebLobbyScreenProps {
   onPlayNow?: () => void;
   onOpenQuickSetup: () => void;
@@ -53,60 +46,21 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
   onOpenRules,
   onOpenNameSetup
 }) => {
-  const { t } = useI18n();
-  const { profile } = useUserStore();
-  const { openModal } = useViewStore();
-  const { newsfeed, initEcosystem } = useEcosystemStore();
-  const { quickTableConfig } = useGameStore();
-  const { onlineMultiplayerBetaEnabled } = useSettingsStore();
-  const [isFullscreenState, setIsFullscreenState] = useState(isFullScreen());
-
-  const getSettlementLabel = (rule?: GameSettlementRule | GameMode) => {
-    switch (rule) {
-      case 'WINNER_TAKES_ALL': return t('modes.winnerTakesAll');
-      case 'TRADITIONAL': return t('modes.traditional');
-      case 'COUNT_CARDS':
-      default: return t('modes.countCards');
-    }
-  };
-
-  useEffect(() => {
-    initEcosystem();
-  }, [initEcosystem]);
-
-  useEffect(() => {
-    const handleFsChange = () => {
-      setIsFullscreenState(isFullScreen());
-    };
-    document.addEventListener('fullscreenchange', handleFsChange);
-    document.addEventListener('webkitfullscreenchange', handleFsChange);
-    document.addEventListener('mozfullscreenchange', handleFsChange);
-    document.addEventListener('MSFullscreenChange', handleFsChange);
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFsChange);
-      document.removeEventListener('webkitfullscreenchange', handleFsChange);
-      document.removeEventListener('mozfullscreenchange', handleFsChange);
-      document.removeEventListener('MSFullscreenChange', handleFsChange);
-    };
-  }, []);
-
-  const currentRank = getRankTierByElo(profile.elo);
-
-  // Tính % tiến trình lên Rank tiếp theo
-  const currentTierIndex = RANK_TIERS.findIndex(t => t.id === currentRank.id);
-  const nextTier = RANK_TIERS[currentTierIndex + 1];
-  let eloProgress = 100;
-  if (nextTier) {
-    const tierSpan = nextTier.minElo - currentRank.minElo;
-    const progressInTier = profile.elo - currentRank.minElo;
-    eloProgress = Math.min(100, Math.max(0, Math.round((progressInTier / tierSpan) * 100)));
-  }
-
-  // Số lượng nhiệm vụ có thể nhận thưởng
-  const claimableQuestsCount =
-    profile.dailyQuests.filter(q => q.isCompleted && !q.isClaimed).length +
-    profile.achievements.filter(a => a.isCompleted && !a.isClaimed).length;
+  const {
+    t,
+    profile,
+    openModal,
+    newsfeed,
+    isFullscreenState,
+    handleToggleFullScreen,
+    currentRank,
+    nextTier,
+    eloProgress,
+    claimableQuestsCount,
+    quickTableConfig,
+    onlineMultiplayerBetaEnabled,
+    getSettlementLabel
+  } = useLobbyLogic();
 
   return (
     <div className="relative min-h-screen w-full flex flex-col justify-between overflow-y-auto bg-[var(--bg-canvas)] text-[var(--text-primary)] p-3 sm:p-4 select-none font-sans">
@@ -249,10 +203,7 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
 
             {/* Nút Toàn Màn Hình */}
             <button
-              onClick={async () => {
-                const fs = await toggleFullScreen();
-                setIsFullscreenState(fs);
-              }}
+              onClick={() => handleToggleFullScreen()}
               className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[var(--bg-card)] border border-[var(--border-card)] hover:border-[var(--border-gold)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-95 transition-all cursor-pointer shadow-sm"
               title={isFullscreenState ? t('lobby.fullScreenExit') : t('lobby.fullScreenEnter')}
             >

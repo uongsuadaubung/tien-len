@@ -91,16 +91,34 @@ export function createBotEntityFromDNA(
   const selectedKey = dnaKeys[index % dnaKeys.length];
   const basePersona = (selectedKey && BOT_PERSONAS[selectedKey]) || BOT_PERSONAS.BOT_ELO_1150;
 
-  // 1. Tên và Avatar
-  const availableNames = GLOBAL_BOT_NAMES.filter(n => !usedNames.has(n));
+  // 1. Tên và Avatar (Đảm bảo không trùng tên kể cả khi so sánh rawName hoặc fullName)
+  const isNameTaken = (candidateName: string) => {
+    if (usedNames.has(candidateName)) return true;
+    for (const existing of usedNames) {
+      if (existing === candidateName || existing.startsWith(`${candidateName} `) || existing.startsWith(`${candidateName}(`)) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const availableNames = GLOBAL_BOT_NAMES.filter(n => !isNameTaken(n));
   const rawName = availableNames.length > 0
     ? availableNames[Math.floor(Math.random() * availableNames.length)]
     : `Cao Thủ ${tierNum}_${index + 1}`;
-  usedNames.add(rawName);
 
   const nicknames = GLOBAL_NICKNAMES_BY_TIER[tierNum] || GLOBAL_NICKNAMES_BY_TIER[2];
   const nickname = nicknames[index % nicknames.length];
-  const name = `${rawName} (${nickname})`;
+  let name = `${rawName} (${nickname})`;
+
+  let collisionCounter = 1;
+  while (usedNames.has(name)) {
+    collisionCounter++;
+    name = `${rawName} #${collisionCounter} (${nickname})`;
+  }
+
+  usedNames.add(rawName);
+  usedNames.add(name);
 
   const avatarPool = GLOBAL_AVATARS_BY_TIER[tierNum] || GLOBAL_AVATARS;
   const rawAvatar = avatarPool[index % avatarPool.length] || GLOBAL_AVATARS[index % GLOBAL_AVATARS.length] || '🤖';
@@ -292,7 +310,9 @@ export function draftBotForTier(
   const tier = Math.min(RANK_TIERS.length, Math.max(1, targetTier));
   
   // 1. Tạo bot mang đầy đủ bộ não / AI DNA của targetTier (Minimax, Bayesian, Lookahead...)
-  const bot = createBotEntityFromDNA(tier, index, existingNames);
+  // Sao chép Set để kiểm tra trùng lặp không làm thay đổi trực tiếp Set của caller trước khi caller kiểm tra
+  const usedNamesCopy = new Set(existingNames);
+  const bot = createBotEntityFromDNA(tier, index, usedNamesCopy);
 
   // 2. Thiết lập Elo xuất phát điểm chuẩn 1.000 Elo (như người chơi thật mới tạo tài khoản)
   const eloOffset = Math.floor(Math.random() * 60) - 30; // 970 -> 1030

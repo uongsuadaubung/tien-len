@@ -1,7 +1,14 @@
 import React from 'react';
 import { Modal, Card, Badge, Button, Tabs, TabOption } from '../../primitives';
 import { useViewStore } from '../../../stores/useViewStore';
-import { useEcosystem, EcosystemTab, TIER_FILTERS, PAGE_SIZE } from '../../hooks/useEcosystem';
+import { 
+  useEcosystem, 
+  EcosystemTab, 
+  TIER_FILTERS, 
+  PAGE_SIZE,
+  NEWS_TYPE_STYLES,
+  DEFAULT_NEWS_STYLE
+} from '../../hooks/useEcosystem';
 import { getTierFilterLabel } from '../../../engine/ecosystem/ecosystem-types';
 import { useI18n } from '../../../locales';
 import { 
@@ -16,25 +23,6 @@ import {
   ArrowUpDown, 
   Target 
 } from 'lucide-react';
-
-const NEWS_TYPE_STYLES: Record<string, { cardClass: string; defaultAvatar: string }> = {
-  BANKRUPTCY: {
-    cardClass: 'bg-[var(--color-ruby-bg)] border-[var(--color-ruby-border)] text-[var(--color-ruby-text)]',
-    defaultAvatar: '🚨'
-  },
-  WIN_STREAK: {
-    cardClass: 'border-orange-500/30 text-orange-200',
-    defaultAvatar: '🔥'
-  },
-  BIG_WIN: {
-    cardClass: 'border-[var(--color-gold-border)] bg-[var(--color-gold-dim)]',
-    defaultAvatar: '💰'
-  }
-};
-const DEFAULT_NEWS_STYLE = {
-  cardClass: 'border-[var(--border-card)]',
-  defaultAvatar: '🎉'
-};
 
 export const EcosystemModal: React.FC = () => {
   const { t } = useI18n();

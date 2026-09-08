@@ -1,4 +1,5 @@
 import type { MatchSnapshot } from '../offline-match-driver';
+import type { GameRules, GameSettings } from '../types';
 
 export class InvariantViolationError extends Error {
   public context?: Record<string, unknown>;
@@ -48,6 +49,8 @@ export function assertValidMatchStartup(context: {
   playerCoins: number;
   playerCount: number;
   activeGameType: string | null;
+  rules?: GameRules;
+  settings?: GameSettings;
 }): void {
   if (context.betAmount <= 0) {
     reportInvariantViolation(`Mức cược bàn đấu không hợp lệ (phải > 0, nhận được: ${context.betAmount})`, context);
@@ -63,6 +66,47 @@ export function assertValidMatchStartup(context: {
 
   if (context.gameNumber < 1) {
     reportInvariantViolation(`Số thứ tự ván đấu không hợp lệ (phải >= 1, nhận được: ${context.gameNumber})`, context);
+  }
+
+  // Chốt chặn tính toàn vẹn và đồng nhất của Rules & Settings (Zero-Fallback Contract)
+  if (context.rules) {
+    assertValidRulesAndSettings(context.rules, context.settings);
+    if (context.rules.table.playerCount !== context.playerCount) {
+      reportInvariantViolation(`rules.table.playerCount (${context.rules.table.playerCount}) không khớp với context.playerCount (${context.playerCount})`, context);
+    }
+  }
+}
+
+/**
+ * Chốt chặn tính toàn vẹn và đồng nhất của Rules & Settings (Zero-Fallback Contract)
+ */
+export function assertValidRulesAndSettings(rules: GameRules, settings?: GameSettings): void {
+  if (typeof rules.gameFlow?.prohibitEndingWithTwo !== 'boolean') {
+    reportInvariantViolation('rules.gameFlow.prohibitEndingWithTwo phải được khởi tạo là boolean hợp lệ (không được undefined/null)', { rules });
+  }
+  if (typeof rules.gameFlow?.threeSpadesEndingBonus !== 'boolean') {
+    reportInvariantViolation('rules.gameFlow.threeSpadesEndingBonus phải được khởi tạo là boolean hợp lệ', { rules });
+  }
+  if (typeof rules.chopping?.allowFourPairsCutAnytime !== 'boolean') {
+    reportInvariantViolation('rules.chopping.allowFourPairsCutAnytime phải được khởi tạo là boolean hợp lệ', { rules });
+  }
+  if (typeof rules.chopping?.cascadeMultiplier !== 'boolean') {
+    reportInvariantViolation('rules.chopping.cascadeMultiplier phải được khởi tạo là boolean hợp lệ', { rules });
+  }
+
+  if (settings) {
+    if (settings.prohibitEndingWithTwo !== undefined && settings.prohibitEndingWithTwo !== rules.gameFlow.prohibitEndingWithTwo) {
+      reportInvariantViolation(`Lệch pha cấu hình: settings.prohibitEndingWithTwo (${settings.prohibitEndingWithTwo}) khác rules.gameFlow.prohibitEndingWithTwo (${rules.gameFlow.prohibitEndingWithTwo})`, { rules, settings });
+    }
+    if (settings.threeSpadesEndingBonus !== undefined && settings.threeSpadesEndingBonus !== rules.gameFlow.threeSpadesEndingBonus) {
+      reportInvariantViolation(`Lệch pha cấu hình: settings.threeSpadesEndingBonus (${settings.threeSpadesEndingBonus}) khác rules.gameFlow.threeSpadesEndingBonus (${rules.gameFlow.threeSpadesEndingBonus})`, { rules, settings });
+    }
+    if (settings.allowFourPairsCutAnytime !== undefined && settings.allowFourPairsCutAnytime !== rules.chopping.allowFourPairsCutAnytime) {
+      reportInvariantViolation(`Lệch pha cấu hình: settings.allowFourPairsCutAnytime (${settings.allowFourPairsCutAnytime}) khác rules.chopping.allowFourPairsCutAnytime (${rules.chopping.allowFourPairsCutAnytime})`, { rules, settings });
+    }
+    if (settings.cascadeChopEnabled !== undefined && settings.cascadeChopEnabled !== rules.chopping.cascadeMultiplier) {
+      reportInvariantViolation(`Lệch pha cấu hình: settings.cascadeChopEnabled (${settings.cascadeChopEnabled}) khác rules.chopping.cascadeMultiplier (${rules.chopping.cascadeMultiplier})`, { rules, settings });
+    }
   }
 }
 

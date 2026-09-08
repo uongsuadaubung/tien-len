@@ -18,12 +18,29 @@ export interface CustomGameModalConfig {
   botPersonaIds: BotPersonaIdTuple;
   customBotConfigs: CustomBotConfigTuple<BotConfig>;
   playerCount: PlayerCount;
+  choppingMultiplier?: number;
+  congMultiplier?: number;
+  congEnabled?: boolean;
 }
 
 export type CustomGameTabType = 'MODE_RULES' | 'BOT_ROSTER' | 'ADVANCED_AI';
 
 import { useUserStore } from '../../stores/useUserStore';
-import { t } from '../../locales';
+import { t, type I18nKeyPath } from '../../locales';
+
+export interface BotPreset {
+  readonly id: string;
+  readonly nameKey: I18nKeyPath;
+  readonly descKey: I18nKeyPath;
+  readonly botIds: BotPersonaIdTuple;
+}
+
+export const BOT_PRESETS: readonly BotPreset[] = [
+  { id: 'NEWBIE_TABLE', nameKey: 'customGame.presetNewbieName', descKey: 'customGame.presetNewbieDesc', botIds: ['BOT_ELO_700', 'BOT_ELO_750', 'BOT_ELO_850'] },
+  { id: 'CASUAL_STREET', nameKey: 'customGame.presetCasualName', descKey: 'customGame.presetCasualDesc', botIds: ['BOT_ELO_950', 'BOT_ELO_1000', 'BOT_ELO_1150'] },
+  { id: 'MID_TIER_PRO', nameKey: 'customGame.presetProName', descKey: 'customGame.presetProDesc', botIds: ['BOT_ELO_1500', 'BOT_ELO_1750', 'BOT_ELO_1800'] },
+  { id: 'ELITE_CLUB', nameKey: 'customGame.presetEliteName', descKey: 'customGame.presetEliteDesc', botIds: ['BOT_ELO_2000', 'BOT_ELO_2300', 'BOT_ELO_2500'] }
+];
 
 export interface UseCustomGameProps {
   initialConfig: Partial<CustomGameModalConfig> | null;
@@ -90,6 +107,9 @@ export function resolveCustomGameConfig(
   return {
     selectedModeId: partial?.selectedModeId ?? 'COUNT_CARDS',
     playerCount: resolvedPlayerCount,
+    choppingMultiplier: partial?.choppingMultiplier ?? 1,
+    congMultiplier: partial?.congMultiplier ?? 1,
+    congEnabled: partial?.congEnabled ?? true,
     settings: {
       mode: partial?.settings?.mode ?? 'COUNT_CARDS',
       betAmount: initialBet,
@@ -128,9 +148,9 @@ export function useCustomGame({
   const [botPersonaIds, setBotPersonaIds] = useState<BotPersonaIdTuple>(initialResolved.botPersonaIds);
   const [customBotConfigs, setCustomBotConfigs] = useState<CustomBotConfigTuple<BotConfig>>(initialResolved.customBotConfigs);
 
-  const [choppingMultiplier, setChoppingMultiplier] = useState<number>(1);
-  const [congMultiplier, setCongMultiplier] = useState<number>(1);
-  const [congEnabled, setCongEnabled] = useState<boolean>(true);
+  const [choppingMultiplier, setChoppingMultiplier] = useState<number>(initialResolved.choppingMultiplier ?? 1);
+  const [congMultiplier, setCongMultiplier] = useState<number>(initialResolved.congMultiplier ?? 1);
+  const [congEnabled, setCongEnabled] = useState<boolean>(initialResolved.congEnabled ?? true);
 
   const [activeTab, setActiveTab] = useState<CustomGameTabType>('MODE_RULES');
   const [activeBotSeatIndex, setActiveBotSeatIndex] = useState<number>(0);
@@ -210,10 +230,13 @@ export function useCustomGame({
       },
       botPersonaIds,
       customBotConfigs,
-      playerCount
+      playerCount,
+      choppingMultiplier,
+      congMultiplier,
+      congEnabled
     });
     onClose?.();
-  }, [isInsufficientCoins, onClose, onStartCustomGame, playerCount, playerCoins, settings, botPersonaIds, customBotConfigs]);
+  }, [isInsufficientCoins, onClose, onStartCustomGame, playerCount, playerCoins, settings, botPersonaIds, customBotConfigs, choppingMultiplier, congMultiplier, congEnabled]);
 
   const activeBotCount = playerCount - 1;
   const currentActivePersona = BOT_PERSONAS[botPersonaIds[activeBotSeatIndex]] ?? BOT_PERSONAS.BOT_ELO_1150;

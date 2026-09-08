@@ -28,7 +28,8 @@ export const SavedSettingsSchema = z.object({
   autoSyncOnStartup: z.boolean().default(true)
 });
 
-export const GameModeSchema = z.enum(['TRADITIONAL', 'COUNT_CARDS', 'WINNER_TAKES_ALL', 'CUSTOM']);
+export const GameSettlementRuleSchema = z.enum(['TRADITIONAL', 'COUNT_CARDS', 'WINNER_TAKES_ALL']);
+export const GameModeSchema = GameSettlementRuleSchema;
 export const PlayerCountSchema = z.union([z.literal(2), z.literal(3), z.literal(4)]);
 
 export const GameSettingsSchema = z.object({
@@ -74,8 +75,6 @@ export const TableRulesSchema = z.object({
   betAmount: z.number().nonnegative().default(1000),
   soundEnabled: z.boolean().default(true)
 });
-
-export const GameSettlementRuleSchema = z.enum(['TRADITIONAL', 'COUNT_CARDS', 'WINNER_TAKES_ALL']);
 
 export const StrictGameRulesSchema = z.object({
   settlementRule: GameSettlementRuleSchema,
