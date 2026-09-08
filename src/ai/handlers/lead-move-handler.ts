@@ -268,7 +268,7 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
         c.type === 'FOUR_PAIRS_SEQUENTIAL'
     );
     const turnsToClear = calculateTurnsToClearHand(hand, partition);
-    const isSprintToFinish = turnsToClear <= 2 && config.turnsToWinLookahead >= 0.6 && !hasBomb;
+    const isSprintToFinish = turnsToClear <= 2 && config.turnsToWinLookahead >= 0.4 && !hasBomb;
 
     const canPreferLongestCombo = (leadPolicy.preferLongestComboFirst || (isSolo && config.tempoControl >= 0.8)) && config.handPartitioningOptimality >= 0.55;
     const isComboLockThreat = isEmergencyAntiLeader || isNearFinishDanger || isNextPlayerOneCard;
@@ -286,59 +286,63 @@ export class LeadMoveHeuristicHandler extends BotDecisionHandler {
         return a.highestCard.weight - b.highestCard.weight;
       });
 
-      const longestCombo = sortedCombos[0];
+      let chosenCombo: typeof regularNonTwoCombos[0] | null = null;
+      for (const candidateCombo of sortedCombos) {
+        let isSafe = true;
 
-      // ĐIỀU KIỆN AN TOÀN KHI XẢ COMBO DÀI (QUẢN LÝ ĐÔI KHI CÒN RÁC LẺ):
-      // 1. Khi có người sắp về bài (isEmergencyAntiLeader || isNearFinishDanger): Đánh bất kỳ bộ nào để khóa họ.
-      // 2. Khi combo dài nhất CHỈ LÀ ĐÔI (cards.length === 2) và còn rác lẻ (nonTwoTrash.length > 0):
-      //    - Đôi Nhỏ (rank < 11: 3..10): Tuyệt đối KHÔNG xả trước vì rất dễ bị đè cướp cái, kẹt lại rác lẻ!
-      //      -> Nhường quyền cho tẩu rác nhỏ trước (canLeadCombo = false).
-      //    - Đôi To (rank >= 11: J, Q, K, A):
-      //      + Trong Solo 1v1 (isSolo): ĐƯỢC XẢ ĐÔI TO! Đôi to trong 1v1 có tỷ lệ kiểm soát nhịp rất cao.
-      //      + Trong bàn đông người (!isSolo):
-      //        * Nếu còn nhiều rác (nonTwoTrash.length >= 2 && hand.length > 5): Giữ đôi to làm bệ phóng cướp cái, tẩu rác trước (canLeadCombo = false).
-      //        * Nếu chỉ còn 1 rác hoặc cờ tàn (hand.length <= 5): Được xả đôi to để dứt điểm về bài.
-      let canLeadCombo = true;
-      if (!isEmergencyAntiLeader && !isNearFinishDanger && leadPolicy.preferLongestComboFirst) {
-        // 1. Nếu combo dài nhất là Sảnh 3 lá nhỏ (rank < 11) và còn rác lẻ, hoặc chưa phải dứt điểm:
-        // Tuyệt đối không xả sảnh 3 lá nhỏ ra đầu vì đối thủ rất dễ có sảnh 3 lá cao hơn để đè cướp cái!
-        if (longestCombo.type === 'STRAIGHT' && longestCombo.cards.length === 3) {
-          if (longestCombo.highestCard.rank < 11 && (nonTwoTrash.length > 0 || isSolo) && !isSprintToFinish) {
-            canLeadCombo = false;
+        if (!isEmergencyAntiLeader && !isNearFinishDanger && leadPolicy.preferLongestComboFirst) {
+          const isSmallPair = candidateCombo.cards.length <= 2 && candidateCombo.highestCard.rank < 11;
+          const isShortSmallStraight = candidateCombo.type === 'STRAIGHT' && candidateCombo.cards.length === 3 && candidateCombo.highestCard.rank < 11;
+          const hasControl = handStrength.twoCount >= 1 || hasBomb;
+          const totalComboCards = regularNonTwoCombos.reduce((sum, c) => sum + c.cards.length, 0);
+          const isTrashDominant = nonTwoTrash.length >= 3 && nonTwoTrash.length >= totalComboCards;
+          const hasStrongBackup = regularNonTwoCombos.some(
+            c => c !== candidateCombo && (c.highestCard.rank >= 12 || c.cards.length >= 4)
+          );
+
+          // Không an toàn khi:
+          // 1. Combo là Đôi (cards.length <= 2) khi bài ngập rác lẻ (isTrashDominant) -> cần giữ Đôi (nhất là Đôi to) làm bệ phóng, tẩu rác nhỏ trước.
+          // 2. Combo là Đôi nhỏ (rank < 11) HOẶC Sảnh 3 lá nhỏ (rank < 11):
+          //    - Nếu không có Heo/Hàng bảo kê (!hasControl)
+          //    - VÀ không có Combo bọc lót mạnh (>= Q/K/A hoặc Sảnh >= 4 lá)
+          //    - VÀ bài còn rác lẻ (nonTwoTrash.length > 0)
+          //    -> Tuyệt đối không xả bộ non ra làm mồi cho làng cướp cái! Phải tẩu rác nhỏ trước.
+          if (
+            !isSprintToFinish &&
+            (
+              (candidateCombo.cards.length <= 2 && isTrashDominant) ||
+              ((isSmallPair || isShortSmallStraight) && !hasControl && !hasStrongBackup && nonTwoTrash.length > 0 && hand.length > 4)
+            )
+          ) {
+            isSafe = false;
           }
         }
 
-        // 2. Nếu combo dài nhất là Đôi (cards.length === 2) và còn rác lẻ:
-        if (longestCombo.cards.length < 3) {
-          if (nonTwoTrash.length > 0) {
-            const isSmallPair = longestCombo.highestCard.rank < 11;
-            const hasMultipleTrash = nonTwoTrash.length >= 2;
-            if (isSmallPair || (hasMultipleTrash && hand.length > 5)) {
-              canLeadCombo = false;
-            }
+        if (context.prohibitEndingWithTwo) {
+          const remainingAfterCombo = hand.filter(c => !candidateCombo.cards.some(mc => mc.id === c.id));
+          if (remainingAfterCombo.length > 0 && remainingAfterCombo.every(isTwo)) {
+            isSafe = false;
           }
         }
-      }
 
-      if (context.prohibitEndingWithTwo) {
-        const remainingAfterCombo = hand.filter(c => !longestCombo.cards.some(mc => mc.id === c.id));
-        if (remainingAfterCombo.length > 0 && remainingAfterCombo.every(isTwo)) {
-          canLeadCombo = false;
+        if (isSafe) {
+          chosenCombo = candidateCombo;
+          break;
         }
       }
 
-      if (canLeadCombo) {
+      if (chosenCombo) {
         const move = validMoves.find(
           m =>
-            m.combination.type === longestCombo.type &&
-            m.cards.length === longestCombo.cards.length &&
-            m.combination.highestCard.id === longestCombo.highestCard.id
+            m.combination.type === chosenCombo!.type &&
+            m.cards.length === chosenCombo!.cards.length &&
+            m.combination.highestCard.id === chosenCombo!.highestCard.id
         );
         if (move) {
           const isThreatLock = isEmergencyAntiLeader || isNearFinishDanger || isNextPlayerOneCard;
           const reason = isThreatLock
-            ? `Khóa đối thủ sắp về (${minOpponentCards} lá): Đánh bộ (${longestCombo.type} ${longestCombo.cards.length} lá) để chặn đứng đối thủ`
-            : `Chiến thuật Rule-Driven: Xả tổ hợp dài nhất (${longestCombo.type} ${longestCombo.cards.length} lá) trước để giảm số lá tồn`;
+            ? `Khóa đối thủ sắp về (${minOpponentCards} lá): Đánh bộ (${chosenCombo.type} ${chosenCombo.cards.length} lá) để chặn đứng đối thủ`
+            : `Chiến thuật Rule-Driven: Xả tổ hợp dài nhất (${chosenCombo.type} ${chosenCombo.cards.length} lá) trước để giảm số lá tồn`;
           const strategyUsed = isThreatLock
             ? 'COMBO_LOCK_ONE_CARD_OPPONENT'
             : 'RULE_DRIVEN_LONGEST_COMBO';

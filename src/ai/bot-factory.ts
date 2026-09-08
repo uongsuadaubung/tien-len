@@ -149,7 +149,7 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     elo: 1150,
     description: 'Thích xả Heo lớn để giành quyền đi đầu sớm, hay bị chặt đè ngược.',
     memoryDepth: 0.4,
-    riskAppetite: 0.75,
+    riskAppetite: 0.65,
     trapTendency: 0.25,
     baitingTendency: 0.1,
     antiLeaderAggression: 0.88,

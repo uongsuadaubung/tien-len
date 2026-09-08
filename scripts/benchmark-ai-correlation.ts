@@ -5,9 +5,9 @@
  * Chạy độc lập: bun run benchmark:ai
  * 
  * Cấu trúc 3 Giai đoạn:
- * 1. Giai đoạn 1 (Solo 1v1): Ma trận đối đầu chéo 5x5 (20 cặp x 100 ván = 2,000 ván).
- * 2. Giai đoạn 2 (Bàn 3 Người - 3P): C(5, 3) = 10 tổ hợp x 30 ván = 300 ván (xoay 3 ghế).
- * 3. Giai đoạn 3 (Bàn 4 Người - 4P): C(5, 4) = 5 tổ hợp x 20 ván = 100 ván (xoay 4 ghế).
+ * 1. Giai đoạn 1 (Solo 1v1): Ma trận đối đầu chéo 5x5 (10 cặp x 50 ván = 500 ván) Duplicate Hand Swap.
+ * 2. Giai đoạn 2 (Bàn 3 Người - 3P): C(5, 3) = 10 tổ hợp x 5 cỗ bài x 6 hoán vị = 300 ván (Full Permutation: đảo bài + đảo vị trí cánh).
+ * 3. Giai đoạn 3 (Bàn 4 Người - 4P): C(5, 4) = 5 tổ hợp x 2 cỗ bài x 24 hoán vị = 240 ván (Full Permutation: đảo bài + đảo đủ 4 vị trí ghế).
  * 4. Bảng Tổng Hợp So Sánh Tương Quan (1v1 vs 3P vs 4P).
  */
 
@@ -80,6 +80,23 @@ function getCombinations<T>(array: T[], k: number): T[][] {
     }
   }
   backtrack(0, []);
+  return result;
+}
+
+function getPermutations<T>(array: T[]): T[][] {
+  const result: T[][] = [];
+  function permute(arr: T[], m: T[] = []) {
+    if (arr.length === 0) {
+      result.push(m);
+    } else {
+      for (let i = 0; i < arr.length; i++) {
+        const curr = arr.slice();
+        const next = curr.splice(i, 1);
+        permute(curr.slice(), m.concat(next));
+      }
+    }
+  }
+  permute(array);
   return result;
 }
 
@@ -182,24 +199,24 @@ interface MultiPlayerStats {
 }
 
 async function runBenchmark() {
-  console.log('╔═══════════════════════════════════════════════════════════════════════════════════╗');
-  console.log('║       HỆ THỐNG BENCHMARK AI TIẾN LÊN MIỀN NAM: TOÀN DIỆN 1v1, 3P & 4P (9 TIER)      ║');
-  console.log('╚═══════════════════════════════════════════════════════════════════════════════════╝\n');
+  const numBots = BENCHMARK_BOTS.length;
 
-  const numBots = BENCHMARK_BOTS.length; // 9
+  console.log('╔═══════════════════════════════════════════════════════════════════════════════════╗');
+  console.log(`║       HỆ THỐNG BENCHMARK AI TIẾN LÊN MIỀN NAM: TOÀN DIỆN 1v1, 3P & 4P (${numBots} TIER)      ║`);
+  console.log('╚═══════════════════════════════════════════════════════════════════════════════════╝\n');
 
   // =========================================================================
   // GIAI ĐOẠN 1: SOLO 1v1 DUPLICATE HAND SWAP (25 CỖ BÀI x 2 LƯỢT ĐẢO = 50 VÁN / CẶP)
   // =========================================================================
   const BOARDS_PER_MATCHUP_1V1 = 25;
   const GAMES_PER_MATCHUP_1V1 = BOARDS_PER_MATCHUP_1V1 * 2; // 50 ván
-  const TOTAL_PAIRS_1V1 = (numBots * (numBots - 1)) / 2; // 36 cặp duy nhất
-  const TOTAL_GAMES_1V1 = TOTAL_PAIRS_1V1 * GAMES_PER_MATCHUP_1V1; // 1,800 ván
+  const TOTAL_PAIRS_1V1 = (numBots * (numBots - 1)) / 2;
+  const TOTAL_GAMES_1V1 = TOTAL_PAIRS_1V1 * GAMES_PER_MATCHUP_1V1;
 
   console.log('========================================================================================');
   console.log(`>>> [GIAI ĐOẠN 1] SOLO 1v1 DUPLICATE HAND SWAP (${TOTAL_PAIRS_1V1} CẶP x ${BOARDS_PER_MATCHUP_1V1} CỖ BÀI x 2 LƯỢT ĐẢO = ${TOTAL_GAMES_1V1.toLocaleString()} VÁN)...`);
   console.log('- Mỗi cặp chơi 25 cỗ bài chuẩn: Lượt 1 (A cầm bài 1, B cầm bài 2) -> Lượt 2 ĐỔI NGƯỢC LẠI (A cầm bài 2, B cầm bài 1).');
-  console.log(`- 36 cặp đối đầu chéo x ${GAMES_PER_MATCHUP_1V1} ván = ${TOTAL_GAMES_1V1.toLocaleString()} ván (Mỗi bot chơi ${8 * GAMES_PER_MATCHUP_1V1} ván).`);
+  console.log(`- ${TOTAL_PAIRS_1V1} cặp đối đầu chéo x ${GAMES_PER_MATCHUP_1V1} ván = ${TOTAL_GAMES_1V1.toLocaleString()} ván (Mỗi bot chơi ${(numBots - 1) * GAMES_PER_MATCHUP_1V1} ván).`);
   console.log('----------------------------------------------------------------------------------------');
 
   const matrixWins1v1: number[][] = Array.from({ length: numBots }, () => Array(numBots).fill(0));
@@ -308,17 +325,18 @@ async function runBenchmark() {
   console.log(`✓ Hoàn thành 1v1 trong ${(duration1v1 / 1000).toFixed(1)}s | Pearson r = ${pearsonR1v1.toFixed(3)} | Spearman ρ = ${spearmanRho1v1.toFixed(3)}\n`);
 
   // =========================================================================
-  // GIAI ĐOẠN 2: BÀN 3 NGƯỜI (3P - C(N, 3) TỔ HỢP)
+  // GIAI ĐOẠN 2: BÀN 3 NGƯỜI (3P - C(N, 3) TỔ HỢP x HOÁN VỊ TOÀN PHẦN BÀI & VỊ TRÍ)
   // =========================================================================
   console.log('========================================================================================');
   const triplets = getCombinations(BENCHMARK_BOTS, 3);
-  const BOARDS_PER_TRIPLET = numBots <= 5 ? 10 : 5; // 10 cỗ bài cho 5 bot = 30 ván/tổ hợp
-  const ROTATIONS_PER_BOARD_3P = 3; // 3 vòng xoay ghế trên cùng 1 cỗ bài
-  const GAMES_PER_TRIPLET = BOARDS_PER_TRIPLET * ROTATIONS_PER_BOARD_3P;
+  const BOARDS_PER_TRIPLET = numBots <= 5 ? 5 : 3; // 5 cỗ bài cho 5 bot = 30 ván/tổ hợp
+  const PERMUTATIONS_PER_BOARD_3P = 6; // 3! = 6 hoán vị toàn phần (đủ 3 bộ bài x 2 chiều vòng cánh)
+  const GAMES_PER_TRIPLET = BOARDS_PER_TRIPLET * PERMUTATIONS_PER_BOARD_3P;
   const TOTAL_GAMES_3P = triplets.length * GAMES_PER_TRIPLET;
 
-  console.log(`>>> [GIAI ĐOẠN 2] BÀN 3 NGƯỜI DUPLICATE ROTATION (${triplets.length} TỔ HỢP x ${BOARDS_PER_TRIPLET} CỖ BÀI x 3 VÒNG XOAY = ${TOTAL_GAMES_3P.toLocaleString()} VÁN)...`);
-  console.log('- Với mỗi cỗ bài: Xoay đúng 3 vòng để cả 3 bot đều lần lượt cầm đúng cả 3 bộ bài của ván đó.');
+  console.log(`>>> [GIAI ĐOẠN 2] BÀN 3 NGƯỜI FULL PERMUTATION DUPLICATE (${triplets.length} TỔ HỢP x ${BOARDS_PER_TRIPLET} CỖ BÀI x ${PERMUTATIONS_PER_BOARD_3P} HOÁN VỊ = ${TOTAL_GAMES_3P.toLocaleString()} VÁN)...`);
+  console.log('- Với mỗi cỗ bài: Chạy trọn vẹn 3! = 6 hoán vị toàn phần cả bộ bài và vị trí ngồi.');
+  console.log('  -> Mỗi bot được cầm đủ 3 bộ bài (2 lần/bộ) và ngồi dưới cánh mọi đối thủ với tần suất đồng đều (2 lần/đối thủ).');
   console.log(`- Mỗi bot tham gia ${(triplets.length * 3 / numBots) * GAMES_PER_TRIPLET} ván.`);
   console.log('----------------------------------------------------------------------------------------');
 
@@ -334,15 +352,10 @@ async function runBenchmark() {
 
   for (let c = 0; c < triplets.length; c++) {
     const trio = triplets[c];
+    const perms3P = getPermutations(trio);
     for (let b = 0; b < BOARDS_PER_TRIPLET; b++) {
-      const boardSeed = 3000000 + c * 1000 + b * 97;
-      for (let rot = 0; rot < ROTATIONS_PER_BOARD_3P; rot++) {
-        const matchupBots = [
-          trio[rot],
-          trio[(rot + 1) % 3],
-          trio[(rot + 2) % 3]
-        ];
-
+      const boardSeed = 6000000 + c * 1000 + b * 97;
+      for (const matchupBots of perms3P) {
         const res = simulateSingleMatch(matchupBots, 3, 1, boardSeed);
 
         for (const bot of matchupBots) {
@@ -396,17 +409,18 @@ async function runBenchmark() {
   console.log(`✓ Hoàn thành Bàn 3P Duplicate trong ${(duration3P / 1000).toFixed(1)}s | Pearson r = ${pearsonR3P.toFixed(3)} | Spearman ρ = ${spearmanRho3P.toFixed(3)}\n`);
 
   // =========================================================================
-  // GIAI ĐOẠN 3: BÀN 4 NGƯỜI DUPLICATE (4P CHUẨN 52 LÁ - C(9, 4) = 126 TỔ HỢP x 8 VÁN = 1,008 VÁN)
+  // GIAI ĐOẠN 3: BÀN 4 NGƯỜI (4P - C(N, 4) TỔ HỢP x HOÁN VỊ TOÀN PHẦN BÀI & VỊ TRÍ)
   // =========================================================================
   console.log('========================================================================================');
   const quadruplets = getCombinations(BENCHMARK_BOTS, 4);
-  const BOARDS_PER_QUAD = numBots <= 5 ? 10 : 2; // 10 cỗ bài cho 5 bot = 40 ván/tổ hợp
-  const ROTATIONS_PER_BOARD_4P = 4; // 4 vòng xoay ghế trên cùng 1 cỗ bài
-  const GAMES_PER_QUAD = BOARDS_PER_QUAD * ROTATIONS_PER_BOARD_4P;
+  const BOARDS_PER_QUAD = numBots <= 5 ? 2 : 1; // 2 cỗ bài cho 5 bot = 48 ván/tổ hợp
+  const PERMUTATIONS_PER_BOARD_4P = 24; // 4! = 24 hoán vị toàn phần (đủ 4 bộ bài x 6 cấu hình vòng tròn)
+  const GAMES_PER_QUAD = BOARDS_PER_QUAD * PERMUTATIONS_PER_BOARD_4P;
   const TOTAL_GAMES_4P = quadruplets.length * GAMES_PER_QUAD;
 
-  console.log(`>>> [GIAI ĐOẠN 3] BÀN 4 NGƯỜI DUPLICATE ROTATION (${quadruplets.length} TỔ HỢP x ${BOARDS_PER_QUAD} CỖ BÀI x 4 VÒNG XOAY = ${TOTAL_GAMES_4P.toLocaleString()} VÁN)...`);
-  console.log('- Với mỗi cỗ bài: Xoay đúng 4 vòng để cả 4 bot đều lần lượt cầm đúng cả 4 bộ bài của ván đó.');
+  console.log(`>>> [GIAI ĐOẠN 3] BÀN 4 NGƯỜI FULL PERMUTATION DUPLICATE (${quadruplets.length} TỔ HỢP x ${BOARDS_PER_QUAD} CỖ BÀI x ${PERMUTATIONS_PER_BOARD_4P} HOÁN VỊ = ${TOTAL_GAMES_4P.toLocaleString()} VÁN)...`);
+  console.log('- Với mỗi cỗ bài: Chạy trọn vẹn 4! = 24 hoán vị toàn phần cả bộ bài và vị trí ngồi quanh bàn.');
+  console.log('  -> Mỗi bot cầm đủ 4 bộ bài (6 lần/bộ), ngồi dưới cánh/trên cánh/đối diện từng đối thủ đúng 8 lần.');
   console.log(`- Mỗi bot tham gia ${(quadruplets.length * 4 / numBots) * GAMES_PER_QUAD} ván.`);
   console.log('----------------------------------------------------------------------------------------');
 
@@ -422,16 +436,10 @@ async function runBenchmark() {
 
   for (let c = 0; c < quadruplets.length; c++) {
     const quad = quadruplets[c];
+    const perms4P = getPermutations(quad);
     for (let b = 0; b < BOARDS_PER_QUAD; b++) {
       const boardSeed = 4000000 + c * 1000 + b * 89;
-      for (let rot = 0; rot < ROTATIONS_PER_BOARD_4P; rot++) {
-        const matchupBots = [
-          quad[rot],
-          quad[(rot + 1) % 4],
-          quad[(rot + 2) % 4],
-          quad[(rot + 3) % 4]
-        ];
-
+      for (const matchupBots of perms4P) {
         const res = simulateSingleMatch(matchupBots, 4, 1, boardSeed);
 
         for (const bot of matchupBots) {

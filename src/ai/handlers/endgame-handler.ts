@@ -38,7 +38,7 @@ export class EndgameSolverHandler extends BotDecisionHandler {
       const unseenCards = tracker.getUnseenCards();
       const targetCombo = currentRoundLeadingMove?.combination || null;
 
-      if (unseenCards.length <= 8 && totalOpponentCards <= 8 && unseenCards.length === totalOpponentCards) {
+      if (activeOpponents.length === 1 && unseenCards.length <= 8 && totalOpponentCards <= 8 && unseenCards.length === totalOpponentCards) {
         const minimaxResult = MinimaxEndgameSolver.solve1v1(
           hand,
           unseenCards,

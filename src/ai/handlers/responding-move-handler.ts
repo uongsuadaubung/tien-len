@@ -32,9 +32,13 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
     const targetCombo = currentRoundLeadingMove?.combination || null;
     const partition = partitionHand(hand, config.handPartitioningOptimality);
     const twoSafety = tracker.getTwoSafetyReport();
-    const leaderWithOneCardId = Object.entries(remainingPlayerCards).find(([pid, cnt]) => pid !== config.id && cnt === 1)?.[0];
-    const hasAnyOneCardLeader = leaderWithOneCardId !== undefined;
-    const isDirectLeaderOneCard = leaderWithOneCardId !== undefined && currentRoundLeadingMove?.playerId === leaderWithOneCardId;
+    const oneCardOpponentIds = new Set(
+      Object.entries(remainingPlayerCards)
+        .filter(([pid, cnt]) => pid !== config.id && cnt === 1)
+        .map(([pid]) => pid)
+    );
+    const hasAnyOneCardLeader = oneCardOpponentIds.size > 0;
+    const isDirectLeaderOneCard = currentRoundLeadingMove !== null && oneCardOpponentIds.has(currentRoundLeadingMove.playerId);
     const isNextPlayerOneCard = context.isNextPlayerOneCard ?? (remainingPlayerCards[nextPlayerId] === 1);
     const isEmergencyAntiLeader = isDirectLeaderOneCard || (isNextPlayerOneCard && targetCombo?.type === 'SINGLE');
     const totalActive = Object.values(remainingPlayerCards).filter(cnt => cnt > 0).length;
@@ -155,7 +159,9 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
         currentRoundLeadingMove &&
         hasAnyOneCardLeader
       ) {
-        const isMoveByOtherNonLeader = leaderWithOneCardId && currentRoundLeadingMove.playerId !== leaderWithOneCardId;
+        const leaderRemainingCards = remainingPlayerCards[currentRoundLeadingMove.playerId] ?? 10;
+        const isLeadingPlayerNearFinish = leaderRemainingCards <= 2;
+        const isMoveByOtherNonLeader = !isDirectLeaderOneCard && !isLeadingPlayerNearFinish;
         const isLeadStrongBlock = currentRoundLeadingMove.combination.cards.some(isTwo) || currentRoundLeadingMove.combination.highestCard.rank >= 13;
         
         if (isMoveByOtherNonLeader && isLeadStrongBlock) {
@@ -191,10 +197,13 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
         const isTargetHighCard = targetCombo !== null && targetCombo.highestCard.rank >= 11;
         const turnsToClear = calculateTurnsToClearHand(hand, partition);
         const canFinishSoon = turnsToClear <= 2;
+        const isMoveBreakingCombo = move.cards.length === 1 && partition.combinations.some(combo => combo.cards.some(c => c.id === move.cards[0]?.id));
         const hasHoldOpportunity = twoSafety.unseenTwosCount === 0 || hand.some(isTwo) || isLateGameOrSprint || isTargetHighCard;
 
-        if (hasHoldOpportunity) {
-          score += leadValueRatio * AI_HEURISTIC_WEIGHTS.LEAD_TEMPO_FACTOR * config.tempoControl;
+        if (hasHoldOpportunity && !isMoveBreakingCombo) {
+          const tempoScore = leadValueRatio * AI_HEURISTIC_WEIGHTS.LEAD_TEMPO_FACTOR * config.tempoControl;
+          score += tempoScore;
+          reasons.push(`Kiểm soát nhịp độ (+${Math.round(tempoScore)})`);
         }
 
         // Chỉ thưởng điểm cướp cái bằng bài to (K, A) khi:
@@ -203,7 +212,7 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
         // - Bài còn lại có khả năng dứt điểm ngay (turns to clear <= 2).
         // Tuyệt đối không quăng K, A vào rác nhỏ (3..10) ở đầu ván khi còn nhiều bài!
         if (move.combination.highestCard.rank >= 13) {
-          if (isLateGameOrSprint || isTargetHighCard || canFinishSoon) {
+          if (!isMoveBreakingCombo && (isLateGameOrSprint || isTargetHighCard || canFinishSoon)) {
             if (leadValueRatio > 0.35) {
               score += AI_HEURISTIC_WEIGHTS.HIGH_CARD_TEMPO_BONUS * config.tempoControl;
               reasons.push('Kiểm soát nhịp độ bài to (K/A)');
@@ -241,8 +250,8 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
         if (mctsMap.has(key)) {
           const winRate = mctsMap.get(key)!;
           const baselineWinRate = 1 / Math.max(2, totalActive);
-          const scaleFactor = totalActive <= 2 ? 15 : totalActive === 3 ? 30 : 12;
-          const clampLimit = totalActive <= 2 ? 10 : totalActive === 3 ? 18 : 8;
+          const scaleFactor = totalActive <= 2 ? 10 : 8;
+          const clampLimit = totalActive <= 2 ? 6 : 5;
           const mctsDelta = Math.max(-clampLimit, Math.min(clampLimit, (winRate - baselineWinRate) * scaleFactor));
           score += mctsDelta;
           reasons.push(`MCTS Winrate ${(winRate * 100).toFixed(0)}% (${mctsDelta > 0 ? '+' : ''}${Math.round(mctsDelta)})`);
@@ -257,18 +266,11 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
       } else {
         const remainingTargetCards = currentRoundLeadingMove ? (remainingPlayerCards[currentRoundLeadingMove.playerId] ?? 10) : 10;
         const isNearFinishTarget = remainingTargetCards <= (activeOpponentsCount <= 2 ? 3 : 2);
-        const turnsToClear = calculateTurnsToClearHand(hand, partition);
-        const isSelfNearFinish = turnsToClear <= 2 || hand.length <= 4;
-        // Bot tự thân ưu tiên về Nhất (Self-Interest):
-        // Chỉ dồn lực chặn đối thủ sắp về khi BẢN THÂN CÓ KHẢ NĂNG CƯỚP CÁI ĐỂ VỀ NHẤT (isSelfNearFinish)
-        // hoặc trong Solo 1v1 (activeOpponentsCount === 1).
-        // Tuyệt đối KHÔNG tự sát làm bia đỡ đạn cho cả làng khi bản thân còn nhiều bài!
-        const canSeizeWin = isSelfNearFinish || activeOpponentsCount === 1;
 
-        if (isNearFinishTarget && canSeizeWin) {
+        if (isNearFinishTarget) {
           const threatBonus = AI_HEURISTIC_WEIGHTS.EMERGENCY_INTERCEPT_BONUS * 0.6 * antiScale;
           score += threatBonus;
-          reasons.push(`Chặn đầu cướp cái dứt điểm về Nhất (${remainingTargetCards} lá, +${Math.round(threatBonus)})`);
+          reasons.push(`Chặn đầu đối thủ sắp dứt điểm (${remainingTargetCards} lá, +${Math.round(threatBonus)})`);
         }
       }
 
@@ -349,7 +351,8 @@ export class RespondingMoveHeuristicHandler extends BotDecisionHandler {
       }
 
       // 13. Khai thác lá bài to nhất tuyệt đối
-      if (move.cards.length === 1 && tracker.isStrongestRemainingSingle(move.cards[0])) {
+      const isSingleBreakingCombo = move.cards.length === 1 && partition.combinations.some(combo => combo.cards.some(c => c.id === move.cards[0]?.id));
+      if (move.cards.length === 1 && tracker.isStrongestRemainingSingle(move.cards[0]) && !isSingleBreakingCombo) {
         const isTargetHighCard = targetCombo !== null && targetCombo.highestCard.rank >= 11;
         const turnsToClear = calculateTurnsToClearHand(hand, partition);
         if (hand.length <= 5 || isTargetHighCard || turnsToClear <= 2) {

@@ -60,6 +60,23 @@ function getCombinations<T>(arr: T[], k: number): T[][] {
   return res;
 }
 
+function getPermutations<T>(array: T[]): T[][] {
+  const result: T[][] = [];
+  function permute(arr: T[], m: T[] = []) {
+    if (arr.length === 0) {
+      result.push(m);
+    } else {
+      for (let i = 0; i < arr.length; i++) {
+        const curr = arr.slice();
+        const next = curr.splice(i, 1);
+        permute(curr.slice(), m.concat(next));
+      }
+    }
+  }
+  permute(array);
+  return result;
+}
+
 const BENCHMARK_BOTS = [
   { tier: 1, id: 'bot_t1', name: 'Tí Chuột', elo: 700, config: BOT_PERSONAS.BOT_ELO_700 },
   { tier: 2, id: 'bot_t2', name: 'Năm Xích Lô', elo: 1150, config: BOT_PERSONAS.BOT_ELO_1150 },
@@ -74,18 +91,19 @@ for (const b of BENCHMARK_BOTS) {
   stats[b.id] = { wins: 0, games: 0, cardsLeft: 0, rottenTwos: 0, rankSum: 0, lastPlaces: 0 };
 }
 
-console.log('>>> Chạy Benchmark Bàn 3 Người Duplicate Rotation (300 ván xoay đủ 3 ghế)...');
+console.log('>>> Chạy Benchmark Bàn 3 Người Full Permutation Duplicate (300 ván: 10 tổ hợp x 5 cỗ bài x 6 hoán vị)...');
 
 for (let t = 0; t < triplets.length; t++) {
   const trip = triplets[t];
-  for (let g = 0; g < 10; g++) {
-    for (let r = 0; r < 3; r++) {
-      const rotated = [trip[r], trip[(r + 1) % 3], trip[(r + 2) % 3]];
+  const perms = getPermutations(trip);
+  for (let g = 0; g < 5; g++) {
+    const boardSeed = 6000000 + t * 1000 + g * 97;
+    for (const rotated of perms) {
       const game = new GameEngine(
         rotated.map(b => createBotPlayer(b.id, b.config.id, { name: b.name })),
         { mode: 'COUNT_CARDS', betAmount: 100, playerCount: 3 }
       );
-      const initRes = game.startNewGame(1, null, 6000000 + t * 100 + g * 3 + r);
+      const initRes = game.startNewGame(1, null, boardSeed);
       if (initRes.instantWin && initRes.instantWinner) {
         stats[initRes.instantWinner.id].wins++;
         for (const b of rotated) stats[b.id].games++;

@@ -169,9 +169,10 @@ export function evaluateTwoManagementScore(
     if (activeOpponentsCount === 1) {
       scoreMod += 80 * config.tempoControl; // Solo 1v1: Trừng phạt đối thủ bung Heo, đoạt quyền Cầm Cái
     }
-    if (config.simulationLookahead >= 2 && twoSafety.riskScore > 50) {
+    if (config.simulationLookahead >= 1 && twoSafety.riskScore > 50) {
       const riskDiscount = activeOpponentsCount === 1 ? 0.25 : 1.0;
-      scoreMod -= (twoSafety.riskScore - 50) * choppingRiskFactor * (1 - config.riskAppetite) * riskDiscount;
+      const lookaheadScale = config.simulationLookahead >= 2 ? 1.0 : 0.6;
+      scoreMod -= (twoSafety.riskScore - 50) * choppingRiskFactor * (1 - config.riskAppetite) * riskDiscount * lookaheadScale;
     }
   } else {
     // Đối phương KHÔNG ĐÁNH HEO (đối phương đánh bài thường 3..A):
@@ -179,46 +180,52 @@ export function evaluateTwoManagementScore(
       ? (context.remainingPlayerCards[context.currentRoundLeadingMove.playerId] ?? 10)
       : 10;
     const isTargetNearFinish = remainingTargetCards <= (activeOpponentsCount <= 2 ? 3 : 2);
+    const opponentCounts = Object.entries(context.remainingPlayerCards)
+      .filter(([id, cnt]) => id !== config.id && cnt > 0)
+      .map(([_, cnt]) => cnt);
+    const minOpponentCards = opponentCounts.length > 0 ? Math.min(...opponentCounts) : 10;
+    const anyOpponentNearFinish = minOpponentCards <= 2;
     const isSolo = activeOpponentsCount === 1;
     const isSelfNearFinish = hand.length <= 4;
+    const twoCount = hand.filter(isTwo).length;
 
-    // Chỉ bung Heo đè bài thường khi:
-    // 1. Thực sự khẩn cấp (chống người 1 lá ra bài hoặc người kế tiếp 1 lá)
-    // 2. Hoặc trong Solo 1v1 khi đối thủ sắp về bài
-    // 3. Hoặc khi bản thân bot đã ở cờ tàn dứt điểm (hand.length <= 4)
-    // Tuyệt đối không tự sát bung Heo làm bia đỡ đạn ở bàn 3-4P khi bản thân còn nhiều bài!
-    if (isEmergencyAntiLeader || (isTargetNearFinish && (isSolo || isSelfNearFinish))) {
+    // Bung Heo đè bài thường khi:
+    // 1. Thực sự khẩn cấp (người ra bài hoặc bất kỳ đối thủ nào sắp về <= 2 lá)
+    // 2. Hoặc cờ tàn bản thân sắp dứt điểm (hand.length <= 4)
+    // 3. Hoặc bot sở hữu nhiều Heo (twoCount >= 2): cần bung Heo kiểm soát thế trận, tránh thối Heo
+    if (isEmergencyAntiLeader || isTargetNearFinish || (anyOpponentNearFinish && config.antiLeaderAggression >= 0.7)) {
       const threatMultiplier = isEmergencyAntiLeader ? 1.0 : 0.8;
       scoreMod += AI_HEURISTIC_WEIGHTS.EMERGENCY_TWO_DUMP_BONUS * Math.max(0.5, config.antiLeaderAggression) * threatMultiplier;
     } else if (hand.length <= 4) {
       // Cờ tàn (<= 4 lá): Xả Heo cướp cái để dứt điểm về Nhất
       scoreMod += AI_HEURISTIC_WEIGHTS.ENDGAME_TWO_LEAD_GRAB;
+    } else if (twoCount >= 2) {
+      // Có từ 2 Heo trở lên: Tuyệt đối không để thối Heo! Xả Heo cướp cái rất an toàn vì còn Heo bọc lót
+      scoreMod += (twoCount >= 3 ? 120 : 60) * config.tempoControl;
+      if (targetCombo && targetCombo.highestCard.rank >= 11) {
+        scoreMod += 40; // Đè bài từ J trở lên khi có nhiều Heo
+      }
     } else if (activeOpponentsCount === 1) {
-      // Solo 1v1: Chỉ bung Heo đè rác nếu đối thủ đánh bài to (Át/K) hoặc bài mình đã ít (<= 5 lá)
-      // Không tự ý đốt Heo đè rác nhỏ (3..Q) ở đầu trận khi ván bài còn dài
+      // Solo 1v1 (chỉ có 1 Heo): Chỉ bung Heo đè rác nếu đối thủ đánh bài to (Át/K) hoặc bài mình đã ít (<= 5 lá)
       if (targetCombo && targetCombo.highestCard.rank < 13 && hand.length > 5) {
         scoreMod -= AI_HEURISTIC_WEIGHTS.WASTING_TWO_BASE_PENALTY * 0.6;
       } else {
         scoreMod += AI_HEURISTIC_WEIGHTS.SOLO_TWO_AGGRESSION * config.antiLeaderAggression;
       }
-    } else if (targetCombo && targetCombo.highestCard.rank >= 13) {
-      // Bàn 3P & 4P: Đối phương đánh bài to (K hoặc Át):
-      // CHỈ đè Heo cướp cái khi:
-      // - Cờ tàn (hand.length <= 5), HOẶC
-      // - Bài còn lại có khả năng dứt điểm thần tốc (turnsToClear <= 2), HOẶC
-      // - Đối thủ đánh bài to đang ở thế nguy hiểm (còn <= 3 lá).
-      // Tuyệt đối không tự ý đốt Heo đè Át ở đầu/giữa ván khi bản thân còn nhiều bài (hand.length > 5)!
+    } else if (targetCombo && targetCombo.highestCard.rank >= 12) {
+      // Bàn 3P & 4P (chỉ có 1 Heo): Đối phương đánh bài to (Q, K hoặc Át):
       const turnsToClear = calculateTurnsToClearHand(hand, partitionHand(hand, config.handPartitioningOptimality));
       const isLateGame = hand.length <= 5 || turnsToClear <= 2;
       const isTargetDangerous = remainingTargetCards <= 3;
       if ((isLateGame || isTargetDangerous) && config.tempoControl >= 0.45) {
         scoreMod += AI_HEURISTIC_WEIGHTS.TEMPO_TWO_BEATS_ACE * config.tempoControl;
+      } else if (config.tempoControl >= 0.7 && targetCombo.highestCard.rank >= 13) {
+        scoreMod += 30 * config.tempoControl;
       } else {
         scoreMod -= AI_HEURISTIC_WEIGHTS.WASTING_TWO_BASE_PENALTY;
       }
     } else {
-      // Đối phương đánh bài nhỏ (3..Q, rank < 13):
-      // Đè Heo vào bài rác nhỏ ở đầu/giữa ván là lãng phí tài nguyên nghiêm trọng!
+      // Đối phương đánh bài nhỏ (3..J, rank < 12) và bot chỉ có 1 Heo duy nhất:
       scoreMod -= AI_HEURISTIC_WEIGHTS.WASTING_TWO_BASE_PENALTY;
       if (targetCombo && targetCombo.highestCard.rank < 10) {
         scoreMod -= AI_HEURISTIC_WEIGHTS.WASTING_TWO_ON_LOW_PENALTY;
@@ -247,6 +254,11 @@ export function evaluateComboIntegrityCost(
   let breaksBomb = false;
 
   for (const combo of partition.combinations) {
+    // Bỏ qua nếu bộ toàn Heo (PAIR hoặc TRIPLE Heo): Heo là lá bài độc lập quyền lực nhất,
+    // xé Heo để đè bài lẻ là chiến thuật bình thường, không làm suy giảm giá trị của các lá Heo còn lại.
+    if (combo.cards.every(isTwo)) {
+      continue;
+    }
     const comboCardIds = combo.cards.map((c: Card) => c.id);
     const overlapCount = comboCardIds.filter((id: string) => moveCardIds.has(id)).length;
     if (overlapCount > 0 && overlapCount < combo.cards.length) {

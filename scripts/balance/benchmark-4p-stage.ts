@@ -33,6 +33,23 @@ function getCombinations<T>(arr: T[], k: number): T[][] {
   return res;
 }
 
+function getPermutations<T>(array: T[]): T[][] {
+  const result: T[][] = [];
+  function permute(arr: T[], m: T[] = []) {
+    if (arr.length === 0) {
+      result.push(m);
+    } else {
+      for (let i = 0; i < arr.length; i++) {
+        const curr = arr.slice();
+        const next = curr.splice(i, 1);
+        permute(curr.slice(), m.concat(next));
+      }
+    }
+  }
+  permute(array);
+  return result;
+}
+
 const BENCHMARK_BOTS = [
   { tier: 1, id: 'bot_t1', name: 'Tí Chuột', elo: 700, config: BOT_PERSONAS.BOT_ELO_700 },
   { tier: 2, id: 'bot_t2', name: 'Năm Xích Lô', elo: 1150, config: BOT_PERSONAS.BOT_ELO_1150 },
@@ -48,17 +65,17 @@ const rankSum = [0, 0, 0, 0, 0];
 const totalCardsLeft = [0, 0, 0, 0, 0];
 const games = [0, 0, 0, 0, 0];
 
-console.log('>>> Chạy Benchmark Bàn 4 Người Duplicate Rotation (200 ván xoay đủ 4 ghế)...');
+console.log('>>> Chạy Benchmark Bàn 4 Người Full Permutation Duplicate (240 ván: 5 tổ hợp x 2 cỗ bài x 24 hoán vị)...');
 
 for (let qIdx = 0; qIdx < quadruplets.length; qIdx++) {
   const quad = quadruplets[qIdx];
-  for (let board = 0; board < 10; board++) {
+  const perms = getPermutations(quad);
+  for (let board = 0; board < 2; board++) {
     const seed = 4000000 + qIdx * 1000 + board * 89;
-    for (let rot = 0; rot < 4; rot++) {
-      const seated = [quad[rot % 4], quad[(rot + 1) % 4], quad[(rot + 2) % 4], quad[(rot + 3) % 4]];
+    for (const seated of perms) {
       const players = seated.map(b => createBotPlayer(b.id, b.config.id, { name: b.name }));
       const g = new GameEngine(players, { mode: 'COUNT_CARDS', betAmount: 100, playerCount: 4 });
-      const initRes = g.startNewGame(board, null, seed);
+      const initRes = g.startNewGame(1, null, seed);
       if (initRes.instantWin && initRes.instantWinner) {
         const wIdx = BENCHMARK_BOTS.findIndex(b => b.id === initRes.instantWinner!.id);
         wins[wIdx]++;
@@ -88,11 +105,17 @@ for (let qIdx = 0; qIdx < quadruplets.length; qIdx++) {
       const wIdx = BENCHMARK_BOTS.findIndex(b => b.id === wId);
       if (wIdx >= 0) wins[wIdx]++;
 
+      const rankOrder = g.winners.map(w => w.id);
+      const losers = seated
+        .filter(b => !rankOrder.includes(b.id))
+        .sort((a, b) => (g.getPlayer(a.id)?.hand.length ?? 0) - (g.getPlayer(b.id)?.hand.length ?? 0))
+        .map(b => b.id);
+      const fullRank = [...rankOrder, ...losers];
+
       for (const b of seated) {
         const idx = BENCHMARK_BOTS.findIndex(bm => bm.id === b.id);
         games[idx]++;
-        const rk = g.winners.findIndex(w => w.id === b.id);
-        const finalRank = rk >= 0 ? rk + 1 : 4;
+        const finalRank = fullRank.indexOf(b.id) + 1;
         rankSum[idx] += finalRank;
         if (finalRank === 4) lastPlaceCount[idx]++;
         const p = g.getPlayer(b.id);
