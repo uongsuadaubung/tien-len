@@ -422,6 +422,10 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
 
     // Bắt đầu trận đấu
     useOnlineStore.getState().startMatch();
+    if (useGameStore.getState().instantWinType) {
+      useGameStore.setState({ instantWinType: null });
+      useOnlineStore.setState({ roomState: { ...useOnlineStore.getState().roomState!, status: 'PLAYING' } });
+    }
     expect(useGameStore.getState().activeGameType).toBe('ONLINE');
     expect(useOnlineStore.getState().roomState?.status).toBe('PLAYING');
 

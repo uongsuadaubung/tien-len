@@ -20,7 +20,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   Wifi,
-  Globe
+  Globe,
+  ArrowLeftRight
 } from 'lucide-react';
 import { Modal, Button } from '../../primitives';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
@@ -62,6 +63,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     toggleAiHint: onToggleAiHint,
     quickResponseAssistEnabled,
     toggleQuickResponseAssist: onToggleQuickResponseAssist,
+    reverseButtonsEnabled,
+    toggleReverseButtons: onToggleReverseButtons,
     xrayEnabled,
     toggleXRay: onToggleXRay,
     botReasoningLogEnabled,
@@ -721,6 +724,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
 
               <ToggleSwitch checked={aiHintEnabled} />
+            </div>
+
+            {/* 4. Đảo Ngược Nút Bấm */}
+            <div
+              onClick={onToggleReverseButtons}
+              className="px-4 py-3.5 flex items-center justify-between hover:bg-white/[0.02] cursor-pointer transition-colors select-none"
+            >
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl border transition-colors shrink-0 flex items-center justify-center ${reverseButtonsEnabled ? 'bg-[var(--bg-card-active)] border-[var(--color-gold-border)] text-[var(--color-gold)]' : 'bg-[var(--bg-container)] border-[var(--border-container)] text-[var(--text-muted)]'}`}>
+                  <ArrowLeftRight className="w-4 h-4 shrink-0" />
+                </div>
+                <div>
+                  <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">{t('settings.reverseButtonsTitle')}</div>
+                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">{t('settings.reverseButtonsDesc')}</div>
+                </div>
+              </div>
+
+              <ToggleSwitch checked={reverseButtonsEnabled} />
             </div>
           </div>
         </div>

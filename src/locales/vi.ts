@@ -282,6 +282,8 @@ export const vi = {
     quickResponseDesc: 'Hiển thị nút chọn nhanh các tổ hợp hợp lệ để chặn đối thủ',
     aiHintTitle: 'Trợ Lý AI Gợi Ý Nước Đi',
     aiHintDesc: 'Hiển thị nút tư vấn chiến thuật tối ưu khi đến lượt đánh',
+    reverseButtonsTitle: 'Đảo Ngược Nút Bấm',
+    reverseButtonsDesc: 'Đảo ngược thứ tự toàn bộ nút bấm thao tác khi đánh bài (phù hợp tay thuận)',
     advancedSection: 'Phân Tích & Nâng Cao',
     xrayModeTitle: 'Chế Độ Soi Bài (X-Ray)',
     xrayModeDesc: 'Phân tích xác suất và quan sát toàn bộ bàn đấu',
@@ -825,7 +827,14 @@ export const vi = {
     canAddBot: 'Có thể thêm Bot',
     removePlayer: 'Xóa khỏi phòng',
     waitingPlayer: 'Chờ người chơi...',
-    addBot: 'Thêm Bot'
+    addBot: 'Thêm Bot',
+    filterAll: 'Tất Cả',
+    noRoomsSubtext: 'Chưa có phòng nào đang mở. Hãy tạo phòng mới hoặc nhập mã PIN từ bạn bè để bắt đầu!',
+    noRoomsFiltered: 'Không có phòng nào theo bộ lọc',
+    noRoomsFilteredSubtext: 'Hãy thử chọn bộ lọc khác hoặc tạo bàn đấu mới theo ý bạn.',
+    viewAllRooms: 'Xem Tất Cả Phòng',
+    pasteBtn: 'Dán',
+    clearPin: 'Xóa mã'
   },
   nameSetup: {
     titleFirstTime: 'Chào Mừng Thần Bài Mới',

@@ -90,6 +90,13 @@ describe('Zustand State Stores Integration Tests (Kiểm Thử Tích Hợp State
     expect(useSettingsStore.getState().quickResponseAssistEnabled).toBe(true);
     settingsStore.toggleQuickResponseAssist();
     expect(useSettingsStore.getState().quickResponseAssistEnabled).toBe(false);
+
+    // Kiểm tra cấu hình Đảo Ngược Nút Bấm (Reverse Buttons)
+    expect(useSettingsStore.getState().reverseButtonsEnabled).toBe(false);
+    settingsStore.setReverseButtonsEnabled(true);
+    expect(useSettingsStore.getState().reverseButtonsEnabled).toBe(true);
+    settingsStore.toggleReverseButtons();
+    expect(useSettingsStore.getState().reverseButtonsEnabled).toBe(false);
   });
 
   it('5. useGameStore: resetMatchState làm sạch 100% dữ liệu bàn đấu và bộ nhớ tạm', () => {

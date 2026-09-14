@@ -2,6 +2,7 @@ import React from 'react';
 import { Player } from '../../engine/types';
 import { HandSortMode } from '../../stores/useGameStore';
 import { useUserStore } from '../../stores/useUserStore';
+import { useSettingsStore } from '../../stores/useSettingsStore';
 import { getAvailableSmartVariants } from '../../engine/hand-sorter';
 import { resolveHandSortStrategy } from '../../engine/strategies/hand-sort-strategy';
 import { useI18n } from '../../locales';
@@ -33,6 +34,7 @@ interface PlayerHandViewProps {
   sortMode: HandSortMode;
   variantIndex: number;
   cardSize: 'sm' | 'md' | 'lg' | 'mobile' | null;
+  reverseButtons?: boolean;
 }
 
 export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
@@ -55,9 +57,14 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
   isFirstMoveOfGame = false,
   sortMode = 'NATURAL',
   variantIndex = 0,
-  cardSize = 'md'
+  cardSize = 'md',
+  reverseButtons
 }) => {
   const { t } = useI18n();
+  const storeReverseButtons = typeof window === 'undefined'
+    ? useSettingsStore.getState().reverseButtonsEnabled
+    : useSettingsStore(s => s.reverseButtonsEnabled);
+  const isReverseButtons = reverseButtons ?? storeReverseButtons;
 
   const isMobileSize = cardSize === 'mobile';
   const visibleCardCount = isDealing ? (dealtCardsCount ?? 0) : player.hand.length;
@@ -132,10 +139,10 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
         <div
           className={`flex items-center justify-center gap-1.5 sm:gap-2 mb-1 z-40 transition-transform duration-200 ${
             hasSelectedCards ? '-translate-y-3.5 sm:-translate-y-4' : 'translate-y-0'
-          }`}
+          } ${isReverseButtons ? 'flex-row-reverse' : 'flex-row'}`}
         >
           {/* Nhóm nút thao tác chính (Đánh bài, Bắt bài, Hạ bài, Xếp bài) */}
-          <div className={`flex items-center ${isMobileSize ? 'gap-1 px-1.5 py-0.5 rounded-xl border border-amber-500/50' : 'gap-1.5 sm:gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-2xl border-2 border-amber-500/60'} bg-[#0d1322] shadow-xl`}>
+          <div className={`flex items-center ${isReverseButtons ? 'flex-row-reverse' : 'flex-row'} ${isMobileSize ? 'gap-1 px-1.5 py-0.5 rounded-xl border border-amber-500/50' : 'gap-1.5 sm:gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-2xl border-2 border-amber-500/60'} bg-[#0d1322] shadow-xl`}>
             {/* Các nút hành động khi đến lượt đi */}
             {isCurrentTurn && (
               <>

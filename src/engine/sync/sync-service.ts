@@ -100,6 +100,7 @@ export async function getLocalSaveData(): Promise<TienLenSaveData> {
     autoSortEnabled: settingsState.autoSortEnabled,
     aiHintEnabled: settingsState.aiHintEnabled,
     quickResponseAssistEnabled: settingsState.quickResponseAssistEnabled,
+    reverseButtonsEnabled: settingsState.reverseButtonsEnabled,
     xrayEnabled: settingsState.xrayEnabled,
     botReasoningLogEnabled: settingsState.botReasoningLogEnabled,
     onlineMultiplayerBetaEnabled: settingsState.onlineMultiplayerBetaEnabled,

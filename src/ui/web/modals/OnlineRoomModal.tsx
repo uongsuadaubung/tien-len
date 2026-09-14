@@ -123,20 +123,22 @@ export const OnlineRoomModal: React.FC = () => {
               </Button>
             </div>
           ) : (
-            <div className="w-full flex items-center justify-between gap-2">
-              <span className="text-xs text-[var(--text-muted)]">
-                {t('online.createCustomPrompt')}
-              </span>
-              <Button
-                variant="surface"
-                size="sm"
-                onClick={() => setTab('CREATE')}
-                leftIcon={<Plus className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
-                className="font-bold text-xs py-1.5 px-3 text-[var(--color-gold)] border-[var(--border-gold)]/40 hover:bg-amber-500/10"
-              >
-                {t('online.createRoomBtn')}
-              </Button>
-            </div>
+            publicRooms.length > 0 ? (
+              <div className="w-full flex items-center justify-between gap-2">
+                <span className="text-xs text-[var(--text-muted)]">
+                  {t('online.createCustomPrompt')}
+                </span>
+                <Button
+                  variant="surface"
+                  size="sm"
+                  onClick={() => setTab('CREATE')}
+                  leftIcon={<Plus className="w-3.5 h-3.5 text-[var(--color-gold)]" />}
+                  className="font-bold text-xs py-1.5 px-3 text-[var(--color-gold)] border-[var(--border-gold)]/40 hover:bg-amber-500/10 cursor-pointer"
+                >
+                  {t('online.createRoomBtn')}
+                </Button>
+              </div>
+            ) : undefined
           )
         )
       }
@@ -148,19 +150,19 @@ export const OnlineRoomModal: React.FC = () => {
           /* ========================================================================= */
           <div className="space-y-4">
             {/* Segmented Tab Switcher (2 TABS: SẢNH PHÒNG & TẠO PHÒNG) */}
-            <div className="flex rounded-2xl bg-[var(--bg-card)] p-1 border border-[var(--border-card)] shadow-inner">
+            <div className="flex rounded-2xl bg-black/40 p-1 border border-white/10 shadow-inner">
               <button
                 onClick={() => setTab('LOBBY')}
                 className={`flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
                   tab === 'LOBBY'
-                    ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md font-black'
-                    : 'text-[var(--text-muted)] hover:text-white'
+                    ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                    : 'text-[var(--text-secondary)] hover:text-white hover:bg-white/5'
                 }`}
               >
                 <Radio className="w-4 h-4" />
-                <span>{t('online.tabAll')}</span>
+                <span>{t('online.lobbyTitle')}</span>
                 {publicRooms.length > 0 && (
-                  <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
                     tab === 'LOBBY' ? 'bg-slate-950 text-amber-400' : 'bg-amber-500/20 text-amber-300'
                   }`}>
                     {publicRooms.length}
@@ -172,8 +174,8 @@ export const OnlineRoomModal: React.FC = () => {
                 onClick={() => setTab('CREATE')}
                 className={`flex-1 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${
                   tab === 'CREATE'
-                    ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 shadow-md font-black'
-                    : 'text-[var(--text-muted)] hover:text-white'
+                    ? 'bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 text-slate-950 shadow-md shadow-amber-500/20 font-black'
+                    : 'text-[var(--text-secondary)] hover:text-white hover:bg-white/5'
                 }`}
               >
                 <Sparkles className="w-4 h-4" />

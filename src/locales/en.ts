@@ -284,6 +284,8 @@ export const en: LocaleDictionary = {
     quickResponseDesc: 'Show quick action buttons for valid counters against opponents',
     aiHintTitle: 'AI Tactical Advisor',
     aiHintDesc: 'Provide optimal tactical suggestions when it is your turn',
+    reverseButtonsTitle: 'Reverse Button Layout',
+    reverseButtonsDesc: 'Reverse the order of all in-game action buttons (useful for left/right handed play)',
     advancedSection: 'Analytics & Advanced',
     xrayModeTitle: 'X-Ray Card Inspector',
     xrayModeDesc: 'Analyze probabilities and observe entire board state',
@@ -827,7 +829,14 @@ export const en: LocaleDictionary = {
     canAddBot: 'Can add Bot',
     removePlayer: 'Remove from room',
     waitingPlayer: 'Waiting for player...',
-    addBot: 'Add Bot'
+    addBot: 'Add Bot',
+    filterAll: 'All',
+    noRoomsSubtext: 'No public rooms found. Create a room or join with a friend\'s PIN!',
+    noRoomsFiltered: 'No rooms match this filter',
+    noRoomsFilteredSubtext: 'Try selecting another filter or create a new room.',
+    viewAllRooms: 'View All Rooms',
+    pasteBtn: 'Paste',
+    clearPin: 'Clear'
   },
   nameSetup: {
     titleFirstTime: 'Welcome New Player',

@@ -14,6 +14,7 @@ function persistSettings(state: SettingsState): void {
     autoSortEnabled: state.autoSortEnabled,
     aiHintEnabled: state.aiHintEnabled,
     quickResponseAssistEnabled: state.quickResponseAssistEnabled,
+    reverseButtonsEnabled: state.reverseButtonsEnabled,
     xrayEnabled: state.xrayEnabled,
     botReasoningLogEnabled: state.botReasoningLogEnabled,
     onlineMultiplayerBetaEnabled: state.onlineMultiplayerBetaEnabled,
@@ -36,6 +37,7 @@ interface SettingsState {
   autoSortEnabled: boolean;
   aiHintEnabled: boolean;
   quickResponseAssistEnabled: boolean;
+  reverseButtonsEnabled: boolean;
   xrayEnabled: boolean;
   botReasoningLogEnabled: boolean;
   onlineMultiplayerBetaEnabled: boolean;
@@ -54,6 +56,7 @@ interface SettingsState {
   toggleAutoSort: () => void;
   toggleAiHint: () => void;
   toggleQuickResponseAssist: () => void;
+  toggleReverseButtons: () => void;
   toggleXRay: () => void;
   toggleBotReasoningLog: () => void;
   toggleOnlineMultiplayerBeta: () => void;
@@ -63,6 +66,7 @@ interface SettingsState {
   setAutoSortEnabled: (enabled: boolean) => void;
   setAiHintEnabled: (enabled: boolean) => void;
   setQuickResponseAssistEnabled: (enabled: boolean) => void;
+  setReverseButtonsEnabled: (enabled: boolean) => void;
   setXRayEnabled: (enabled: boolean) => void;
   setBotReasoningLogEnabled: (enabled: boolean) => void;
   setOnlineMultiplayerBetaEnabled: (enabled: boolean) => void;
@@ -85,6 +89,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   autoSortEnabled: initial.autoSortEnabled,
   aiHintEnabled: initial.aiHintEnabled,
   quickResponseAssistEnabled: initial.quickResponseAssistEnabled,
+  reverseButtonsEnabled: initial.reverseButtonsEnabled ?? false,
   xrayEnabled: initial.xrayEnabled,
   botReasoningLogEnabled: initial.botReasoningLogEnabled,
   onlineMultiplayerBetaEnabled: initial.onlineMultiplayerBetaEnabled ?? false,
@@ -117,6 +122,11 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   }),
   toggleQuickResponseAssist: () => set((state) => {
     const next = { ...state, quickResponseAssistEnabled: !state.quickResponseAssistEnabled };
+    persistSettings(next);
+    return next;
+  }),
+  toggleReverseButtons: () => set((state) => {
+    const next = { ...state, reverseButtonsEnabled: !state.reverseButtonsEnabled };
     persistSettings(next);
     return next;
   }),
@@ -183,6 +193,11 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   }),
   setQuickResponseAssistEnabled: (enabled) => set((state) => {
     const next = { ...state, quickResponseAssistEnabled: enabled };
+    persistSettings(next);
+    return next;
+  }),
+  setReverseButtonsEnabled: (enabled) => set((state) => {
+    const next = { ...state, reverseButtonsEnabled: enabled };
     persistSettings(next);
     return next;
   }),

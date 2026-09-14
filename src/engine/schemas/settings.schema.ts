@@ -14,6 +14,7 @@ export const SavedSettingsSchema = z.object({
   autoSortEnabled: z.boolean().default(true),
   aiHintEnabled: z.boolean().default(false),
   quickResponseAssistEnabled: z.boolean().default(false),
+  reverseButtonsEnabled: z.boolean().default(false),
   xrayEnabled: z.boolean().default(false),
   botReasoningLogEnabled: z.boolean().default(false),
   onlineMultiplayerBetaEnabled: z.boolean().default(false),

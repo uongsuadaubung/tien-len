@@ -180,3 +180,12 @@ html, body {
   85% { width: 90%; }
   100% { width: 100%; }
 }
+
+/* Tiện ích ẩn thanh cuộn nhưng vẫn cuộn được */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
