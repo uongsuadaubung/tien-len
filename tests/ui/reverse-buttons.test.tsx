@@ -65,10 +65,14 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
       id: 'p0',
       name: 'Người Chơi',
       hand: [createCard(3, 'SPADES'), createCard(4, 'HEARTS')],
+      playedCards: [],
       score: 10000,
       avatar: '🤠',
       isBot: false,
-      isPassedCurrentRound: false
+      isPassedCurrentRound: false,
+      hasPlayedFirstCard: false,
+      rankPosition: null,
+      instantWinType: null
     };
 
     // Khi reverseButtons = false (Mặc định):
