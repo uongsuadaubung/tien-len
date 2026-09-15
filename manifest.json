@@ -1,0 +1,28 @@
+{
+  "name": "Tiến Lên Miền Nam",
+  "short_name": "Tiến Lên",
+  "description": "Game bài Tiến Lên Miền Nam đỉnh cao chiến thuật với hệ sinh thái 200 Bot, tính năng đếm lá, leo rank và đồng bộ đám mây",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone", "minimal-ui"],
+  "orientation": "landscape",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "categories": ["games", "card"],
+  "lang": "vi",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
