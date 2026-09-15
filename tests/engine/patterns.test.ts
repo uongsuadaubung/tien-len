@@ -36,6 +36,7 @@ describe('Design Patterns Architecture Unit Tests (Kiểm Thử Mẫu Thiết K�
     campaignUnlockedChapter: 1,
     campaignChapterWins: {},
     loans: 0,
+    activeLoan: null,
     dailyReliefClaimedCount: 0,
     lastDailyResetTimestamp: Date.now(),
     lastDailyResetDate: '2026-08-26',

@@ -8,6 +8,7 @@ import { vi } from '../../src/locales/vi';
 import { en } from '../../src/locales/en';
 import { PlayerHandView } from '../../src/ui/components/PlayerHandView';
 import { Player } from '../../src/engine/types';
+import { createPlayer } from '../../src/engine/player-factory';
 import { createCard } from '../../src/engine/card';
 
 describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button Layout Tests)', () => {

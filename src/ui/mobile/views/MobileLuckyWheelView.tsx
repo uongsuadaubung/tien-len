@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Gift, Flame, Frown, Disc, Trophy, ArrowLeft } from 'lucide-react';
+import { Sparkles, Gift, Flame, Frown, Disc, Trophy, ArrowLeft, AlertCircle } from 'lucide-react';
 import { Card } from '../../primitives';
 import { useLuckyWheel } from '../../hooks/useLuckyWheel';
 import { useUserStore } from '../../../stores/useUserStore';
@@ -25,6 +25,7 @@ export const MobileLuckyWheelView: React.FC<MobileLuckyWheelViewProps> = ({
     rotation,
     prizeWon,
     canSpin,
+    isLoanOverdue,
     spinCost,
     sliceAngle,
     renderSlicePath,
@@ -79,6 +80,13 @@ export const MobileLuckyWheelView: React.FC<MobileLuckyWheelViewProps> = ({
             {t('wheel.ticketCost', { cost: spinCost })}
           </p>
         </div>
+
+        {isLoanOverdue && (
+          <div className="shrink-0 w-full p-2.5 rounded-xl border border-rose-500/50 bg-rose-950/40 text-[11px] font-bold text-rose-300 flex items-center gap-2 shadow-sm">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span>{t('bank.wheelBlockedOverdue')}</span>
+          </div>
+        )}
 
         {/* KHUNG VÒNG QUAY ROULETTE (TÂM QUAY LÀ NÚT BẤM CHÍNH) */}
         <div className="shrink-0 relative w-[clamp(240px,44dvh,320px)] h-[clamp(240px,44dvh,320px)] max-w-[85vw] max-h-[85vw] my-auto flex items-center justify-center">

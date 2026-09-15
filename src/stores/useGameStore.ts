@@ -515,7 +515,8 @@ export const useGameStore = create<GameState>((set) => ({
           matchPayouts: state.matchPayouts,
           eloDeltas: state.allEloDeltas,
           matchLogReport: state.matchLogReport,
-          rules: state.gameRules
+          rules: state.gameRules,
+          leadingMove: state.currentMove
         };
         nextMatchState = gameOverState;
       } else if (currentTurnId && leadId) {

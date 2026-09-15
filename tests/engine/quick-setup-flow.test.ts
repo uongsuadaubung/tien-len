@@ -17,6 +17,7 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
     avatar: '🤠',
     coins: 50000,
     loans: 0,
+    activeLoan: null,
     elo: 1200,
     campaignUnlockedChapter: 1,
     campaignChapterWins: {},

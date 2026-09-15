@@ -147,6 +147,8 @@ export interface GameOverMatchState {
   readonly eloDeltas: Readonly<Record<string, number>>;    // ✅ Điểm Elo biến động
   readonly matchLogReport: MatchLogReport | null;
   readonly rules: GameRules;
+  readonly leadingMove?: PlayedMove | null;
+  readonly chopNotification?: ChopNotificationInfo | null;
 }
 
 /**

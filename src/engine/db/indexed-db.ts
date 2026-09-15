@@ -2,10 +2,10 @@ import Dexie, { type Table } from 'dexie';
 import { BotEntity, EcosystemNewsItem } from '../ecosystem/ecosystem-types';
 import type { PlayerProfile, ActiveMatchSession } from '../storage';
 import type { MatchLogReport } from '../match-logger';
-import { ECOSYSTEM_CONSTANTS } from '../constants/ecosystem';
 import { SavedSettingsSchema, QuickTableConfigSchema, type QuickTableConfig } from '../schemas/settings.schema';
-import { PlayerProfileSchema } from '../schemas/profile.schema';
+import { PlayerProfileSchema, type ActiveLoan } from '../schemas/profile.schema';
 import { BotEntitySchema } from '../schemas/ecosystem.schema';
+import { ECOSYSTEM_CONSTANTS } from '../constants/ecosystem';
 
 /**
  * ============================================================================
@@ -44,6 +44,7 @@ export interface PlayerRecord {
   dailyQuests?: unknown[];
   achievements?: unknown[];
   loans?: number;
+  activeLoan?: ActiveLoan | null;
   dailyReliefClaimedCount?: number;
   lastDailyResetDate?: string;
   lastDailyResetTimestamp?: number;
@@ -140,6 +141,7 @@ export function profileToPlayerRecord(profile: PlayerProfile): PlayerRecord {
     dailyQuests: profile.dailyQuests,
     achievements: profile.achievements,
     loans: profile.loans,
+    activeLoan: profile.activeLoan ?? null,
     dailyReliefClaimedCount: profile.dailyReliefClaimedCount,
     lastDailyResetDate: profile.lastDailyResetDate,
     lastDailyResetTimestamp: profile.lastDailyResetTimestamp,

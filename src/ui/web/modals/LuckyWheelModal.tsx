@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Gift, Flame, Frown, Disc } from 'lucide-react';
+import { Sparkles, Gift, Flame, Frown, Disc, AlertCircle } from 'lucide-react';
 import { Modal, Card, Badge, Button } from '../../primitives';
 import { useLuckyWheel } from '../../hooks/useLuckyWheel';
 import { useUserStore } from '../../../stores/useUserStore';
@@ -25,6 +25,7 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
     rotation,
     prizeWon,
     canSpin,
+    isLoanOverdue,
     spinCost,
     sliceAngle,
     renderSlicePath,
@@ -58,18 +59,25 @@ export const LuckyWheelModal: React.FC<LuckyWheelModalProps> = ({
               {t('common.close')}
             </Button>
             <Button
-              variant="gold"
+              variant={isLoanOverdue ? 'danger' : 'gold'}
               size="md"
               disabled={isSpinning || !canSpin}
               onClick={handleSpin}
               leftIcon={<Sparkles className="w-4 h-4 text-[#0a0c0e]" />}
             >
-              <span>{isSpinning ? t('wheel.spinning') : canSpin ? t('wheel.spinBtn', { cost: spinCost }) : t('wheel.insufficientCoins')}</span>
+              <span>{isSpinning ? t('wheel.spinning') : isLoanOverdue ? t('bank.loanStatusOverdue') : canSpin ? t('wheel.spinBtn', { cost: spinCost }) : t('wheel.insufficientCoins')}</span>
             </Button>
           </div>
         </div>
       }
     >
+      {isLoanOverdue && (
+        <Card variant="card" className="p-3 mb-2 border-rose-500/50 bg-rose-950/30 text-xs font-bold text-rose-300 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+          <span>{t('bank.wheelBlockedOverdue')}</span>
+        </Card>
+      )}
+
       <div className="flex flex-col items-center justify-center space-y-3.5 py-1">
         
         {/* KHUNG VÒNG QUAY DESKTOP */}

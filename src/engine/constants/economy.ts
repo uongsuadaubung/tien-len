@@ -1,3 +1,5 @@
+import type { ActiveLoan } from '../schemas/profile.schema';
+
 /**
  * HẰNG SỐ KINH TẾ & TÀI CHÍNH TOÀN CỤC (GLOBAL ECONOMY CONSTANTS)
  * Nguồn định nghĩa duy nhất (Single Source of Truth) cho các chỉ số tài chính, vốn khởi nghiệp, cứu trợ và toàn bộ hệ thống phần thưởng.
@@ -215,12 +217,55 @@ export const ECONOMY_CONSTANTS = {
   /** Số lần tối đa được nhận gói cứu trợ phá sản trong 1 ngày */
   MAX_DAILY_RELIEF_COUNT: 3,
 
-  /** Các gói vay ngân hàng chủ sòng */
+  /** Mức tiền cọc tối thiểu tuyệt đối cần bảo lưu cho người chơi để vào được bàn cược nhỏ nhất (1,000 Xu x 26 lá) */
+  MIN_PROTECTED_DEPOSIT: 26_000,
+
+  /** Các gói vay ngân hàng chủ sòng kèm lãi suất, kỳ hạn và mức trích thu */
   LOAN_PACKAGES: [
-    { amount: 20_000, label: 'Tiếp Sức', desc: 'Vốn quay vòng nhanh' },
-    { amount: 50_000, label: 'Vực Dậy', desc: 'Vốn đánh bàn trung cấp' },
-    { amount: 100_000, label: 'Đại Gia', desc: 'Vốn chiến bàn lớn' },
-    { amount: 250_000, label: 'Thần Bài', desc: 'Tất tay phục thù' }
+    {
+      id: 'tiep_suc',
+      amount: 20_000,
+      label: 'Tiếp Sức',
+      desc: 'Vốn quay vòng nhanh',
+      upfrontFeePercent: 10,
+      interestPerMatchPercent: 2,
+      graceMatches: 5,
+      winDeductionPercent: 30,
+      overdueDeductionPercent: 60
+    },
+    {
+      id: 'vuc_day',
+      amount: 50_000,
+      label: 'Vực Dậy',
+      desc: 'Vốn đánh bàn trung cấp',
+      upfrontFeePercent: 10,
+      interestPerMatchPercent: 3,
+      graceMatches: 7,
+      winDeductionPercent: 35,
+      overdueDeductionPercent: 65
+    },
+    {
+      id: 'dai_gia',
+      amount: 100_000,
+      label: 'Đại Gia',
+      desc: 'Vốn chiến bàn lớn',
+      upfrontFeePercent: 10,
+      interestPerMatchPercent: 4,
+      graceMatches: 10,
+      winDeductionPercent: 40,
+      overdueDeductionPercent: 70
+    },
+    {
+      id: 'tat_tay',
+      amount: 250_000,
+      label: 'Thần Bài',
+      desc: 'Tất tay phục thù',
+      upfrontFeePercent: 10,
+      interestPerMatchPercent: 5,
+      graceMatches: 12,
+      winDeductionPercent: 50,
+      overdueDeductionPercent: 70
+    }
   ],
 
   /** Điểm Elo bị phạt khi thoát game / F5 giữa trận */
@@ -229,6 +274,18 @@ export const ECONOMY_CONSTANTS = {
   /** Hệ số số lá bài tối đa quy đổi tiền cọc an toàn: tương đương 1 ván phạt Cóng (26 lá) hoặc 2 ván thua 13 lá */
   DEPOSIT_CARD_MULTIPLIER: 26
 } as const;
+
+export interface LoanPackageConfig {
+  readonly id: string;
+  readonly amount: number;
+  readonly label: string;
+  readonly desc: string;
+  readonly upfrontFeePercent: number;
+  readonly interestPerMatchPercent: number;
+  readonly graceMatches: number;
+  readonly winDeductionPercent: number;
+  readonly overdueDeductionPercent: number;
+}
 
 /**
  * Tính số dư tối thiểu cần có trong ví để được phép vào bàn (tiền cọc an toàn):
@@ -274,5 +331,94 @@ export function canAffordDeposit(
   congEnabled: boolean = true
 ): boolean {
   return coins >= calculateRequiredDeposit(betAmount, congMultiplier, congEnabled);
+}
+
+export interface MatchLoanSettlementResult {
+  readonly nextLoans: number;
+  readonly nextActiveLoan: ActiveLoan | null;
+  readonly loanDeduction: number;
+  readonly interestAdded: number;
+  readonly isOverdue: boolean;
+}
+
+/**
+ * Tính toán khấu trừ nợ và tích lũy lãi suất sau khi kết thúc một ván đấu:
+ * 1. Tăng số ván đã chơi: matchesPlayed + 1.
+ * 2. Cộng dồn lãi suất mỗi ván vào nợ gốc (lãi mẹ đẻ lãi con).
+ * 3. Nếu người chơi THẮNG (humanNetEarned > 0):
+ *    - Xác định tỷ lệ trích thu (trong hạn hay quá hạn).
+ *    - Áp dụng SÀN BẢO HỘ VỐN (26,000 Xu): Luôn đảm bảo sau khi trích nợ, số dư ví người chơi còn tối thiểu 26,000 Xu để đủ cọc vào bàn mới.
+ * 4. Nếu trả hết nợ (nextLoans <= 0), xóa sạch khế ước activeLoan.
+ */
+export function calculateMatchLoanSettlement(params: {
+  currentCoins: number;
+  heldDeposit: number;
+  humanNetEarned: number;
+  currentLoans: number;
+  activeLoan: ActiveLoan | null;
+}): MatchLoanSettlementResult {
+  const { currentCoins, heldDeposit, humanNetEarned, currentLoans, activeLoan } = params;
+
+  if (currentLoans <= 0) {
+    return {
+      nextLoans: 0,
+      nextActiveLoan: null,
+      loanDeduction: 0,
+      interestAdded: 0,
+      isOverdue: false
+    };
+  }
+
+  const matchesPlayed = (activeLoan?.matchesPlayed ?? 0) + 1;
+  const graceMatches = activeLoan?.graceMatches ?? 7;
+  const isOverdue = matchesPlayed > graceMatches;
+
+  // 1. Tích lũy lãi suất theo ván
+  const interestRate = (activeLoan?.interestPerMatchPercent ?? 3) / 100;
+  const interestAdded = Math.max(100, Math.round(currentLoans * interestRate));
+  const debtWithInterest = currentLoans + interestAdded;
+
+  let loanDeduction = 0;
+
+  // 2. Trích nợ tự động nếu thắng
+  if (humanNetEarned > 0) {
+    const garnishRate = isOverdue
+      ? (activeLoan?.overdueDeductionPercent ?? 65) / 100
+      : (activeLoan?.winDeductionPercent ?? 35) / 100;
+
+    const targetGarnish = Math.round(humanNetEarned * garnishRate);
+
+    // Tính toán bảo vệ sàn vốn an toàn:
+    // Tổng tiền người chơi có trong tay sau ván (bao gồm cả tiền cọc được hoàn lại):
+    const totalPotentialCoins = currentCoins + heldDeposit + humanNetEarned;
+    // Số tiền tối đa có thể trích mà không làm thủng sàn 26,000 Xu:
+    const maxCanDeductSafely = Math.max(0, totalPotentialCoins - ECONOMY_CONSTANTS.MIN_PROTECTED_DEPOSIT);
+
+    loanDeduction = Math.min(debtWithInterest, Math.min(targetGarnish, maxCanDeductSafely));
+  }
+
+  const nextLoans = Math.max(0, debtWithInterest - loanDeduction);
+
+  let nextActiveLoan: ActiveLoan | null = null;
+  if (nextLoans > 0) {
+    nextActiveLoan = {
+      packageId: activeLoan?.packageId ?? 'custom',
+      initialAmount: activeLoan?.initialAmount ?? currentLoans,
+      matchesPlayed,
+      graceMatches,
+      interestPerMatchPercent: activeLoan?.interestPerMatchPercent ?? 3,
+      winDeductionPercent: activeLoan?.winDeductionPercent ?? 35,
+      overdueDeductionPercent: activeLoan?.overdueDeductionPercent ?? 65,
+      createdAt: activeLoan?.createdAt ?? Date.now()
+    };
+  }
+
+  return {
+    nextLoans,
+    nextActiveLoan,
+    loanDeduction,
+    interestAdded,
+    isOverdue
+  };
 }
 

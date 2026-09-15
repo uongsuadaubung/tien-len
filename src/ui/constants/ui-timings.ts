@@ -14,5 +14,8 @@ export const UI_TIMINGS = {
 
   // Thông báo & Banner
   BANNER_DISPLAY_DURATION_MS: 2800, // Thời gian hiển thị Banner mở màn
-  CHOP_ALERT_DURATION_MS: 2500      // Thời gian hiển thị Thông báo chặt Heo/Hàng
+  CHOP_ALERT_DURATION_MS: 2500,     // Thời gian hiển thị Thông báo chặt Heo/Hàng
+
+  // Độ trễ hiển thị Modal Chiến Thắng/Kết Quả sau khi bất kỳ ai đánh quân chốt hạ ván bài (2 giây)
+  GAME_OVER_MODAL_DELAY_MS: 2000
 } as const;

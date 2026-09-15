@@ -18,6 +18,7 @@ export interface UseLuckyWheelReturn {
   rotation: number;
   prizeWon: LuckyWheelSliceConfig | null;
   canSpin: boolean;
+  isLoanOverdue: boolean;
   spinCost: number;
   sliceAngle: number;
   renderSlicePath: (index: number) => string;
@@ -30,8 +31,14 @@ export function useLuckyWheel(): UseLuckyWheelReturn {
   const [rotation, setRotation] = useState<number>(0);
   const [prizeWon, setPrizeWon] = useState<LuckyWheelSliceConfig | null>(null);
 
+  const isLoanOverdue = Boolean(
+    profile.loans > 0 &&
+    profile.activeLoan &&
+    profile.activeLoan.matchesPlayed > profile.activeLoan.graceMatches
+  );
+
   const spinCost = ECONOMY_CONSTANTS.LUCKY_WHEEL_SPIN_COST;
-  const canSpin = profile.coins >= spinCost;
+  const canSpin = profile.coins >= spinCost && !isLoanOverdue;
   const sliceAngle = 360 / LUCKY_WHEEL_SLICES.length; // 45 độ
 
   const renderSlicePath = (index: number): string => {
@@ -115,6 +122,7 @@ export function useLuckyWheel(): UseLuckyWheelReturn {
     rotation,
     prizeWon,
     canSpin,
+    isLoanOverdue,
     spinCost,
     sliceAngle,
     renderSlicePath,

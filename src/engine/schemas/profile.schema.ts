@@ -39,6 +39,19 @@ export const PlayerStatsSchema = z.object({
 
 export type PlayerStats = z.infer<typeof PlayerStatsSchema>;
 
+export const ActiveLoanSchema = z.object({
+  packageId: z.string().default(''),
+  initialAmount: z.number().default(0),
+  matchesPlayed: z.number().default(0),
+  graceMatches: z.number().default(5),
+  interestPerMatchPercent: z.number().default(3),
+  winDeductionPercent: z.number().default(35),
+  overdueDeductionPercent: z.number().default(65),
+  createdAt: z.number().default(() => Date.now())
+});
+
+export type ActiveLoan = z.infer<typeof ActiveLoanSchema>;
+
 export const PlayerProfileSchema = z.object({
   id: z.string().default(() => 'usr_' + Math.random().toString(36).slice(2, 10)),
   name: z.string().default(''),
@@ -48,6 +61,7 @@ export const PlayerProfileSchema = z.object({
   campaignUnlockedChapter: z.number().int().min(1).max(10).default(1),
   campaignChapterWins: z.record(z.string().or(z.number()), z.number().nonnegative()).default({ 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }),
   loans: z.number().nonnegative().default(0),
+  activeLoan: ActiveLoanSchema.nullable().default(null),
   dailyReliefClaimedCount: z.number().nonnegative().default(0),
   lastDailyResetTimestamp: z.number().default(() => Date.now()),
   lastDailyResetDate: z.string().default(''),

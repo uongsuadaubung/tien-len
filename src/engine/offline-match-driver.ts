@@ -95,6 +95,7 @@ export class OfflineMatchDriver implements IMatchDriver {
   private botTimer: ReturnType<typeof setTimeout> | null = null;
   private chopTimer: ReturnType<typeof setTimeout> | null = null;
   private bannerTimer: ReturnType<typeof setTimeout> | null = null;
+  private gameOverTimer: ReturnType<typeof setTimeout> | null = null;
   private gameSpeed: GameSpeedMode = 'REALISTIC';
   private autoSortEnabled: boolean = true;
 
@@ -225,7 +226,9 @@ export class OfflineMatchDriver implements IMatchDriver {
         matchPayouts: { ...this.matchPayouts },
         eloDeltas: { ...this.eloDeltas },
         matchLogReport: null,
-        rules: this.engine.rules
+        rules: this.engine.rules,
+        leadingMove: this.engine.getLeadingMove(),
+        chopNotification: this.chopNotification ? { ...this.chopNotification } : null
       };
     }
 
@@ -544,7 +547,7 @@ export class OfflineMatchDriver implements IMatchDriver {
     this.emitSnapshot();
 
     if (engine.isGameOver) {
-      this.handleGameOver();
+      this.scheduleGameOver(UI_TIMINGS.GAME_OVER_MODAL_DELAY_MS);
     } else {
       this.triggerBotTurnIfNeeded();
     }
@@ -685,7 +688,9 @@ export class OfflineMatchDriver implements IMatchDriver {
       this.emitSnapshot();
 
       if (this.engine.isGameOver) {
-        this.handleGameOver();
+        // Đợi 2s để người chơi nhìn rõ lá bài chốt hạ ván bài
+        const gameOverDelayMs = result.action === 'PLAY' ? UI_TIMINGS.GAME_OVER_MODAL_DELAY_MS : 0;
+        this.scheduleGameOver(gameOverDelayMs);
       } else {
         this.triggerBotTurnIfNeeded();
       }
@@ -732,6 +737,19 @@ export class OfflineMatchDriver implements IMatchDriver {
     }, UI_TIMINGS.CHOP_ALERT_DURATION_MS);
   }
 
+  private scheduleGameOver(delayMs: number = UI_TIMINGS.GAME_OVER_MODAL_DELAY_MS): void {
+    if (delayMs > 0) {
+      if (this.gameOverTimer) clearTimeout(this.gameOverTimer);
+      this.gameOverTimer = setTimeout(() => {
+        if (!this.isDisposed && this.engine) {
+          this.handleGameOver();
+        }
+      }, delayMs);
+    } else {
+      this.handleGameOver();
+    }
+  }
+
   private handleGameOver(): void {
     if (!this.engine) return;
     this.cleanupTimers();
@@ -760,6 +778,10 @@ export class OfflineMatchDriver implements IMatchDriver {
     if (this.bannerTimer) {
       clearTimeout(this.bannerTimer);
       this.bannerTimer = null;
+    }
+    if (this.gameOverTimer) {
+      clearTimeout(this.gameOverTimer);
+      this.gameOverTimer = null;
     }
   }
 

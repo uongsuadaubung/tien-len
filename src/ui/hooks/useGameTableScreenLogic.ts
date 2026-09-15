@@ -127,8 +127,12 @@ export function useGameTableScreenLogic({
   const leadPlayerId = activeTurn ? activeTurn.leadPlayerId : null;
   const isLeadMove = activeTurn ? activeTurn.isLeadMove : false;
   const isFirstMoveOfGame = activeTurn ? activeTurn.isFirstMoveOfGame : false;
-  const currentMove = activeTurn ? activeTurn.leadingMove : null;
-  const chopNotification = activeTurn ? activeTurn.chopNotification : null;
+  const currentMove = matchState.status === 'PLAYING'
+    ? matchState.leadingMove
+    : (matchState.status === 'GAME_OVER' ? (matchState.leadingMove ?? null) : null);
+  const chopNotification = matchState.status === 'PLAYING'
+    ? matchState.chopNotification
+    : (matchState.status === 'GAME_OVER' ? (matchState.chopNotification ?? null) : null);
   const botThinkingThought = activeTurn ? activeTurn.botThinkingThought : null;
 
   // Lượt của tôi: chỉ có thể xảy ra khi trận đấu đang ở trạng thái PLAYING và người chơi trùng khớp

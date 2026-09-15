@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { PlayerProfile, loadPlayerProfile, savePlayerProfile, resetPlayerProfile } from '../engine/storage';
+import { ActiveLoan } from '../engine/schemas/profile.schema';
 import { useGameStore } from './useGameStore';
 
 interface UserState {
@@ -10,7 +11,7 @@ interface UserState {
   addCoins: (amount: number) => void;
   deductCoins: (amount: number) => void;
   updateElo: (delta: number) => void;
-  takeLoan: (amount: number) => void;
+  takeLoan: (amount: number, activeLoan?: ActiveLoan | null) => void;
   repayLoan: (amount: number) => void;
   claimDailyRelief: (amount: number) => void;
   resetProfile: () => void;
@@ -72,11 +73,12 @@ export const useUserStore = create<UserState>((set) => ({
     return { profile: next };
   }),
 
-  takeLoan: (amount) => set((state) => {
+  takeLoan: (amount, activeLoan) => set((state) => {
     const next: PlayerProfile = {
       ...state.profile,
       coins: state.profile.coins + amount,
-      loans: (state.profile.loans || 0) + amount
+      loans: (state.profile.loans || 0) + amount,
+      activeLoan: activeLoan ?? state.profile.activeLoan ?? null
     };
     savePlayerProfile(next);
     return { profile: next };
@@ -84,10 +86,12 @@ export const useUserStore = create<UserState>((set) => ({
 
   repayLoan: (amount) => set((state) => {
     const pay = Math.min(amount, state.profile.loans || 0);
+    const remainingLoans = Math.max(0, (state.profile.loans || 0) - pay);
     const next: PlayerProfile = {
       ...state.profile,
       coins: Math.max(0, state.profile.coins - pay),
-      loans: Math.max(0, (state.profile.loans || 0) - pay)
+      loans: remainingLoans,
+      activeLoan: remainingLoans <= 0 ? null : state.profile.activeLoan
     };
     savePlayerProfile(next);
     return { profile: next };

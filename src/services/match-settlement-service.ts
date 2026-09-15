@@ -12,13 +12,14 @@ import { useViewStore } from '../stores/useViewStore';
 import { useEcosystemStore } from '../stores/useEcosystemStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { forceUploadToCloud } from '../engine/sync/sync-service';
-import { CustomBotConfigTuple } from '../engine/types';
 import { assertEconomicBalance } from '../engine/invariants/match-invariants';
+import { calculateMatchLoanSettlement } from '../engine/constants/economy';
 import type { BotConfig } from '../ai/types';
 import { getBotConfig } from '../ai/bot-factory';
 import { dbUpdatePlayerMatchResult } from '../engine/db/indexed-db';
 import type { OfflineMatchDriver } from '../engine/offline-match-driver';
 import type { GameOverMatchState } from '../engine/state-machine/types';
+import { CustomBotConfigTuple } from '../engine/types';
 
 export type { CampaignResultMeta };
 
@@ -130,9 +131,27 @@ export function settleCompletedMatch(engine: GameEngine, driver?: OfflineMatchDr
   // Chốt chặn bất biến kinh tế: Tổng tiền thắng + thua = 0
   assertEconomicBalance(settlement.payouts);
 
+  const humanNetEarned = settlement.payouts[humanPlayerId];
+  if (humanNetEarned === undefined) {
+    throw new Error(`[MatchSettlementService] Không tìm thấy payout cho người chơi ${humanPlayerId} trong bảng kết toán!`);
+  }
+
+  const session = getActiveMatchSession();
+  const heldDeposit = session ? session.depositAmount : 0;
+  clearActiveMatchSession();
+
+  // Tính toán kinh tế nợ: Lãi suất theo ván, khấu trừ nợ có sàn bảo hộ vốn 26,000 Xu
+  const loanSettlement = calculateMatchLoanSettlement({
+    currentCoins,
+    heldDeposit,
+    humanNetEarned,
+    currentLoans: currentProfile.loans,
+    activeLoan: currentProfile.activeLoan ?? null
+  });
+
   gameStore.setIsThreeSpadesWin(engine.isThreeSpadesWin);
   gameStore.setMatchPayouts(settlement.payouts);
-  gameStore.setLoanDeductionAmount(settlement.loanDeduction);
+  gameStore.setLoanDeductionAmount(loanSettlement.loanDeduction);
   gameStore.setLastEloDelta(settlement.eloDelta);
   gameStore.setLastEloBreakdown(settlement.eloBreakdown ?? null);
   gameStore.setAllEloDeltas(settlement.allEloDeltas ?? {});
@@ -146,7 +165,8 @@ export function settleCompletedMatch(engine: GameEngine, driver?: OfflineMatchDr
     matchPayouts: settlement.payouts,
     eloDeltas: settlement.allEloDeltas ?? {},
     matchLogReport: null,
-    rules: engine.rules
+    rules: engine.rules,
+    leadingMove: engine.getLeadingMove()
   };
   gameStore.setMatchState(gameOverState);
 
@@ -154,16 +174,9 @@ export function settleCompletedMatch(engine: GameEngine, driver?: OfflineMatchDr
     driver.setSettlementResult(settlement.payouts, settlement.allEloDeltas ?? {});
   }
 
-  const session = getActiveMatchSession();
-  const heldDeposit = session ? session.depositAmount : 0;
-  clearActiveMatchSession();
-
-  const humanNetEarned = settlement.payouts[humanPlayerId];
-  if (humanNetEarned === undefined) {
-    throw new Error(`[MatchSettlementService] Không tìm thấy payout cho người chơi ${humanPlayerId} trong bảng kết toán!`);
-  }
-  const nextCoins = Math.max(0, currentCoins + heldDeposit + humanNetEarned);
-  const nextLoans = Math.max(0, currentProfile.loans - settlement.loanDeduction);
+  const nextCoins = Math.max(0, currentCoins + heldDeposit + humanNetEarned - loanSettlement.loanDeduction);
+  const nextLoans = loanSettlement.nextLoans;
+  const nextActiveLoan = loanSettlement.nextActiveLoan;
   const nextElo = settlement.isVictoryModalRanked
     ? Math.max(0, currentElo + settlement.eloDelta)
     : currentElo;
@@ -210,6 +223,7 @@ export function settleCompletedMatch(engine: GameEngine, driver?: OfflineMatchDr
     ...currentProfile,
     coins: nextCoins,
     loans: nextLoans,
+    activeLoan: nextActiveLoan,
     elo: nextElo,
     campaignUnlockedChapter: updatedUnlockedChapter,
     campaignChapterWins: updatedChapterWins,
@@ -239,7 +253,7 @@ export function settleCompletedMatch(engine: GameEngine, driver?: OfflineMatchDr
     playerCount: engine.players.length,
     congsGivenCount,
     cascadeChopCount: 0,
-    loanDeduction: settlement.loanDeduction,
+    loanDeduction: loanSettlement.loanDeduction,
     instantWinType: resolvedInstantWinType
   };
 
@@ -264,7 +278,7 @@ export function settleCompletedMatch(engine: GameEngine, driver?: OfflineMatchDr
     payouts: settlement.payouts,
     isThreeSpadesWin: engine.isThreeSpadesWin,
     instantWinType: resolvedInstantWinType,
-    loanDeduction: settlement.loanDeduction || 0,
+    loanDeduction: loanSettlement.loanDeduction || 0,
     eloDelta: settlement.eloDelta || 0
   });
   gameStore.setMatchLogReport(matchReport);

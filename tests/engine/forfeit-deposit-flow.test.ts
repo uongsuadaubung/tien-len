@@ -28,6 +28,7 @@ describe('Luồng Tiền Cọc & Xử Phạt Thoát Game / Bỏ Cuộc (Forfeit 
       campaignUnlockedChapter: 1,
       campaignChapterWins: {},
       loans: 0,
+      activeLoan: null,
       dailyReliefClaimedCount: 0,
       lastDailyResetTimestamp: Date.now(),
       lastDailyResetDate: '2026-08-26',

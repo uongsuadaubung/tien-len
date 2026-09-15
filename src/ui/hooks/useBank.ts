@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { PlayerProfile, savePlayerProfile } from '../../engine/storage';
-import { ECONOMY_CONSTANTS } from '../../engine/constants/economy';
+import { ECONOMY_CONSTANTS, type LoanPackageConfig } from '../../engine/constants/economy';
+import type { ActiveLoan } from '../../engine/schemas/profile.schema';
 import { soundManager } from '../audio/sound-manager';
 import confetti from 'canvas-confetti';
 
@@ -10,6 +11,7 @@ import { t } from '../../locales';
 export interface UseBankResult {
   loanAmountToBorrow: number;
   setLoanAmountToBorrow: (amount: number) => void;
+  selectedPackage: LoanPackageConfig;
   successMessage: string | null;
   errorMessage: string | null;
   canClaimRelief: boolean;
@@ -17,11 +19,10 @@ export interface UseBankResult {
   reliefAmount: number;
   remainingReliefCount: number;
   reliefThreshold: number;
-  loanPackages: readonly {
-    amount: number;
-    label: string;
-    desc: string;
-  }[];
+  loanPackages: readonly LoanPackageConfig[];
+  activeLoan: ActiveLoan | null;
+  isLoanOverdue: boolean;
+  hasActiveDebt: boolean;
   handleClaimRelief: () => void;
   handleBorrowLoan: () => void;
   handleRepayDebt: (portion: number) => void;
@@ -43,6 +44,15 @@ export function useBank(): UseBankResult {
     profile.dailyReliefClaimedCount < MAX_RELIEF_PER_DAY &&
     profile.coins < RELIEF_THRESHOLD;
   const remainingReliefCount = Math.max(0, MAX_RELIEF_PER_DAY - profile.dailyReliefClaimedCount);
+
+  const hasActiveDebt = profile.loans > 0;
+  const isLoanOverdue = Boolean(
+    profile.loans > 0 &&
+    profile.activeLoan &&
+    profile.activeLoan.matchesPlayed > profile.activeLoan.graceMatches
+  );
+
+  const selectedPackage = ECONOMY_CONSTANTS.LOAN_PACKAGES.find(p => p.amount === loanAmountToBorrow) || ECONOMY_CONSTANTS.LOAN_PACKAGES[0];
 
   const showNotification = (msg: string, isError: boolean = false) => {
     if (isError) {
@@ -84,17 +94,43 @@ export function useBank(): UseBankResult {
   };
 
   const handleBorrowLoan = () => {
+    if (hasActiveDebt) {
+      showNotification(t('bank.alreadyInDebtError'), true);
+      return;
+    }
+
+    const pkg = selectedPackage;
+    const feeRate = (pkg.upfrontFeePercent || 10) / 100;
+    const upfrontFee = Math.round(pkg.amount * feeRate);
+    const netReceived = pkg.amount - upfrontFee;
+
+    const newActiveLoan: ActiveLoan = {
+      packageId: pkg.id,
+      initialAmount: pkg.amount,
+      matchesPlayed: 0,
+      graceMatches: pkg.graceMatches,
+      interestPerMatchPercent: pkg.interestPerMatchPercent,
+      winDeductionPercent: pkg.winDeductionPercent,
+      overdueDeductionPercent: pkg.overdueDeductionPercent,
+      createdAt: Date.now()
+    };
+
     const updated: PlayerProfile = {
       ...profile,
-      coins: profile.coins + loanAmountToBorrow,
-      loans: profile.loans + loanAmountToBorrow
+      coins: profile.coins + netReceived,
+      loans: pkg.amount,
+      activeLoan: newActiveLoan
     };
 
     savePlayerProfile(updated);
     onUpdateProfile(updated);
 
     soundManager.playVictory();
-    showNotification(t('bank.borrowSuccess', { amount: loanAmountToBorrow }));
+    showNotification(t('bank.borrowSuccessWithFee', { 
+      amount: pkg.amount.toLocaleString(), 
+      received: netReceived.toLocaleString(), 
+      fee: upfrontFee.toLocaleString() 
+    }));
   };
 
   const handleRepayDebt = (portion: number = 1) => {
@@ -106,23 +142,26 @@ export function useBank(): UseBankResult {
 
     const maxCanPay = Math.min(profile.coins, profile.loans);
     const repayAmount = Math.max(1, Math.floor(maxCanPay * portion));
+    const remainingLoans = Math.max(0, profile.loans - repayAmount);
 
     const updated: PlayerProfile = {
       ...profile,
       coins: profile.coins - repayAmount,
-      loans: profile.loans - repayAmount
+      loans: remainingLoans,
+      activeLoan: remainingLoans <= 0 ? null : profile.activeLoan
     };
 
     savePlayerProfile(updated);
     onUpdateProfile(updated);
 
     soundManager.playCardDeal();
-    showNotification(t('bank.repaySuccess', { amount: repayAmount }));
+    showNotification(t('bank.repaySuccess', { amount: repayAmount.toLocaleString() }));
   };
 
   return {
     loanAmountToBorrow,
     setLoanAmountToBorrow,
+    selectedPackage,
     successMessage,
     errorMessage,
     canClaimRelief,
@@ -131,6 +170,9 @@ export function useBank(): UseBankResult {
     remainingReliefCount,
     reliefThreshold: RELIEF_THRESHOLD,
     loanPackages: ECONOMY_CONSTANTS.LOAN_PACKAGES,
+    activeLoan: profile.activeLoan ?? null,
+    isLoanOverdue,
+    hasActiveDebt,
     handleClaimRelief,
     handleBorrowLoan,
     handleRepayDebt,

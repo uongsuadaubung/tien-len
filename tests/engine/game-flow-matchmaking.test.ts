@@ -99,6 +99,7 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
       avatar: '🤠',
       coins: 5000,
       loans: 0,
+      activeLoan: null,
       elo: 1350,
       campaignUnlockedChapter: 1,
       campaignChapterWins: {},

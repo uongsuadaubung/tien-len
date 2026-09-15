@@ -121,15 +121,24 @@ export const MobileLobbyScreen: React.FC<MobileLobbyScreenProps> = ({
             </div>
 
             {/* Nợ cảnh báo (nếu có) */}
-            {profile.loans > 0 && (
-              <button
-                onClick={onOpenBank}
-                className="w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-xl bg-red-500/20 border border-red-500/50 text-red-400 flex items-center justify-center shrink-0 animate-pulse cursor-pointer"
-                title={t('lobby.debtLabel', { amount: profile.loans.toLocaleString() })}
-              >
-                <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </button>
-            )}
+            {profile.loans > 0 && (() => {
+              const isOverdue = Boolean(profile.activeLoan && profile.activeLoan.matchesPlayed > profile.activeLoan.graceMatches);
+              return (
+                <button
+                  onClick={onOpenBank}
+                  className={`w-7.5 h-7.5 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0 cursor-pointer ${
+                    isOverdue 
+                      ? 'bg-red-600 border-2 border-white text-white animate-bounce shadow-lg shadow-red-500/50' 
+                      : 'bg-red-500/20 border border-red-500/50 text-red-400 animate-pulse'
+                  }`}
+                  title={isOverdue 
+                    ? t('lobby.debtOverdueLabel', { amount: profile.loans.toLocaleString() })
+                    : t('lobby.debtLabel', { amount: profile.loans.toLocaleString() })}
+                >
+                  <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </button>
+              );
+            })()}
 
             {/* Nút Luật */}
             {onOpenRules && (

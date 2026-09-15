@@ -127,16 +127,22 @@ export const WebLobbyScreen: React.FC<WebLobbyScreenProps> = ({
           </div>
 
           {/* Cảnh báo nợ (nếu có) */}
-          {profile.loans > 0 && (
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={onOpenBank}
-              leftIcon={<AlertCircle className="w-3.5 h-3.5 text-red-400" />}
-            >
-              {t('lobby.debtLabel', { amount: profile.loans.toLocaleString() })}
-            </Button>
-          )}
+          {profile.loans > 0 && (() => {
+            const isOverdue = Boolean(profile.activeLoan && profile.activeLoan.matchesPlayed > profile.activeLoan.graceMatches);
+            return (
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={onOpenBank}
+                className={isOverdue ? 'animate-pulse ring-2 ring-red-500 font-black' : ''}
+                leftIcon={<AlertCircle className={`w-3.5 h-3.5 ${isOverdue ? 'text-red-300 animate-bounce' : 'text-red-400'}`} />}
+              >
+                {isOverdue 
+                  ? t('lobby.debtOverdueLabel', { amount: profile.loans.toLocaleString() }) 
+                  : t('lobby.debtLabel', { amount: profile.loans.toLocaleString() })}
+              </Button>
+            );
+          })()}
 
           {/* Nút Vay Nợ / Ngân Hàng */}
           <Button
