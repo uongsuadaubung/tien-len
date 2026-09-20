@@ -41,6 +41,7 @@ describe('Kiến Trúc State Pattern & Discriminated Unions (Game Engine State M
         leadingMove: null,
         isLeadMove: true,
         isFirstMoveOfGame: true,
+        firstMoveRequiredCard: createCard(3, 'SPADES'),
         passedPlayerIds: [],
         chopNotification: null,
         botThinkingThought: null,
@@ -191,6 +192,7 @@ describe('Kiến Trúc State Pattern & Discriminated Unions (Game Engine State M
         leadingMove: dummyMove,
         isLeadMove: false,
         isFirstMoveOfGame: false,
+        firstMoveRequiredCard: null,
         passedPlayerIds: ['p0'],
         chopNotification: null,
         botThinkingThought: null,
@@ -228,6 +230,7 @@ describe('Kiến Trúc State Pattern & Discriminated Unions (Game Engine State M
         leadingMove: dummyMove, // Sẽ được chuẩn hóa thành null vì đang là Lead
         isLeadMove: true,
         isFirstMoveOfGame: true,
+        firstMoveRequiredCard: card3S,
         passedPlayerIds: [],
         chopNotification: null,
         botThinkingThought: null,

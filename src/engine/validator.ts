@@ -1,5 +1,5 @@
 import { Card, Combination } from './types';
-import { compareCards, isTwo } from './card';
+import { compareCards, isTwo, formatCard, formatCardVietnamese } from './card';
 import { identifyCombination } from './combinations';
 
 export interface ValidValidationResult {
@@ -23,98 +23,127 @@ export type ValidationResult = ValidValidationResult | InvalidValidationResult;
  */
 export function canBeat(candidate: Combination, target: Combination): ValidationResult {
   // 1. Trường hợp cùng loại tổ hợp và cùng số lượng lá
-  if (candidate.type === target.type && candidate.length === target.length) {
-    if (compareCards(candidate.highestCard, target.highestCard) > 0) {
-      const isChopSpecial =
-        candidate.type === 'THREE_PAIRS_SEQUENTIAL' ||
-        candidate.type === 'FOUR_OF_A_KIND' ||
-        candidate.type === 'FOUR_PAIRS_SEQUENTIAL';
-
-      return {
-        valid: true,
-        combination: candidate,
-        isChop: isChopSpecial
-      };
-    }
-    return { valid: false, reason: 'Bài đánh ra nhỏ hơn bài trên bàn' };
-  }
-
-  // 2. Chặt 1 Heo (Single 2)
-  if (target.type === 'SINGLE' && isTwo(target.highestCard)) {
-    if (
-      candidate.type === 'THREE_PAIRS_SEQUENTIAL' ||
-      candidate.type === 'FOUR_OF_A_KIND' ||
-      candidate.type === 'FOUR_PAIRS_SEQUENTIAL'
-    ) {
-      return {
-        valid: true,
-        combination: candidate,
-        isChop: true
-      };
-    }
-  }
-
-  // 3. Chặt Đôi Heo (Pair of 2s)
-  if (target.type === 'PAIR' && isTwo(target.highestCard)) {
-    if (
-      candidate.type === 'FOUR_OF_A_KIND' ||
-      candidate.type === 'FOUR_PAIRS_SEQUENTIAL'
-    ) {
-      return {
-        valid: true,
-        combination: candidate,
-        isChop: true
-      };
-    }
-    if (candidate.type === 'THREE_PAIRS_SEQUENTIAL') {
+  if (candidate.type === target.type && candidate.cards.length === target.cards.length) {
+    // Với Sảnh: so sánh lá cao nhất
+    if (candidate.type === 'STRAIGHT') {
+      const diff = compareCards(candidate.highestCard, target.highestCard);
+      if (diff > 0) {
+        return {
+          valid: true,
+          combination: candidate,
+          isChop: false
+        };
+      }
       return {
         valid: false,
-        reason: '3 Đôi thông không chặt được đôi Heo (cần Tứ quý hoặc 4 đôi thông)'
+        reason: 'Sảnh này không đủ lớn để đè sảnh trên bàn'
       };
     }
-  }
 
-  // 4. Chặt 3 Đôi Thông
-  if (target.type === 'THREE_PAIRS_SEQUENTIAL') {
-    if (
-      candidate.type === 'FOUR_OF_A_KIND' ||
-      candidate.type === 'FOUR_PAIRS_SEQUENTIAL'
-    ) {
+    // Với các đôi thông đè đôi thông cùng số lượng đôi (ví dụ: 3 đôi thông đè 3 đôi thông)
+    if (candidate.type === 'THREE_PAIRS_SEQUENTIAL' || candidate.type === 'FOUR_PAIRS_SEQUENTIAL') {
+      const diff = compareCards(candidate.highestCard, target.highestCard);
+      if (diff > 0) {
+        return {
+          valid: true,
+          combination: candidate,
+          isChop: true
+        };
+      }
+      return {
+        valid: false,
+        reason: 'Tổ hợp đôi thông này không đủ lớn để đè'
+      };
+    }
+
+    // Các bộ thông thường khác (Đơn, Đôi, Sám, Tứ Quý): so sánh lá bài cao nhất
+    const diff = compareCards(candidate.highestCard, target.highestCard);
+    if (diff > 0) {
       return {
         valid: true,
         combination: candidate,
-        isChop: true
+        isChop: false
       };
+    }
+    return {
+      valid: false,
+      reason: 'Tổ hợp này không đủ lớn để đè bài trên bàn'
+    };
+  }
+
+  // 2. Trường hợp Chặt đặc biệt (Special Chopping Rules)
+  // Target là 1 lá Heo (SINGLE rank 15)
+  if (target.type === 'SINGLE' && isTwo(target.cards[0])) {
+    // 3 đôi thông chặt được 1 Heo
+    if (candidate.type === 'THREE_PAIRS_SEQUENTIAL') {
+      return { valid: true, combination: candidate, isChop: true };
+    }
+    // Tứ quý chặt được 1 Heo
+    if (candidate.type === 'FOUR_OF_A_KIND') {
+      return { valid: true, combination: candidate, isChop: true };
+    }
+    // 4 đôi thông chặt được 1 Heo
+    if (candidate.type === 'FOUR_PAIRS_SEQUENTIAL') {
+      return { valid: true, combination: candidate, isChop: true };
     }
   }
 
-  // 5. Chặt Tứ Quý
+  // Target là Đôi Heo (PAIR rank 15)
+  if (target.type === 'PAIR' && isTwo(target.cards[0])) {
+    // Tứ quý chặt được đôi Heo
+    if (candidate.type === 'FOUR_OF_A_KIND') {
+      return { valid: true, combination: candidate, isChop: true };
+    }
+    // 4 đôi thông chặt được đôi Heo
+    if (candidate.type === 'FOUR_PAIRS_SEQUENTIAL') {
+      return { valid: true, combination: candidate, isChop: true };
+    }
+  }
+
+  // Target là 3 đôi thông: bị chặt bởi 3 đôi thông lớn hơn, Tứ quý hoặc 4 đôi thông
+  if (target.type === 'THREE_PAIRS_SEQUENTIAL') {
+    if (candidate.type === 'FOUR_OF_A_KIND') {
+      return { valid: true, combination: candidate, isChop: true };
+    }
+    if (candidate.type === 'FOUR_PAIRS_SEQUENTIAL') {
+      return { valid: true, combination: candidate, isChop: true };
+    }
+  }
+
+  // Target là Tứ quý: bị chặt bởi Tứ quý lớn hơn hoặc 4 đôi thông
   if (target.type === 'FOUR_OF_A_KIND') {
     if (candidate.type === 'FOUR_PAIRS_SEQUENTIAL') {
-      return {
-        valid: true,
-        combination: candidate,
-        isChop: true
-      };
+      return { valid: true, combination: candidate, isChop: true };
     }
   }
 
   return {
     valid: false,
-    reason: 'Tổ hợp bài không phù hợp để đè bộ bài hiện tại'
+    reason: 'Tổ hợp này không thể đè hoặc chặt được tổ hợp bài đang có trên bàn'
   };
 }
 
-export interface IsValidMoveContext {
+export interface BaseValidMoveContext {
   cards: Card[];
   target: Combination | null;
-  isFirstMoveOfGame: boolean;
   isLeadMove: boolean;
   hasPassedRound: boolean;
   allowFourPairsCutAnytime: boolean;
   isFinishingMove: boolean;
   prohibitEndingWithTwo: boolean;
 }
+
+export interface FirstMoveOfGameContext extends BaseValidMoveContext {
+  isFirstMoveOfGame: true;
+  firstMoveRequiredCard: Card;
+}
+
+export interface NormalMoveContext extends BaseValidMoveContext {
+  isFirstMoveOfGame: false;
+  firstMoveRequiredCard?: null;
+}
+
+export type IsValidMoveContext = FirstMoveOfGameContext | NormalMoveContext;
 
 /**
  * Thẩm định toàn diện một nước đi theo luật Tiến Lên Miền Nam
@@ -124,7 +153,6 @@ export function isValidMove(context: IsValidMoveContext): ValidationResult {
   const {
     cards,
     target,
-    isFirstMoveOfGame,
     isLeadMove,
     hasPassedRound,
     allowFourPairsCutAnytime,
@@ -153,13 +181,14 @@ export function isValidMove(context: IsValidMoveContext): ValidationResult {
     }
   }
 
-  // Ràng buộc ván đầu tiên: Phải chứa 3 Bích (3S)
-  if (isFirstMoveOfGame) {
-    const has3Spades = cards.some(c => c.rank === 3 && c.suit === 'SPADES');
-    if (!has3Spades) {
+  // Ràng buộc ván đầu tiên: Phải chứa quân bài mở màn nhỏ nhất bàn (được định danh chặt chẽ qua context)
+  if (context.isFirstMoveOfGame) {
+    const requiredCard = context.firstMoveRequiredCard;
+    const hasRequiredCard = cards.some(c => c.id === requiredCard.id);
+    if (!hasRequiredCard) {
       return {
         valid: false,
-        reason: 'Lượt đánh đầu tiên của ván đầu bắt buộc phải chứa quân 3 Bích (3♠)'
+        reason: `Lượt đánh đầu tiên của ván đầu bắt buộc phải chứa quân ${formatCardVietnamese(requiredCard)} (${formatCard(requiredCard)})`
       };
     }
   }

@@ -1,12 +1,13 @@
 import type { StateCreator } from 'zustand';
-import type { 
-  Player, 
-  PlayedMove, 
-  InstantWinType, 
-  GameRules, 
-  GameSettings, 
-  BotPersonaIdTuple, 
-  CustomBotConfigTuple 
+import type {
+  Player,
+  PlayedMove,
+  InstantWinType,
+  GameRules,
+  GameSettings,
+  BotPersonaIdTuple,
+  CustomBotConfigTuple,
+  Card
 } from '../../engine/types';
 import type { MatchState } from '../../engine/state-machine/types';
 import type { QuickTableConfig } from '../../engine/schemas/settings.schema';
@@ -170,6 +171,7 @@ export interface MatchStateSlice {
   isThreeSpadesWin: boolean;
   botThinkingThought: { botId: string; text: string } | null;
   isFirstMoveOfGame: boolean;
+  firstMoveRequiredCard: Card | null;
   isLeadMove: boolean;
 
   // Match Settlement
@@ -205,6 +207,7 @@ export interface MatchStateSlice {
   setIsThreeSpadesWin: (win: boolean) => void;
   setBotThinkingThought: (thought: { botId: string; text: string } | null) => void;
   setIsFirstMoveOfGame: (isFirst: boolean) => void;
+  setFirstMoveRequiredCard: (card: Card | null) => void;
   setIsLeadMove: (isLead: boolean) => void;
 
   setMatchPayouts: (payouts: Record<string, number>) => void;
@@ -231,6 +234,7 @@ export interface MatchStateSlice {
     chopNotification: ChopNotificationData | null;
     botThinkingThought: { botId: string; text: string } | null;
     isFirstMoveOfGame: boolean | null;
+    firstMoveRequiredCard: Card | null;
     isLeadMove: boolean | null;
   }>) => void;
   resetMatchState: () => void;

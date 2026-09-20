@@ -28,7 +28,7 @@ describe('Game Flow & Lifecycle Engine', () => {
     expect(game.isFirstMoveOfGame).toBe(true);
   });
 
-  test('Bàn 2 người: Khi không ai có 3♠, người có lá bài nhỏ nhất đi trước và đi bài bình thường', () => {
+  test('Bàn 2 người: Khi không ai có 3♠, người có lá bài nhỏ nhất đi trước và BẮT BUỘC phải đánh lá bài nhỏ nhất đó (hoặc tổ hợp chứa nó)', () => {
     const p1 = createPlayer({ id: 'p1', name: 'Người Chơi', avatar: 'user', score: 1000 });
     const p2 = createBotPlayer('p2', null, { name: 'Bé Năm', avatar: 'bot1', score: 1000 });
     // p1 lá nhỏ nhất là 4S, p2 lá nhỏ nhất là 3C (3 Chuồn < 4 Bích, không ai có 3 Bích 3S)
@@ -40,12 +40,23 @@ describe('Game Flow & Lifecycle Engine', () => {
 
     // p2 cầm 3C nhỏ nhất nên được quyền đi trước!
     expect(game.getCurrentPlayer().id).toBe('p2');
-    // Không ai có 3 Bích nên không ép buộc phải có 3 Bích
-    expect(game.isFirstMoveOfGame).toBe(false);
+    // Bắt buộc nước đầu tiên phải chứa lá bài nhỏ nhất (3 Chuồn)
+    expect(game.isFirstMoveOfGame).toBe(true);
+    expect(game.firstMoveRequiredCard?.rank).toBe(3);
+    expect(game.firstMoveRequiredCard?.suit).toBe('CLUBS');
 
-    // p2 đánh bài thành công
+    // 1. Thử đánh lá khác (4 Rô) -> Bị từ chối
+    const invalidRes = game.playMove('p2', parseCards('4D'));
+    expect(invalidRes.success).toBe(false);
+    if (!invalidRes.success) {
+      expect(invalidRes.error).toContain('3 Tép');
+    }
+
+    // 2. Đánh 3 Chuồn -> Thành công
     const res = game.playMove('p2', parseCards('3C'));
     expect(res.success).toBe(true);
+    expect(game.isFirstMoveOfGame).toBe(false);
+    expect(game.firstMoveRequiredCard).toBe(null);
     expect(game.getCurrentPlayer().id).toBe('p1');
   });
 

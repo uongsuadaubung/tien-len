@@ -593,6 +593,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
         cards: [card3S],
         target: null,
         isFirstMoveOfGame: true,
+        firstMoveRequiredCard: card3S,
         isLeadMove: true,
         hasPassedRound: false,
         allowFourPairsCutAnytime: true,
@@ -634,6 +635,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       firstTurnPlayerId: 'p1',
       gameNumber: 1,
       isFirstMoveOfGame: true,
+      firstMoveRequiredCard: { rank: card3S.rank, suit: card3S.suit, id: card3S.id },
       isLeadMove: true
     }, 'host_peer');
 
@@ -655,7 +657,8 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     const valid3S = isValidMove({
       cards: [card3S],
       target: null,
-      isFirstMoveOfGame: guestGameStore.isFirstMoveOfGame,
+      isFirstMoveOfGame: true,
+      firstMoveRequiredCard: card3S,
       isLeadMove: guestGameStore.isLeadMove,
       hasPassedRound: false,
       allowFourPairsCutAnytime: true,
@@ -669,7 +672,8 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     const invalidPlay = isValidMove({
       cards: [invalidCard],
       target: null,
-      isFirstMoveOfGame: guestGameStore.isFirstMoveOfGame,
+      isFirstMoveOfGame: true,
+      firstMoveRequiredCard: card3S,
       isLeadMove: guestGameStore.isLeadMove,
       hasPassedRound: false,
       allowFourPairsCutAnytime: true,
@@ -680,15 +684,16 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     expect(invalidPlay.reason).toContain('3 Bích');
   });
 
-  it('13. Bàn 2 người không ai có 3 Bích: Người giữ bài nhỏ nhất được đi trước và không bắt buộc 3 Bích', () => {
+  it('13. Bàn 2 người không ai có 3 Bích: Người giữ bài nhỏ nhất được đi trước và BẮT BUỘC phải đánh lá bài nhỏ nhất (hoặc bộ chứa nó)', () => {
     const profileGuest = { ...loadPlayerProfile(), name: 'Guest Smallest', coins: 50000 };
     useOnlineStore.getState().joinRoom(profileGuest, 'TL-3333');
 
-    // Giả lập bài Khách có lá nhỏ nhất là 4 Bích (không có 3 Bích)
+    // Giả lập bài Khách có lá nhỏ nhất là 4 Bích (không ai có 3 Bích)
     const card4S = createCard(4, 'SPADES');
-    const guestHand = [card4S];
+    const card5C = createCard(5, 'CLUBS');
+    const guestHand = [card4S, card5C];
     for (const r of ALL_RANKS) {
-      if (r >= 5) {
+      if (r >= 6) {
         guestHand.push(createCard(r, 'CLUBS'));
       }
     }
@@ -699,27 +704,45 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       leadPlayerId: 'p1',
       firstTurnPlayerId: 'p1',
       gameNumber: 1,
-      isFirstMoveOfGame: false, // Không ai có 3 Bích nên không bắt buộc 3 Bích
+      isFirstMoveOfGame: true,
+      firstMoveRequiredCard: { rank: card4S.rank, suit: card4S.suit, id: card4S.id },
       isLeadMove: true
     }, 'host_peer');
 
     const store = useGameStore.getState();
     expect(store.matchState.status).toBe('PLAYING');
     expect(store.currentTurnPlayerId).toBe('p1');
-    expect(store.isFirstMoveOfGame).toBe(false);
+    expect(store.isFirstMoveOfGame).toBe(true);
+    expect(store.firstMoveRequiredCard?.id).toBe(card4S.id);
 
-    // Đánh 4 Bích hoàn toàn hợp lệ mà không bị báo lỗi thiếu 3 Bích
-    const validation = isValidMove({
-      cards: [card4S],
+    // 1. Thử đánh lá không phải 4 Bích (ví dụ 5 Tép) -> Phải bị từ chối
+    const invalidValidation = isValidMove({
+      cards: [card5C],
       target: null,
-      isFirstMoveOfGame: store.isFirstMoveOfGame,
+      isFirstMoveOfGame: true,
+      firstMoveRequiredCard: card4S,
       isLeadMove: store.isLeadMove,
       hasPassedRound: false,
       allowFourPairsCutAnytime: true,
       isFinishingMove: false,
       prohibitEndingWithTwo: true
     });
-    expect(validation.valid).toBe(true);
+    expect(invalidValidation.valid).toBe(false);
+    expect(invalidValidation.reason).toContain('4 Bích');
+
+    // 2. Đánh lẻ 4 Bích (hoặc tổ hợp chứa 4 Bích) -> Hoàn toàn hợp lệ
+    const validValidation = isValidMove({
+      cards: [card4S],
+      target: null,
+      isFirstMoveOfGame: true,
+      firstMoveRequiredCard: card4S,
+      isLeadMove: store.isLeadMove,
+      hasPassedRound: false,
+      allowFourPairsCutAnytime: true,
+      isFinishingMove: false,
+      prohibitEndingWithTwo: true
+    });
+    expect(validValidation.valid).toBe(true);
   });
 
   it('14. Đồng bộ TableCenter & HUD Client: Khi Host đánh bài, Client thấy lá bài trên bàn và thấy đúng số bài Host còn lại', () => {
@@ -750,6 +773,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       firstTurnPlayerId: hostId,
       gameNumber: 1,
       isFirstMoveOfGame: true,
+      firstMoveRequiredCard: { rank: card3S.rank, suit: card3S.suit, id: card3S.id },
       isLeadMove: true
     }, 'host_peer');
 

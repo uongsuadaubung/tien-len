@@ -81,6 +81,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
   isThreeSpadesWin: false,
   botThinkingThought: null,
   isFirstMoveOfGame: false,
+  firstMoveRequiredCard: null,
   isLeadMove: true,
 
   matchPayouts: {},
@@ -137,6 +138,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
   setIsThreeSpadesWin: (win) => set({ isThreeSpadesWin: win }),
   setBotThinkingThought: (thought) => set({ botThinkingThought: thought }),
   setIsFirstMoveOfGame: (isFirst) => set({ isFirstMoveOfGame: isFirst }),
+  setFirstMoveRequiredCard: (card) => set({ firstMoveRequiredCard: card }),
   setIsLeadMove: (isLead) => set({ isLeadMove: isLead }),
 
   setMatchPayouts: (payouts) => set({ matchPayouts: payouts }),
@@ -145,7 +147,12 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
   setLastEloBreakdown: (breakdown) => set({ lastEloBreakdown: breakdown }),
   setAllEloDeltas: (deltas) => set({ allEloDeltas: deltas }),
   setMatchLogReport: (report) => set({ matchLogReport: report }),
-  setMatchState: (matchState) => set({ matchState }),
+  setMatchState: (matchState) => set({
+    matchState,
+    isFirstMoveOfGame: matchState.status === 'PLAYING' ? matchState.isFirstMoveOfGame : false,
+    firstMoveRequiredCard: matchState.status === 'PLAYING' && matchState.isFirstMoveOfGame ? matchState.firstMoveRequiredCard : null,
+    isLeadMove: matchState.status === 'PLAYING' ? matchState.isLeadMove : true
+  }),
   applyMatchState: (matchState) => {
     const isGameOver = matchState.status === 'GAME_OVER';
     const isInstantWin = matchState.status === 'INSTANT_WIN';
@@ -190,6 +197,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
         chopNotification: isPlaying || isRoundEnded ? matchState.chopNotification : null,
         botThinkingThought: null,
         isFirstMoveOfGame: isPlaying ? matchState.isFirstMoveOfGame : false,
+        firstMoveRequiredCard: isPlaying && matchState.isFirstMoveOfGame ? matchState.firstMoveRequiredCard : null,
         isLeadMove: isPlaying ? matchState.isLeadMove : true
       };
     });
@@ -219,6 +227,16 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
     const isLead = sync.isLeadMove ?? (leadingMove === null);
 
     set((state) => {
+      const isFirstMove = sync.isFirstMoveOfGame ?? (state.matchState.status === 'PLAYING' ? state.matchState.isFirstMoveOfGame : false);
+      const existingFirstMoveCard = state.matchState.status === 'PLAYING' && state.matchState.isFirstMoveOfGame
+        ? state.matchState.firstMoveRequiredCard
+        : state.firstMoveRequiredCard;
+      const requiredCard = isFirstMove
+        ? (sync.firstMoveRequiredCard
+          ? createCard(sync.firstMoveRequiredCard.rank, sync.firstMoveRequiredCard.suit)
+          : existingFirstMoveCard)
+        : null;
+
       // 1. Loại bỏ các lá bài vừa đánh ra khỏi tay người chơi (Authoritative Fog-of-War Card Removal)
       const playedCardIds = new Set(sync.currentMoveCards?.map(c => c.id) || []);
       const updatedPlayers = state.players.map(p => {
@@ -284,7 +302,8 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
           roundMoves: leadingMove ? [leadingMove] : [],
           leadingMove,
           isLeadMove: isLead,
-          isFirstMoveOfGame: sync.isFirstMoveOfGame ?? (state.matchState.status === 'PLAYING' ? state.matchState.isFirstMoveOfGame : false),
+          isFirstMoveOfGame: isFirstMove,
+          firstMoveRequiredCard: requiredCard,
           passedPlayerIds: sync.passedPlayerIds || [],
           chopNotification: sync.chopNotification ? {
             visible: sync.chopNotification.visible,
@@ -324,6 +343,8 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
           isCascade: sync.chopNotification.isCascade,
           chainCount: sync.chopNotification.chainCount
         } : null,
+        isFirstMoveOfGame: isFirstMove,
+        firstMoveRequiredCard: isFirstMove ? requiredCard : null,
         isLeadMove: isLead
       };
     });
@@ -364,6 +385,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
     chopNotification: snapshot.chopNotification !== undefined ? snapshot.chopNotification : state.chopNotification,
     botThinkingThought: snapshot.botThinkingThought !== undefined ? snapshot.botThinkingThought : state.botThinkingThought,
     isFirstMoveOfGame: snapshot.isFirstMoveOfGame !== undefined ? (snapshot.isFirstMoveOfGame ?? false) : state.isFirstMoveOfGame,
+    firstMoveRequiredCard: snapshot.firstMoveRequiredCard !== undefined ? snapshot.firstMoveRequiredCard : state.firstMoveRequiredCard,
     isLeadMove: snapshot.isLeadMove !== undefined ? (snapshot.isLeadMove ?? false) : state.isLeadMove
   })),
 
@@ -383,6 +405,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
     isThreeSpadesWin: false,
     botThinkingThought: null,
     isFirstMoveOfGame: false,
+    firstMoveRequiredCard: null,
     isLeadMove: true,
     selectedCardIds: new Set<string>(),
     currentHint: null,

@@ -14,6 +14,7 @@ export type { ValidMoveInfo };
 export interface BaseDecisionContext {
   hand: Card[];
   isFirstMoveOfGame: boolean;
+  firstMoveRequiredCard?: Card | null;
   tracker: CardTracker;
   config: BotConfig;
   remainingPlayerCards: Record<string, number>;

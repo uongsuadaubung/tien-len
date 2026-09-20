@@ -114,13 +114,22 @@ export class HostEngineDriver extends BaseMatchDriver {
     this.engine = engine;
     const startResult = engine.startNewGame(this.gameNumber, this.lastWinnerId || undefined);
 
+    if (startResult.instantWin) {
+      this.instantWinType = startResult.instantWinType;
+      useGameStore.getState().setInstantWinType(startResult.instantWinType);
+      useGameStore.getState().setIsGameOver(true);
+      this.broadcastCurrentTableState('Có người chơi tới trắng!');
+      this.handleGameOver();
+      return;
+    }
+
     // Khởi tạo CardTracker theo góc nhìn hợp lệ cho từng người chơi
     this.trackers = {};
     this.engine.players.forEach(p => {
       this.trackers[p.id] = new CardTracker(p.hand, 1.0);
     });
 
-    // 4. Fog of War: Dispatch private hands
+    // 4. Fog of War: Dispatch private hands (Chỉ gửi khi ván đấu diễn ra bình thường)
     this.roomState.players.forEach((op: OnlinePlayer) => {
       const p = engine.players.find(pl => pl.id === op.playerId);
       if (!p) return;
@@ -137,20 +146,16 @@ export class HostEngineDriver extends BaseMatchDriver {
           firstTurnPlayerId: engine.currentRound.currentTurnPlayerId,
           gameNumber: this.gameNumber,
           isFirstMoveOfGame: engine.isFirstMoveOfGame,
+          firstMoveRequiredCard: engine.firstMoveRequiredCard ? {
+            rank: engine.firstMoveRequiredCard.rank,
+            suit: engine.firstMoveRequiredCard.suit,
+            id: engine.firstMoveRequiredCard.id
+          } : null,
           isLeadMove: engine.isRoundLeadMove()
         };
         void this.p2pClient.sendPrivateDealHand(dealPacket, op.peerId);
       }
     });
-
-    if (startResult.instantWin) {
-      this.instantWinType = startResult.instantWinType;
-      useGameStore.getState().setInstantWinType(startResult.instantWinType);
-      useGameStore.getState().setIsGameOver(true);
-      this.broadcastCurrentTableState('Có người chơi tới trắng!');
-      this.handleGameOver();
-      return;
-    }
 
     // 5. Broadcast Table Sync
     this.broadcastCurrentTableState('Ván bài đã bắt đầu!');
@@ -311,6 +316,11 @@ export class HostEngineDriver extends BaseMatchDriver {
       lastActionMessage: message,
       gameNumber: this.gameNumber,
       isFirstMoveOfGame,
+      firstMoveRequiredCard: this.engine.firstMoveRequiredCard ? {
+        rank: this.engine.firstMoveRequiredCard.rank,
+        suit: this.engine.firstMoveRequiredCard.suit,
+        id: this.engine.firstMoveRequiredCard.id
+      } : null,
       isLeadMove
     };
 
@@ -329,6 +339,7 @@ export class HostEngineDriver extends BaseMatchDriver {
         leadingMove,
         isLeadMove,
         isFirstMoveOfGame,
+        firstMoveRequiredCard: this.engine.firstMoveRequiredCard,
         passedPlayerIds: this.engine.currentRound.passedPlayerIds,
         chopNotification: this.chopNotification ? { ...this.chopNotification } : null,
         botThinkingThought: null,

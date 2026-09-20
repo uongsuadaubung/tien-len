@@ -26,6 +26,7 @@ export class EmergencyRuleHandler extends BotDecisionHandler {
       hand: context.hand,
       currentRoundLeadingMove: context.currentRoundLeadingMove ?? null,
       isFirstMoveOfGame: context.isFirstMoveOfGame,
+      firstMoveRequiredCard: context.firstMoveRequiredCard ?? null,
       isLeadMove: context.isLeadMove,
       tracker: context.tracker,
       remainingPlayerCards: context.remainingPlayerCards,

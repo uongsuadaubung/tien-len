@@ -532,7 +532,12 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       }
       gameStore.setCurrentTurnPlayerId(dealPacket.firstTurnPlayerId);
       gameStore.setLeadPlayerId(dealPacket.leadPlayerId);
+      const requiredCard = isFirstMoveOfGame && dealPacket.firstMoveRequiredCard
+        ? createCard(dealPacket.firstMoveRequiredCard.rank, dealPacket.firstMoveRequiredCard.suit)
+        : null;
+
       gameStore.setIsFirstMoveOfGame(isFirstMoveOfGame);
+      gameStore.setFirstMoveRequiredCard(requiredCard);
       gameStore.setIsLeadMove(isLeadMove);
       gameStore.setWinners([]);
       gameStore.setIsGameOver(false);
@@ -554,6 +559,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         leadingMove: null,
         isLeadMove,
         isFirstMoveOfGame,
+        firstMoveRequiredCard: requiredCard,
         passedPlayerIds: [],
         chopNotification: null,
         botThinkingThought: null,

@@ -176,6 +176,7 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
         leadingMove: null,
         isLeadMove,
         isFirstMoveOfGame,
+        firstMoveRequiredCard: isFirstMoveOfGame ? engine.firstMoveRequiredCard : null,
         passedPlayerIds: [],
         chopNotification: null,
         botThinkingThought: null,

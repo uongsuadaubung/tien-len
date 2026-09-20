@@ -42,6 +42,7 @@ describe('Kiểm Thử Cảnh Báo Xác Nhận Mất Tiền Cược Khi Thoát T
         leadPlayerId: 'p0',
         roundMoves: [],
         isFirstMoveOfGame: false,
+        firstMoveRequiredCard: null,
         passedPlayerIds: [],
         chopNotification: null,
         botThinkingThought: null,

@@ -24,6 +24,7 @@ describe('Quick Response Finder & Selection Cycle (Chọn Nhanh Bài Vừa Khít
     leadingMove: PlayedMove | null;
     isLeadMove: boolean;
     isFirstMoveOfGame?: boolean | null;
+    firstMoveRequiredCard?: any;
     allowFourPairsCutAnytime?: boolean | null;
     prohibitEndingWithTwo?: boolean | null;
   }) => ({
@@ -31,6 +32,7 @@ describe('Quick Response Finder & Selection Cycle (Chọn Nhanh Bài Vừa Khít
     leadingMove: opts.leadingMove,
     isLeadMove: opts.isLeadMove,
     isFirstMoveOfGame: opts.isFirstMoveOfGame ?? null,
+    firstMoveRequiredCard: opts.firstMoveRequiredCard ?? null,
     allowFourPairsCutAnytime: opts.allowFourPairsCutAnytime ?? null,
     prohibitEndingWithTwo: opts.prohibitEndingWithTwo ?? null
   });
@@ -142,7 +144,8 @@ describe('Quick Response Finder & Selection Cycle (Chọn Nhanh Bài Vừa Khít
       hand,
       leadingMove: null,
       isLeadMove: true,
-      isFirstMoveOfGame: true
+      isFirstMoveOfGame: true,
+      firstMoveRequiredCard: hand[0]
     }));
 
     // Mọi phương án phải chứa 3S

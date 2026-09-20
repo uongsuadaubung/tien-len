@@ -60,6 +60,7 @@ export interface GameTableScreenLogicResult {
   botThinkingThought: BotThinkingInfo | null;
   isLeadMove: boolean;
   isFirstMoveOfGame: boolean;
+  firstMoveRequiredCard: Card | null;
 }
 
 export function useGameTableScreenLogic({
@@ -124,6 +125,7 @@ export function useGameTableScreenLogic({
   const leadPlayerId = activeTurn ? activeTurn.leadPlayerId : null;
   const isLeadMove = activeTurn ? activeTurn.isLeadMove : false;
   const isFirstMoveOfGame = activeTurn ? activeTurn.isFirstMoveOfGame : false;
+  const firstMoveRequiredCard = (activeTurn && activeTurn.isFirstMoveOfGame) ? activeTurn.firstMoveRequiredCard : null;
   const currentMove = useMemo(() => {
     if (matchState.status === 'PLAYING') {
       return matchState.leadingMove;
@@ -148,16 +150,29 @@ export function useGameTableScreenLogic({
   const isValidPlaySelection =
     isMyTurn &&
     selectedCards.length > 0 &&
-    isValidMove({
-      cards: selectedCards,
-      target: currentMove !== null ? currentMove.combination : null,
-      isFirstMoveOfGame,
-      isLeadMove,
-      hasPassedRound: localPlayer.isPassedCurrentRound,
-      allowFourPairsCutAnytime: gameRules.chopping.allowFourPairsCutAnytime,
-      isFinishingMove: selectedCards.length === localPlayer.hand.length,
-      prohibitEndingWithTwo: gameRules.gameFlow.prohibitEndingWithTwo
-    }).valid;
+    (isFirstMoveOfGame && firstMoveRequiredCard
+      ? isValidMove({
+          cards: selectedCards,
+          target: currentMove !== null ? currentMove.combination : null,
+          isFirstMoveOfGame: true,
+          firstMoveRequiredCard,
+          isLeadMove,
+          hasPassedRound: localPlayer.isPassedCurrentRound,
+          allowFourPairsCutAnytime: gameRules.chopping.allowFourPairsCutAnytime,
+          isFinishingMove: selectedCards.length === localPlayer.hand.length,
+          prohibitEndingWithTwo: gameRules.gameFlow.prohibitEndingWithTwo
+        })
+      : isValidMove({
+          cards: selectedCards,
+          target: currentMove !== null ? currentMove.combination : null,
+          isFirstMoveOfGame: false,
+          isLeadMove,
+          hasPassedRound: localPlayer.isPassedCurrentRound,
+          allowFourPairsCutAnytime: gameRules.chopping.allowFourPairsCutAnytime,
+          isFinishingMove: selectedCards.length === localPlayer.hand.length,
+          prohibitEndingWithTwo: gameRules.gameFlow.prohibitEndingWithTwo
+        })
+    ).valid;
 
   // Cho phép bỏ lượt tự do khi đến lượt của mình, trừ lượt mở màn ván đầu tiên bắt buộc phải ra bài
   const canPassTurn = isMyTurn && !isFirstMoveOfGame;
@@ -170,10 +185,11 @@ export function useGameTableScreenLogic({
       leadingMove: activeTurn.leadingMove,
       isLeadMove: activeTurn.isLeadMove,
       isFirstMoveOfGame: activeTurn.isFirstMoveOfGame,
+      firstMoveRequiredCard,
       allowFourPairsCutAnytime: gameRules.chopping.allowFourPairsCutAnytime,
       prohibitEndingWithTwo: gameRules.gameFlow.prohibitEndingWithTwo
     });
-  }, [isMyTurn, activeTurn, localPlayer.hand, gameRules]);
+  }, [isMyTurn, activeTurn, localPlayer.hand, firstMoveRequiredCard, gameRules]);
 
   // Phản hồi nhận xét chiến thuật thời gian thực của Quân Sư
   const activeAiHint = useMemo(() => {
@@ -207,6 +223,7 @@ export function useGameTableScreenLogic({
         leadingMove: activeTurn.leadingMove,
         isLeadMove: activeTurn.isLeadMove,
         isFirstMoveOfGame: activeTurn.isFirstMoveOfGame,
+        firstMoveRequiredCard,
         allowFourPairsCutAnytime: gameRules.chopping.allowFourPairsCutAnytime,
         prohibitEndingWithTwo: gameRules.gameFlow.prohibitEndingWithTwo
       },
@@ -217,7 +234,7 @@ export function useGameTableScreenLogic({
       setSelectedCardIds(new Set(nextCards.map(c => c.id)));
       soundManager.playCardDeal();
     }
-  }, [isMyTurn, activeTurn, localPlayer.hand, gameRules, selectedCardIds, setSelectedCardIds]);
+  }, [isMyTurn, activeTurn, localPlayer.hand, firstMoveRequiredCard, gameRules, selectedCardIds, setSelectedCardIds]);
 
   const handleOpenXRay = useCallback(() => {
     const tracker = appFlowCoordinator.getPlayerTracker(localPlayer.id) ?? new CardTracker(localPlayer.hand, 1.0);
@@ -280,6 +297,7 @@ export function useGameTableScreenLogic({
     chopNotification,
     botThinkingThought,
     isLeadMove,
-    isFirstMoveOfGame
+    isFirstMoveOfGame,
+    firstMoveRequiredCard
   };
 }

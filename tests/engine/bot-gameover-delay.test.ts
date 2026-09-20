@@ -86,6 +86,8 @@ describe('Bot Winning Card Visibility & 2-Second Victory Modal Delay Tests', () 
 
     const engine = new GameEngine([human, bot], rules);
     engine.startCustomGame(1);
+    engine.isFirstMoveOfGame = false;
+    engine.firstMoveRequiredCard = null;
 
     // Set lượt hiện tại cho Bot cầm cái
     engine.currentRound.leadPlayerId = 'bot_1';
@@ -155,6 +157,8 @@ describe('Bot Winning Card Visibility & 2-Second Victory Modal Delay Tests', () 
 
     const engine = new GameEngine([human, bot], rules);
     engine.startCustomGame(1);
+    engine.isFirstMoveOfGame = false;
+    engine.firstMoveRequiredCard = null;
 
     engine.currentRound.leadPlayerId = 'human_0';
     engine.currentRound.currentTurnPlayerId = 'human_0';

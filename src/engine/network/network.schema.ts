@@ -98,6 +98,7 @@ export const DealHandPacketSchema = z.object({
   firstTurnPlayerId: z.string(),
   gameNumber: z.number().default(1),
   isFirstMoveOfGame: z.boolean().optional(),
+  firstMoveRequiredCard: NetworkCardSchema.nullable().optional(),
   isLeadMove: z.boolean().optional()
 });
 
@@ -135,6 +136,7 @@ export const TableStateSyncPacketSchema = z.object({
   lastActionMessage: z.string().optional(),
   gameNumber: z.number().default(1),
   isFirstMoveOfGame: z.boolean().optional(),
+  firstMoveRequiredCard: NetworkCardSchema.nullable().optional(),
   isLeadMove: z.boolean().optional()
 });
 

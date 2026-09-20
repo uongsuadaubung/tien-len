@@ -88,7 +88,8 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     chopNotification,
     botThinkingThought,
     isLeadMove,
-    isFirstMoveOfGame
+    isFirstMoveOfGame,
+    firstMoveRequiredCard
   } = useGameTableScreenLogic({
     onPlaySelectedCards,
     onPassTurn
@@ -256,6 +257,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
             isDealing={isDealing}
             dealtCardsCount={dealtCounts[localPlayer.id] ?? 0}
             isFirstMoveOfGame={isFirstMoveOfGame}
+            firstMoveRequiredCard={firstMoveRequiredCard}
             sortMode={handSortMode}
             variantIndex={smartVariantIndex}
             cardSize="md"

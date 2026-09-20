@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { parseCard, parseCards } from '../../src/engine/card';
+import { createCard, parseCard, parseCards } from '../../src/engine/card';
 import { identifyCombination } from '../../src/engine/combinations';
 import { canBeat, isValidMove } from '../../src/engine/validator';
 
@@ -111,6 +111,7 @@ describe('Validator & Beating Rules (Tiến Lên Miền Nam)', () => {
         cards: validSingle,
         target: null,
         isFirstMoveOfGame: true,
+        firstMoveRequiredCard: card3S,
         isLeadMove: false,
         hasPassedRound: false,
         allowFourPairsCutAnytime: true,
@@ -122,6 +123,7 @@ describe('Validator & Beating Rules (Tiến Lên Miền Nam)', () => {
         cards: invalidSingle,
         target: null,
         isFirstMoveOfGame: true,
+        firstMoveRequiredCard: card3S,
         isLeadMove: false,
         hasPassedRound: false,
         allowFourPairsCutAnytime: true,
@@ -133,6 +135,7 @@ describe('Validator & Beating Rules (Tiến Lên Miền Nam)', () => {
         cards: validStraight,
         target: null,
         isFirstMoveOfGame: true,
+        firstMoveRequiredCard: card3S,
         isLeadMove: false,
         hasPassedRound: false,
         allowFourPairsCutAnytime: true,
@@ -144,12 +147,77 @@ describe('Validator & Beating Rules (Tiến Lên Miền Nam)', () => {
         cards: invalidStraight,
         target: null,
         isFirstMoveOfGame: true,
+        firstMoveRequiredCard: card3S,
         isLeadMove: false,
         hasPassedRound: false,
         allowFourPairsCutAnytime: true,
         isFinishingMove: false,
         prohibitEndingWithTwo: false
       }).valid).toBe(false);
+    });
+
+    test('bắt buộc chứa lá bài nhỏ nhất yêu cầu khi không có 3 Bích', () => {
+      const card4S = createCard(4, 'SPADES');
+      const card4D = createCard(4, 'DIAMONDS');
+      const card5S = createCard(5, 'SPADES');
+      const card6S = createCard(6, 'SPADES');
+
+      // 1. Đánh đơn 4 Bích -> Hợp lệ
+      const single4S = isValidMove({
+        cards: [card4S],
+        target: null,
+        isFirstMoveOfGame: true,
+        firstMoveRequiredCard: card4S,
+        isLeadMove: true,
+        hasPassedRound: false,
+        allowFourPairsCutAnytime: true,
+        isFinishingMove: false,
+        prohibitEndingWithTwo: false
+      });
+      expect(single4S.valid).toBe(true);
+
+      // 2. Đánh đôi 4 có 4 Bích -> Hợp lệ
+      const pair4 = isValidMove({
+        cards: [card4S, card4D],
+        target: null,
+        isFirstMoveOfGame: true,
+        firstMoveRequiredCard: card4S,
+        isLeadMove: true,
+        hasPassedRound: false,
+        allowFourPairsCutAnytime: true,
+        isFinishingMove: false,
+        prohibitEndingWithTwo: false
+      });
+      expect(pair4.valid).toBe(true);
+
+      // 3. Đánh sảnh 4-5-6 có 4 Bích -> Hợp lệ
+      const straight456 = isValidMove({
+        cards: [card4S, card5S, card6S],
+        target: null,
+        isFirstMoveOfGame: true,
+        firstMoveRequiredCard: card4S,
+        isLeadMove: true,
+        hasPassedRound: false,
+        allowFourPairsCutAnytime: true,
+        isFinishingMove: false,
+        prohibitEndingWithTwo: false
+      });
+      expect(straight456.valid).toBe(true);
+
+      // 4. Đánh đơn 5 Bích (không chứa 4 Bích) -> Không hợp lệ
+      const single5S = isValidMove({
+        cards: [card5S],
+        target: null,
+        isFirstMoveOfGame: true,
+        firstMoveRequiredCard: card4S,
+        isLeadMove: true,
+        hasPassedRound: false,
+        allowFourPairsCutAnytime: true,
+        isFinishingMove: false,
+        prohibitEndingWithTwo: false
+      });
+      expect(single5S.valid).toBe(false);
+      expect(single5S.reason).toContain('4 Bích');
     });
   });
 });

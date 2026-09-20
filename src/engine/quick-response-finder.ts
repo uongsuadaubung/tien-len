@@ -16,6 +16,7 @@ export interface QuickSelectContext {
   isFirstMoveOfGame: boolean | null;
   allowFourPairsCutAnytime: boolean | null;
   prohibitEndingWithTwo: boolean | null;
+  firstMoveRequiredCard?: Card | null;
 }
 
 /**
@@ -29,6 +30,7 @@ export function getSortedQuickSelectCandidates(context: QuickSelectContext): Qui
   const isFirstMoveOfGame = context.isFirstMoveOfGame ?? false;
   const allowFourPairsCutAnytime = context.allowFourPairsCutAnytime ?? true;
   const prohibitEndingWithTwo = context.prohibitEndingWithTwo ?? true;
+  const firstMoveRequiredCard = context.firstMoveRequiredCard ?? null;
 
   if (!hand || hand.length === 0) return [];
 
@@ -40,16 +42,30 @@ export function getSortedQuickSelectCandidates(context: QuickSelectContext): Qui
   // Lọc các tổ hợp hợp lệ theo luật chơi
   for (const cards of rawCandidateCards) {
     const isFinishing = cards.length === hand.length;
-    const valResult = isValidMove({
-      cards,
-      target: targetCombo,
-      isFirstMoveOfGame,
-      isLeadMove,
-      hasPassedRound: false,
-      allowFourPairsCutAnytime,
-      isFinishingMove: isFinishing,
-      prohibitEndingWithTwo
-    });
+    const valResult = isValidMove(
+      isFirstMoveOfGame && firstMoveRequiredCard
+        ? {
+            cards,
+            target: targetCombo,
+            isFirstMoveOfGame: true,
+            firstMoveRequiredCard,
+            isLeadMove,
+            hasPassedRound: false,
+            allowFourPairsCutAnytime,
+            isFinishingMove: isFinishing,
+            prohibitEndingWithTwo
+          }
+        : {
+            cards,
+            target: targetCombo,
+            isFirstMoveOfGame: false,
+            isLeadMove,
+            hasPassedRound: false,
+            allowFourPairsCutAnytime,
+            isFinishingMove: isFinishing,
+            prohibitEndingWithTwo
+          }
+    );
 
     if (valResult.valid) {
       validCandidates.push({

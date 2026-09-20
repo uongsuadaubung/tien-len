@@ -106,16 +106,30 @@ export function makeBotDecision(rawContext: DecisionContext | (BaseDecisionConte
   const validMoves: ValidMoveInfo[] = [];
   for (const cards of candidateMoveCards) {
     const isFinishing = cards.length === hand.length;
-    const valResult = isValidMove({
-      cards,
-      target: targetCombo,
-      isFirstMoveOfGame,
-      isLeadMove,
-      hasPassedRound: false,
-      allowFourPairsCutAnytime,
-      isFinishingMove: isFinishing,
-      prohibitEndingWithTwo: isProhibitEndingWithTwo
-    });
+    const valResult = isValidMove(
+      isFirstMoveOfGame && context.firstMoveRequiredCard
+        ? {
+            cards,
+            target: targetCombo,
+            isFirstMoveOfGame: true,
+            firstMoveRequiredCard: context.firstMoveRequiredCard,
+            isLeadMove,
+            hasPassedRound: false,
+            allowFourPairsCutAnytime,
+            isFinishingMove: isFinishing,
+            prohibitEndingWithTwo: isProhibitEndingWithTwo
+          }
+        : {
+            cards,
+            target: targetCombo,
+            isFirstMoveOfGame: false,
+            isLeadMove,
+            hasPassedRound: false,
+            allowFourPairsCutAnytime,
+            isFinishingMove: isFinishing,
+            prohibitEndingWithTwo: isProhibitEndingWithTwo
+          }
+    );
     if (valResult.valid) {
       validMoves.push({
         cards,

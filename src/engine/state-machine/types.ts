@@ -1,4 +1,4 @@
-import type { Player, PlayedMove, InstantWinType, GameRules } from '../types';
+import type { Player, PlayedMove, InstantWinType, GameRules, Card } from '../types';
 import type { MatchLogReport } from '../match-logger';
 import type { PerspectiveMatchSettlement } from '../settlement/perspective-settlement';
 
@@ -69,16 +69,28 @@ export interface BasePlayingTurnMatchState {
   readonly rules: GameRules;
 }
 
-export interface LeadPlayingTurnMatchState extends BasePlayingTurnMatchState {
+export interface OpeningFirstMovePlayingState extends BasePlayingTurnMatchState {
   readonly isLeadMove: true;
   readonly leadingMove: null;
+  readonly isFirstMoveOfGame: true;
+  readonly firstMoveRequiredCard: Card; // ✅ Non-nullable khi là lượt mở màn ván đầu tiên!
+}
+
+export interface NormalLeadPlayingTurnMatchState extends BasePlayingTurnMatchState {
+  readonly isLeadMove: true;
+  readonly leadingMove: null;
+  readonly isFirstMoveOfGame: false;
+  readonly firstMoveRequiredCard: null;
 }
 
 export interface FollowPlayingTurnMatchState extends BasePlayingTurnMatchState {
   readonly isLeadMove: false;
   readonly leadingMove: PlayedMove; // ✅ BẢO ĐẢM 100% NON-NULLABLE KHI ĐÈ BÀI
+  readonly isFirstMoveOfGame: false;
+  readonly firstMoveRequiredCard: null;
 }
 
+export type LeadPlayingTurnMatchState = OpeningFirstMovePlayingState | NormalLeadPlayingTurnMatchState;
 export type PlayingTurnMatchState = LeadPlayingTurnMatchState | FollowPlayingTurnMatchState;
 
 /**
@@ -87,18 +99,37 @@ export type PlayingTurnMatchState = LeadPlayingTurnMatchState | FollowPlayingTur
 export function createPlayingTurnMatchState(params: BasePlayingTurnMatchState & {
   isLeadMove: boolean;
   leadingMove: PlayedMove | null;
+  firstMoveRequiredCard?: Card | null;
 }): PlayingTurnMatchState {
+  if (params.isFirstMoveOfGame && (params.isLeadMove || !params.leadingMove)) {
+    if (!params.firstMoveRequiredCard) {
+      throw new Error('[createPlayingTurnMatchState] Invariant Violated: Opening first move must provide a non-nullable firstMoveRequiredCard');
+    }
+    return {
+      ...params,
+      isLeadMove: true,
+      leadingMove: null,
+      isFirstMoveOfGame: true,
+      firstMoveRequiredCard: params.firstMoveRequiredCard
+    };
+  }
+
   if (params.isLeadMove || !params.leadingMove) {
     return {
       ...params,
       isLeadMove: true,
-      leadingMove: null
+      leadingMove: null,
+      isFirstMoveOfGame: false,
+      firstMoveRequiredCard: null
     };
   }
+
   return {
     ...params,
     isLeadMove: false,
-    leadingMove: params.leadingMove
+    leadingMove: params.leadingMove,
+    isFirstMoveOfGame: false,
+    firstMoveRequiredCard: null
   };
 }
 

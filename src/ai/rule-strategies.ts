@@ -15,7 +15,7 @@
  */
 
 import { Card, ChoppingRules, Combination, CongRules, GameFlowRules, GameRules, PlayedMove, TableRules, createDefaultGameRules } from '../engine/types';
-import { isTwo } from '../engine/card';
+import { isTwo, sortCards } from '../engine/card';
 import { CardTracker } from './card-tracker';
 import { partitionHand } from './hand-partitioner';
 
@@ -29,6 +29,7 @@ export interface RuleDecisionContext {
   hand: Card[];
   currentRoundLeadingMove: PlayedMove | null;
   isFirstMoveOfGame: boolean;
+  firstMoveRequiredCard?: Card | null;
   isLeadMove: boolean;
   tracker: CardTracker;
   remainingPlayerCards: Record<string, number>;
@@ -330,31 +331,34 @@ export class GameFlowRuleStrategy implements RuleStrategyEvaluator {
     const { hand, isLeadMove, remainingPlayerCards, nextPlayerId, isFirstMoveOfGame } = context;
 
     // ------------------------------------------------------------------------
-    // A. LUẬT MỞ MÀN 3 BÍCH (Ván đầu tiên)
+    // A. LUẬT MỞ MÀN 3 BÍCH HOẶC QUÂN NHỎ NHẤT (Ván đầu tiên)
     // ------------------------------------------------------------------------
     if (this.config.firstGameRequireThreeOfSpades && isFirstMoveOfGame && isLeadMove) {
-      const threeSpadeMoves = validMoves.filter(m => m.cards.some(c => c.rank === 3 && c.suit === 'SPADES'));
-      if (threeSpadeMoves.length > 0) {
-        // Tuyệt đối không phá hàng chặt (3 Đôi Thông, 4 Đôi Thông, Tứ Quý) chỉ để đánh 3 Bích
-        const safeThreeSpadeMoves = threeSpadeMoves.filter(
+      const requiredCard = context.firstMoveRequiredCard ?? sortCards(hand)[0];
+      const openingMoves = requiredCard
+        ? validMoves.filter(m => m.cards.some(c => c.id === requiredCard.id))
+        : validMoves;
+      if (openingMoves.length > 0) {
+        // Tuyệt đối không phá hàng chặt (3 Đôi Thông, 4 Đôi Thông, Tứ Quý) chỉ để đánh bài mở màn
+        const safeOpeningMoves = openingMoves.filter(
           m => m.combination.type !== 'THREE_PAIRS_SEQUENTIAL' &&
                m.combination.type !== 'FOUR_PAIRS_SEQUENTIAL' &&
                m.combination.type !== 'FOUR_OF_A_KIND'
         );
 
-        const candidateList = safeThreeSpadeMoves.length > 0 ? safeThreeSpadeMoves : threeSpadeMoves;
-        const sortedThreeMoves = [...candidateList].sort((a, b) => {
+        const candidateList = safeOpeningMoves.length > 0 ? safeOpeningMoves : openingMoves;
+        const sortedMoves = [...candidateList].sort((a, b) => {
           if (a.combination.type === 'SINGLE' && b.combination.type !== 'SINGLE') return -1;
           if (b.combination.type === 'SINGLE' && a.combination.type !== 'SINGLE') return 1;
           return a.cards.length - b.cards.length;
         });
 
-        const chosen = sortedThreeMoves[0];
+        const chosen = sortedMoves[0];
         return {
           type: 'PLAY',
           cards: chosen.cards,
           combination: chosen.combination,
-          reason: 'Mở màn ván bài với 3 Bích an toàn (bảo vệ hàng chặt)'
+          reason: 'Mở màn ván bài với quân bài bắt buộc an toàn (bảo vệ hàng chặt)'
         };
       }
     }

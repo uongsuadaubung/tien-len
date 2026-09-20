@@ -15,7 +15,7 @@ import type { BotConfig } from '../ai/types';
 import { CardTracker } from '../ai/card-tracker';
 import { getBotConfig } from '../ai/bot-factory';
 import { calculateDynamicBotDelay, type GameSpeedMode } from './game-speed';
-import { isTwo, sortCards } from './card';
+import { isTwo, sortCards, formatCardVietnamese } from './card';
 import { GameEventBus } from './events/game-event-bus';
 import { UI_TIMINGS } from '../ui/constants/ui-timings';
 import { resolveStrategyForMatch, type MatchSetupContext } from './strategies/game-mode-strategy';
@@ -315,6 +315,7 @@ export class OfflineMatchDriver extends BaseMatchDriver {
       leadingMove: this.engine.getLeadingMove(),
       isLeadMove: this.engine.isRoundLeadMove(),
       isFirstMoveOfGame: this.engine.isFirstMoveOfGame,
+      firstMoveRequiredCard: this.engine.firstMoveRequiredCard,
       passedPlayerIds: [...this.engine.currentRound.passedPlayerIds],
       chopNotification: this.chopNotification ? { ...this.chopNotification } : null,
       botThinkingThought: this.botThinkingThought ? { ...this.botThinkingThought } : null,
@@ -518,7 +519,8 @@ export class OfflineMatchDriver extends BaseMatchDriver {
         ? `${leadPlayer.name} (${leadPlayer.avatar}) giành quyền mở màn (Thắng ván trước)!`
         : 'Bạn (Người Chơi) giành quyền mở màn (Thắng ván trước)!';
     } else {
-      const reason = this.engine.isFirstMoveOfGame ? '3 Bích' : 'Bài nhỏ nhất';
+      const requiredCard = this.engine.firstMoveRequiredCard;
+      const reason = requiredCard ? formatCardVietnamese(requiredCard) : (this.engine.isFirstMoveOfGame ? '3 Bích' : 'Bài nhỏ nhất');
       leadText = leadPlayer?.isBot
         ? `${leadPlayer.name} (${leadPlayer.avatar}) giành quyền mở màn (${reason})!`
         : `Bạn (Người Chơi) giành quyền mở màn (${reason})!`;

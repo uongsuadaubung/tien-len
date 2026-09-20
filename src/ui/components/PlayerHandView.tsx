@@ -1,5 +1,6 @@
 import React from 'react';
-import { Player } from '../../engine/types';
+import { Player, Card } from '../../engine/types';
+import { formatCardVietnamese } from '../../engine/card';
 import { HandSortMode } from '../../stores/useGameStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { getAvailableSmartVariants } from '../../engine/hand-sorter';
@@ -30,6 +31,7 @@ export interface PlayerHandViewProps {
   readonly isDealing: boolean;
   readonly dealtCardsCount: number;
   readonly isFirstMoveOfGame: boolean;
+  readonly firstMoveRequiredCard?: Card | null;
   readonly sortMode: HandSortMode;
   readonly variantIndex: number;
   readonly cardSize: 'sm' | 'md' | 'lg' | 'mobile';
@@ -54,6 +56,7 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
   isDealing,
   dealtCardsCount,
   isFirstMoveOfGame,
+  firstMoveRequiredCard,
   sortMode,
   variantIndex,
   cardSize,
@@ -65,11 +68,9 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
   const isMobileSize = cardSize === 'mobile';
   const visibleCardCount = isDealing ? dealtCardsCount : player.hand.length;
   const hand = player.hand.slice(0, visibleCardCount);
-  const has3S = hand.some(c => c.rank === 3 && c.suit === 'SPADES');
-  const isSelectedWith3S = Array.from(selectedCardIds).some(id => {
-    const c = hand.find(card => card.id === id);
-    return c && c.rank === 3 && c.suit === 'SPADES';
-  });
+  const requiredCard = firstMoveRequiredCard ?? (isFirstMoveOfGame ? hand[0] ?? null : null);
+  const hasRequiredCard = requiredCard !== null && hand.some(c => c.id === requiredCard.id);
+  const isSelectedWithRequired = requiredCard !== null && Array.from(selectedCardIds).some(id => id === requiredCard.id);
 
   const isSmartMode = sortMode === 'SMART_GROUP';
   const availableVariants = React.useMemo(() => {
@@ -114,17 +115,17 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
   return (
     <div id={`seat-${player.id}`} className="relative flex flex-col items-center justify-end w-full pb-0.5 z-30 select-none overflow-visible">
       {/* Thông báo hướng dẫn nước đi đầu tiên ván 1 */}
-      {!isDealing && isCurrentTurn && isFirstMoveOfGame && has3S && (
+      {!isDealing && isCurrentTurn && isFirstMoveOfGame && hasRequiredCard && requiredCard && (
         <div className="mb-1 animate-fade-in">
-          {selectedCardIds.size > 0 && !isSelectedWith3S ? (
+          {selectedCardIds.size > 0 && !isSelectedWithRequired ? (
             <div className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-red-950 border border-red-500/70 text-red-300 text-[10px] sm:text-[11px] font-bold shadow-xl">
               <span>⚠️</span>
-              <span>{t('game.firstMoveWarning')}</span>
+              <span>{t('game.firstMoveWarning', { card: formatCardVietnamese(requiredCard) })}</span>
             </div>
           ) : (
             <div className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#0c3327] border border-[#d4af37]/70 text-[#f3e5ab] text-[10px] sm:text-[11px] font-bold shadow-xl">
-              <span>♠</span>
-              <span>{t('game.firstMoveInstruction')}</span>
+              <span>{requiredCard.suit === 'SPADES' ? '♠' : requiredCard.suit === 'CLUBS' ? '♣' : requiredCard.suit === 'DIAMONDS' ? '♦' : '♥'}</span>
+              <span>{t('game.firstMoveInstruction', { card: formatCardVietnamese(requiredCard) })}</span>
             </div>
           )}
         </div>
@@ -271,7 +272,7 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
               >
                 {group.cards.map((card, cardIndex) => {
                   const isSelected = selectedCardIds.has(card.id);
-                  const isKey3S = isFirstMoveOfGame && isCurrentTurn && card.rank === 3 && card.suit === 'SPADES';
+                  const isKeyRequiredCard = isFirstMoveOfGame && isCurrentTurn && requiredCard !== null && card.id === requiredCard.id;
                   const rot = (cardIndex - (group.cards.length - 1) / 2) * 2;
                   const cardStyle: HandCardStyle = {
                     zIndex: 10 + cardIndex,
@@ -281,7 +282,7 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
                   return (
                     <div
                       key={card.id}
-                      className={`zingplay-card-fan relative ${isKey3S && !isSelected ? 'ring-2 ring-[#d4af37] shadow-[0_0_12px_rgba(212,175,55,0.8)] rounded-lg' : ''}`}
+                      className={`zingplay-card-fan relative ${isKeyRequiredCard && !isSelected ? 'ring-2 ring-[#d4af37] shadow-[0_0_12px_rgba(212,175,55,0.8)] rounded-lg' : ''}`}
                       style={cardStyle}
                     >
                       <CardView
@@ -305,7 +306,7 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
         <div className={`relative flex items-center justify-center ${isMobileSize ? '-space-x-6 sm:-space-x-6.5' : '-space-x-8'} max-w-full overflow-x-visible px-2 py-0.5`}>
           {sortedHand.map((card, index) => {
             const isSelected = selectedCardIds.has(card.id);
-            const isKey3S = isFirstMoveOfGame && isCurrentTurn && card.rank === 3 && card.suit === 'SPADES';
+            const isKeyRequiredCard = isFirstMoveOfGame && isCurrentTurn && requiredCard !== null && card.id === requiredCard.id;
             const rot = (index - (hand.length - 1) / 2) * 2;
             const cardStyle: HandCardStyle = {
               zIndex: 10 + index,
@@ -315,7 +316,7 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
             return (
               <div
                 key={card.id}
-                className={`zingplay-card-fan relative ${isKey3S && !isSelected ? 'ring-2 ring-[#d4af37] shadow-[0_0_12px_rgba(212,175,55,0.8)] rounded-lg' : ''}`}
+                className={`zingplay-card-fan relative ${isKeyRequiredCard && !isSelected ? 'ring-2 ring-[#d4af37] shadow-[0_0_12px_rgba(212,175,55,0.8)] rounded-lg' : ''}`}
                 style={cardStyle}
               >
                 <CardView

@@ -60,6 +60,7 @@ describe('Game Store Slices Architecture Tests (Kiểm Thử Kiến Trúc Tách 
       leadingMove: null,
       isLeadMove: true,
       isFirstMoveOfGame: false,
+      firstMoveRequiredCard: null,
       passedPlayerIds: [],
       chopNotification: null,
       botThinkingThought: null,

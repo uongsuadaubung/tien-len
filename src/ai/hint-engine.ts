@@ -476,6 +476,7 @@ export interface SelectionFeedbackContext {
   hand: Card[];
   leadingMove: PlayedMove | null;
   isFirstMoveOfGame: boolean;
+  firstMoveRequiredCard?: Card | null;
   isLeadMove: boolean;
   tracker: CardTracker;
   optimalHint: MoveHint | null;
@@ -652,6 +653,7 @@ export function evaluateSelectionFeedback(context: SelectionFeedbackContext): Mo
   const hand = context.hand;
   const leadingMove = context.leadingMove;
   const isFirstMoveOfGame = context.isFirstMoveOfGame;
+  const firstMoveRequiredCard = context.firstMoveRequiredCard;
   const isLeadMove = context.isLeadMove;
   const tracker = context.tracker;
   const prohibitEndingWithTwo = context.prohibitEndingWithTwo ?? true;
@@ -660,16 +662,30 @@ export function evaluateSelectionFeedback(context: SelectionFeedbackContext): Mo
 
   const targetCombo = leadingMove?.combination || null;
   const isFinishing = selectedCards.length === hand.length;
-  const validation = isValidMove({
-    cards: selectedCards,
-    target: targetCombo,
-    isFirstMoveOfGame,
-    isLeadMove,
-    hasPassedRound: false,
-    allowFourPairsCutAnytime: true,
-    isFinishingMove: isFinishing,
-    prohibitEndingWithTwo
-  });
+  const validation = isValidMove(
+    isFirstMoveOfGame && firstMoveRequiredCard
+      ? {
+          cards: selectedCards,
+          target: targetCombo,
+          isFirstMoveOfGame: true,
+          firstMoveRequiredCard,
+          isLeadMove,
+          hasPassedRound: false,
+          allowFourPairsCutAnytime: true,
+          isFinishingMove: isFinishing,
+          prohibitEndingWithTwo
+        }
+      : {
+          cards: selectedCards,
+          target: targetCombo,
+          isFirstMoveOfGame: false,
+          isLeadMove,
+          hasPassedRound: false,
+          allowFourPairsCutAnytime: true,
+          isFinishingMove: isFinishing,
+          prohibitEndingWithTwo
+        }
+  );
 
   const cardCodes = formatCards(selectedCards);
 
