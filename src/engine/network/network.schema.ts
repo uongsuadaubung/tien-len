@@ -117,6 +117,8 @@ export type NetworkChopNotification = z.infer<typeof NetworkChopNotificationSche
 
 // Gói tin đồng bộ bàn chơi công khai
 export const TableStateSyncPacketSchema = z.object({
+  seq: z.number().default(0),
+  timestamp: z.number().default(() => Date.now()),
   currentTurnPlayerId: z.string().nullable(),
   leadPlayerId: z.string().nullable(),
   currentMoveCards: z.array(NetworkCardSchema).optional(),

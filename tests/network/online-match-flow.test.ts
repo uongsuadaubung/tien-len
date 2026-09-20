@@ -761,6 +761,8 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
 
     // 2. Host đánh ra lá bài 3 Bích (SINGLE [3S])
     globalP2PClient.emitTableSyncForTest({
+      seq: 1,
+      timestamp: Date.now(),
       currentTurnPlayerId: guestId, // Chuyển lượt sang Client
       leadPlayerId: hostId,
       currentMoveCards: [{ rank: 3, suit: 'SPADES', id: '3_SPADES' }],

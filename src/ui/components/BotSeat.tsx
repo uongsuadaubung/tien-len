@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Player } from '../../engine/types';
 import { BotConfig } from '../../ai/types';
 import { createCampaignBotEntity } from '../../engine/campaign';
@@ -19,7 +19,7 @@ interface BotSeatProps {
   size: 'compact' | 'normal' | null;
 }
 
-export const BotSeat: React.FC<BotSeatProps> = ({
+const BotSeatComponent: React.FC<BotSeatProps> = ({
   player,
   botConfig,
   isCurrentTurn,
@@ -31,9 +31,12 @@ export const BotSeat: React.FC<BotSeatProps> = ({
   size = 'normal'
 }) => {
   const { t } = useI18n();
-  const winners = useGameStore(state => state.winners);
-  const rankIndex = winners.findIndex(w => w.id === player.id);
-  const rankPosition = rankIndex >= 0 ? rankIndex + 1 : 0;
+  const rankPosition = useGameStore(
+    useCallback(state => {
+      const idx = state.winners.findIndex(w => w.id === player.id);
+      return idx >= 0 ? idx + 1 : 0;
+    }, [player.id])
+  );
 
   const isCompact = size === 'compact';
 
@@ -255,3 +258,6 @@ export const BotSeat: React.FC<BotSeatProps> = ({
     </div>
   );
 };
+
+export const BotSeat = React.memo(BotSeatComponent);
+

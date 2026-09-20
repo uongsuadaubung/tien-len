@@ -36,7 +36,7 @@ export interface PlayerHandViewProps {
   readonly reverseButtons: boolean;
 }
 
-export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
+const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
   player,
   selectedCardIds,
   onToggleCardSelect,
@@ -369,3 +369,6 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
     </div>
   );
 };
+
+export const PlayerHandView = React.memo(PlayerHandViewComponent);
+

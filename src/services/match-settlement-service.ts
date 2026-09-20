@@ -73,23 +73,26 @@ export interface StandardSettlementInput extends BaseSettlementInput {
 
 export type AuthoritativeSettlementInput = CampaignSettlementInput | StandardSettlementInput;
 
+export interface AuthoritativeSettlementResult {
+  readonly updatedProfile: PlayerProfile;
+  readonly matchCompletedEvent: MatchCompletedEvent;
+  readonly loanSettlement: MatchLoanSettlementResult;
+  readonly campaignResultMeta: CampaignResultMeta | null;
+}
+
 /**
- * Hàm thuần kết toán cập nhật hồ sơ người chơi (Single Source of Truth)
- * Được dùng chung 100% giữa Host (từ GameEngine) và Guest (từ GameEndPacket)
+ * Hàm thuần kết toán cập nhật hồ sơ người chơi (Pure Domain Function - Functional Core)
+ * 100% Deterministic, không phụ thuộc vào Zustand Runtime hay Side-Effects
  */
-export function applyAuthoritativeSettlementToProfile(input: AuthoritativeSettlementInput): {
-  updatedProfile: PlayerProfile;
-  matchCompletedEvent: MatchCompletedEvent;
-  loanSettlement: MatchLoanSettlementResult;
-} {
-  const userStore = useUserStore.getState();
-  const gameStore = useGameStore.getState();
-  const currentProfile = userStore.profile;
+export function computeAuthoritativeSettlement(
+  input: AuthoritativeSettlementInput,
+  currentProfile: PlayerProfile
+): AuthoritativeSettlementResult {
   const currentCoins = currentProfile.coins;
   const currentElo = currentProfile.elo;
 
   if (input.payouts[input.humanPlayerId] === undefined) {
-    throw new Error(`[applyAuthoritativeSettlementToProfile] Invariant violated: Missing payout entry for humanPlayerId "${input.humanPlayerId}"`);
+    throw new Error(`[computeAuthoritativeSettlement] Invariant violated: Missing payout entry for humanPlayerId "${input.humanPlayerId}"`);
   }
   const humanNetEarned = input.payouts[input.humanPlayerId];
   const heldDeposit = input.heldDeposit;
@@ -112,7 +115,7 @@ export function applyAuthoritativeSettlementToProfile(input: AuthoritativeSettle
 
   const winner = input.winners[0];
   if (!winner && input.instantWinType === null) {
-    throw new Error('[applyAuthoritativeSettlementToProfile] Invariant violated: No winner declared in non-instant match settlement');
+    throw new Error('[computeAuthoritativeSettlement] Invariant violated: No winner declared in non-instant match settlement');
   }
   const isPlayerWin = winner ? winner.id === input.humanPlayerId : false;
 
@@ -127,6 +130,7 @@ export function applyAuthoritativeSettlementToProfile(input: AuthoritativeSettle
   let allCompleted = false;
   let nextChapObj: CampaignChapter | null = null;
   let currentWinsInChapter = 0;
+  let campaignResultMeta: CampaignResultMeta | null = null;
 
   if (input.activeGameType === 'CAMPAIGN') {
     const chapNumber = input.campaignChapter.id;
@@ -144,14 +148,12 @@ export function applyAuthoritativeSettlementToProfile(input: AuthoritativeSettle
       }
     }
 
-    gameStore.setCampaignResultMeta(createCampaignResultMeta({
+    campaignResultMeta = createCampaignResultMeta({
       isUnlockedNext: unlockedNext,
       isAllCompleted: allCompleted,
       nextChapter: nextChapObj,
       currentWins: currentWinsInChapter
-    }));
-  } else {
-    gameStore.setCampaignResultMeta(null);
+    });
   }
 
   const updatedProfile: PlayerProfile = {
@@ -192,20 +194,54 @@ export function applyAuthoritativeSettlementToProfile(input: AuthoritativeSettle
     instantWinType: input.instantWinType
   };
 
-  GameEventBus.getInstance().emit(matchCompletedEvent);
+  return {
+    updatedProfile,
+    matchCompletedEvent,
+    loanSettlement,
+    campaignResultMeta
+  };
+}
 
-  const finalQuests = evaluateDailyQuests([matchCompletedEvent], updatedProfile.dailyQuests, updatedProfile);
-  const finalAchievements = evaluateAchievements([matchCompletedEvent], updatedProfile.achievements, updatedProfile);
+/**
+ * Hàm điều phối kết toán hồ sơ người chơi (Imperative Shell)
+ * Nhận kết quả thuần từ computeAuthoritativeSettlement và cập nhật Store, EventBus, Quests/Achs
+ */
+export function applyAuthoritativeSettlementToProfile(
+  input: AuthoritativeSettlementInput,
+  providedProfile?: PlayerProfile
+): {
+  updatedProfile: PlayerProfile;
+  matchCompletedEvent: MatchCompletedEvent;
+  loanSettlement: MatchLoanSettlementResult;
+} {
+  const userStore = useUserStore.getState();
+  const gameStore = useGameStore.getState();
+  const currentProfile = providedProfile ?? userStore.profile;
+
+  const result = computeAuthoritativeSettlement(input, currentProfile);
+
+  gameStore.setCampaignResultMeta(result.campaignResultMeta);
+  GameEventBus.getInstance().emit(result.matchCompletedEvent);
+
+  const finalQuests = evaluateDailyQuests([result.matchCompletedEvent], result.updatedProfile.dailyQuests, result.updatedProfile);
+  const finalAchievements = evaluateAchievements([result.matchCompletedEvent], result.updatedProfile.achievements, result.updatedProfile);
 
   triggerQuestToastIfNewlyCompleted(currentProfile.dailyQuests, finalQuests, currentProfile.achievements, finalAchievements);
 
-  updatedProfile.dailyQuests = finalQuests;
-  updatedProfile.achievements = finalAchievements;
+  const finalizedProfile: PlayerProfile = {
+    ...result.updatedProfile,
+    dailyQuests: finalQuests,
+    achievements: finalAchievements
+  };
 
-  userStore.setProfile(updatedProfile);
-  savePlayerProfile(updatedProfile);
+  userStore.setProfile(finalizedProfile);
+  savePlayerProfile(finalizedProfile);
 
-  return { updatedProfile, matchCompletedEvent, loanSettlement };
+  return {
+    updatedProfile: finalizedProfile,
+    matchCompletedEvent: result.matchCompletedEvent,
+    loanSettlement: result.loanSettlement
+  };
 }
 
 /**

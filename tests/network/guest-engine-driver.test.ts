@@ -72,6 +72,8 @@ describe('GuestEngineDriver Integration Tests (Kiểm Thử Trình Điều Khi�
 
     // Giả lập Host phát gói tin đồng bộ bàn chơi ván 3
     const mockSync: TableStateSyncPacket = {
+      seq: 1,
+      timestamp: Date.now(),
       gameNumber: 3,
       roundNumber: 1,
       currentTurnPlayerId: myPlayerId,
@@ -177,5 +179,75 @@ describe('GuestEngineDriver Integration Tests (Kiểm Thử Trình Điều Khi�
 
     driver.cleanup();
     sendSpy.mockRestore();
+  });
+
+  it('7. Phòng vệ gói tin out-of-order: Bỏ qua gói tin đồng bộ có sequence number cũ hơn gói tin đã nhận', () => {
+    const myPlayerId = 'guest_1';
+    let syncListener: ((sync: TableStateSyncPacket, peerId: string) => void) | null = null;
+
+    const onTableSyncSpy = spyOn(globalP2PClient, 'onTableSync').mockImplementation((cb) => {
+      syncListener = cb;
+      return () => { syncListener = null; };
+    });
+
+    const driver = new GuestEngineDriver({
+      p2pClient: globalP2PClient,
+      myPlayerId
+    });
+
+    const basePacket: TableStateSyncPacket = {
+      seq: 5,
+      timestamp: Date.now(),
+      gameNumber: 1,
+      roundNumber: 1,
+      currentTurnPlayerId: 'host_1',
+      leadPlayerId: 'host_1',
+      isLeadMove: false,
+      isFirstMoveOfGame: false,
+      passedPlayerIds: [],
+      remainingCardCounts: { [myPlayerId]: 13, host_1: 12 },
+      isGameOver: false,
+      winners: [],
+      lastActionMessage: 'Host đánh bài (seq=5)',
+      isChop: false,
+      isCascadeChop: false
+    };
+
+    // Nhận gói tin seq = 5
+    if (syncListener) {
+      (syncListener as (s: TableStateSyncPacket, peerId: string) => void)(basePacket, 'host_peer');
+    }
+    expect(driver.lastSeenStateSyncSeq).toBe(5);
+    expect(useGameStore.getState().currentTurnPlayerId).toBe('host_1');
+
+    // Nhận gói tin seq = 3 bị trễ mạng đến sau -> Phải bị BỎ QUA
+    const stalePacket: TableStateSyncPacket = {
+      ...basePacket,
+      seq: 3,
+      currentTurnPlayerId: myPlayerId,
+      lastActionMessage: 'Gói tin cũ bị trễ (seq=3)'
+    };
+    if (syncListener) {
+      (syncListener as (s: TableStateSyncPacket, peerId: string) => void)(stalePacket, 'host_peer');
+    }
+    // State của bàn không bị ghi đè bởi gói tin cũ
+    expect(driver.lastSeenStateSyncSeq).toBe(5);
+    expect(useGameStore.getState().currentTurnPlayerId).toBe('host_1');
+
+    // Nhận gói tin seq = 6 mới hơn -> Được áp dụng
+    const newerPacket: TableStateSyncPacket = {
+      ...basePacket,
+      seq: 6,
+      currentTurnPlayerId: myPlayerId,
+      lastActionMessage: 'Gói tin mới (seq=6)'
+    };
+    if (syncListener) {
+      (syncListener as (s: TableStateSyncPacket, peerId: string) => void)(newerPacket, 'host_peer');
+    }
+    expect(driver.lastSeenStateSyncSeq).toBe(6);
+    expect(useGameStore.getState().currentTurnPlayerId).toBe(myPlayerId);
+
+    driver.cleanup();
+    onTableSyncSpy.mockRestore();
   });
 });

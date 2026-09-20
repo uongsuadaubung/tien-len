@@ -19,6 +19,7 @@ export interface GuestEngineDriverOptions {
  */
 export class GuestEngineDriver extends BaseMatchDriver implements IMatchDriver {
   public gameNumber: number = 1;
+  public lastSeenStateSyncSeq: number = 0;
   private readonly p2pClient: P2PClient;
   private readonly myPlayerId: string;
   private unsubscribeCallbacks: Array<() => void> = [];
@@ -36,6 +37,16 @@ export class GuestEngineDriver extends BaseMatchDriver implements IMatchDriver {
     // 1. Lắng nghe gói tin đồng bộ bàn đấu từ Host
     const unSync = this.p2pClient.onTableSync((sync: TableStateSyncPacket) => {
       if (this.isDisposed) return;
+      if (sync.gameNumber > this.gameNumber) {
+        this.gameNumber = sync.gameNumber;
+        this.lastSeenStateSyncSeq = 0;
+      } else if (sync.seq !== undefined && sync.seq > 0 && sync.seq <= this.lastSeenStateSyncSeq) {
+        console.warn(`[GuestEngineDriver] Dropped out-of-order state sync packet (seq=${sync.seq}, lastSeen=${this.lastSeenStateSyncSeq})`);
+        return;
+      }
+      if (sync.seq !== undefined && sync.seq > 0) {
+        this.lastSeenStateSyncSeq = sync.seq;
+      }
       this.gameNumber = sync.gameNumber;
       useGameStore.getState().applyAuthoritativeTableSync(sync);
     });

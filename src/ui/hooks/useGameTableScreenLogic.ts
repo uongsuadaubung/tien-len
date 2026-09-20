@@ -232,7 +232,7 @@ export function useGameTableScreenLogic({
   }, [localPlayer.id, localPlayer.hand]);
 
   // Phân bổ ghế tương đối theo góc nhìn (perspective) của localPlayer
-  const relativeSeats = computeRelativeTableSeats(localPlayer.id, players);
+  const relativeSeats = useMemo(() => computeRelativeTableSeats(localPlayer.id, players), [localPlayer.id, players]);
   const isSolo1v1 = relativeSeats.isSolo1v1;
   const topBot = relativeSeats.topPlayer;
   const leftBot = relativeSeats.leftPlayer;

@@ -44,6 +44,7 @@ export class HostEngineDriver extends BaseMatchDriver {
   public gameNumber: number = 0;
   public lastWinnerId: string | null = null;
   public instantWinType: InstantWinType | null = null;
+  public stateSyncSeq: number = 0;
 
   constructor(
     p2pClient: P2PClient, 
@@ -65,6 +66,7 @@ export class HostEngineDriver extends BaseMatchDriver {
     this.gotChoppedByPlayer = {};
     this.gameNumber += 1;
     this.instantWinType = null;
+    this.stateSyncSeq = 0;
     useGameStore.getState().setInstantWinType(undefined);
 
     // 1. Build GameRules
@@ -252,7 +254,10 @@ export class HostEngineDriver extends BaseMatchDriver {
     const isFirstMoveOfGame = this.engine.isFirstMoveOfGame;
     const isLeadMove = this.engine.isRoundLeadMove();
 
+    this.stateSyncSeq += 1;
     const packet: TableStateSyncPacket = {
+      seq: this.stateSyncSeq,
+      timestamp: Date.now(),
       currentTurnPlayerId: currentTurnId,
       leadPlayerId: leadId,
       currentMoveCards,
