@@ -94,10 +94,10 @@ describe('State Invariants & Runtime Assertions (Kiểm Thử Chốt Chặn Toà
     const createBaseSnapshot = (): MatchSnapshot => ({
       gameNumber: 1,
       players: [
-        { id: 'p0', name: 'User', avatar: '😎', hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, score: 0, isBot: false, rankPosition: null, instantWinType: null },
-        { id: 'p1', name: 'Bot 1', avatar: '🤖', hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, score: 0, isBot: true, botPersonaId: 'BOT_ELO_850', rankPosition: null, instantWinType: null },
-        { id: 'p2', name: 'Bot 2', avatar: '🦊', hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, score: 0, isBot: true, botPersonaId: 'BOT_ELO_1150', rankPosition: null, instantWinType: null },
-        { id: 'p3', name: 'Bot 3', avatar: '🦁', hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, score: 0, isBot: true, botPersonaId: 'BOT_ELO_1450', rankPosition: null, instantWinType: null }
+        { id: 'p0', name: 'User', avatar: '😎', hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, score: 0, isBot: false },
+        { id: 'p1', name: 'Bot 1', avatar: '🤖', hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, score: 0, isBot: true, botPersonaId: 'BOT_ELO_850' },
+        { id: 'p2', name: 'Bot 2', avatar: '🦊', hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, score: 0, isBot: true, botPersonaId: 'BOT_ELO_1150' },
+        { id: 'p3', name: 'Bot 3', avatar: '🦁', hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, score: 0, isBot: true, botPersonaId: 'BOT_ELO_1450' }
       ],
       currentTurnPlayerId: 'p0',
       leadPlayerId: 'p0',

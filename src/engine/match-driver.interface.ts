@@ -12,5 +12,7 @@ export interface IMatchDriver {
   readonly gameNumber: number;
   playCards(playerId: string, cards: Card[]): DriverActionResult;
   passTurn(playerId: string): DriverActionResult;
+  handleGameOver(options?: { skipDelay?: boolean }): void;
   cleanup(): void;
 }
+

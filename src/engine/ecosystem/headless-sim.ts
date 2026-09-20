@@ -97,9 +97,9 @@ export function simulateSingleTableMatch(
   }
 
   // 4. Kết toán ván đấu
-  if (!engine.isGameOver) {
-    engine.settleEndGame();
-  }
+  const simPayouts = !engine.isGameOver
+    ? engine.settleEndGame()
+    : {};
 
   const highlightNews: EcosystemNewsItem[] = [];
   const botResults: BotMatchResult[] = [];
@@ -130,7 +130,7 @@ export function simulateSingleTableMatch(
     else if (rank === 3) deltaElo = -(Math.floor(Math.random() * 5) + 8);
     else deltaElo = -(Math.floor(Math.random() * 9) + 24);
 
-    const deltaCoins = p.score;
+    const deltaCoins = simPayouts[p.id] ?? 0;
     const hadCong = p.hand.length === 13 && rank === 4;
     const hadThoi = p.hand.some(c => c.rank === 15);
 

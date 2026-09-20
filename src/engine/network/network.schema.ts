@@ -122,6 +122,8 @@ export const TableStateSyncPacketSchema = z.object({
   currentMoveCards: z.array(NetworkCardSchema).optional(),
   currentMovePlayerId: z.string().optional(),
   currentMoveCombinationType: z.string().optional(),
+  isChop: z.boolean().default(false),
+  isCascadeChop: z.boolean().default(false),
   remainingCardCounts: z.record(z.string(), z.number()),
   passedPlayerIds: z.array(z.string()).default([]),
   roundNumber: z.number().default(1),
@@ -136,12 +138,24 @@ export const TableStateSyncPacketSchema = z.object({
 
 export type TableStateSyncPacket = z.infer<typeof TableStateSyncPacketSchema>;
 
+export const InstantWinTypeSchema = z.enum([
+  'DRAGON_STRAIGHT',
+  'FOUR_TWOS',
+  'FIVE_PAIRS_SEQUENTIAL',
+  'SIX_PAIRS',
+  'SAME_COLOR_13',
+  'FIRST_ROUND_FOUR_THREES'
+]);
+
 // Gói tin kết thúc ván đấu
 export const GameEndPacketSchema = z.object({
   winners: z.array(z.string()),
   payouts: z.record(z.string(), z.number()),
   eloDeltas: z.record(z.string(), z.number()),
-  allPlayerHands: z.record(z.string(), z.array(NetworkCardSchema)) // Mở bài cho mọi người xem khi ván kết thúc
+  allPlayerHands: z.record(z.string(), z.array(NetworkCardSchema)), // Mở bài cho mọi người xem khi ván kết thúc
+  isThreeSpadesWin: z.boolean().default(false),
+  instantWinType: InstantWinTypeSchema.nullable().default(null),
+  loanDeduction: z.number().default(0)
 });
 
 export type GameEndPacket = z.infer<typeof GameEndPacketSchema>;

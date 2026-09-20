@@ -17,6 +17,7 @@ import { identifyCombination } from '../../src/engine/combinations';
 import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 import { createPlayingTurnMatchState } from '../../src/engine/state-machine/types';
 import { OfflineMatchDriver } from '../../src/engine/offline-match-driver';
+import { createPerspectiveSettlement } from '../../src/engine/settlement/perspective-settlement';
 
 describe('Kiến Trúc State Pattern & Discriminated Unions (Game Engine State Machine)', () => {
   const defaultRules = createDefaultGameRules();
@@ -85,7 +86,32 @@ describe('Kiến Trúc State Pattern & Discriminated Unions (Game Engine State M
       }
     });
 
-    it('Trạng thái GAME_OVER: winners và matchPayouts đảm bảo tồn tại không null', () => {
+    it('Trạng thái GAME_OVER: winners, winningMove và matchPayouts đảm bảo tồn tại không null', () => {
+      const card3S = createCard(3, 'SPADES');
+      const combo = identifyCombination([card3S])!;
+      const lastMove: PlayedMove = {
+        playerId: 'p0',
+        combination: combo,
+        timestamp: Date.now(),
+        isChop: false
+      };
+
+      const settlement = createPerspectiveSettlement({
+        subjectPlayerId: 'p0',
+        allPlayers: testPlayers,
+        winners: [testPlayers[0], testPlayers[1], testPlayers[2], testPlayers[3]],
+        payouts: { p0: 15000, p1: 5000, p2: -5000, p3: -15000 },
+        eloDeltas: { p0: 25, p1: 8, p2: -8, p3: -25 },
+        subjectEloDelta: 25,
+        subjectEloBreakdown: null,
+        loanDeduction: 0,
+        isThreeSpadesWin: false,
+        instantWinType: null,
+        activeGameType: 'QUICK',
+        betAmount: 5000,
+        subjectCoins: 50000
+      });
+
       const gameOverState: GameOverMatchState = {
         status: 'GAME_OVER',
         gameNumber: 1,
@@ -93,7 +119,9 @@ describe('Kiến Trúc State Pattern & Discriminated Unions (Game Engine State M
         winners: [testPlayers[0], testPlayers[1], testPlayers[2], testPlayers[3]],
         isThreeSpadesWin: false,
         matchPayouts: { p0: 15000, p1: 5000, p2: -5000, p3: -15000 },
+        winningMove: lastMove,
         eloDeltas: { p0: 25, p1: 8, p2: -8, p3: -25 },
+        settlement,
         matchLogReport: null,
         rules: defaultRules
       };
@@ -104,6 +132,15 @@ describe('Kiến Trúc State Pattern & Discriminated Unions (Game Engine State M
         expect(matchState.winners.length).toBe(4);
         expect(matchState.winners[0].id).toBe('p0');
         expect(matchState.matchPayouts['p0']).toBe(15000);
+        expect(matchState.winningMove).not.toBeNull();
+        expect(matchState.winningMove!.playerId).toBe('p0');
+
+        // Snapshot phải giữ nguyên winningMove trong currentMove để giao diện TableCenter hiển thị lá bài kết thúc
+        const snapshot = mapMatchStateToSnapshot(matchState);
+        expect(snapshot.isGameOver).toBe(true);
+        expect(snapshot.currentMove).not.toBeNull();
+        expect(snapshot.currentMove!.playerId).toBe('p0');
+        expect(snapshot.currentMove!.combination.cards[0].rank).toBe(3);
       } else {
         throw new Error('State phải là GAME_OVER!');
       }

@@ -19,8 +19,6 @@ describe('Player & Bot Factory Helper Tests', () => {
     expect(player.score).toBe(50000);
     expect(player.isPassedCurrentRound).toBe(false);
     expect(player.hasPlayedFirstCard).toBe(false);
-    expect(player.rankPosition).toBeNull();
-    expect(player.instantWinType).toBeNull();
   });
 
   test('2. createPlayer: Hỗ trợ ghi đè (overrides) các thuộc tính linh hoạt', () => {

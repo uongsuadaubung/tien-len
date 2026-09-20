@@ -1,6 +1,7 @@
 import { globalP2PClient } from '../../engine/network/p2p-client';
 import { globalLobbyDiscoveryClient } from '../../engine/network/lobby-discovery';
 import { type OnlineRoomState } from '../../engine/network/network.schema';
+import { PlayerCountSchema } from '../../engine/schemas/settings.schema';
 import { HostEngineDriver } from '../../engine/network/host-engine-driver';
 import { useGameStore } from '../useGameStore';
 import { useViewStore } from '../useViewStore';
@@ -12,12 +13,13 @@ import {
   type GameFlowRulesBuilder,
   type TableRulesBuilder 
 } from '../../engine/types';
-import { createPlayer, createBotPlayer } from '../../engine/player-factory';
+import { createPlayer } from '../../engine/player-factory';
 import { type PlayingTurnMatchState, createPlayingTurnMatchState } from '../../engine/state-machine/types';
 import { type MatchSlice, type OnlineSliceCreator } from './types';
 
 export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
   hostDriver: null,
+  guestDriver: null,
   lastTableSync: null,
   gameEndSummary: null,
 
@@ -26,26 +28,14 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
     const current = get().roomState;
     if (!current || !get().isHost) return;
 
-    // Tự động lấp đầy Bot nếu phòng chưa đủ người
-    const filledPlayers = [...current.players];
-    while (filledPlayers.length < current.playerCount) {
-      const idx = filledPlayers.length;
-      filledPlayers.push({
-        peerId: `bot_${Date.now()}_${idx}`,
-        playerId: `p${idx}`,
-        name: `Bot Cao Thủ ${idx}`,
-        avatar: '🤖',
-        elo: 1150,
-        coins: 50000,
-        isHost: false,
-        isReady: true,
-        isBot: true
-      });
-    }
+    // Trận đấu Online chỉ bắt đầu khi có đúng 2, 3 hoặc 4 người chơi thật
+    const countResult = PlayerCountSchema.safeParse(current.players.length);
+    if (!countResult.success) return;
 
     const updatedState: OnlineRoomState = {
       ...current,
-      players: filledPlayers,
+      playerCount: countResult.data,
+      players: current.players,
       status: 'PLAYING',
       disbandReason: null,
       updatedAt: Date.now()
@@ -87,10 +77,7 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
       )
       .build();
 
-    const initialPlayers: Player[] = filledPlayers.map(p => {
-      if (p.isBot) {
-        return createBotPlayer(p.playerId, 'BOT_ELO_1150', { name: p.name, avatar: p.avatar, score: p.coins });
-      }
+    const initialPlayers: Player[] = current.players.map(p => {
       return createPlayer({ id: p.playerId, name: p.name, avatar: p.avatar, score: p.coins });
     });
 
@@ -105,6 +92,7 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
     gameStore.setActiveGameType('ONLINE');
     gameStore.setCurrentScreen('GAME_TABLE');
     gameStore.setIsDealing(false);
+    gameStore.setInstantWinType(undefined);
     useViewStore.getState().closeModal('ONLINE_ROOM');
     useViewStore.getState().closeModal('VICTORY');
 
@@ -203,7 +191,7 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
   },
 
   sendMoveAction: (cardIds: string[]) => {
-    const { isHost, hostDriver, myPlayerId } = get();
+    const { isHost, hostDriver, guestDriver, myPlayerId } = get();
     const gameStore = useGameStore.getState();
 
     // Optimistically update local player hand & clear selection
@@ -220,12 +208,9 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
     gameStore.clearCardSelection();
 
     if (isHost && hostDriver) {
-      hostDriver.handlePlayerAction({
-        type: 'PLAY',
-        playerId: myPlayerId,
-        cardIds,
-        timestamp: Date.now()
-      });
+      hostDriver.playCardIds(myPlayerId, cardIds);
+    } else if (guestDriver) {
+      guestDriver.playCardIds(myPlayerId, cardIds);
     } else {
       void globalP2PClient.sendPlayerAction({
         type: 'PLAY',
@@ -237,7 +222,7 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
   },
 
   sendPassAction: () => {
-    const { isHost, hostDriver, myPlayerId } = get();
+    const { isHost, hostDriver, guestDriver, myPlayerId } = get();
     const gameStore = useGameStore.getState();
     gameStore.clearCardSelection();
 
@@ -247,6 +232,8 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
         playerId: myPlayerId,
         timestamp: Date.now()
       });
+    } else if (guestDriver) {
+      guestDriver.passTurn(myPlayerId);
     } else {
       void globalP2PClient.sendPlayerAction({
         type: 'PASS',

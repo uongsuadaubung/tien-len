@@ -100,8 +100,6 @@ export interface BasePlayer {
   score: number;
   isPassedCurrentRound: boolean;
   hasPlayedFirstCard: boolean; // Dùng để kiểm tra Cóng (cháy bài)
-  rankPosition: number | null; // 1 (Nhất), 2 (Nhì), 3 (Ba), 4 (Bét)
-  instantWinType: InstantWinType | null;
 }
 
 export interface HumanPlayer extends BasePlayer {

@@ -3,8 +3,8 @@ import { CardTracker } from '../../src/ai/card-tracker';
 import { makeBotDecision, DecisionContext, calculateTurnsToClearHand, createDecisionContext } from '../../src/ai/decision-maker';
 import { partitionHand } from '../../src/ai/hand-partitioner';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
-import { createCard } from '../../src/engine/card';
-import { Card, PlayedMove, createDefaultGameRules, Rank } from '../../src/engine/types';
+import { createCard, ALL_RANKS, ALL_SUITS } from '../../src/engine/card';
+import { Card, PlayedMove, createDefaultGameRules } from '../../src/engine/types';
 
 describe('5 Cơ Chế Ra Quyết Định Cấp Đại Kiện Tướng Cho AI Bot (AI Grandmaster Upgrade)', () => {
   let tracker: CardTracker;
@@ -156,11 +156,12 @@ describe('5 Cơ Chế Ra Quyết Định Cấp Đại Kiện Tướng Cho AI Bot
     expect(customTracker.getBombProbability()).toBeGreaterThan(0);
 
     // Giả lập 24 lá đã chơi trên bàn nhưng rank 10 chưa hề xuất hiện
-    for (let r = 3; r <= 8; r++) {
-      for (const suit of ['SPADES', 'CLUBS', 'DIAMONDS', 'HEARTS'] as const) {
-        customTracker.recordPlayedCardId(createCard(r as Rank, suit).id);
-      }
-    }
+    ALL_RANKS.filter(r => r >= 3 && r <= 8).forEach(r => {
+      ALL_SUITS.forEach(suit => {
+        customTracker.recordPlayedCardId(createCard(r, suit).id);
+      });
+    });
+
 
     const probAfter24Cards = customTracker.getBombProbability();
     expect(probAfter24Cards).toBeGreaterThan(0.5);

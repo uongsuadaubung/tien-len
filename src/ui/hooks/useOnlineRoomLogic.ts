@@ -67,6 +67,7 @@ export interface UseOnlineRoomLogicResult {
   copiedPin: boolean;
   canAffordBet: boolean;
   isRoomFull: boolean;
+  canStartGame: boolean;
   isPublicRoom: boolean;
   publicRooms: readonly PublicRoomSummary[];
   isLobbyLoading: boolean;
@@ -89,7 +90,6 @@ export interface UseOnlineRoomLogicResult {
   handleRefreshLobby: () => void;
   handleStartGame: () => void;
   handleLeave: () => void;
-  handleAddBot: (slotIndex: number) => void;
   handleRemoveSlot: (slotIndex: number) => void;
   handleClose: () => void;
   handleOpenBank: () => void;
@@ -109,7 +109,6 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
     createRoom,
     joinRoom,
     joinPublicRoom,
-    addBotToSlot,
     removeSlot,
     startMatch,
     leaveRoom,
@@ -119,16 +118,16 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
   } = useOnlineStore();
 
   const activeRoom: ActiveOnlineRoom | null = useMemo(() => {
-    if (sessionState.status === 'IN_ROOM_WAITING' || sessionState.status === 'IN_ROOM_PLAYING') {
+    if ((sessionState.status === 'IN_ROOM_WAITING' || sessionState.status === 'IN_ROOM_PLAYING') && roomState !== null && roomCode !== null) {
       return {
-        roomCode: sessionState.roomCode,
-        roomState: sessionState.roomState,
-        isHost: sessionState.isHost,
+        roomCode,
+        roomState,
+        isHost,
         myPlayerId: sessionState.myPlayerId
       };
     }
     return null;
-  }, [sessionState]);
+  }, [sessionState, roomState, roomCode, isHost]);
 
   const [tab, setTab] = useState<'LOBBY' | 'CREATE'>('LOBBY');
   const [inputPin, setInputPin] = useState<string>('');
@@ -173,7 +172,10 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
     tableConfig.congEnabled ?? true
   );
   const canAffordBet = profile.coins >= depositRequired || profile.coins >= tableConfig.betAmount;
-  const isRoomFull = activeRoom !== null ? activeRoom.roomState.players.length >= activeRoom.roomState.playerCount : false;
+  const currentPlayersCount = roomState !== null ? roomState.players.length : 0;
+  const targetPlayerCount = roomState !== null ? roomState.playerCount : 4;
+  const isRoomFull = currentPlayersCount >= targetPlayerCount;
+  const canStartGame = isHost && currentPlayersCount >= 2;
 
   const handleTableConfigChange = useCallback((updated: Partial<TableConfigState>) => {
     setTableConfig(prev => ({ ...prev, ...updated }));
@@ -291,10 +293,6 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
     leaveRoom();
   }, [leaveRoom]);
 
-  const handleAddBot = useCallback((slotIndex: number) => {
-    addBotToSlot(slotIndex);
-  }, [addBotToSlot]);
-
   const handleRemoveSlot = useCallback((slotIndex: number) => {
     removeSlot(slotIndex);
   }, [removeSlot]);
@@ -329,6 +327,7 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
     copiedPin,
     canAffordBet,
     isRoomFull,
+    canStartGame,
     isPublicRoom,
     publicRooms,
     isLobbyLoading,
@@ -351,7 +350,6 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
     handleRefreshLobby,
     handleStartGame,
     handleLeave,
-    handleAddBot,
     handleRemoveSlot,
     handleClose,
     handleOpenBank

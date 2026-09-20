@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach, mock, spyOn } from 'bun:test';
 import { compressSaveData, decompressSaveData, parseGistContent } from '../../src/engine/sync/compression';
 import { computeHash, hasProgress, applyRemoteSaveData, getLocalSaveData } from '../../src/engine/sync/sync-service';
 import { validateToken, findGistId, uploadToGist, downloadFromGist } from '../../src/engine/sync/github-api';
@@ -266,14 +266,21 @@ describe('GitHub Gist Synchronization Unit Tests', () => {
   });
 
   describe('5. GitHub API & Token Validation Mock Tests', () => {
-    it('validateToken từ chối khi token rỗng', async () => {
+    function createMockFetch(handler: () => Promise<Response>): typeof fetch {
+      const fn = () => handler();
+      return Object.assign(fn, {
+        preconnect: () => {}
+      });
+    }
+
+    it('validateToken thất bại khi token rỗng', async () => {
       const res = await validateToken('   ');
       expect(res.success).toBe(false);
     });
 
     it('validateToken parse thông tin user thành công khi API phản hồi 200', async () => {
       const originalFetch = globalThis.fetch;
-      globalThis.fetch = mock(async () => {
+      globalThis.fetch = createMockFetch(async () => {
         return new Response(
           JSON.stringify({
             login: 'tienlen-master',
@@ -282,7 +289,7 @@ describe('GitHub Gist Synchronization Unit Tests', () => {
           }),
           { status: 200 }
         );
-      }) as unknown as typeof fetch;
+      });
 
       const res = await validateToken('ghp_testtoken123');
       expect(res.success).toBe(true);
@@ -297,11 +304,11 @@ describe('GitHub Gist Synchronization Unit Tests', () => {
 
     it('validateToken xử lý lỗi 401 khi token sai/hết hạn', async () => {
       const originalFetch = globalThis.fetch;
-      globalThis.fetch = mock(async () => {
+      globalThis.fetch = createMockFetch(async () => {
         return new Response(JSON.stringify({ message: 'Bad credentials' }), {
           status: 401
         });
-      }) as unknown as typeof fetch;
+      });
 
       const res = await validateToken('ghp_invalidtoken');
       expect(res.success).toBe(false);

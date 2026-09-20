@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'bun:test';
+import { describe, expect, it, beforeEach, spyOn } from 'bun:test';
 import { useOnlineStore } from '../../src/stores/useOnlineStore';
 import { useGameStore } from '../../src/stores/useGameStore';
 import { useUserStore } from '../../src/stores/useUserStore';
@@ -7,7 +7,7 @@ import { loadPlayerProfile } from '../../src/engine/storage';
 import { globalP2PClient } from '../../src/engine/network/p2p-client';
 import { createCard } from '../../src/engine/card';
 import { createPlayer } from '../../src/engine/player-factory';
-import { GameEndPacket } from '../../src/engine/network/network.schema';
+import { GameEndPacket, OnlineRoomState, OnlinePlayer, TableStateSyncPacket } from '../../src/engine/network/network.schema';
 
 describe('Online P2P Settlement & Coin Payout Tests', () => {
   beforeEach(() => {
@@ -41,6 +41,32 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     useUserStore.getState().setProfile(profile);
   });
 
+  function fillRoomWithPeers(targetCount: number = 4) {
+    const room = useOnlineStore.getState().roomState;
+    if (!room) return;
+    const currentPlayers = [...room.players];
+    for (let i = currentPlayers.length; i < targetCount; i++) {
+      currentPlayers.push({
+        peerId: `peer_${i}`,
+        playerId: `p${i}`,
+        name: `Người chơi ${i}`,
+        avatar: '🤠',
+        elo: 1000 + i * 20,
+        coins: 50000,
+        isHost: false,
+        isReady: true,
+        isBot: false
+      });
+    }
+    useOnlineStore.setState({
+      roomState: {
+        ...room,
+        players: currentPlayers,
+        updatedAt: Date.now()
+      }
+    });
+  }
+
   it('1. Host tính toán kết toán chuẩn xác theo mức cược (betAmount) và cập nhật Xu khi ván đấu kết thúc', () => {
     const profile = useUserStore.getState().profile;
     const betAmount = 2000;
@@ -48,8 +74,9 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     useOnlineStore.getState().createRoom(profile, {
       playerCount: 4,
       betAmount,
-      settlementRule: 'COUNT_CARDS',      isPublic: true
+      settlementRule: 'COUNT_CARDS',      isPublic: true
     });
+    fillRoomWithPeers(4);
 
     useOnlineStore.getState().startMatch();
 
@@ -64,7 +91,7 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     hostDriver.engine.isGameOver = true;
 
     // Kích hoạt kết thúc ván đấu
-    (hostDriver as unknown as { handleGameOver: () => void }).handleGameOver();
+    hostDriver.handleGameOver({ skipDelay: true });
 
     const updatedProfile = useUserStore.getState().profile;
     const gameStore = useGameStore.getState();
@@ -95,6 +122,7 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
       betAmount,
       settlementRule: 'COUNT_CARDS',      isPublic: true
     });
+    fillRoomWithPeers(4);
 
     useOnlineStore.getState().startMatch();
 
@@ -115,7 +143,7 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     hostDriver.engine.winners = [p1];
     hostDriver.engine.isGameOver = true;
 
-    (hostDriver as unknown as { handleGameOver: () => void }).handleGameOver();
+    hostDriver.handleGameOver({ skipDelay: true });
 
     const updatedProfile = useUserStore.getState().profile;
     const gameStore = useGameStore.getState();
@@ -159,18 +187,21 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
       allPlayerHands: {
         p0: [{ rank: 15, suit: 'HEARTS', id: '2_HEARTS' }],
         p1: []
-      }
+      },
+      isThreeSpadesWin: false,
+      instantWinType: null,
+      loanDeduction: 0
     };
 
-    // Gọi trực tiếp callback onGameEnd đã đăng ký trong globalP2PClient
-    const handlers = (globalP2PClient as unknown as { onGameEndCallbacks: Array<(p: GameEndPacket, peer: string) => void> }).onGameEndCallbacks;
-    handlers.forEach(h => h(endPacket, 'host_peer'));
+    // Giả lập Khách nhận GameEndPacket từ Host
+    globalP2PClient.emitGameEndForTest(endPacket, 'host_peer_123');
 
     const updatedProfile = useUserStore.getState().profile;
     const gameStore = useGameStore.getState();
 
-    // Guest thắng 15.000 Xu
+    // Guest thắng 15.000 Xu và myPlayerId phải được bảo toàn, không bị clobber
     expect(gameStore.matchPayouts['p1']).toBe(15000);
+    expect(gameStore.myPlayerId).toBe('p1');
     expect(updatedProfile.coins).toBe(30000 + 15000);
     expect(updatedProfile.elo).toBe(1000 + 25);
     expect(updatedProfile.stats.wins).toBe(6);
@@ -189,8 +220,9 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     useOnlineStore.getState().createRoom(profile, {
       playerCount: 4,
       betAmount,
-      settlementRule: 'WINNER_TAKES_ALL',      isPublic: true
+      settlementRule: 'WINNER_TAKES_ALL',      isPublic: true
     });
+    fillRoomWithPeers(4);
 
     useOnlineStore.getState().startMatch();
 
@@ -210,7 +242,7 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     hostDriver.engine.winners = [p0];
     hostDriver.engine.isGameOver = true;
 
-    (hostDriver as unknown as { handleGameOver: () => void }).handleGameOver();
+    hostDriver.handleGameOver({ skipDelay: true });
 
     const gameStore = useGameStore.getState();
     const hostPayout = gameStore.matchPayouts[profile.id];
@@ -229,7 +261,7 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     useOnlineStore.getState().createRoom(profile, {
       playerCount: 4,
       betAmount,
-      settlementRule: 'COUNT_CARDS',      isPublic: true
+      settlementRule: 'COUNT_CARDS',      isPublic: true
     });
 
     const brokeGuest = {
@@ -244,9 +276,8 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
       isBot: false
     };
 
-    // Giả lập Host nhận yêu cầu vào phòng từ khách không đủ tiền
-    const joinHandlers = (globalP2PClient as unknown as { onJoinRequestCallbacks: Array<(p: typeof brokeGuest, peer: string) => void> }).onJoinRequestCallbacks;
-    joinHandlers.forEach(h => h(brokeGuest, 'guest_broke_1'));
+    // Giả lập nhận join_req từ Khách không đủ tiền
+    globalP2PClient.emitJoinRequestForTest(brokeGuest, 'broke_guest_peer');
 
     // Xác nhận Host KHÔNG thêm người này vào danh sách phòng
     const roomState = useOnlineStore.getState().roomState;
@@ -264,13 +295,15 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     // Khách tham gia phòng
     useOnlineStore.getState().joinRoom(poorProfile, 'TL-9999');
 
-    const highBetRoomState = {
+    const highBetRoomState: OnlineRoomState = {
       roomCode: 'TL-9999',
       hostPeerId: 'host_peer_1',
-      playerCount: 4 as const,
+      playerCount: 4,
       betAmount: 5000, // Cược 5000 Xu > 800 Xu
-      settlementRule: 'COUNT_CARDS' as const,
+      settlementRule: 'COUNT_CARDS',
       choppingMultiplier: 1,
+      congMultiplier: 1,
+      isPublic: true,
       congEnabled: true,
       prohibitEndingWithTwo: true,
       allowFourPairsCutAnytime: true,
@@ -289,14 +322,13 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
           isBot: false
         }
       ],
-      status: 'WAITING' as const,
+      status: 'WAITING',
       disbandReason: null,
       updatedAt: Date.now()
     };
 
     // Gọi handler nhận roomState
-    const roomHandlers = (globalP2PClient as unknown as { onRoomStateCallbacks: Array<(s: typeof highBetRoomState, peer: string) => void> }).onRoomStateCallbacks;
-    roomHandlers.forEach(h => h(highBetRoomState, 'host_peer_1'));
+    globalP2PClient.emitRoomStateForTest(highBetRoomState, 'host_peer_1');
 
     // Xác nhận Khách đã tự động rời phòng và có thông báo lỗi tài chính
     const state = useOnlineStore.getState();
@@ -320,19 +352,21 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
       winners: []
     });
 
-    const endPacket = {
+    const endPacket: GameEndPacket = {
       winners: ['p1', 'p0'], // p1 về Nhất, p0 về Nhì
       payouts: { p1: 7000, p0: -7000 },
       eloDeltas: { p1: 25, p0: -25 },
       allPlayerHands: {
         p0: [createCard(3, 'SPADES'), createCard(4, 'SPADES')],
         p1: []
-      }
+      },
+      isThreeSpadesWin: false,
+      instantWinType: null,
+      loanDeduction: 0
     };
 
     // Giả lập Guest nhận GameEndPacket
-    const gameEndHandlers = (globalP2PClient as unknown as { onGameEndCallbacks: Array<(p: typeof endPacket) => void> }).onGameEndCallbacks;
-    gameEndHandlers.forEach(h => h(endPacket));
+    globalP2PClient.emitGameEndForTest(endPacket, 'host_peer_456');
 
     const gameStore = useGameStore.getState();
     expect(gameStore.isGameOver).toBe(true);
@@ -343,6 +377,185 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     // Vị trí 1 BẮT BUỘC phải là p0 (Chủ Bàn Heo Bích)
     expect(gameStore.winners[1].id).toBe('p0');
     expect(gameStore.winners[1].name).toBe('Chủ Bàn Heo Bích');
+  });
+
+  it('8. Host kết thúc ván: Mặc định chờ đúng MATCH_END_REVEAL_DELAY_MS (2s) trước khi kích hoạt kết toán và mở VictoryModal', async () => {
+    const profile = useUserStore.getState().profile;
+    const betAmount = 1000;
+
+    useOnlineStore.getState().createRoom(profile, {
+      playerCount: 4,
+      betAmount,
+      settlementRule: 'COUNT_CARDS',
+      isPublic: true
+    });
+    fillRoomWithPeers(4);
+
+    useOnlineStore.getState().startMatch();
+
+    const hostDriver = useOnlineStore.getState().hostDriver;
+    expect(hostDriver).not.toBeNull();
+    if (!hostDriver || !hostDriver.engine) return;
+
+    const p0 = hostDriver.engine.players.find(p => p.id === profile.id)!;
+    p0.hand = [];
+    hostDriver.engine.winners = [p0];
+    hostDriver.engine.isGameOver = true;
+
+    // Gọi handleGameOver mà KHÔNG truyền skipDelay (mặc định chờ 2s)
+    hostDriver.handleGameOver();
+
+    // Ngay lúc vừa gọi: Chưa mở VictoryModal (chờ 2s)
+    expect(useViewStore.getState().isVictoryOpen).toBe(false);
+
+    // Chờ 2050ms
+    await new Promise(resolve => setTimeout(resolve, 2050));
+
+    // Sau 2s: VictoryModal đã được mở và kết toán đã hoàn tất
+    expect(useViewStore.getState().isVictoryOpen).toBe(true);
+    expect(useGameStore.getState().matchPayouts[profile.id]).toBeGreaterThan(0);
+  });
+
+  it('9. Khách (Client/Guest) thắng ván: useVictoryLogic và modal hiển thị đúng tổng kết tiền bàn dương (+Xu) và danh hiệu CHIẾN THẮNG, không bị gán nhầm tiền âm của Host', () => {
+    const profile = useUserStore.getState().profile;
+    profile.coins = 50000;
+    useUserStore.getState().setProfile(profile);
+
+    // Client gia nhập phòng với tư cách Guest
+    useOnlineStore.getState().joinRoom(profile, 'TL-WIN1');
+    useOnlineStore.setState({ myPlayerId: 'p1' });
+
+    const players = [
+      createPlayer({ id: 'p0', name: 'Host (Chủ Bàn)', avatar: '🤠', score: 50000, hand: [createCard(4, 'SPADES')] }),
+      createPlayer({ id: 'p1', name: 'Guest (Tôi)', avatar: '🤠', score: 50000, hand: [] })
+    ];
+
+    useGameStore.setState({
+      activeGameType: 'ONLINE',
+      myPlayerId: 'p1',
+      players,
+      winners: [players[1]]
+    });
+
+    const endPacket: GameEndPacket = {
+      winners: ['p1'],
+      payouts: {
+        p0: -20000,
+        p1: 20000
+      },
+      eloDeltas: {
+        p0: -20,
+        p1: 20
+      },
+      allPlayerHands: {
+        p0: [{ rank: 4, suit: 'SPADES', id: '4_SPADES' }],
+        p1: []
+      },
+      isThreeSpadesWin: false,
+      instantWinType: null,
+      loanDeduction: 0
+    };
+
+    // Client nhận GameEndPacket
+    globalP2PClient.emitGameEndForTest(endPacket, 'host_peer_test');
+
+    const endStore = useGameStore.getState();
+    expect(endStore.matchPayouts['p1']).toBe(20000);
+    expect(endStore.myPlayerId).toBe('p1');
+
+    // Kiểm tra Authoritative Perspective Settlement được tính toán chuẩn xác từ Engine/Store
+    expect(endStore.perspectiveSettlement).not.toBeNull();
+    const settlement = endStore.perspectiveSettlement!;
+
+    // Tiền bàn của người chơi cục bộ phải là số dương của Client thắng (+20.000), không phải số âm của Host (-20.000)
+    expect(settlement.subjectPlayerId).toBe('p1');
+    expect(settlement.isWinner).toBe(true);
+    expect(settlement.netPayout).toBe(20000);
+    expect(settlement.scenario).toBe('ONLINE');
+    expect(settlement.players.find(p => p.id === 'p1')?.netPayout).toBe(20000);
+    expect(settlement.players.find(p => p.id === 'p0')?.netPayout).toBe(-20000);
+  });
+
+  it('10. Khi một bên đánh nước đi kết thúc ván online: Cả Host và Khách đều đồng bộ và hiển thị chính xác nước đi cuối cùng (winningMove/currentMove) trên bàn đấu', () => {
+    const profile = useUserStore.getState().profile;
+    useOnlineStore.getState().createRoom(profile, {
+      playerCount: 2,
+      betAmount: 1000,
+      settlementRule: 'COUNT_CARDS',
+      isPublic: true
+    });
+    fillRoomWithPeers(2);
+
+    useOnlineStore.getState().startMatch();
+
+    const hostDriver = useOnlineStore.getState().hostDriver;
+    expect(hostDriver).not.toBeNull();
+    if (!hostDriver || !hostDriver.engine) return;
+
+    const broadcastSpy = spyOn(globalP2PClient, 'broadcastTableSync');
+
+    try {
+      const engine = hostDriver.engine;
+      const hostPlayer = engine.players.find(p => p.id === profile.id)!;
+      const guestPlayer = engine.players.find(p => p.id !== profile.id)!;
+
+      // Giả lập ván đấu đã qua nước đầu tiên, Host chỉ còn 1 lá bài duy nhất (A Cơ) và đang tới lượt
+      engine.isFirstMoveOfGame = false;
+      const winningCard = createCard(14, 'HEARTS'); // A Cơ
+      hostPlayer.hand = [winningCard];
+      guestPlayer.hand = [createCard(5, 'SPADES')];
+      engine.currentRound.currentTurnPlayerId = hostPlayer.id;
+      engine.currentRound.leadPlayerId = hostPlayer.id;
+
+      // Host đánh lá bài cuối cùng
+      const playRes = hostDriver.playCards(hostPlayer.id, [winningCard]);
+      expect(playRes.success).toBe(true);
+      expect(engine.isGameOver).toBe(true);
+      expect(hostPlayer.hand.length).toBe(0);
+
+      // 1. Kiểm tra trên Host: matchState là GAME_OVER và winningMove phản ánh đúng lá bài A Cơ vừa đánh
+      const hostGameStore = useGameStore.getState();
+      expect(hostGameStore.isGameOver).toBe(true);
+      expect(hostGameStore.matchState.status).toBe('GAME_OVER');
+      if (hostGameStore.matchState.status === 'GAME_OVER') {
+        expect(hostGameStore.matchState.winningMove).not.toBeNull();
+        expect(hostGameStore.matchState.winningMove?.playerId).toBe(hostPlayer.id);
+        expect(hostGameStore.matchState.winningMove?.combination.cards[0].rank).toBe(14);
+        expect(hostGameStore.matchState.winningMove?.combination.cards[0].suit).toBe('HEARTS');
+      }
+      expect(hostGameStore.currentMove).not.toBeNull();
+      expect(hostGameStore.currentMove?.playerId).toBe(hostPlayer.id);
+      expect(hostGameStore.currentMove?.combination.cards[0].id).toBe(winningCard.id);
+
+      // 2. Giả lập Khách (Guest) nhận TableStateSyncPacket từ Host
+      expect(broadcastSpy).toHaveBeenCalled();
+      const calls = broadcastSpy.mock.calls;
+      const lastSyncPacket = calls[calls.length - 1][0] as TableStateSyncPacket;
+
+      expect(lastSyncPacket.isGameOver).toBe(true);
+      expect(lastSyncPacket.currentMoveCards?.length).toBe(1);
+      expect(lastSyncPacket.currentMoveCards?.[0].rank).toBe(14);
+      expect(lastSyncPacket.currentMoveCards?.[0].suit).toBe('HEARTS');
+
+      // Chuyển sang góc nhìn Guest và áp dụng authoritative table sync
+      useGameStore.setState({ myPlayerId: guestPlayer.id });
+      useGameStore.getState().applyAuthoritativeTableSync(lastSyncPacket);
+
+      const guestGameStore = useGameStore.getState();
+      expect(guestGameStore.isGameOver).toBe(true);
+      expect(guestGameStore.matchState.status).toBe('GAME_OVER');
+      if (guestGameStore.matchState.status === 'GAME_OVER') {
+        expect(guestGameStore.matchState.winningMove).not.toBeNull();
+        expect(guestGameStore.matchState.winningMove?.playerId).toBe(hostPlayer.id);
+        expect(guestGameStore.matchState.winningMove?.combination.cards[0].rank).toBe(14);
+        expect(guestGameStore.matchState.winningMove?.combination.cards[0].suit).toBe('HEARTS');
+      }
+      expect(guestGameStore.currentMove).not.toBeNull();
+      expect(guestGameStore.currentMove?.playerId).toBe(hostPlayer.id);
+      expect(guestGameStore.currentMove?.combination.cards[0].id).toBe(winningCard.id);
+    } finally {
+      broadcastSpy.mockRestore();
+    }
   });
 });
 

@@ -698,9 +698,13 @@ export const GLOBAL_BOT_NAMES = [
  * Auto-Classification: Tự động phân loại tất cả Bot Persona theo Bậc Rank dựa vào Elo.
  * Developer chỉ cần thêm bot vào BOT_PERSONAS, hệ thống tự động phân hạng 100%!
  */
+function isPersonaKey(key: string): key is keyof typeof BOT_PERSONAS {
+  return key in BOT_PERSONAS;
+}
+
 export function getPersonasForTier(tierNum: number): (keyof typeof BOT_PERSONAS)[] {
   const tier = getTierInfoByTierNum(tierNum);
-  const matched = (Object.keys(BOT_PERSONAS) as (keyof typeof BOT_PERSONAS)[]).filter(key => {
+  const matched = Object.keys(BOT_PERSONAS).filter(isPersonaKey).filter(key => {
     const persona = BOT_PERSONAS[key];
     return persona.elo >= tier.minElo && persona.elo <= tier.maxElo;
   });
@@ -711,8 +715,9 @@ export function getPersonasForTier(tierNum: number): (keyof typeof BOT_PERSONAS)
  * Proxy tương thích ngược: Bất kỳ truy vấn TIER_BASE_PERSONAS[tierNum] nào
  * đều tự động phân loại theo Elo mà không cần khai báo danh sách cứng!
  */
+const personasProxyTarget: Record<number, (keyof typeof BOT_PERSONAS)[]> = {};
 export const TIER_BASE_PERSONAS: Record<number, (keyof typeof BOT_PERSONAS)[]> = new Proxy(
-  {} as Record<number, (keyof typeof BOT_PERSONAS)[]>,
+  personasProxyTarget,
   {
     get(_target, prop) {
       const num = Number(prop);
@@ -727,13 +732,14 @@ export const TIER_BASE_PERSONAS: Record<number, (keyof typeof BOT_PERSONAS)[]> =
 /**
  * Proxy tương thích ngược: Biệt danh phái sinh trực tiếp từ SSOT RANK_TIERS
  */
+const nicknamesProxyTarget: Record<number, string[]> = {};
 export const GLOBAL_NICKNAMES_BY_TIER: Record<number, string[]> = new Proxy(
-  {} as Record<number, string[]>,
+  nicknamesProxyTarget,
   {
     get(_target, prop) {
       const num = Number(prop);
       const tier = getTierInfoByTierNum(isNaN(num) ? 2 : num);
-      return tier.nicknames as string[];
+      return tier.nicknames;
     }
   }
 );

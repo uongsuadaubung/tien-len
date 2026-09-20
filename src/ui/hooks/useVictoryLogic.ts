@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useCallback, useRef } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 import confetti from 'canvas-confetti';
 import { Player, InstantWinType } from '../../engine/types';
 import { clearActiveMatchSession } from '../../engine/storage';
@@ -8,6 +8,11 @@ import { useUserStore } from '../../stores/useUserStore';
 import { useOnlineStore } from '../../stores/useOnlineStore';
 import { useI18n, type I18nKeyPath } from '../../locales';
 import { EloDeltaResult } from '../../engine/elo';
+import { 
+  type PerspectiveMatchSettlement, 
+  createPerspectiveSettlement, 
+  INSTANT_WIN_KEY_LOOKUP 
+} from '../../engine/settlement/perspective-settlement';
 
 export type { InstantWinType };
 
@@ -65,7 +70,10 @@ export interface VictoryLogicResult {
   voteRematch: (isReady: boolean) => void;
   handleExportJson: () => void;
 
-  // Dữ liệu bảng kết quả từ Store (Single Source of Truth)
+  // Authoritative Perspective Settlement
+  settlement: PerspectiveMatchSettlement;
+
+  // Bảng kết quả từ Store (giữ tương thích)
   winners: Player[];
   allPlayers: Player[];
   instantWinType: InstantWinType | null;
@@ -78,6 +86,7 @@ export interface VictoryLogicResult {
   eloDelta: number;
   lastEloBreakdown: EloDeltaResult['breakdown'] | null;
   allEloDeltas: Record<string, number>;
+  myPlayerId: string;
 }
 
 export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult {
@@ -89,6 +98,8 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     onOpenCampaignMap = null,
     campaignResultMeta = null
   } = props;
+
+  const gameStore = useGameStore();
 
   const {
     winners,
@@ -103,15 +114,15 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     allEloDeltas,
     activeGameType,
     currentCampaignChapter: campaignChapter,
-    myPlayerId
-  } = useGameStore();
+    myPlayerId: storeMyPlayerId,
+    perspectiveSettlement: storeSettlement
+  } = gameStore;
 
   const { profile } = useUserStore();
   const onlineStore = useOnlineStore();
 
   const playerCoins = profile.coins;
   const betAmount = gameSettings.betAmount;
-
   const chapterWins = campaignResultMeta?.currentWins ?? (campaignChapter ? (profile.campaignChapterWins[campaignChapter.id] || 0) : 0);
 
   const roomState = onlineStore.roomState;
@@ -120,7 +131,62 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
 
   const isOnline = activeGameType === 'ONLINE';
   const isCampaign = activeGameType === 'CAMPAIGN';
-  const isHumanWinner = winners.length > 0 && winners[0].id === myPlayerId;
+  const myPlayerId = storeMyPlayerId;
+
+  // Authoritative Perspective Settlement: Ưu tiên dữ liệu tính sẵn từ Engine
+  const settlement: PerspectiveMatchSettlement = useMemo(() => {
+    if (storeSettlement && storeSettlement.subjectPlayerId === myPlayerId) {
+      return storeSettlement;
+    }
+    const basePerspectiveParams = {
+      subjectPlayerId: myPlayerId,
+      allPlayers,
+      winners,
+      payouts,
+      eloDeltas: allEloDeltas ?? {},
+      subjectEloDelta: eloDelta,
+      subjectEloBreakdown: lastEloBreakdown ?? null,
+      loanDeduction,
+      isThreeSpadesWin,
+      instantWinType,
+      betAmount,
+      subjectCoins: playerCoins
+    };
+
+    if (activeGameType === 'CAMPAIGN' && campaignChapter) {
+      return createPerspectiveSettlement({
+        ...basePerspectiveParams,
+        activeGameType: 'CAMPAIGN',
+        campaignChapter,
+        campaignResultMeta
+      });
+    }
+
+    return createPerspectiveSettlement({
+      ...basePerspectiveParams,
+      activeGameType: activeGameType === 'ONLINE' ? 'ONLINE' : 'QUICK'
+    });
+  }, [
+    storeSettlement,
+    myPlayerId,
+    allPlayers,
+    winners,
+    payouts,
+    allEloDeltas,
+    eloDelta,
+    lastEloBreakdown,
+    loanDeduction,
+    isThreeSpadesWin,
+    instantWinType,
+    activeGameType,
+    betAmount,
+    playerCoins,
+    campaignChapter,
+    campaignResultMeta
+  ]);
+
+  const isHumanWinner = settlement.isWinner;
+  const humanPayout = settlement.netPayout;
 
   const totalOnlinePlayers = roomState !== null ? roomState.players.length : allPlayers.length;
   const readyOnlinePlayers = roomState !== null ? roomState.players.filter(p => p.isReady).length : 0;
@@ -154,168 +220,267 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     URL.revokeObjectURL(url);
   }, []);
 
-  // Caching payouts và eloDeltas trong suốt phiên mở Modal Victory để ngăn chặn mọi trường hợp nhấp nháy hoặc xóa dữ liệu
-  const cachedPayoutsRef = useRef<Record<string, number>>({});
-  const cachedEloDeltasRef = useRef<Record<string, number>>({});
-
-  useEffect(() => {
-    if (payouts && Object.keys(payouts).length > 0) {
-      cachedPayoutsRef.current = payouts;
-    }
-  }, [payouts]);
-
-  useEffect(() => {
-    if (allEloDeltas && Object.keys(allEloDeltas).length > 0) {
-      cachedEloDeltasRef.current = allEloDeltas;
-    }
-  }, [allEloDeltas]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      cachedPayoutsRef.current = {};
-      cachedEloDeltasRef.current = {};
-    }
-  }, [isOpen]);
-
-  const effectivePayouts = (payouts && Object.keys(payouts).length > 0)
-    ? payouts
-    : cachedPayoutsRef.current;
-
-  const effectiveEloDeltas = (allEloDeltas && Object.keys(allEloDeltas).length > 0)
-    ? allEloDeltas
-    : cachedEloDeltasRef.current;
-
-  const humanPayout = effectivePayouts[myPlayerId] ?? 0;
-
-  // Sắp xếp người chơi theo kết quả
+  // Danh sách hiển thị lấy theo thứ tự Engine đã sort sẵn
   const displayPlayers: Player[] = useMemo(() => {
-    return [...allPlayers].sort((a, b) => {
-      const aIdx = winners.findIndex(w => w.id === a.id);
-      const bIdx = winners.findIndex(w => w.id === b.id);
-      if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
-      if (aIdx !== -1) return -1;
-      if (bIdx !== -1) return 1;
-      return a.hand.length - b.hand.length;
-    });
-  }, [allPlayers, winners]);
+    return settlement.players
+      .map(sp => allPlayers.find(p => p.id === sp.id))
+      .filter((p): p is Player => p !== undefined);
+  }, [settlement.players, allPlayers]);
 
-  // Kiểm tra có đối thủ nào cháy túi (vỡ nợ) không đủ tiền cược tiếp
-  const bankruptBots = !isCampaign ? allPlayers.filter(p => p.isBot && (p.score || 0) < betAmount) : [];
-  const isHumanBankrupt = !isCampaign && playerCoins < betAmount;
-  const isTableDismissed = !isCampaign && !isOnline && (bankruptBots.length > 0 || isHumanBankrupt);
+  const bankruptBots = useMemo(() => {
+    return allPlayers.filter(p => settlement.bankruptPlayerNames.includes(p.name));
+  }, [allPlayers, settlement.bankruptPlayerNames]);
 
-  let modalTitle = isHumanWinner ? t('victory.titleVictory') : t('victory.titleDefeat');
-  let modalSubtitle = isHumanWinner ? t('game.victory') : t('game.defeat');
-  let modalIcon = '🏆';
-  let primaryBtnText = t('victory.btnRematch');
-  let primaryBtnIconType: PrimaryBtnIconType = 'PLAY';
-  let primaryBtnDisabled = false;
-  let primaryBtnAction = onNextGame;
-  let secondaryBtnText = t('victory.btnBackLobby');
-  let secondaryBtnIconType: SecondaryBtnIconType = 'HOME';
-  let secondaryBtnAction = onReturnToLobby;
+  const isHumanBankrupt = settlement.isSubjectBankrupt;
+  const isTableDismissed = settlement.isTableDismissed;
 
-  const statBox1Title = t('victory.statPayout');
-  const statBox1Value = humanPayout > 0 ? `+${humanPayout.toLocaleString()} 🪙` : `${humanPayout.toLocaleString()} 🪙`;
-  const statBox1Sub = isHumanWinner ? t('victory.rankFirstWon') : t('victory.notWonYet');
-
-  let statBox2Title = t('victory.gameModeLabel');
-  let statBox2Value = t('victory.traditionalMode');
-  let statBox2Sub = t('victory.betAmountLabel', { amount: betAmount.toLocaleString() });
-
-  if (isOnline) {
-    modalIcon = isHumanWinner ? '🏆' : '💥';
-    modalTitle = isHumanWinner ? t('victory.onlineMatchVictory') : t('victory.onlineMatchEnded');
-    modalSubtitle = isOnlineHost ? t('victory.onlineHostSub') : t('victory.onlineGuestSub');
-
-    statBox2Title = t('victory.gameModeLabel');
-    statBox2Value = t('victory.onlineMode');
-    statBox2Sub = t('victory.betAmountLabel', { amount: betAmount.toLocaleString() });
-
-    if (!isMyPlayerReady) {
-      primaryBtnText = t('victory.onlineReadyBtn');
-      primaryBtnIconType = 'CHECK';
-      primaryBtnDisabled = false;
-      primaryBtnAction = () => voteRematch(true);
-    } else {
-      primaryBtnText = readyOnlinePlayers === totalOnlinePlayers 
-        ? t('victory.onlineInitializing') 
-        : t('victory.onlineReadyCount', { ready: readyOnlinePlayers, total: totalOnlinePlayers });
-      primaryBtnIconType = readyOnlinePlayers === totalOnlinePlayers ? 'SPINNER' : 'CHECK';
-      primaryBtnDisabled = true;
-      primaryBtnAction = () => {};
-    }
-
-    secondaryBtnText = isOnlineHost ? t('victory.onlineDisbandRoom') : t('victory.onlineLeaveRoom');
-    secondaryBtnIconType = 'HOME';
-    secondaryBtnAction = onReturnToLobby;
-  } else if (isTableDismissed) {
-    modalIcon = '🚨';
-    primaryBtnText = t('victory.btnBackLobby');
-    primaryBtnIconType = 'HOME';
-    primaryBtnAction = onReturnToLobby;
-
-    if (isHumanBankrupt) {
-      modalTitle = t('victory.outOfCoinsTitle');
-      modalSubtitle = t('victory.outOfCoinsSub');
-      statBox2Title = t('victory.statusLabel');
-      statBox2Value = t('victory.bankruptStatus');
-      statBox2Sub = t('victory.needMoreCoinsSub');
-    } else {
-      modalTitle = t('victory.tableDismissedTitle');
-      const botNames = bankruptBots.map(b => b.name).join(', ');
-      modalSubtitle = t('victory.botBankruptSub', { names: botNames });
-      statBox2Title = t('victory.statusLabel');
-      statBox2Value = t('victory.opponentsOutOfCoins');
-      statBox2Sub = t('victory.bankruptCountSub', { count: bankruptBots.length });
-    }
-  } else if (isCampaign) {
-    modalIcon = isHumanWinner ? '⭐' : '💀';
-    statBox2Title = t('victory.campaignChapterLabel');
-    statBox2Value = campaignChapter !== null ? `${campaignChapter.name}: ${campaignChapter.subtitle}` : t('victory.defaultCampaign');
-    statBox2Sub = isHumanWinner 
-      ? t('victory.campaignWinsProgress', { wins: chapterWins, required: campaignChapter !== null ? campaignChapter.requiredWins : 1 })
-      : t('victory.campaignRetrySub');
-
-    if (isHumanWinner) {
-      if (campaignResultMeta?.status === 'NEXT_UNLOCKED') {
-        const nextChapter = campaignResultMeta.nextChapter;
-        modalTitle = t('victory.chapterCompletedTitle');
-        modalSubtitle = t('victory.chapterUnlockedSub', { name: nextChapter.name });
-        primaryBtnText = t('victory.campaignNextBtn');
-        primaryBtnIconType = 'SWORDS';
-        primaryBtnAction = onNextGame;
-        secondaryBtnText = t('victory.campaignMapBtn');
-        secondaryBtnIconType = 'MAP';
-        secondaryBtnAction = onOpenCampaignMap !== null ? onOpenCampaignMap : onReturnToLobby;
-      } else if (campaignResultMeta?.status === 'ALL_COMPLETED') {
-        modalTitle = t('victory.campaignAllWonTitle');
-        modalSubtitle = t('victory.campaignAllWonSub');
-        primaryBtnText = t('victory.btnBackLobby');
-        primaryBtnIconType = 'HOME';
-        primaryBtnAction = onReturnToLobby;
-      } else {
-        modalTitle = t('victory.onlineMatchVictory');
-        modalSubtitle = t('victory.campaignChapterProgress', { wins: chapterWins, required: campaignChapter !== null ? campaignChapter.requiredWins : 1 });
-        primaryBtnText = t('victory.campaignContinueBtn');
-        primaryBtnIconType = 'PLAY';
-        primaryBtnAction = onNextGame;
-      }
-    } else {
-      modalTitle = t('victory.campaignDefeatTitle');
-      modalSubtitle = t('victory.campaignDefeatSub');
-      primaryBtnText = t('victory.campaignRetryBtn');
-      primaryBtnIconType = 'ROTATE_CCW';
-      primaryBtnAction = onNextGame;
-      secondaryBtnText = t('victory.campaignMapBtn');
-      secondaryBtnIconType = 'MAP';
-      secondaryBtnAction = onOpenCampaignMap !== null ? onOpenCampaignMap : onReturnToLobby;
-    }
+  interface ScenarioUIConfig {
+    readonly modalIcon: string;
+    readonly modalTitle: string;
+    readonly modalSubtitle: string;
+    readonly statBox1Title: string;
+    readonly statBox1Value: string;
+    readonly statBox1Sub: string;
+    readonly statBox2Title: string;
+    readonly statBox2Value: string;
+    readonly statBox2Sub: string;
+    readonly primaryBtnText: string;
+    readonly primaryBtnIconType: PrimaryBtnIconType;
+    readonly primaryBtnDisabled: boolean;
+    readonly primaryBtnAction: () => void;
+    readonly secondaryBtnText: string;
+    readonly secondaryBtnIconType: SecondaryBtnIconType;
+    readonly secondaryBtnAction: () => void;
   }
 
+  // Cấu hình giao diện chuẩn hóa dựa trên MatchEndScenario định danh từ Engine
+  const scenarioConfig: ScenarioUIConfig = useMemo(() => {
+    switch (settlement.scenario) {
+      case 'ONLINE': {
+        const isReadyCountMet = readyOnlinePlayers === totalOnlinePlayers;
+        const onlineBtnIcon: PrimaryBtnIconType = !isMyPlayerReady
+          ? 'CHECK'
+          : (isReadyCountMet ? 'SPINNER' : 'CHECK');
+        return {
+          modalIcon: isHumanWinner ? '🏆' : '💥',
+          modalTitle: isHumanWinner ? t('victory.onlineMatchVictory') : t('victory.onlineMatchEnded'),
+          modalSubtitle: isOnlineHost ? t('victory.onlineHostSub') : t('victory.onlineGuestSub'),
+          statBox1Title: t('victory.statPayout'),
+          statBox1Value: humanPayout > 0 ? `+${humanPayout.toLocaleString()} 🪙` : `${humanPayout.toLocaleString()} 🪙`,
+          statBox1Sub: isHumanWinner ? t('victory.rankFirstWon') : t('victory.notWonYet'),
+          statBox2Title: t('victory.gameModeLabel'),
+          statBox2Value: t('victory.onlineMode'),
+          statBox2Sub: t('victory.betAmountLabel', { amount: betAmount.toLocaleString() }),
+          primaryBtnText: !isMyPlayerReady
+            ? t('victory.onlineReadyBtn')
+            : (isReadyCountMet
+                ? t('victory.onlineInitializing')
+                : t('victory.onlineReadyCount', { ready: readyOnlinePlayers, total: totalOnlinePlayers })),
+          primaryBtnIconType: onlineBtnIcon,
+          primaryBtnDisabled: isMyPlayerReady,
+          primaryBtnAction: () => {
+            if (!isMyPlayerReady) voteRematch(true);
+          },
+          secondaryBtnText: isOnlineHost ? t('victory.onlineDisbandRoom') : t('victory.onlineLeaveRoom'),
+          secondaryBtnIconType: 'HOME',
+          secondaryBtnAction: onReturnToLobby
+        };
+      }
+
+      case 'TABLE_DISMISSED_HUMAN_BANKRUPT': {
+        return {
+          modalIcon: '🚨',
+          modalTitle: t('victory.outOfCoinsTitle'),
+          modalSubtitle: t('victory.outOfCoinsSub'),
+          statBox1Title: t('victory.statPayout'),
+          statBox1Value: `${humanPayout.toLocaleString()} 🪙`,
+          statBox1Sub: t('victory.notWonYet'),
+          statBox2Title: t('victory.statusLabel'),
+          statBox2Value: t('victory.bankruptStatus'),
+          statBox2Sub: t('victory.needMoreCoinsSub'),
+          primaryBtnText: t('victory.btnBackLobby'),
+          primaryBtnIconType: 'HOME',
+          primaryBtnDisabled: false,
+          primaryBtnAction: onReturnToLobby,
+          secondaryBtnText: t('victory.btnBackLobby'),
+          secondaryBtnIconType: 'HOME',
+          secondaryBtnAction: onReturnToLobby
+        };
+      }
+
+      case 'TABLE_DISMISSED_BOT_BANKRUPT': {
+        const botNames = settlement.bankruptPlayerNames.join(', ');
+        return {
+          modalIcon: '🚨',
+          modalTitle: t('victory.tableDismissedTitle'),
+          modalSubtitle: t('victory.botBankruptSub', { names: botNames }),
+          statBox1Title: t('victory.statPayout'),
+          statBox1Value: humanPayout > 0 ? `+${humanPayout.toLocaleString()} 🪙` : `${humanPayout.toLocaleString()} 🪙`,
+          statBox1Sub: isHumanWinner ? t('victory.rankFirstWon') : t('victory.notWonYet'),
+          statBox2Title: t('victory.statusLabel'),
+          statBox2Value: t('victory.opponentsOutOfCoins'),
+          statBox2Sub: t('victory.bankruptCountSub', { count: settlement.bankruptPlayerNames.length }),
+          primaryBtnText: t('victory.btnBackLobby'),
+          primaryBtnIconType: 'HOME',
+          primaryBtnDisabled: false,
+          primaryBtnAction: onReturnToLobby,
+          secondaryBtnText: t('victory.btnBackLobby'),
+          secondaryBtnIconType: 'HOME',
+          secondaryBtnAction: onReturnToLobby
+        };
+      }
+
+      case 'CAMPAIGN_WON_NEXT_UNLOCKED': {
+        const nextChapterName = campaignResultMeta?.nextChapter?.name ?? '';
+        return {
+          modalIcon: '⭐',
+          modalTitle: t('victory.chapterCompletedTitle'),
+          modalSubtitle: t('victory.chapterUnlockedSub', { name: nextChapterName }),
+          statBox1Title: t('victory.statPayout'),
+          statBox1Value: `+${humanPayout.toLocaleString()} 🪙`,
+          statBox1Sub: t('victory.rankFirstWon'),
+          statBox2Title: t('victory.campaignChapterLabel'),
+          statBox2Value: campaignChapter !== null ? `${campaignChapter.name}: ${campaignChapter.subtitle}` : t('victory.defaultCampaign'),
+          statBox2Sub: t('victory.campaignWinsProgress', { wins: chapterWins, required: campaignChapter !== null ? campaignChapter.requiredWins : 1 }),
+          primaryBtnText: t('victory.campaignNextBtn'),
+          primaryBtnIconType: 'SWORDS',
+          primaryBtnDisabled: false,
+          primaryBtnAction: onNextGame,
+          secondaryBtnText: t('victory.campaignMapBtn'),
+          secondaryBtnIconType: 'MAP',
+          secondaryBtnAction: onOpenCampaignMap !== null ? onOpenCampaignMap : onReturnToLobby
+        };
+      }
+
+      case 'CAMPAIGN_WON_ALL_COMPLETED': {
+        return {
+          modalIcon: '⭐',
+          modalTitle: t('victory.campaignAllWonTitle'),
+          modalSubtitle: t('victory.campaignAllWonSub'),
+          statBox1Title: t('victory.statPayout'),
+          statBox1Value: `+${humanPayout.toLocaleString()} 🪙`,
+          statBox1Sub: t('victory.rankFirstWon'),
+          statBox2Title: t('victory.campaignChapterLabel'),
+          statBox2Value: campaignChapter !== null ? `${campaignChapter.name}: ${campaignChapter.subtitle}` : t('victory.defaultCampaign'),
+          statBox2Sub: t('victory.campaignWinsProgress', { wins: chapterWins, required: campaignChapter !== null ? campaignChapter.requiredWins : 1 }),
+          primaryBtnText: t('victory.btnBackLobby'),
+          primaryBtnIconType: 'HOME',
+          primaryBtnDisabled: false,
+          primaryBtnAction: onReturnToLobby,
+          secondaryBtnText: t('victory.btnBackLobby'),
+          secondaryBtnIconType: 'HOME',
+          secondaryBtnAction: onReturnToLobby
+        };
+      }
+
+      case 'CAMPAIGN_WON_IN_PROGRESS': {
+        return {
+          modalIcon: '⭐',
+          modalTitle: t('victory.onlineMatchVictory'),
+          modalSubtitle: t('victory.campaignChapterProgress', { wins: chapterWins, required: campaignChapter !== null ? campaignChapter.requiredWins : 1 }),
+          statBox1Title: t('victory.statPayout'),
+          statBox1Value: `+${humanPayout.toLocaleString()} 🪙`,
+          statBox1Sub: t('victory.rankFirstWon'),
+          statBox2Title: t('victory.campaignChapterLabel'),
+          statBox2Value: campaignChapter !== null ? `${campaignChapter.name}: ${campaignChapter.subtitle}` : t('victory.defaultCampaign'),
+          statBox2Sub: t('victory.campaignWinsProgress', { wins: chapterWins, required: campaignChapter !== null ? campaignChapter.requiredWins : 1 }),
+          primaryBtnText: t('victory.campaignContinueBtn'),
+          primaryBtnIconType: 'PLAY',
+          primaryBtnDisabled: false,
+          primaryBtnAction: onNextGame,
+          secondaryBtnText: t('victory.campaignMapBtn'),
+          secondaryBtnIconType: 'MAP',
+          secondaryBtnAction: onOpenCampaignMap !== null ? onOpenCampaignMap : onReturnToLobby
+        };
+      }
+
+      case 'CAMPAIGN_DEFEAT': {
+        return {
+          modalIcon: '💀',
+          modalTitle: t('victory.campaignDefeatTitle'),
+          modalSubtitle: t('victory.campaignDefeatSub'),
+          statBox1Title: t('victory.statPayout'),
+          statBox1Value: `${humanPayout.toLocaleString()} 🪙`,
+          statBox1Sub: t('victory.notWonYet'),
+          statBox2Title: t('victory.campaignChapterLabel'),
+          statBox2Value: campaignChapter !== null ? `${campaignChapter.name}: ${campaignChapter.subtitle}` : t('victory.defaultCampaign'),
+          statBox2Sub: t('victory.campaignRetrySub'),
+          primaryBtnText: t('victory.campaignRetryBtn'),
+          primaryBtnIconType: 'ROTATE_CCW',
+          primaryBtnDisabled: false,
+          primaryBtnAction: onNextGame,
+          secondaryBtnText: t('victory.campaignMapBtn'),
+          secondaryBtnIconType: 'MAP',
+          secondaryBtnAction: onOpenCampaignMap !== null ? onOpenCampaignMap : onReturnToLobby
+        };
+      }
+
+      case 'STANDARD_VICTORY': {
+        return {
+          modalIcon: '🏆',
+          modalTitle: t('victory.titleVictory'),
+          modalSubtitle: t('game.victory'),
+          statBox1Title: t('victory.statPayout'),
+          statBox1Value: `+${humanPayout.toLocaleString()} 🪙`,
+          statBox1Sub: t('victory.rankFirstWon'),
+          statBox2Title: t('victory.gameModeLabel'),
+          statBox2Value: t('victory.traditionalMode'),
+          statBox2Sub: t('victory.betAmountLabel', { amount: betAmount.toLocaleString() }),
+          primaryBtnText: t('victory.btnRematch'),
+          primaryBtnIconType: 'PLAY',
+          primaryBtnDisabled: false,
+          primaryBtnAction: onNextGame,
+          secondaryBtnText: t('victory.btnBackLobby'),
+          secondaryBtnIconType: 'HOME',
+          secondaryBtnAction: onReturnToLobby
+        };
+      }
+
+      case 'STANDARD_DEFEAT':
+      default: {
+        return {
+          modalIcon: '🏆',
+          modalTitle: t('victory.titleDefeat'),
+          modalSubtitle: t('game.defeat'),
+          statBox1Title: t('victory.statPayout'),
+          statBox1Value: `${humanPayout.toLocaleString()} 🪙`,
+          statBox1Sub: t('victory.notWonYet'),
+          statBox2Title: t('victory.gameModeLabel'),
+          statBox2Value: t('victory.traditionalMode'),
+          statBox2Sub: t('victory.betAmountLabel', { amount: betAmount.toLocaleString() }),
+          primaryBtnText: t('victory.btnRematch'),
+          primaryBtnIconType: 'PLAY',
+          primaryBtnDisabled: false,
+          primaryBtnAction: onNextGame,
+          secondaryBtnText: t('victory.btnBackLobby'),
+          secondaryBtnIconType: 'HOME',
+          secondaryBtnAction: onReturnToLobby
+        };
+      }
+    }
+  }, [
+    settlement.scenario,
+    isHumanWinner,
+    humanPayout,
+    isOnlineHost,
+    readyOnlinePlayers,
+    totalOnlinePlayers,
+    isMyPlayerReady,
+    betAmount,
+    chapterWins,
+    campaignChapter,
+    campaignResultMeta,
+    settlement.bankruptPlayerNames,
+    onNextGame,
+    onReturnToLobby,
+    onOpenCampaignMap,
+    voteRematch,
+    t
+  ]);
+
   const getInstantWinTitle = useCallback((type: InstantWinType | null): string => {
-    if (type && INSTANT_WIN_KEY_MAP[type]) {
-      return t(INSTANT_WIN_KEY_MAP[type]);
+    if (type && INSTANT_WIN_KEY_LOOKUP[type]) {
+      return t(INSTANT_WIN_KEY_LOOKUP[type]);
     }
     return '';
   }, [t]);
@@ -329,28 +494,29 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     bankruptBots,
     displayPlayers,
     humanPayout,
-    modalTitle,
-    modalSubtitle,
-    modalIcon,
-    primaryBtnText,
-    primaryBtnIconType,
-    primaryBtnDisabled,
-    primaryBtnAction,
-    secondaryBtnText,
-    secondaryBtnIconType,
-    secondaryBtnAction,
-    statBox1Title,
-    statBox1Value,
-    statBox1Sub,
-    statBox2Title,
-    statBox2Value,
-    statBox2Sub,
+    modalTitle: scenarioConfig.modalTitle,
+    modalSubtitle: scenarioConfig.modalSubtitle,
+    modalIcon: scenarioConfig.modalIcon,
+    primaryBtnText: scenarioConfig.primaryBtnText,
+    primaryBtnIconType: scenarioConfig.primaryBtnIconType,
+    primaryBtnDisabled: scenarioConfig.primaryBtnDisabled,
+    primaryBtnAction: scenarioConfig.primaryBtnAction,
+    secondaryBtnText: scenarioConfig.secondaryBtnText,
+    secondaryBtnIconType: scenarioConfig.secondaryBtnIconType,
+    secondaryBtnAction: scenarioConfig.secondaryBtnAction,
+    statBox1Title: scenarioConfig.statBox1Title,
+    statBox1Value: scenarioConfig.statBox1Value,
+    statBox1Sub: scenarioConfig.statBox1Sub,
+    statBox2Title: scenarioConfig.statBox2Title,
+    statBox2Value: scenarioConfig.statBox2Value,
+    statBox2Sub: scenarioConfig.statBox2Sub,
     totalOnlinePlayers,
     readyOnlinePlayers,
     isMyPlayerReady,
     isOnlineHost,
     voteRematch,
     handleExportJson,
+    settlement,
     winners,
     allPlayers,
     instantWinType,
@@ -358,10 +524,11 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     isThreeSpadesWin,
     betAmount,
     activeGameType,
-    payouts: effectivePayouts,
+    payouts: settlement.players.reduce((acc, p) => ({ ...acc, [p.id]: p.netPayout }), {}),
     loanDeduction,
-    eloDelta,
-    lastEloBreakdown,
-    allEloDeltas: effectiveEloDeltas
+    eloDelta: settlement.eloDelta ?? 0,
+    lastEloBreakdown: settlement.eloBreakdown,
+    allEloDeltas: settlement.players.reduce((acc, p) => p.eloDelta !== null ? { ...acc, [p.id]: p.eloDelta } : acc, {}),
+    myPlayerId
   };
 }

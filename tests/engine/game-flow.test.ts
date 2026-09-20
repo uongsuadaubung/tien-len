@@ -158,7 +158,7 @@ describe('Game Flow & Lifecycle Engine', () => {
     const p1Move = game.playMove('p1', parseCards('3S 3D'));
     expect(p1Move.success).toBe(true);
     expect(game.getPlayer('p1')!.hand.length).toBe(0);
-    expect(game.getPlayer('p1')!.rankPosition).toBe(1);
+    expect(game.winners[0].id).toBe('p1');
     expect(game.isGameOver).toBe(false); // Ván chưa kết thúc vì còn 3 bot
 
     // Lượt kế tiếp tự động chuyển qua p2

@@ -280,12 +280,13 @@ export class MatchLogger {
     const winner = params.winners.length > 0 ? {
       id: params.winners[0].id,
       name: params.winners[0].name,
-      rankPosition: params.winners[0].rankPosition || 1
+      rankPosition: 1
     } : null;
 
     const playerSummaries: MatchPlayerSummary[] = params.players.map(p => {
       const initial = this.initialHands.get(p.id) || [];
       const payout = params.payouts[p.id] || 0;
+      const winIdx = params.winners.findIndex(w => w.id === p.id);
       return {
         id: p.id,
         name: p.name,
@@ -294,7 +295,7 @@ export class MatchLogger {
         botPersonaId: p.botPersonaId || null,
         initialHand: [...initial],
         finalHand: [...p.hand],
-        rankPosition: p.rankPosition || null,
+        rankPosition: winIdx >= 0 ? winIdx + 1 : null,
         scoreDelta: payout
       };
     });

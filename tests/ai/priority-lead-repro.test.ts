@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
 import { CardTracker } from '../../src/ai/card-tracker';
-import { makeBotDecision, DecisionContext } from '../../src/ai/decision-maker';
+import { makeBotDecision, DecisionContext, createDecisionContext } from '../../src/ai/decision-maker';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { parseCards } from '../../src/engine/card';
 import { Card, createDefaultGameRules } from '../../src/engine/types';
@@ -12,24 +12,26 @@ describe('Kiểm chứng Tái Cấu Trúc Độ Ưu Tiên & Sửa Lỗi Ra Bài 
     tracker = new CardTracker();
   });
 
-  const createMockDecisionContext = (partial: Partial<DecisionContext> & { hand: Card[] }): DecisionContext => ({
-    hand: partial.hand,
-    currentRoundLeadingMove: partial.currentRoundLeadingMove ?? null,
-    isFirstMoveOfGame: partial.isFirstMoveOfGame ?? false,
-    isLeadMove: partial.isLeadMove ?? false,
-    tracker: partial.tracker ?? tracker,
-    config: partial.config ?? BOT_PERSONAS.BOT_ELO_2050,
-    remainingPlayerCards: partial.remainingPlayerCards ?? { p0: 13, p1: 13 },
-    nextPlayerId: partial.nextPlayerId ?? 'p0',
-    rules: partial.rules ?? createDefaultGameRules({ settlementRule: 'COUNT_CARDS' }),
-    hasPlayedFirstCard: partial.hasPlayedFirstCard ?? true,
-    isNextPlayerOneCard: partial.isNextPlayerOneCard ?? false,
-    prohibitEndingWithTwo: partial.prohibitEndingWithTwo ?? true,
-    gameMode: partial.gameMode ?? 'COUNT_CARDS',
-    mctsMap: partial.mctsMap ?? null,
-    compositeRuleStrategy: partial.compositeRuleStrategy ?? null,
-    opponentProfiles: partial.opponentProfiles ?? null
-  } as unknown as DecisionContext);
+  const createMockDecisionContext = (partial: Partial<DecisionContext> & { hand: Card[] }): DecisionContext =>
+    createDecisionContext({
+      hand: partial.hand,
+      currentRoundLeadingMove: partial.currentRoundLeadingMove ?? null,
+      isFirstMoveOfGame: partial.isFirstMoveOfGame ?? false,
+      isLeadMove: partial.isLeadMove ?? false,
+      tracker: partial.tracker ?? tracker,
+      config: partial.config ?? BOT_PERSONAS.BOT_ELO_2050,
+      remainingPlayerCards: partial.remainingPlayerCards ?? { p0: 13, p1: 13 },
+      nextPlayerId: partial.nextPlayerId ?? 'p0',
+      rules: partial.rules ?? createDefaultGameRules({ settlementRule: 'COUNT_CARDS' }),
+      hasPlayedFirstCard: partial.hasPlayedFirstCard ?? true,
+      isNextPlayerOneCard: partial.isNextPlayerOneCard ?? false,
+      prohibitEndingWithTwo: partial.prohibitEndingWithTwo ?? true,
+      gameMode: partial.gameMode ?? 'COUNT_CARDS',
+      mctsMap: partial.mctsMap ?? null,
+      compositeRuleStrategy: partial.compositeRuleStrategy ?? null,
+      opponentProfiles: partial.opponentProfiles ?? null
+    });
+
 
   test('1. Tái hiện tình huống Turn 1 ván log thực tế: Bot KHÔNG ĐƯỢC vứt AC đi nhử khi còn rác nhỏ 3S, 4C, 6C', () => {
     // Bài của Bot Kasper trong file log: 13 lá

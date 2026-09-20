@@ -11,15 +11,17 @@ import { useUserStore } from '../stores/useUserStore';
 import { useViewStore } from '../stores/useViewStore';
 import { useEcosystemStore } from '../stores/useEcosystemStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
+import { useOnlineStore } from '../stores/useOnlineStore';
 import { forceUploadToCloud } from '../engine/sync/sync-service';
+import { CustomBotConfigTuple, type Player, type InstantWinType } from '../engine/types';
 import { assertEconomicBalance } from '../engine/invariants/match-invariants';
-import { calculateMatchLoanSettlement } from '../engine/constants/economy';
+import { calculateMatchLoanSettlement, type MatchLoanSettlementResult } from '../engine/constants/economy';
 import type { BotConfig } from '../ai/types';
 import { getBotConfig } from '../ai/bot-factory';
 import { dbUpdatePlayerMatchResult } from '../engine/db/indexed-db';
 import type { OfflineMatchDriver } from '../engine/offline-match-driver';
 import type { GameOverMatchState } from '../engine/state-machine/types';
-import { CustomBotConfigTuple } from '../engine/types';
+import { createPerspectiveSettlement, type CreatePerspectiveSettlementParams } from '../engine/settlement/perspective-settlement';
 
 export type { CampaignResultMeta };
 
@@ -44,101 +46,53 @@ function triggerQuestToastIfNewlyCompleted(
   }
 }
 
+interface BaseSettlementInput {
+  readonly humanPlayerId: string;
+  readonly payouts: Readonly<Record<string, number>>;
+  readonly eloDeltas: Readonly<Record<string, number>>;
+  readonly eloDelta: number;
+  readonly isVictoryModalRanked: boolean;
+  readonly winners: readonly Player[];
+  readonly allPlayers: readonly Player[];
+  readonly betAmount: number;
+  readonly isThreeSpadesWin: boolean;
+  readonly instantWinType: InstantWinType | null;
+  readonly loanDeduction?: number;
+  readonly heldDeposit: number;
+  readonly congsGivenCount: number;
+}
+
+export interface CampaignSettlementInput extends BaseSettlementInput {
+  readonly activeGameType: 'CAMPAIGN';
+  readonly campaignChapter: CampaignChapter;
+}
+
+export interface StandardSettlementInput extends BaseSettlementInput {
+  readonly activeGameType: 'QUICK' | 'ONLINE' | 'CUSTOM';
+}
+
+export type AuthoritativeSettlementInput = CampaignSettlementInput | StandardSettlementInput;
+
 /**
- * Service kết toán trận đấu trực tiếp (Direct Domain Service)
- * Hoàn toàn không qua Event Bus hay React Hook lifecycle
+ * Hàm thuần kết toán cập nhật hồ sơ người chơi (Single Source of Truth)
+ * Được dùng chung 100% giữa Host (từ GameEngine) và Guest (từ GameEndPacket)
  */
-export function settleCompletedMatch(engine: GameEngine, driver?: OfflineMatchDriver): void {
-  const gameStore = useGameStore.getState();
+export function applyAuthoritativeSettlementToProfile(input: AuthoritativeSettlementInput): {
+  updatedProfile: PlayerProfile;
+  matchCompletedEvent: MatchCompletedEvent;
+  loanSettlement: MatchLoanSettlementResult;
+} {
   const userStore = useUserStore.getState();
-  const viewStore = useViewStore.getState();
-
-  gameStore.setIsGameOver(true);
-
-  const resolvedInstantWinType = engine.instantWinner?.instantWinType || null;
-  gameStore.setInstantWinType(resolvedInstantWinType || undefined);
-
-  const humanPlayer = engine.players.find(p => p.id === gameStore.myPlayerId);
-  if (!humanPlayer) {
-    throw new Error(`[MatchSettlementService] Không tìm thấy player với id="${gameStore.myPlayerId}" trong danh sách bàn đấu khi kết toán!`);
-  }
-  const humanPlayerId = humanPlayer.id;
-
-  const winner = engine.winners[0];
-  if (!winner) {
-    throw new Error('[MatchSettlementService] Không thể kết toán khi engine.winners rỗng!');
-  }
-  const isPlayerWin = winner.id === humanPlayerId;
-  // Thu thập dữ liệu toàn bàn đấu: Lượt chặt Heo/Hàng từ MatchLogger
-  const turns = MatchLogger.getInstance().getTurns();
-  const chopsByPlayer: Record<string, number> = {};
-  const gotChoppedByPlayer: Record<string, number> = {};
-  for (const t of turns) {
-    if (t.action === 'PLAY' && t.isChop) {
-      if (t.playerId) {
-        chopsByPlayer[t.playerId] = (chopsByPlayer[t.playerId] || 0) + 1;
-      }
-      if (t.choppedPlayerId) {
-        gotChoppedByPlayer[t.choppedPlayerId] = (gotChoppedByPlayer[t.choppedPlayerId] || 0) + 1;
-      }
-    }
-  }
-
+  const gameStore = useGameStore.getState();
   const currentProfile = userStore.profile;
   const currentCoins = currentProfile.coins;
-  const isBankLoanActive = currentProfile.loans > 0;
   const currentElo = currentProfile.elo;
-  const activeGameType = gameStore.activeGameType;
-  const currentCampaignChapter = gameStore.currentCampaignChapter;
-  const effectiveMode = engine.settings.mode;
-  const strategy = resolveStrategyForMatch(activeGameType, effectiveMode);
 
-  // Thu thập điểm Elo và Streak cho tất cả người chơi tại bàn
-  const playerElos: Record<string, number> = {
-    [humanPlayerId]: currentElo
-  };
-  for (const p of engine.players) {
-    if (p.id !== humanPlayerId) {
-      if (p.botPersonaId) {
-        playerElos[p.id] = getBotConfig(p.botPersonaId).elo ?? 1000;
-      } else {
-        playerElos[p.id] = 1000;
-      }
-    }
+  if (input.payouts[input.humanPlayerId] === undefined) {
+    throw new Error(`[applyAuthoritativeSettlementToProfile] Invariant violated: Missing payout entry for humanPlayerId "${input.humanPlayerId}"`);
   }
-
-  const streaksByPlayer: Record<string, number> = {
-    [humanPlayerId]: currentProfile.stats.currentStreak
-  };
-
-  const settlement = strategy.settleMatch({
-    players: engine.players,
-    winners: engine.winners,
-    betAmount: engine.settings.betAmount,
-    subjectPlayerId: humanPlayerId,
-    playerElos,
-    chopsByPlayer,
-    gotChoppedByPlayer,
-    streaksByPlayer,
-    isBankLoanActive,
-    campaignReward: currentCampaignChapter?.rewardCoins,
-    penaltyMultiplier: engine.rules.chopping.multiplier || 1,
-    congMultiplier: engine.rules.cong.multiplier || 1,
-    isThreeSpadesWin: engine.isThreeSpadesWin,
-    isInstantWin: !!engine.instantWinner
-  });
-
-  // Chốt chặn bất biến kinh tế: Tổng tiền thắng + thua = 0
-  assertEconomicBalance(settlement.payouts);
-
-  const humanNetEarned = settlement.payouts[humanPlayerId];
-  if (humanNetEarned === undefined) {
-    throw new Error(`[MatchSettlementService] Không tìm thấy payout cho người chơi ${humanPlayerId} trong bảng kết toán!`);
-  }
-
-  const session = getActiveMatchSession();
-  const heldDeposit = session ? session.depositAmount : 0;
-  clearActiveMatchSession();
+  const humanNetEarned = input.payouts[input.humanPlayerId];
+  const heldDeposit = input.heldDeposit;
 
   // Tính toán kinh tế nợ: Lãi suất theo ván, khấu trừ nợ có sàn bảo hộ vốn 26,000 Xu
   const loanSettlement = calculateMatchLoanSettlement({
@@ -149,37 +103,18 @@ export function settleCompletedMatch(engine: GameEngine, driver?: OfflineMatchDr
     activeLoan: currentProfile.activeLoan ?? null
   });
 
-  gameStore.setIsThreeSpadesWin(engine.isThreeSpadesWin);
-  gameStore.setMatchPayouts(settlement.payouts);
-  gameStore.setLoanDeductionAmount(loanSettlement.loanDeduction);
-  gameStore.setLastEloDelta(settlement.eloDelta);
-  gameStore.setLastEloBreakdown(settlement.eloBreakdown ?? null);
-  gameStore.setAllEloDeltas(settlement.allEloDeltas ?? {});
-
-  const gameOverState: GameOverMatchState = {
-    status: 'GAME_OVER',
-    gameNumber: engine.gameNumber,
-    players: engine.players.map(p => ({ ...p })),
-    winners: [...engine.winners],
-    isThreeSpadesWin: engine.isThreeSpadesWin,
-    matchPayouts: settlement.payouts,
-    eloDeltas: settlement.allEloDeltas ?? {},
-    matchLogReport: null,
-    rules: engine.rules,
-    leadingMove: engine.getLeadingMove()
-  };
-  gameStore.setMatchState(gameOverState);
-
-  if (driver) {
-    driver.setSettlementResult(settlement.payouts, settlement.allEloDeltas ?? {});
-  }
-
   const nextCoins = Math.max(0, currentCoins + heldDeposit + humanNetEarned - loanSettlement.loanDeduction);
   const nextLoans = loanSettlement.nextLoans;
   const nextActiveLoan = loanSettlement.nextActiveLoan;
-  const nextElo = settlement.isVictoryModalRanked
-    ? Math.max(0, currentElo + settlement.eloDelta)
+  const nextElo = input.isVictoryModalRanked
+    ? Math.max(0, currentElo + input.eloDelta)
     : currentElo;
+
+  const winner = input.winners[0];
+  if (!winner && input.instantWinType === null) {
+    throw new Error('[applyAuthoritativeSettlementToProfile] Invariant violated: No winner declared in non-instant match settlement');
+  }
+  const isPlayerWin = winner ? winner.id === input.humanPlayerId : false;
 
   const nextWins = isPlayerWin ? currentProfile.stats.wins + 1 : currentProfile.stats.wins;
   const nextCurrentStreak = isPlayerWin ? currentProfile.stats.currentStreak + 1 : 0;
@@ -193,13 +128,13 @@ export function settleCompletedMatch(engine: GameEngine, driver?: OfflineMatchDr
   let nextChapObj: CampaignChapter | null = null;
   let currentWinsInChapter = 0;
 
-  if (activeGameType === 'CAMPAIGN' && currentCampaignChapter) {
-    const chapNumber = currentCampaignChapter.id;
+  if (input.activeGameType === 'CAMPAIGN') {
+    const chapNumber = input.campaignChapter.id;
     const prevWins = currentProfile.campaignChapterWins[chapNumber] || 0;
     currentWinsInChapter = isPlayerWin ? prevWins + 1 : prevWins;
     updatedChapterWins[chapNumber] = currentWinsInChapter;
 
-    if (currentWinsInChapter >= currentCampaignChapter.requiredWins) {
+    if (currentWinsInChapter >= input.campaignChapter.requiredWins) {
       if (chapNumber >= currentProfile.campaignUnlockedChapter && chapNumber < CAMPAIGN_CHAPTERS.length) {
         updatedUnlockedChapter = chapNumber + 1;
         nextChapObj = CAMPAIGN_CHAPTERS[chapNumber];
@@ -237,30 +172,28 @@ export function settleCompletedMatch(engine: GameEngine, driver?: OfflineMatchDr
     }
   };
 
-  const congsGivenCount = isPlayerWin ? engine.players.filter(p => p.id !== humanPlayerId && p.hand.length === 13).length : 0;
+  const congsGivenCount = input.congsGivenCount;
   const matchCompletedEvent: MatchCompletedEvent = {
     type: 'MATCH_COMPLETED',
-    activeGameType,
-    winnerPlayerId: winner.id,
+    activeGameType: input.activeGameType,
+    winnerPlayerId: winner ? winner.id : input.humanPlayerId,
     isHumanWinner: isPlayerWin,
-    winners: engine.winners,
-    allPlayers: engine.players,
-    payouts: settlement.payouts,
+    winners: [...input.winners],
+    allPlayers: [...input.allPlayers],
+    payouts: { ...input.payouts },
     humanNetCoins: humanNetEarned,
     totalHumanCoins: nextCoins,
-    betAmount: engine.rules.table.betAmount,
-    isThreeSpadesWin: engine.isThreeSpadesWin,
-    playerCount: engine.players.length,
+    betAmount: input.betAmount,
+    isThreeSpadesWin: input.isThreeSpadesWin,
+    playerCount: input.allPlayers.length,
     congsGivenCount,
     cascadeChopCount: 0,
     loanDeduction: loanSettlement.loanDeduction,
-    instantWinType: resolvedInstantWinType
+    instantWinType: input.instantWinType
   };
 
-  // Phát sự kiện MATCH_COMPLETED tới Observer âm thanh và toàn bộ hệ thống
   GameEventBus.getInstance().emit(matchCompletedEvent);
 
-  // Hệ thống ngoài rìa (Quests & Achievements) chỉ nhận event DTO để đánh giá tiến độ
   const finalQuests = evaluateDailyQuests([matchCompletedEvent], updatedProfile.dailyQuests, updatedProfile);
   const finalAchievements = evaluateAchievements([matchCompletedEvent], updatedProfile.achievements, updatedProfile);
 
@@ -271,6 +204,190 @@ export function settleCompletedMatch(engine: GameEngine, driver?: OfflineMatchDr
 
   userStore.setProfile(updatedProfile);
   savePlayerProfile(updatedProfile);
+
+  return { updatedProfile, matchCompletedEvent, loanSettlement };
+}
+
+/**
+ * Service kết toán trận đấu trực tiếp (Direct Domain Service)
+ * Hoàn toàn không qua Event Bus hay React Hook lifecycle
+ */
+export function settleCompletedMatch(engine: GameEngine, driver?: OfflineMatchDriver): void {
+  const gameStore = useGameStore.getState();
+  const userStore = useUserStore.getState();
+  const viewStore = useViewStore.getState();
+
+  gameStore.setIsGameOver(true);
+
+  const resolvedInstantWinType = engine.instantWinType;
+  gameStore.setInstantWinType(resolvedInstantWinType ?? undefined);
+
+  const humanPlayer = engine.players.find(p => p.id === gameStore.myPlayerId);
+  if (!humanPlayer) {
+    throw new Error(`[MatchSettlementService] Không tìm thấy player với id="${gameStore.myPlayerId}" trong danh sách bàn đấu khi kết toán!`);
+  }
+  const humanPlayerId = humanPlayer.id;
+
+  const winner = engine.winners[0];
+  if (!winner) {
+    throw new Error('[MatchSettlementService] Không thể kết toán khi engine.winners rỗng!');
+  }
+  const isPlayerWin = winner.id === humanPlayerId;
+  // Thu thập dữ liệu toàn bàn đấu: Lượt chặt Heo/Hàng từ MatchLogger
+  const turns = MatchLogger.getInstance().getTurns();
+  const chopsByPlayer: Record<string, number> = {};
+  const gotChoppedByPlayer: Record<string, number> = {};
+  for (const t of turns) {
+    if (t.action === 'PLAY' && t.isChop) {
+      if (t.playerId) {
+        chopsByPlayer[t.playerId] = (chopsByPlayer[t.playerId] || 0) + 1;
+      }
+      if (t.choppedPlayerId) {
+        gotChoppedByPlayer[t.choppedPlayerId] = (gotChoppedByPlayer[t.choppedPlayerId] || 0) + 1;
+      }
+    }
+  }
+
+  const currentProfile = userStore.profile;
+  const isBankLoanActive = currentProfile.loans > 0;
+  const currentElo = currentProfile.elo;
+  const activeGameType = gameStore.activeGameType;
+  const currentCampaignChapter = gameStore.currentCampaignChapter;
+  const effectiveMode = engine.rules.settlementRule;
+  const strategy = resolveStrategyForMatch(activeGameType, effectiveMode);
+
+  // Thu thập điểm Elo và Streak cho tất cả người chơi tại bàn
+  const onlineRoom = activeGameType === 'ONLINE' ? useOnlineStore.getState().roomState : null;
+  const playerElos: Record<string, number> = {
+    [humanPlayerId]: currentElo
+  };
+  for (const p of engine.players) {
+    if (p.id !== humanPlayerId) {
+      const roomPlayer = onlineRoom?.players.find(op => op.playerId === p.id);
+      if (roomPlayer && roomPlayer.elo) {
+        playerElos[p.id] = roomPlayer.elo;
+      } else if (p.botPersonaId) {
+        playerElos[p.id] = getBotConfig(p.botPersonaId).elo ?? 1000;
+      } else {
+        playerElos[p.id] = 1000;
+      }
+    }
+  }
+
+  const streaksByPlayer: Record<string, number> = {
+    [humanPlayerId]: currentProfile.stats.currentStreak
+  };
+
+  const settlement = strategy.settleMatch({
+    players: engine.players,
+    winners: engine.winners,
+    betAmount: engine.rules.table.betAmount,
+    subjectPlayerId: humanPlayerId,
+    playerElos,
+    chopsByPlayer,
+    gotChoppedByPlayer,
+    streaksByPlayer,
+    isBankLoanActive,
+    campaignReward: currentCampaignChapter?.rewardCoins,
+    penaltyMultiplier: engine.rules.chopping.multiplier || 1,
+    congMultiplier: engine.rules.cong.multiplier || 1,
+    isThreeSpadesWin: engine.isThreeSpadesWin,
+    isInstantWin: !!engine.instantWinner
+  });
+
+  // Chốt chặn bất biến kinh tế: Tổng tiền thắng + thua = 0
+  assertEconomicBalance(settlement.payouts);
+
+  gameStore.setIsThreeSpadesWin(engine.isThreeSpadesWin);
+  gameStore.setMatchPayouts(settlement.payouts);
+  gameStore.setLastEloDelta(settlement.eloDelta);
+  gameStore.setLastEloBreakdown(settlement.eloBreakdown ?? null);
+  gameStore.setAllEloDeltas(settlement.allEloDeltas ?? {});
+
+  if (driver) {
+    driver.setSettlementResult(settlement.payouts, settlement.allEloDeltas ?? {});
+  }
+
+  const session = getActiveMatchSession();
+  const heldDeposit = session ? session.depositAmount : 0;
+  clearActiveMatchSession();
+
+  const congsGivenCount = isPlayerWin ? engine.players.filter(p => p.id !== humanPlayerId && p.hand.length === 13).length : 0;
+  const baseSettlementInput = {
+    humanPlayerId,
+    payouts: settlement.payouts,
+    eloDeltas: settlement.allEloDeltas ?? {},
+    eloDelta: settlement.eloDelta,
+    isVictoryModalRanked: settlement.isVictoryModalRanked,
+    winners: engine.winners,
+    allPlayers: engine.players,
+    betAmount: engine.rules.table.betAmount,
+    isThreeSpadesWin: engine.isThreeSpadesWin,
+    instantWinType: resolvedInstantWinType,
+    heldDeposit,
+    congsGivenCount
+  };
+
+  const settlementInput: AuthoritativeSettlementInput = (activeGameType === 'CAMPAIGN' && currentCampaignChapter)
+    ? {
+        ...baseSettlementInput,
+        activeGameType: 'CAMPAIGN',
+        campaignChapter: currentCampaignChapter
+      }
+    : {
+        ...baseSettlementInput,
+        activeGameType: activeGameType === 'ONLINE' ? 'ONLINE' : 'QUICK'
+      };
+
+  const { updatedProfile, loanSettlement } = applyAuthoritativeSettlementToProfile(settlementInput);
+  gameStore.setLoanDeductionAmount(loanSettlement.loanDeduction);
+
+  const basePerspectiveParams = {
+    subjectPlayerId: humanPlayerId,
+    allPlayers: engine.players,
+    winners: engine.winners,
+    payouts: settlement.payouts,
+    eloDeltas: settlement.allEloDeltas ?? {},
+    subjectEloDelta: settlement.eloDelta,
+    subjectEloBreakdown: settlement.eloBreakdown ?? null,
+    loanDeduction: loanSettlement.loanDeduction,
+    isThreeSpadesWin: engine.isThreeSpadesWin,
+    instantWinType: resolvedInstantWinType,
+    betAmount: engine.rules.table.betAmount,
+    subjectCoins: updatedProfile.coins
+  };
+
+  const perspectiveParams: CreatePerspectiveSettlementParams = (activeGameType === 'CAMPAIGN' && currentCampaignChapter)
+    ? {
+        ...basePerspectiveParams,
+        activeGameType: 'CAMPAIGN',
+        campaignChapter: currentCampaignChapter,
+        campaignResultMeta: gameStore.campaignResultMeta
+      }
+    : {
+        ...basePerspectiveParams,
+        activeGameType: activeGameType === 'ONLINE' ? 'ONLINE' : 'QUICK'
+      };
+
+  const perspectiveSettlement = createPerspectiveSettlement(perspectiveParams);
+  gameStore.setPerspectiveSettlement(perspectiveSettlement);
+
+  const lastMove = engine.currentRound.moves[engine.currentRound.moves.length - 1] ?? null;
+  const winningMove = lastMove ?? engine.getLeadingMove() ?? null;
+  const gameOverState: GameOverMatchState = {
+    status: 'GAME_OVER',
+    gameNumber: engine.gameNumber,
+    players: engine.players.map(p => ({ ...p })),
+    winners: [...engine.winners],
+    winningMove,
+    isThreeSpadesWin: engine.isThreeSpadesWin,
+    matchPayouts: settlement.payouts,
+    eloDeltas: settlement.allEloDeltas ?? {},
+    settlement: perspectiveSettlement,
+    matchLogReport: null,
+    rules: engine.rules
+  };
+  gameStore.setMatchState(gameOverState);
 
   const matchReport = MatchLogger.getInstance().finalizeMatch({
     players: engine.players,
@@ -291,17 +408,24 @@ export function settleCompletedMatch(engine: GameEngine, driver?: OfflineMatchDr
     const congsGiven = isWinner
       ? engine.players.filter(pl => pl.id !== p.id && pl.hand.length === 13).length
       : 0;
-    dbUpdatePlayerMatchResult(p.id, {
-      deltaCoins,
-      deltaElo,
-      isWin: isWinner,
-      chopsDone: chopsByPlayer[p.id] || 0,
-      congsGiven
-    }).catch(() => {});
+    dbUpdatePlayerMatchResult(
+      p.id,
+      {
+        deltaCoins,
+        deltaElo,
+        isWin: isWinner,
+        chopsDone: chopsByPlayer[p.id] || 0,
+        congsGiven
+      },
+      {
+        name: p.name,
+        avatar: p.avatar
+      }
+    ).catch(() => {});
   }
 
-  // Cập nhật hệ sinh thái 200 Bot nếu không phải Campaign
-  if (activeGameType !== 'CAMPAIGN') {
+  // Cập nhật hệ sinh thái 200 Bot nếu không phải Campaign và không phải Online
+  if (activeGameType !== 'CAMPAIGN' && activeGameType !== 'ONLINE') {
     const totalPlayers = engine.players.length;
     const humanRank = isPlayerWin ? 1 : (engine.winners.findIndex(w => w.id === humanPlayerId) + 1 || totalPlayers);
     const botResults = engine.players
@@ -362,9 +486,11 @@ export function settleCompletedMatch(engine: GameEngine, driver?: OfflineMatchDr
 
     useEcosystemStore.getState().settleMatchEcosystem({
       humanRank,
-      betAmount: engine.settings.betAmount,
+      betAmount: engine.rules.table.betAmount,
       botResults
     });
+  } else if (activeGameType === 'ONLINE') {
+    gameStore.setAllEloDeltas(settlement.allEloDeltas ?? {});
   } else {
     gameStore.setAllEloDeltas({});
   }

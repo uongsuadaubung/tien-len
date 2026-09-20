@@ -4,6 +4,11 @@ import { useGameStore } from '../../src/stores/useGameStore';
 import { useViewStore } from '../../src/stores/useViewStore';
 import { useUserStore } from '../../src/stores/useUserStore';
 import { useMatchmakingStore } from '../../src/stores/useMatchmakingStore';
+import { GameRulesBuilder, type GameSettings, type TableRulesBuilder } from '../../src/engine/types';
+import { assertValidMatchStartup } from '../../src/engine/invariants/match-invariants';
+import { createPlayer } from '../../src/engine/player-factory';
+import { createPerspectiveSettlement } from '../../src/engine/settlement/perspective-settlement';
+import type { GameOverMatchState } from '../../src/engine/state-machine/types';
 
 describe('AppFlowCoordinator Unit Tests (Kiểm Thử Cổng Điều Phối Chuyển Cảnh Tập Trung)', () => {
   beforeEach(() => {
@@ -133,24 +138,16 @@ describe('AppFlowCoordinator Unit Tests (Kiểm Thử Cổng Điều Phối Chuy
     });
 
     const rules = new GameRulesBuilder()
-      .withTable((t: any) => t.betAmount(5000).playerCount(4))
+      .withTable((t: TableRulesBuilder) => t.betAmount(5000).playerCount(4))
       .build();
 
-    const settings = {
+    const settings: GameSettings = {
       mode: 'COUNT_CARDS',
       betAmount: 5000,
-      soundEnabled: true,
-      musicEnabled: true,
-      gameSpeed: 'REALISTIC',
-      deckType: 'standard',
-      autoSort: true,
-      autoSortOrder: 'asc',
-      autoSortSuit: true,
-      hintsEnabled: true,
-      vibrationEnabled: true,
-      cardBack: 'classic',
-      theme: 'classic',
       playerCount: 4,
+      allowFourPairsCutAnytime: true,
+      instantWinEnabled: true,
+      soundEnabled: true,
       prohibitEndingWithTwo: true,
       threeSpadesEndingBonus: true,
       cascadeChopEnabled: true
@@ -159,7 +156,7 @@ describe('AppFlowCoordinator Unit Tests (Kiểm Thử Cổng Điều Phối Chuy
     appFlowCoordinator.startTable({
       gameType: 'QUICK',
       rules,
-      settings: settings as any,
+      settings,
       playerCount: 4,
       botPersonaIds: ['BOT_ELO_850', 'BOT_ELO_1150', 'BOT_ELO_1450'],
       customBotConfigs: [{}, {}, {}],
@@ -191,17 +188,40 @@ describe('AppFlowCoordinator Unit Tests (Kiểm Thử Cổng Điều Phối Chuy
     useGameStore.getState().setMatchPayouts(dummyPayouts);
     expect(useGameStore.getState().matchPayouts).toEqual(dummyPayouts);
 
-    // Giả lập driver hoặc timer trễ kích hoạt applyMatchState với GameOverMatchState rỗng (như khi chưa có settlement)
-    const emptyGameOverState = {
-      status: 'GAME_OVER' as const,
-      gameNumber: 1,
-      players: [],
-      winners: [],
-      isThreeSpadesWin: false,
-      matchPayouts: {}, // Rỗng từ driver
+    // Giả lập driver hoặc timer trễ kích hoạt applyMatchState với GameOverMatchState
+    const dummyPlayers = [
+      createPlayer({ id: 'user_1', name: 'User', hand: [] }),
+      createPlayer({ id: 'bot_1', name: 'Bot 1', hand: [] }),
+      createPlayer({ id: 'bot_2', name: 'Bot 2', hand: [] })
+    ];
+    const dummySettlement = createPerspectiveSettlement({
+      subjectPlayerId: 'user_1',
+      allPlayers: dummyPlayers,
+      winners: [dummyPlayers[0]],
+      payouts: dummyPayouts,
       eloDeltas: {},
+      subjectEloDelta: 0,
+      subjectEloBreakdown: null,
+      loanDeduction: 0,
+      isThreeSpadesWin: false,
+      instantWinType: null,
+      activeGameType: 'QUICK',
+      betAmount: 1000,
+      subjectCoins: 50000
+    });
+
+    const emptyGameOverState: GameOverMatchState = {
+      status: 'GAME_OVER',
+      gameNumber: 1,
+      players: dummyPlayers,
+      winners: [dummyPlayers[0]],
+      isThreeSpadesWin: false,
+      matchPayouts: dummyPayouts,
+      winningMove: null,
+      eloDeltas: {},
+      settlement: dummySettlement,
       matchLogReport: null,
-      rules: {} as any
+      rules: GameRulesBuilder.traditional().build()
     };
 
     useGameStore.getState().applyMatchState(emptyGameOverState);
@@ -318,19 +338,22 @@ describe('AppFlowCoordinator Unit Tests (Kiểm Thử Cổng Điều Phối Chuy
   });
 
   it('11. assertValidMatchStartup: Bắt lỗi Fail-fast nếu rules và settings lệch pha nhau', () => {
-    const { GameRulesBuilder } = require('../../src/engine/types');
-    const { assertValidMatchStartup } = require('../../src/engine/invariants/match-invariants');
 
     const rules = new GameRulesBuilder()
-      .withGameFlow((f: any) => f.prohibitEndingWithTwo(false))
-      .withTable((t: any) => t.betAmount(100).playerCount(4))
+      .withGameFlow(f => f.prohibitEndingWithTwo(false))
+      .withTable(t => t.betAmount(100).playerCount(4))
       .build();
 
-    const mismatchedSettings = {
+    const mismatchedSettings: GameSettings = {
       mode: 'COUNT_CARDS',
       betAmount: 100,
       playerCount: 4,
-      prohibitEndingWithTwo: true // Lệch pha với rules (false)
+      allowFourPairsCutAnytime: true,
+      instantWinEnabled: true,
+      soundEnabled: true,
+      prohibitEndingWithTwo: true, // Lệch pha với rules (false)
+      threeSpadesEndingBonus: true,
+      cascadeChopEnabled: true
     };
 
     expect(() => {
@@ -341,7 +364,7 @@ describe('AppFlowCoordinator Unit Tests (Kiểm Thử Cổng Điều Phối Chuy
         playerCount: 4,
         activeGameType: 'QUICK',
         rules,
-        settings: mismatchedSettings as any
+        settings: mismatchedSettings
       });
     }).toThrow('[State Invariant Violation]');
   });

@@ -16,6 +16,7 @@ export const UI_TIMINGS = {
   BANNER_DISPLAY_DURATION_MS: 2800, // Thời gian hiển thị Banner mở màn
   CHOP_ALERT_DURATION_MS: 2500,     // Thời gian hiển thị Thông báo chặt Heo/Hàng
 
-  // Độ trễ hiển thị Modal Chiến Thắng/Kết Quả sau khi bất kỳ ai đánh quân chốt hạ ván bài (2 giây)
-  GAME_OVER_MODAL_DELAY_MS: 2000
+  // Hạ màn ván đấu (Endgame Grace Period)
+  MATCH_END_REVEAL_DELAY_MS: 2000,   // Khoảng đệm 2s sau nước cuối để quan sát bài rơi và cập nhật HUD trước khi mở VictoryModal
+  GAME_OVER_MODAL_DELAY_MS: 2000     // Độ trễ hiển thị Modal Chiến Thắng/Kết Quả sau khi kết thúc ván (2 giây)
 } as const;

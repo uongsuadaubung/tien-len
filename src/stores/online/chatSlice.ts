@@ -13,8 +13,8 @@ export const createChatSlice: OnlineSliceCreator<ChatSlice> = (set, get) => ({
     const packet: ChatPacket = {
       id: `chat_${Date.now()}`,
       senderId: get().myPlayerId,
-      senderName: profile.name || 'Đấu Thủ',
-      senderAvatar: profile.avatar || '🤠',
+      senderName: (profile.name && !profile.name.startsWith('usr_')) ? profile.name : 'Đấu Thủ',
+      senderAvatar: (profile.avatar && profile.avatar !== '👤') ? profile.avatar : '🤠',
       message: trimmed,
       timestamp: Date.now()
     };

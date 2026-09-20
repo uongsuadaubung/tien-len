@@ -266,11 +266,13 @@ export class CardTracker {
       return false;
     }
 
-    for (let r = rank + 1; r < 15; r++) {
-      const countSeen = this.rankCountOnBoardAndHand.get(r as Rank) || 0;
-      const remainingForOpponents = 4 - countSeen;
-      if (remainingForOpponents >= 2) {
-        return false;
+    for (const r of ALL_RANKS) {
+      if (r > rank && r < 15) {
+        const countSeen = this.rankCountOnBoardAndHand.get(r) || 0;
+        const remainingForOpponents = 4 - countSeen;
+        if (remainingForOpponents >= 2) {
+          return false;
+        }
       }
     }
     return true;

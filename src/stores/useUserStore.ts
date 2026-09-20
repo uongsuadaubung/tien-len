@@ -22,14 +22,18 @@ export const useUserStore = create<UserState>((set) => ({
   profile: loadPlayerProfile(),
 
   hydrateProfile: (profile) => {
-    useGameStore.getState().setMyPlayerId(profile.id);
+    if (useGameStore.getState().activeGameType !== 'ONLINE') {
+      useGameStore.getState().setMyPlayerId(profile.id);
+    }
     set({ profile });
   },
 
   setProfile: (profileOrUpdater) => set((state) => {
     const next = typeof profileOrUpdater === 'function' ? profileOrUpdater(state.profile) : profileOrUpdater;
     savePlayerProfile(next);
-    useGameStore.getState().setMyPlayerId(next.id);
+    if (useGameStore.getState().activeGameType !== 'ONLINE') {
+      useGameStore.getState().setMyPlayerId(next.id);
+    }
     return { profile: next };
   }),
 

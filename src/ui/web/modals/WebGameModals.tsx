@@ -1,12 +1,12 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { useViewStore } from '../../../stores/useViewStore';
-import { useGameStore, type CampaignResultMeta } from '../../../stores/useGameStore';
+import { useGameStore } from '../../../stores/useGameStore';
 import { QuestsModal } from './QuestsModal';
 import { LuckyWheelModal } from './LuckyWheelModal';
 import { BankruptcyModal } from './BankruptcyModal';
 import { CampaignMapModal } from './CampaignMapModal';
-import { CustomGameModal, CustomGameModalConfig } from './CustomGameModal';
-import { QuickSetupModal, QuickSetupConfig } from './QuickSetupModal';
+import { CustomGameModal } from './CustomGameModal';
+import { QuickSetupModal } from './QuickSetupModal';
 import { SettingsModal } from './SettingsModal';
 import { XRayInspector } from './XRayInspector';
 import { VictoryModal } from './VictoryModal';
@@ -20,7 +20,6 @@ import { MatchmakingModal } from './MatchmakingModal';
 import { SyncConflictModal } from './SyncConflictModal';
 import { OnlineRoomModal } from './OnlineRoomModal';
 import { OnlineDisbandModal } from '../../components/OnlineDisbandModal';
-import { CampaignChapter } from '../../../engine/campaign';
 import { useGameSetupConfigs } from '../../hooks/useGameSetupConfigs';
 import { useMatchmakingStore } from '../../../stores/useMatchmakingStore';
 import type { WebGameModalsProps } from '../../types';
@@ -128,13 +127,15 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
       )}
 
       {/* 9. Victory Modal */}
-      <VictoryModal
-        isOpen={isVictoryOpen}
-        onNextGame={onNextGame}
-        onReturnToLobby={onReturnToLobby}
-        onOpenCampaignMap={onOpenCampaignMap || (() => { closeModal('VICTORY'); openModal('CAMPAIGN'); })}
-        campaignResultMeta={campaignResultMeta}
-      />
+      {isVictoryOpen && (
+        <VictoryModal
+          isOpen={isVictoryOpen}
+          onNextGame={onNextGame}
+          onReturnToLobby={onReturnToLobby}
+          onOpenCampaignMap={onOpenCampaignMap || (() => { closeModal('VICTORY'); openModal('CAMPAIGN'); })}
+          campaignResultMeta={campaignResultMeta}
+        />
+      )}
 
       {/* 10. Confirm Forfeit Modal */}
       {activeModal?.type === 'CONFIRM_FORFEIT' && (

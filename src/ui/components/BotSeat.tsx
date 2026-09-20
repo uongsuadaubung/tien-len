@@ -4,6 +4,7 @@ import { BotConfig } from '../../ai/types';
 import { createCampaignBotEntity } from '../../engine/campaign';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { useViewStore } from '../../stores/useViewStore';
+import { useGameStore } from '../../stores/useGameStore';
 import { useI18n } from '../../locales';
 
 interface BotSeatProps {
@@ -30,6 +31,9 @@ export const BotSeat: React.FC<BotSeatProps> = ({
   size = 'normal'
 }) => {
   const { t } = useI18n();
+  const winners = useGameStore(state => state.winners);
+  const rankIndex = winners.findIndex(w => w.id === player.id);
+  const rankPosition = rankIndex >= 0 ? rankIndex + 1 : 0;
 
   const isCompact = size === 'compact';
 
@@ -55,7 +59,7 @@ export const BotSeat: React.FC<BotSeatProps> = ({
         className="relative flex items-center z-20 select-none"
       >
         {/* Bong bóng suy nghĩ động (Thought Bubble) */}
-        {isCurrentTurn && !player.isPassedCurrentRound && !player.rankPosition && thoughtText && (
+        {isCurrentTurn && !player.isPassedCurrentRound && rankPosition === 0 && thoughtText && (
           <div className="absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#121826] text-[#f3e5ab] text-[8px] font-black px-2 py-0.2 rounded-full border border-[#d4af37] shadow-xl animate-pulse flex items-center gap-1 z-30 pointer-events-none">
             <span>{thoughtText}</span>
           </div>
@@ -87,9 +91,9 @@ export const BotSeat: React.FC<BotSeatProps> = ({
                 </div>
               )}
 
-              {player.rankPosition && (
+              {rankPosition > 0 && (
                 <div className="absolute -bottom-1 -right-1 text-[7px] font-black px-1 rounded-full bg-amber-500 text-black shadow">
-                  {player.rankPosition === 1 ? '🥇' : player.rankPosition === 2 ? '🥈' : player.rankPosition === 3 ? '🥉' : '💥'}
+                  {rankPosition === 1 ? '🥇' : rankPosition === 2 ? '🥈' : rankPosition === 3 ? '🥉' : '💥'}
                 </div>
               )}
             </div>
@@ -102,9 +106,9 @@ export const BotSeat: React.FC<BotSeatProps> = ({
 
               {player.isPassedCurrentRound ? (
                 <span className="text-[8px] font-black text-rose-400">{t('bot.passed')}</span>
-              ) : player.rankPosition ? (
+              ) : rankPosition > 0 ? (
                 <span className="text-[8px] font-black text-amber-400">
-                  {player.rankPosition === 1 ? t('victory.rank1') : player.rankPosition === 2 ? t('victory.rank2') : player.rankPosition === 3 ? t('victory.rank3') : t('victory.rank4')}
+                  {rankPosition === 1 ? t('victory.rank1') : rankPosition === 2 ? t('victory.rank2') : rankPosition === 3 ? t('victory.rank3') : t('victory.rank4')}
                 </span>
               ) : cardCount > 0 ? (
                 <span className={`text-[8px] font-extrabold px-1 rounded text-center leading-tight mt-0.5 ${
@@ -119,7 +123,7 @@ export const BotSeat: React.FC<BotSeatProps> = ({
           </div>
 
           {/* DÃY BÀI ÚP PREVIEW XÒE QUẠT NẰM NGANG VỚI AVATAR */}
-          {cardCount > 0 && !player.rankPosition && (
+          {cardCount > 0 && rankPosition === 0 && (
             <div
               className={`flex items-center -space-x-2.5 sm:-space-x-3 pointer-events-none transition-transform px-0.5 ${
                 isCurrentTurn ? 'scale-105 drop-shadow-[0_0_6px_rgba(212,175,55,0.4)]' : ''
@@ -154,7 +158,7 @@ export const BotSeat: React.FC<BotSeatProps> = ({
       className="relative flex flex-col items-center justify-center z-20 select-none"
     >
       {/* Bong bóng suy nghĩ động (Thought Bubble) - Nền đặc không glass */}
-      {isCurrentTurn && !player.isPassedCurrentRound && !player.rankPosition && thoughtText && (
+      {isCurrentTurn && !player.isPassedCurrentRound && rankPosition === 0 && thoughtText && (
         <div className={`absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#121826] text-[#f3e5ab] text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full border border-[#d4af37] shadow-xl animate-pulse flex items-center gap-1 z-30 pointer-events-none`}>
           <span>{thoughtText}</span>
         </div>
@@ -196,21 +200,21 @@ export const BotSeat: React.FC<BotSeatProps> = ({
         )}
 
         {/* Thứ hạng Nhất/Nhì/Ba/Bét nếu đã hết bài */}
-        {player.rankPosition && (
+        {rankPosition > 0 && (
           <div
             className={`
               absolute -bottom-1.5 -right-1.5 text-[9px] font-black px-1.5 py-0.2 rounded-full border shadow-lg
-              ${player.rankPosition === 1 ? 'bg-[#d4af37] text-[#0a0d14] border-white' : ''}
-              ${player.rankPosition === 2 ? 'bg-slate-300 text-slate-900 border-white' : ''}
-              ${player.rankPosition === 3 ? 'bg-amber-800 text-white border-amber-500' : ''}
-              ${player.rankPosition === 4 ? 'bg-slate-800 text-red-400 border-red-500' : ''}
+              ${rankPosition === 1 ? 'bg-[#d4af37] text-[#0a0d14] border-white' : ''}
+              ${rankPosition === 2 ? 'bg-slate-300 text-slate-900 border-white' : ''}
+              ${rankPosition === 3 ? 'bg-amber-800 text-white border-amber-500' : ''}
+              ${rankPosition === 4 ? 'bg-slate-800 text-red-400 border-red-500' : ''}
             `}
           >
-            {player.rankPosition === 1
+            {rankPosition === 1
               ? `🥇 ${t('victory.rank1')}`
-              : player.rankPosition === 2
+              : rankPosition === 2
               ? `🥈 ${t('victory.rank2')}`
-              : player.rankPosition === 3
+              : rankPosition === 3
               ? `🥉 ${t('victory.rank3')}`
               : t('victory.rank4')}
           </div>
@@ -218,7 +222,7 @@ export const BotSeat: React.FC<BotSeatProps> = ({
       </div>
 
       {/* MÔ PHỎNG DÃY BÀI ÚP ĐANG CẦM TRÊN TAY CỦA BOT */}
-      {cardCount > 0 && !player.rankPosition && (
+      {cardCount > 0 && rankPosition === 0 && (
         <div
           className={`bot-hand-fan ${
             isCurrentTurn ? 'scale-105 drop-shadow-[0_0_8px_rgba(212,175,55,0.4)]' : ''

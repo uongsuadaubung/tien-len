@@ -43,7 +43,7 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
   const { t } = useI18n();
   const { profile } = useUserStore();
   const ecosystemBots = useEcosystemStore(state => state.bots);
-  const { myPlayerId } = useGameStore();
+  const { myPlayerId, winners } = useGameStore();
 
   return (
     <div
@@ -88,7 +88,9 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                 const cardCount = isDealing 
                   ? (dealtCounts[p.id] ?? 0) 
                   : (p.hand && p.hand.length > 0 ? p.hand.length : (dealtCounts[p.id] ?? 0));
-                const isOneCardLeft = !isDealing && cardCount === 1 && !p.rankPosition;
+                const rankIndex = winners.findIndex(w => w.id === p.id);
+                const rankPosition = rankIndex >= 0 ? rankIndex + 1 : 0;
+                const isOneCardLeft = !isDealing && cardCount === 1 && rankPosition === 0;
                 const botIdx = parseInt(p.id.replace('p', '')) - 1;
                 const botOverride = customBotConfigs && botIdx >= 0 && botIdx < customBotConfigs.length ? customBotConfigs[botIdx] : undefined;
                 const cfg = p.isBot ? getBotConfig(p.botPersonaId || 'BOT_ELO_1150', botOverride) : null;
@@ -131,8 +133,8 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                           <div className="flex items-center gap-1 text-[9px]">
                             {p.isPassedCurrentRound ? (
                               <span className="text-red-400 font-bold">{t('hud.turnPassed')}</span>
-                            ) : p.rankPosition ? (
-                              <span className="text-[var(--color-gold)] font-bold">{t('hud.rankBadge', { rank: p.rankPosition })}</span>
+                            ) : rankPosition > 0 ? (
+                              <span className="text-[var(--color-gold)] font-bold">{t('hud.rankBadge', { rank: rankPosition })}</span>
                             ) : isTurn ? (
                               <span className="text-[var(--color-gold)] font-bold">{t('hud.turnPlaying')}</span>
                             ) : (
@@ -145,8 +147,8 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
 
                     {/* Cột 2: Số lá bài còn lại */}
                     <td className="py-2 px-2 text-center border-r border-[var(--border-container)] font-mono">
-                      {p.rankPosition ? (
-                        <Badge variant="gold" size="sm">#{p.rankPosition}</Badge>
+                      {rankPosition > 0 ? (
+                        <Badge variant="gold" size="sm">#{rankPosition}</Badge>
                       ) : isOneCardLeft ? (
                         <span className="bg-red-600 text-white font-bold px-1.5 py-0.5 rounded text-[10px] animate-pulse">
                           {t('hud.oneCardAlert')}

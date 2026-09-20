@@ -168,10 +168,25 @@ describe('WebRTC P2P Public Lobby Discovery & Room Browser Tests', () => {
       isPublic: true
     });
 
+    const room = useOnlineStore.getState().roomState;
+    if (room) {
+      useOnlineStore.setState({
+        roomState: {
+          ...room,
+          players: [
+            ...room.players,
+            { peerId: 'p2', playerId: 'p2', name: 'Player 2', avatar: '🤠', elo: 1000, coins: 50000, isHost: false, isReady: true, isBot: false },
+            { peerId: 'p3', playerId: 'p3', name: 'Player 3', avatar: '🤠', elo: 1000, coins: 50000, isHost: false, isReady: true, isBot: false },
+            { peerId: 'p4', playerId: 'p4', name: 'Player 4', avatar: '🤠', elo: 1000, coins: 50000, isHost: false, isReady: true, isBot: false }
+          ]
+        }
+      });
+    }
+
     // Bắt đầu trận đấu
     useOnlineStore.getState().startMatch();
     const status = useOnlineStore.getState().roomState?.status;
-    expect(['PLAYING', 'ENDED']).toContain(status as any);
+    expect(status === 'PLAYING' || status === 'ENDED').toBe(true);
 
     // Rời phòng
     useOnlineStore.getState().leaveRoom();

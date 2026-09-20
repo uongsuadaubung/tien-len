@@ -37,7 +37,7 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
   const { t } = useI18n();
   const { profile } = useUserStore();
   const ecosystemBots = useEcosystemStore(state => state.bots);
-  const { myPlayerId } = useGameStore();
+  const { myPlayerId, winners } = useGameStore();
 
   if (!isOpen) return null;
 
@@ -89,7 +89,9 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
                 const cardCount = isDealing 
                   ? (dealtCounts[p.id] ?? 0) 
                   : (p.hand?.length ?? 0);
-                const isOneCardLeft = !isDealing && cardCount === 1 && !p.rankPosition;
+                const rankIndex = winners.findIndex(w => w.id === p.id);
+                const rankPosition = rankIndex >= 0 ? rankIndex + 1 : 0;
+                const isOneCardLeft = !isDealing && cardCount === 1 && rankPosition === 0;
                 const botIdx = parseInt(p.id.replace('p', '')) - 1;
                 const botOverride =
                   customBotConfigs && botIdx >= 0 && botIdx < customBotConfigs.length
@@ -136,8 +138,8 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
                           <span className="text-[9px] text-zinc-400 font-medium leading-tight">
                             {p.isPassedCurrentRound ? (
                               <span className="text-rose-400 font-bold">{t('hud.turnPassed')}</span>
-                            ) : p.rankPosition ? (
-                              <span className="text-amber-400 font-bold">{t('hud.rankBadge', { rank: p.rankPosition })}</span>
+                            ) : rankPosition > 0 ? (
+                              <span className="text-amber-400 font-bold">{t('hud.rankBadge', { rank: rankPosition })}</span>
                             ) : isTurn ? (
                               <span className="text-amber-300 font-bold">{t('hud.turnPlaying')}</span>
                             ) : (
@@ -150,9 +152,9 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
 
                     {/* Số lá bài */}
                     <td className="py-1.5 px-2 text-center border-r border-[#2a3449] font-mono">
-                      {p.rankPosition ? (
+                      {rankPosition > 0 ? (
                         <Badge variant="gold" size="sm">
-                          #{p.rankPosition}
+                          #{rankPosition}
                         </Badge>
                       ) : isOneCardLeft ? (
                         <span className="bg-red-600 text-white font-bold px-1 py-0.2 rounded text-[9px] animate-pulse">

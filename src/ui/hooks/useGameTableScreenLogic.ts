@@ -1,4 +1,4 @@
-import { useMemo, useCallback, useEffect } from 'react';
+import { useMemo, useCallback } from 'react';
 import { isValidMove } from '../../engine/validator';
 import { evaluateSelectionFeedback, MoveHint } from '../../ai/hint-engine';
 import { CardTracker } from '../../ai/card-tracker';
@@ -11,6 +11,7 @@ import { soundManager } from '../audio/sound-manager';
 import { Player, Card, PlayedMove } from '../../engine/types';
 import { BotConfig } from '../../ai/types';
 import type { ChopNotificationInfo, BotThinkingInfo } from '../../engine/state-machine/types';
+import { computeRelativeTableSeats } from '../../engine/seating';
 
 // Stores
 import { useSettingsStore } from '../../stores/useSettingsStore';
@@ -70,7 +71,7 @@ export function useGameTableScreenLogic({
   } = useSettingsStore();
 
   const {
-    myPlayerId,
+    myPlayerId: storeMyPlayerId,
     playerCount,
     botPersonaIds,
     customBotConfigs,
@@ -83,19 +84,15 @@ export function useGameTableScreenLogic({
     dealtCounts: storeDealtCounts
   } = useGameStore();
 
+  const myPlayerId = storeMyPlayerId;
+
   // Xác định người chơi cục bộ theo perspective - Invariant Bàn Đấu
-  const myPlayerIndex = Math.max(0, players.findIndex(p => p.id === myPlayerId));
-  const localPlayer = players[myPlayerIndex] ?? players[0];
+  const foundIndex = players.findIndex(p => p.id === myPlayerId);
+  const myPlayerIndex = foundIndex !== -1 ? foundIndex : 0;
+  const localPlayer = players[myPlayerIndex];
   if (!localPlayer) {
     throw new Error('[useGameTableScreenLogic] Invariant Violated: Table must have at least 1 valid player');
   }
-
-  // Tự động đồng bộ myPlayerId với ID thực tế của localPlayer nếu phát hiện lệch pha
-  useEffect(() => {
-    if (localPlayer && localPlayer.id && myPlayerId !== localPlayer.id) {
-      useGameStore.getState().setMyPlayerId(localPlayer.id);
-    }
-  }, [localPlayer, myPlayerId]);
 
   // 1. Phân giải trạng thái theo Type State Pattern (Discriminated Unions)
   const isDealing = matchState.status === 'DEALING';
@@ -127,11 +124,20 @@ export function useGameTableScreenLogic({
   const leadPlayerId = activeTurn ? activeTurn.leadPlayerId : null;
   const isLeadMove = activeTurn ? activeTurn.isLeadMove : false;
   const isFirstMoveOfGame = activeTurn ? activeTurn.isFirstMoveOfGame : false;
-  const currentMove = matchState.status === 'PLAYING'
-    ? matchState.leadingMove
-    : (matchState.status === 'GAME_OVER' ? (matchState.leadingMove ?? null) : null);
-  const chopNotification = matchState.status === 'PLAYING'
-    ? matchState.chopNotification
+  const currentMove = useMemo(() => {
+    if (matchState.status === 'PLAYING') {
+      return matchState.leadingMove;
+    }
+    if (matchState.status === 'GAME_OVER') {
+      return matchState.winningMove ?? matchState.leadingMove ?? null;
+    }
+    if (matchState.status === 'ROUND_ENDED') {
+      return matchState.lastRoundMoves[matchState.lastRoundMoves.length - 1] ?? null;
+    }
+    return null;
+  }, [matchState]);
+  const chopNotification = activeTurn
+    ? activeTurn.chopNotification
     : (matchState.status === 'GAME_OVER' ? (matchState.chopNotification ?? null) : null);
   const botThinkingThought = activeTurn ? activeTurn.botThinkingThought : null;
 
@@ -225,14 +231,12 @@ export function useGameTableScreenLogic({
     });
   }, [localPlayer.id, localPlayer.hand]);
 
-  // Phân bổ ghế tương đối theo chiều kim đồng hồ quanh bàn
-  const isSolo1v1 = playerCount === 2;
-  const numPlayers = players.length;
-  const topBot = isSolo1v1
-    ? (numPlayers >= 2 ? players[(myPlayerIndex + 1) % numPlayers] : null)
-    : (numPlayers >= 3 ? players[(myPlayerIndex + 2) % numPlayers] : null);
-  const leftBot = isSolo1v1 ? null : (numPlayers >= 2 ? players[(myPlayerIndex + 1) % numPlayers] : null);
-  const rightBot = (!isSolo1v1 && numPlayers >= 4) ? players[(myPlayerIndex + 3) % numPlayers] : null;
+  // Phân bổ ghế tương đối theo góc nhìn (perspective) của localPlayer
+  const relativeSeats = computeRelativeTableSeats(localPlayer.id, players);
+  const isSolo1v1 = relativeSeats.isSolo1v1;
+  const topBot = relativeSeats.topPlayer;
+  const leftBot = relativeSeats.leftPlayer;
+  const rightBot = relativeSeats.rightPlayer;
 
   const topBotPersonaId = isSolo1v1 ? botPersonaIds[0] : botPersonaIds[1];
   const topBotCustomConfig = isSolo1v1 ? (customBotConfigs[0] || null) : (customBotConfigs[1] || null);

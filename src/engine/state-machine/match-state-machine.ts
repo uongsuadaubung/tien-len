@@ -111,7 +111,7 @@ export function mapMatchStateToSnapshot(state: MatchState): MatchSnapshot {
         players: [...state.players],
         currentTurnPlayerId: null,
         leadPlayerId: null,
-        currentMove: state.leadingMove ? { ...state.leadingMove } : null,
+        currentMove: state.winningMove ?? (state.leadingMove ? { ...state.leadingMove } : null),
         winners: [...state.winners],
         isGameOver: true,
         instantWinType: null,

@@ -71,9 +71,7 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
       avatar: '🤠',
       isBot: false,
       isPassedCurrentRound: false,
-      hasPlayedFirstCard: false,
-      rankPosition: null,
-      instantWinType: null
+      hasPlayedFirstCard: false
     };
 
     // Khi reverseButtons = false (Mặc định):
@@ -94,7 +92,7 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
         canPass={true}
         isLeader={false}
         isDealing={false}
-        dealtCardsCount={null}
+        dealtCardsCount={0}
         isFirstMoveOfGame={false}
         sortMode="NATURAL"
         variantIndex={0}
@@ -121,7 +119,7 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
         canPass={true}
         isLeader={false}
         isDealing={false}
-        dealtCardsCount={null}
+        dealtCardsCount={0}
         isFirstMoveOfGame={false}
         sortMode="NATURAL"
         variantIndex={0}
@@ -136,8 +134,9 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
 
     expect(htmlReversed).toContain('flex-row-reverse');
 
-    // Kiểm tra khi đọc từ useSettingsStore tự động
+    // Kiểm tra khi đọc từ useSettingsStore và truyền vào props
     useSettingsStore.getState().setReverseButtonsEnabled(true);
+    const storeState = useSettingsStore.getState();
     const htmlFromStoreReversed = renderToString(
       <PlayerHandView
         player={mockPlayer}
@@ -155,11 +154,12 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
         canPass={true}
         isLeader={false}
         isDealing={false}
-        dealtCardsCount={null}
+        dealtCardsCount={0}
         isFirstMoveOfGame={false}
         sortMode="NATURAL"
         variantIndex={0}
         cardSize="md"
+        reverseButtons={storeState.reverseButtonsEnabled}
       />
     );
     expect(htmlFromStoreReversed).toContain('flex-row-reverse');

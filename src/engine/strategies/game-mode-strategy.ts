@@ -104,8 +104,8 @@ function buildInitialPlayers(
   const players: Player[] = [
     createPlayer({
       id: profile.id,
-      name: profile.name || 'Bạn (Người Chơi)',
-      avatar: profile.avatar || '🤠',
+      name: (profile.name && !profile.name.startsWith('usr_')) ? profile.name : 'Bạn (Người Chơi)',
+      avatar: (profile.avatar && profile.avatar !== '👤') ? profile.avatar : '🤠',
       score: profile.coins
     })
   ];
@@ -225,24 +225,28 @@ export function resolveMatchRulesAndSettings(
       }
     });
 
-    const candidateSettings: GameSettings = (context.settings || context.customSettings) as GameSettings || {
-      mode: parsedRules.settlementRule,
-      betAmount: parsedRules.table.betAmount,
-      playerCount: parsedRules.table.playerCount,
-      allowFourPairsCutAnytime: parsedRules.chopping.allowFourPairsCutAnytime,
-      instantWinEnabled: parsedRules.instantWin.enabled,
-      soundEnabled: parsedRules.table.soundEnabled,
-      prohibitEndingWithTwo: parsedRules.gameFlow.prohibitEndingWithTwo,
-      threeSpadesEndingBonus: parsedRules.gameFlow.threeSpadesEndingBonus,
-      cascadeChopEnabled: parsedRules.chopping.cascadeMultiplier
-    };
+    const rawSettingsInput = context.settings || context.customSettings;
+    const parsedCustomSettings = rawSettingsInput ? GameSettingsSchema.safeParse(rawSettingsInput) : null;
+    const candidateSettings: GameSettings = (parsedCustomSettings && parsedCustomSettings.success)
+      ? parsedCustomSettings.data
+      : {
+          mode: parsedRules.settlementRule,
+          betAmount: parsedRules.table.betAmount,
+          playerCount: parsedRules.table.playerCount,
+          allowFourPairsCutAnytime: parsedRules.chopping.allowFourPairsCutAnytime,
+          instantWinEnabled: parsedRules.instantWin.enabled,
+          soundEnabled: parsedRules.table.soundEnabled,
+          prohibitEndingWithTwo: parsedRules.gameFlow.prohibitEndingWithTwo,
+          threeSpadesEndingBonus: parsedRules.gameFlow.threeSpadesEndingBonus,
+          cascadeChopEnabled: parsedRules.chopping.cascadeMultiplier
+        };
 
     assertValidRulesAndSettings(parsedRules, candidateSettings);
     return { rules: parsedRules, settings: candidateSettings };
   }
 
   // 2. Nếu context có settings (hoặc cần khởi tạo từ settings): Xác thực qua Zod Schema đảm bảo dữ liệu non-nullable
-  const rawSettings = (context.settings || context.customSettings || {}) as Partial<GameSettings>;
+  const rawSettings = context.settings || context.customSettings || {};
   const validatedSettings = GameSettingsSchema.parse({
     ...rawSettings,
     mode: rawSettings.mode || defaultMode,
@@ -428,24 +432,30 @@ export class CampaignModeStrategy implements GameModeStrategy {
     const chapter = context.campaignChapter;
     const betAmount = chapter ? chapter.betAmount : (context.rules?.table.betAmount ?? 100);
 
-    const rules = (context.rules || context.customRules) as GameRules || GameRulesBuilder.countCards()
-      .withTable(t => t
-        .playerCount(4)
-        .betAmount(betAmount)
-      )
-      .build();
+    const parsedRulesResult = (context.rules || context.customRules) ? GameRulesSchema.safeParse(context.rules || context.customRules) : null;
+    const rules: GameRules = (parsedRulesResult && parsedRulesResult.success)
+      ? parsedRulesResult.data
+      : GameRulesBuilder.countCards()
+          .withTable(t => t
+            .playerCount(4)
+            .betAmount(betAmount)
+          )
+          .build();
 
-    const settings: GameSettings = (context.settings || context.customSettings) as GameSettings || {
-      mode: 'COUNT_CARDS',
-      betAmount,
-      playerCount: 4,
-      allowFourPairsCutAnytime: true,
-      instantWinEnabled: true,
-      soundEnabled: true,
-      prohibitEndingWithTwo: true,
-      threeSpadesEndingBonus: true,
-      cascadeChopEnabled: true
-    };
+    const parsedSettingsResult = (context.settings || context.customSettings) ? GameSettingsSchema.safeParse(context.settings || context.customSettings) : null;
+    const settings: GameSettings = (parsedSettingsResult && parsedSettingsResult.success)
+      ? parsedSettingsResult.data
+      : {
+          mode: 'COUNT_CARDS',
+          betAmount,
+          playerCount: 4,
+          allowFourPairsCutAnytime: true,
+          instantWinEnabled: true,
+          soundEnabled: true,
+          prohibitEndingWithTwo: true,
+          threeSpadesEndingBonus: true,
+          cascadeChopEnabled: true
+        };
 
     assertValidRulesAndSettings(rules, settings);
 

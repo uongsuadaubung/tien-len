@@ -20,12 +20,13 @@ import {
   type GameFlowRulesBuilder,
   type TableRulesBuilder
 } from '../../engine/types';
-import { type PlayerProfile, savePlayerProfile, loadPlayerProfile } from '../../engine/storage';
-import { createPlayer, createBotPlayer } from '../../engine/player-factory';
-import { type MatchCompletedEvent } from '../../engine/events/game-event-bus';
-import { evaluateDailyQuests, evaluateAchievements } from '../../engine/evaluators/progress-evaluators';
+import { loadPlayerProfile } from '../../engine/storage';
+import { createPlayer } from '../../engine/player-factory';
+import { applyAuthoritativeSettlementToProfile } from '../../services/match-settlement-service';
+import { createPerspectiveSettlement } from '../../engine/settlement/perspective-settlement';
 import { type PlayingTurnMatchState, type GameOverMatchState, createPlayingTurnMatchState } from '../../engine/state-machine/types';
 import { type RoomSlice, type OnlineSliceCreator } from './types';
+import { GuestEngineDriver } from '../../engine/network/guest-engine-driver';
 
 export function generateRoomPin(existingRooms: readonly PublicRoomSummary[] = []): string {
   const existingCodes = new Set(existingRooms.map(r => r.roomCode.toUpperCase().trim()));
@@ -155,8 +156,8 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
     const hostPlayer: OnlinePlayer = {
       peerId: selfPeerId,
       playerId: profile.id || loadPlayerProfile().id,
-      name: profile.name || 'Chủ Bàn',
-      avatar: profile.avatar || '🤠',
+      name: (profile.name && !profile.name.startsWith('usr_')) ? profile.name : 'Chủ Bàn',
+      avatar: (profile.avatar && profile.avatar !== '👤') ? profile.avatar : '🤠',
       elo: profile.elo ?? 1000,
       coins: profile.coins ?? 50000,
       isHost: true,
@@ -205,7 +206,12 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         return; // Không đủ tiền cược
       }
 
-      const assignedPlayerId = `p${current.players.length}`;
+      let assignedPlayerId = incomingPlayer.playerId && incomingPlayer.playerId.trim() !== ''
+        ? incomingPlayer.playerId
+        : `p${current.players.length}`;
+      if (current.players.some(p => p.playerId === assignedPlayerId)) {
+        assignedPlayerId = `${assignedPlayerId}_${current.players.length}`;
+      }
       const newPlayer: OnlinePlayer = {
         ...incomingPlayer,
         peerId,
@@ -221,7 +227,16 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         updatedAt: Date.now()
       };
 
-      set({ roomState: updatedState });
+      set({
+        roomState: updatedState,
+        sessionState: {
+          status: 'IN_ROOM_WAITING',
+          roomCode: updatedState.roomCode,
+          roomState: updatedState,
+          isHost: true,
+          myPlayerId: get().myPlayerId
+        }
+      });
       void globalP2PClient.broadcastRoomState(updatedState);
       syncLobbyBroadcast(updatedState);
     });
@@ -245,7 +260,16 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
           disbandReason: null,
           updatedAt: Date.now()
         };
-        set({ roomState: updatedRoom });
+        set({
+          roomState: updatedRoom,
+          sessionState: {
+            status: 'IN_ROOM_WAITING',
+            roomCode: updatedRoom.roomCode,
+            roomState: updatedRoom,
+            isHost: true,
+            myPlayerId: get().myPlayerId
+          }
+        });
         void globalP2PClient.broadcastRoomState(updatedRoom);
         syncLobbyBroadcast(updatedRoom);
       }
@@ -309,9 +333,9 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
 
     const candidatePlayer: OnlinePlayer = {
       peerId: globalP2PClient.selfPeerId,
-      playerId: '',
-      name: profile.name || 'Đấu Thủ',
-      avatar: profile.avatar || '🤠',
+      playerId: profile.id || loadPlayerProfile().id,
+      name: (profile.name && !profile.name.startsWith('usr_')) ? profile.name : 'Đấu Thủ',
+      avatar: (profile.avatar && profile.avatar !== '👤') ? profile.avatar : '🤠',
       elo: profile.elo ?? 1000,
       coins: profile.coins ?? 50000,
       isHost: false,
@@ -386,14 +410,19 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         useViewStore.getState().closeModal('ONLINE_ROOM');
         useViewStore.getState().closeModal('VICTORY');
 
+        if (!get().isHost && !get().guestDriver) {
+          const guestDriver = new GuestEngineDriver({
+            p2pClient: globalP2PClient,
+            myPlayerId: myId
+          });
+          set({ guestDriver });
+        }
+
         const currentPlayersMap = new Map(gameStore.players.map(p => [p.id, p]));
 
         const initialPlayers: Player[] = roomState.players.map(p => {
           const existing = currentPlayersMap.get(p.playerId);
           const hand = existing ? existing.hand : [];
-          if (p.isBot) {
-            return createBotPlayer(p.playerId, 'BOT_ELO_1150', { name: p.name, avatar: p.avatar, score: p.coins, hand });
-          }
           return createPlayer({ id: p.playerId, name: p.name, avatar: p.avatar, score: p.coins, hand });
         });
 
@@ -464,9 +493,6 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
 
       const basePlayers = room && room.players.length > 0
         ? room.players.map(p => {
-            if (p.isBot) {
-              return createBotPlayer(p.playerId, 'BOT_ELO_1150', { name: p.name, avatar: p.avatar, score: p.coins });
-            }
             return createPlayer({ id: p.playerId, name: p.name, avatar: p.avatar, score: p.coins });
           })
         : (gameStore.players.length > 0 ? gameStore.players : [
@@ -480,6 +506,14 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         }
         return { ...p, hand: [] };
       });
+
+      if (!get().isHost && !get().guestDriver) {
+        const guestDriver = new GuestEngineDriver({
+          p2pClient: globalP2PClient,
+          myPlayerId: myId
+        });
+        set({ guestDriver });
+      }
 
       const isFirstMoveOfGame = dealPacket.isFirstMoveOfGame ?? false;
       const isLeadMove = dealPacket.isLeadMove ?? true;
@@ -542,22 +576,13 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
     globalP2PClient.onGameEnd((endPacket: GameEndPacket) => {
       set({ gameEndSummary: endPacket });
       const gameStore = useGameStore.getState();
-      const myId = get().myPlayerId;
-      const myPayout = endPacket.payouts[myId] || 0;
-      const myEloDelta = endPacket.eloDeltas[myId] || 0;
-      const isMyWin = endPacket.winners.length > 0 && endPacket.winners[0] === myId;
-
-      gameStore.setMatchPayouts(endPacket.payouts);
-      gameStore.setLastEloDelta(myEloDelta);
-      gameStore.setAllEloDeltas(endPacket.eloDeltas);
-      gameStore.setIsGameOver(true);
 
       // Tiết lộ bài tàn cuộc của đối thủ
       let updatedPlayers = gameStore.players;
       if (endPacket.allPlayerHands) {
         updatedPlayers = gameStore.players.map(p => {
           const remoteCards = endPacket.allPlayerHands[p.id];
-          if (remoteCards && p.id !== myId) {
+          if (remoteCards) {
             return {
               ...p,
               hand: remoteCards.map(c => createCard(c.rank, c.suit))
@@ -567,6 +592,27 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         });
         gameStore.setPlayers(updatedPlayers);
       }
+
+      const onlineId = get().myPlayerId;
+      const gameStoreId = gameStore.myPlayerId;
+      const myId = updatedPlayers.some(p => p.id === onlineId)
+        ? onlineId
+        : (updatedPlayers.some(p => p.id === gameStoreId) ? gameStoreId : null);
+
+      if (!myId) {
+        throw new Error(`[roomSlice:onGameEnd] Invariant violated: Local player identity (${onlineId} / ${gameStoreId}) not found among match players`);
+      }
+
+      gameStore.setMyPlayerId(myId);
+      set({ myPlayerId: myId });
+
+      const myEloDelta = endPacket.eloDeltas[myId] || 0;
+      const isMyWin = endPacket.winners.length > 0 && endPacket.winners[0] === myId;
+
+      gameStore.setMatchPayouts(endPacket.payouts);
+      gameStore.setLastEloDelta(myEloDelta);
+      gameStore.setAllEloDeltas(endPacket.eloDeltas);
+      gameStore.setIsGameOver(true);
 
       const winningPlayers = endPacket.winners.length > 0
         ? endPacket.winners
@@ -578,75 +624,61 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         gameStore.setWinners(winningPlayers);
       }
 
+      const currentWinningMove = gameStore.currentMove ?? (gameStore.matchState.status === 'PLAYING' ? gameStore.matchState.leadingMove : (gameStore.matchState.status === 'GAME_OVER' ? gameStore.matchState.winningMove : null));
+
+      // Cập nhật Profile cho Client/Guest qua Single Source of Truth tập trung
+      const congsGivenCount = isMyWin
+        ? gameStore.players.filter(p => p.id !== myId && (gameStore.dealtCounts[p.id] === 13 || p.hand.length === 13)).length
+        : 0;
+
+      const { updatedProfile } = applyAuthoritativeSettlementToProfile({
+        humanPlayerId: myId,
+        payouts: endPacket.payouts,
+        eloDeltas: endPacket.eloDeltas,
+        eloDelta: myEloDelta,
+        isVictoryModalRanked: true,
+        winners: winningPlayers,
+        allPlayers: updatedPlayers,
+        betAmount: get().roomState?.betAmount ?? gameStore.gameRules.table.betAmount,
+        isThreeSpadesWin: endPacket.isThreeSpadesWin ?? false,
+        instantWinType: endPacket.instantWinType ?? null,
+        loanDeduction: endPacket.loanDeduction ?? 0,
+        heldDeposit: 0,
+        congsGivenCount,
+        activeGameType: 'ONLINE'
+      });
+
+      const perspectiveSettlement = createPerspectiveSettlement({
+        subjectPlayerId: myId,
+        allPlayers: updatedPlayers,
+        winners: winningPlayers,
+        payouts: endPacket.payouts,
+        eloDeltas: endPacket.eloDeltas,
+        subjectEloDelta: myEloDelta,
+        subjectEloBreakdown: null,
+        loanDeduction: endPacket.loanDeduction ?? 0,
+        isThreeSpadesWin: endPacket.isThreeSpadesWin ?? false,
+        instantWinType: endPacket.instantWinType ?? null,
+        activeGameType: 'ONLINE',
+        betAmount: get().roomState?.betAmount ?? gameStore.gameRules.table.betAmount,
+        subjectCoins: updatedProfile.coins
+      });
+      gameStore.setPerspectiveSettlement(perspectiveSettlement);
+
       const gameOverState: GameOverMatchState = {
         status: 'GAME_OVER',
         gameNumber: gameStore.gameNumber,
         players: updatedPlayers,
         winners: winningPlayers,
+        winningMove: currentWinningMove,
         isThreeSpadesWin: false,
         matchPayouts: endPacket.payouts,
         eloDeltas: endPacket.eloDeltas,
+        settlement: perspectiveSettlement,
         matchLogReport: null,
         rules: gameStore.gameRules
       };
       gameStore.setMatchState(gameOverState);
-
-      useViewStore.getState().openModal('VICTORY');
-
-      // Cập nhật Profile cho Client/Guest
-      const userStore = useUserStore.getState();
-      const currentProfile = userStore.profile;
-      const nextCoins = Math.max(0, currentProfile.coins + myPayout);
-      const nextElo = Math.max(0, currentProfile.elo + myEloDelta);
-      const nextWins = isMyWin ? currentProfile.stats.wins + 1 : currentProfile.stats.wins;
-      const nextCurrentStreak = isMyWin ? currentProfile.stats.currentStreak + 1 : 0;
-      const nextHighestStreak = Math.max(currentProfile.stats.highestStreak, nextCurrentStreak);
-      const nextTotalEarned = myPayout > 0 ? currentProfile.stats.totalEarned + myPayout : currentProfile.stats.totalEarned;
-
-      const updatedProfile: PlayerProfile = {
-        ...currentProfile,
-        coins: nextCoins,
-        elo: nextElo,
-        stats: {
-          ...currentProfile.stats,
-          gamesPlayed: currentProfile.stats.gamesPlayed + 1,
-          wins: nextWins,
-          currentStreak: nextCurrentStreak,
-          highestStreak: nextHighestStreak,
-          totalEarned: nextTotalEarned
-        }
-      };
-
-      const congsGivenCount = isMyWin
-        ? gameStore.players.filter(p => p.id !== myId && (gameStore.dealtCounts[p.id] === 13 || p.hand.length === 13)).length
-        : 0;
-
-      const matchCompletedEvent: MatchCompletedEvent = {
-        type: 'MATCH_COMPLETED',
-        activeGameType: 'ONLINE',
-        winnerPlayerId: endPacket.winners[0] || myId,
-        isHumanWinner: isMyWin,
-        winners: gameStore.winners,
-        allPlayers: gameStore.players,
-        payouts: endPacket.payouts,
-        humanNetCoins: myPayout,
-        totalHumanCoins: nextCoins,
-        betAmount: get().roomState?.betAmount ?? gameStore.gameRules.table.betAmount,
-        isThreeSpadesWin: false,
-        playerCount: gameStore.players.length,
-        congsGivenCount,
-        cascadeChopCount: 0,
-        loanDeduction: 0,
-        instantWinType: null
-      };
-
-      const finalQuests = evaluateDailyQuests([matchCompletedEvent], updatedProfile.dailyQuests, updatedProfile);
-      const finalAchievements = evaluateAchievements([matchCompletedEvent], updatedProfile.achievements, updatedProfile);
-      updatedProfile.dailyQuests = finalQuests;
-      updatedProfile.achievements = finalAchievements;
-
-      userStore.setProfile(updatedProfile);
-      savePlayerProfile(updatedProfile);
 
       useViewStore.getState().openModal('VICTORY');
     });
@@ -666,37 +698,6 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
     }, 500);
   },
 
-  addBotToSlot: (slotIdx: number) => {
-    const current = get().roomState;
-    if (!current || !get().isHost || current.status !== 'WAITING') return;
-
-    if (current.players.length >= current.playerCount) return;
-
-    const botId = `p${slotIdx}`;
-    const botPlayer: OnlinePlayer = {
-      peerId: `bot_${Date.now()}_${slotIdx}`,
-      playerId: botId,
-      name: `Bot Cao Thủ ${slotIdx}`,
-      avatar: '🤖',
-      elo: 1150,
-      coins: 50000,
-      isHost: false,
-      isReady: true,
-      isBot: true
-    };
-
-    const updatedPlayers = [...current.players, botPlayer];
-    const updatedState: OnlineRoomState = {
-      ...current,
-      players: updatedPlayers,
-      updatedAt: Date.now()
-    };
-
-    set({ roomState: updatedState });
-    void globalP2PClient.broadcastRoomState(updatedState);
-    syncLobbyBroadcast(updatedState);
-  },
-
   removeSlot: (slotIdx: number) => {
     const current = get().roomState;
     if (!current || !get().isHost || current.status !== 'WAITING') return;
@@ -708,7 +709,16 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       updatedAt: Date.now()
     };
 
-    set({ roomState: updatedState });
+    set({
+      roomState: updatedState,
+      sessionState: {
+        status: 'IN_ROOM_WAITING',
+        roomCode: updatedState.roomCode,
+        roomState: updatedState,
+        isHost: true,
+        myPlayerId: get().myPlayerId
+      }
+    });
     void globalP2PClient.broadcastRoomState(updatedState);
     syncLobbyBroadcast(updatedState);
   },
@@ -719,12 +729,15 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
 
   leaveRoom: () => {
     globalLobbyDiscoveryClient.stopBroadcasting();
-    const { isHost, hostDriver, roomState } = get();
+    const { isHost, hostDriver, guestDriver, roomState } = get();
     if (isHost && hostDriver && roomState && roomState.status !== 'DISBANDED') {
       hostDriver.disbandRoom('Chủ phòng đã giải tán bàn chơi.');
     }
     if (hostDriver) {
       hostDriver.cleanup();
+    }
+    if (guestDriver) {
+      guestDriver.cleanup();
     }
     globalP2PClient.leave();
 
@@ -748,7 +761,8 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       chatMessages: [],
       lastTableSync: null,
       gameEndSummary: null,
-      hostDriver: null
+      hostDriver: null,
+      guestDriver: null
     });
   }
 });

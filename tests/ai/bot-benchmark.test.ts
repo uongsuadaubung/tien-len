@@ -83,7 +83,7 @@ describe('AI Bot Benchmark Simulation & Latency Across 9 Tiers', () => {
           hasPlayedFirstCard: currentTurnPlayer.hasPlayedFirstCard,
           isNextPlayerOneCard: remainingCardsMap[nextPlayerId] === 1,
           prohibitEndingWithTwo: game.rules.gameFlow.prohibitEndingWithTwo,
-          gameMode: game.settings.mode,
+          gameMode: game.rules.settlementRule,
           mctsMap: null,
           compositeRuleStrategy: null,
           opponentProfiles: null

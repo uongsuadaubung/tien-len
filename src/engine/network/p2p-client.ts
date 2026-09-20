@@ -275,6 +275,27 @@ export class P2PClient {
       this.onRematchVoteCallbacks = this.onRematchVoteCallbacks.filter(c => c !== cb);
     };
   }
+
+  // Type-safe test dispatch helpers (loại bỏ as any trong unit/integration tests)
+  public emitRoomStateForTest(state: OnlineRoomState, senderPeerId: string): void {
+    this.onRoomStateCallbacks.forEach(cb => cb(state, senderPeerId));
+  }
+
+  public emitJoinRequestForTest(player: OnlinePlayer, senderPeerId: string): void {
+    this.onJoinRequestCallbacks.forEach(cb => cb(player, senderPeerId));
+  }
+
+  public emitDealHandForTest(packet: DealHandPacket, senderPeerId: string): void {
+    this.onDealHandCallbacks.forEach(cb => cb(packet, senderPeerId));
+  }
+
+  public emitTableSyncForTest(packet: TableStateSyncPacket, senderPeerId: string): void {
+    this.onTableSyncCallbacks.forEach(cb => cb(packet, senderPeerId));
+  }
+
+  public emitGameEndForTest(packet: GameEndPacket, senderPeerId: string): void {
+    this.onGameEndCallbacks.forEach(cb => cb(packet, senderPeerId));
+  }
 }
 
 export const globalP2PClient = new P2PClient();

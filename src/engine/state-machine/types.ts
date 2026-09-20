@@ -1,5 +1,6 @@
 import type { Player, PlayedMove, InstantWinType, GameRules } from '../types';
 import type { MatchLogReport } from '../match-logger';
+import type { PerspectiveMatchSettlement } from '../settlement/perspective-settlement';
 
 export type MatchStatus =
   | 'WAITING'
@@ -142,9 +143,11 @@ export interface GameOverMatchState {
   readonly gameNumber: number;
   readonly players: readonly Player[];
   readonly winners: readonly Player[];        // ✅ Danh sách xếp hạng Nhất, Nhì, Ba, Bét
+  readonly winningMove: PlayedMove | null;    // ✅ Nước bài dứt điểm chiến thắng ván đấu (giữ trên bàn 2s)
   readonly isThreeSpadesWin: boolean;
   readonly matchPayouts: Readonly<Record<string, number>>; // ✅ Bảng kết toán tiền
   readonly eloDeltas: Readonly<Record<string, number>>;    // ✅ Điểm Elo biến động
+  readonly settlement: PerspectiveMatchSettlement;        // ✅ Authoritative Perspective Settlement (Non-nullable)
   readonly matchLogReport: MatchLogReport | null;
   readonly rules: GameRules;
   readonly leadingMove?: PlayedMove | null;

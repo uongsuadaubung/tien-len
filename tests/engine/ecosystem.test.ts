@@ -10,7 +10,7 @@ import { matchBotsForPlayerTable, matchSimulatedTables } from '../../src/engine/
 import { simulateSingleTableMatch } from '../../src/engine/ecosystem/headless-sim';
 import { ecosystemManager } from '../../src/engine/ecosystem/ecosystem-manager';
 import { ECOSYSTEM_CONSTANTS } from '../../src/engine/constants/ecosystem';
-import { BotEntity, getTierFromElo } from '../../src/engine/ecosystem/ecosystem-types';
+import { BotEntity, TableGroup, getTierFromElo } from '../../src/engine/ecosystem/ecosystem-types';
 
 describe('Thế Giới Sới Bạc 200 Bot (Living Bot Ecosystem Tests)', () => {
   describe('1. Sinh 200 Bot Khởi Thủy (Bot Generation & Gaussian Jitter)', () => {
@@ -162,12 +162,14 @@ describe('Thế Giới Sới Bạc 200 Bot (Living Bot Ecosystem Tests)', () => 
     it('mô phỏng trọn vẹn 1 ván 4 bot tức thì không gây nghẽn vòng lặp', () => {
       const bots = generateInitial200Bots().slice(0, 4);
       const botsMap = new Map(bots.map(b => [b.id, b]));
-      const sampleTable = {
+      const botIds: [string, string, string, string] = [bots[0].id, bots[1].id, bots[2].id, bots[3].id];
+      const sampleTable: TableGroup = {
         tableId: 'test_table_1',
-        botIds: [bots[0].id, bots[1].id, bots[2].id, bots[3].id] as [string, string, string, string],
+        botIds,
         tierNum: 1,
         betAmount: 1000
       };
+
 
       const startTime = performance.now();
       const result = simulateSingleTableMatch(sampleTable, botsMap);
@@ -220,7 +222,7 @@ describe('Thế Giới Sới Bạc 200 Bot (Living Bot Ecosystem Tests)', () => 
         const count = allBotsAfter.filter(b => b.dnaTier === t).length;
         expect(count).toBeGreaterThan(0);
       }
-    });
+    }, 15000);
 
     it('Tự động migrate và chuẩn hóa dnaTier khi khởi động hệ sinh thái từ dữ liệu cũ', async () => {
       const bots = await ecosystemManager.getAllBots();

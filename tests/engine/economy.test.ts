@@ -2,10 +2,14 @@ import { describe, expect, test } from 'bun:test';
 import { 
   calculateChopPenalty, 
   calculateRottenPenalty, 
-  calculateCongPenalty
+  calculateCongPenalty,
+  calculateCountCardsSettlement,
+  calculateWinnerTakesAllSettlement,
+  calculateTraditionalSettlement
 } from '../../src/engine/economy';
-import { Combination } from '../../src/engine/types';
+import { Combination, Player } from '../../src/engine/types';
 import { parseCard, parseCards } from '../../src/engine/card';
+import { createPlayer } from '../../src/engine/player-factory';
 import { 
   ECONOMY_CONSTANTS, 
   LUCKY_WHEEL_SLICES, 
@@ -145,5 +149,75 @@ describe('Economy & Hardcore Penalties (Kinh Tế & Trừng Phạt Cược Lớn
 
     // Cóng hệ số x3: 78x cược = 78,000 xu
     expect(calculateCongPenalty(BET, 3)).toBe(78000);
+  });
+
+  describe('Fast-Fail Invariants & Validation Checks', () => {
+    test('calculateChopPenalty ném ngoại lệ khi betAmount < 0', () => {
+      const card = parseCard('2S')!;
+      const combo: Combination = { type: 'SINGLE', length: 1, cards: [card], highestCard: card };
+      expect(() => calculateChopPenalty(combo, combo, -100)).toThrow('Invariant violated: betAmount cannot be negative');
+    });
+
+    test('calculateRottenPenalty ném ngoại lệ khi betAmount < 0', () => {
+      expect(() => calculateRottenPenalty([], -500)).toThrow('Invariant violated: betAmount cannot be negative');
+    });
+
+    test('calculateCongPenalty ném ngoại lệ khi betAmount < 0', () => {
+      expect(() => calculateCongPenalty(-1000)).toThrow('Invariant violated: betAmount cannot be negative');
+    });
+
+    test('calculateCountCardsSettlement ném ngoại lệ khi vi phạm invariants', () => {
+      const p1 = createPlayer({ id: 'p1', name: 'P1' });
+      expect(() => calculateCountCardsSettlement([], 'p1', 1000)).toThrow('Invariant violated: players list cannot be empty');
+      expect(() => calculateCountCardsSettlement([p1], 'p2', 1000)).toThrow('winnerId "p2" must exist in players');
+      expect(() => calculateCountCardsSettlement([p1], 'p1', -1000)).toThrow('Invariant violated: betAmount cannot be negative');
+    });
+
+    test('calculateWinnerTakesAllSettlement ném ngoại lệ khi vi phạm invariants', () => {
+      const p1 = createPlayer({ id: 'p1', name: 'P1' });
+      expect(() => calculateWinnerTakesAllSettlement([], 'p1', 1000)).toThrow('Invariant violated: players list cannot be empty');
+      expect(() => calculateWinnerTakesAllSettlement([p1], 'p2', 1000)).toThrow('winnerId "p2" must exist in players');
+      expect(() => calculateWinnerTakesAllSettlement([p1], 'p1', -1000)).toThrow('Invariant violated: betAmount cannot be negative');
+    });
+
+    test('calculateTraditionalSettlement ném ngoại lệ khi vi phạm invariants', () => {
+      const p1 = createPlayer({ id: 'p1', name: 'P1' });
+      const p2 = createPlayer({ id: 'p2', name: 'P2' });
+      expect(() => calculateTraditionalSettlement([], [p1], 1000)).toThrow('Invariant violated: players list cannot be empty');
+      expect(() => calculateTraditionalSettlement([p1], [], 1000)).toThrow('Invariant violated: winners list cannot be empty');
+      expect(() => calculateTraditionalSettlement([p1], [p2], 1000)).toThrow('all winners must exist in players');
+      expect(() => calculateTraditionalSettlement([p1], [p1], -1000)).toThrow('Invariant violated: betAmount cannot be negative');
+    });
+  });
+
+  describe('Traditional Settlement Calculations', () => {
+    test('4 người chơi: Nhất +3x, Nhì +1x, Ba -1x, Bét -3x', () => {
+      const p1 = createPlayer({ id: 'p1', name: 'P1', hand: [] });
+      const p2 = createPlayer({ id: 'p2', name: 'P2', hand: [] });
+      const p3 = createPlayer({ id: 'p3', name: 'P3', hand: [] });
+      const p4 = createPlayer({ id: 'p4', name: 'P4', hand: [] });
+      const players = [p1, p2, p3, p4];
+      const winners = [p1, p2, p3, p4];
+
+      const payouts = calculateTraditionalSettlement(players, winners, BET);
+      expect(payouts['p1']).toBe(3000);
+      expect(payouts['p2']).toBe(1000);
+      expect(payouts['p3']).toBe(-1000);
+      expect(payouts['p4']).toBe(-3000);
+    });
+
+    test('1 người chơi về Nhất kết thúc sớm: Nhất ăn trọn các người chơi còn lại', () => {
+      const p1 = createPlayer({ id: 'p1', name: 'P1', hand: [] });
+      const p2 = createPlayer({ id: 'p2', name: 'P2', hand: parseCards('3S 4S') });
+      const p3 = createPlayer({ id: 'p3', name: 'P3', hand: parseCards('5S 6S') });
+      const players = [p1, p2, p3];
+      const winners = [p1];
+
+      const payouts = calculateTraditionalSettlement(players, winners, BET);
+      // 2 người thua, mỗi người mất 1x cược = -1000. Nhất ăn +2000
+      expect(payouts['p1']).toBe(2000);
+      expect(payouts['p2']).toBe(-1000);
+      expect(payouts['p3']).toBe(-1000);
+    });
   });
 });

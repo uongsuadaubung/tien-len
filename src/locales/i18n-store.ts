@@ -50,7 +50,7 @@ function interpolate(template: string, params: I18nParams | null = null): string
 /**
  * Hàm dịch thuật toàn cục Type-Safe (dùng được trong cả React component lẫn Engine/Driver/Services)
  */
-export function t(keyPath: I18nKeyPath, params: I18nParams | null = null): string {
+export function t(keyPath: I18nKeyPath | (string & {}), params: I18nParams | null = null): string {
   const locale = useI18nStore.getState().locale;
   const dict = DICTIONARIES[locale] || DICTIONARIES.vi;
   const template = resolveKeyPath(dict, keyPath);

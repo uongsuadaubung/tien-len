@@ -153,7 +153,7 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
       const res2 = engine.playMove('p0', [players[0].hand[0]]);
       expect(res2.success).toBe(true);
       expect(players[0].hand.length).toBe(0);
-      expect(players[0].rankPosition).toBe(1);
+      expect(engine.winners[0].id).toBe(players[0].id);
     });
 
     test('Phạt Thối Heo: Khi đối thủ về Nhất, người bị kẹt Heo bị phạt tiền và chuyển cho người về Nhất', () => {
@@ -562,7 +562,7 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
       const res2 = engine.playMove('p0', [card3S]);
       expect(res2.success).toBe(true);
       expect(players[0].hand.length).toBe(0);
-      expect(players[0].rankPosition).toBe(1);
+      expect(engine.winners[0].id).toBe(players[0].id);
     });
 
     test('Nếu người chơi đánh 3♠ trước, bị kẹt lại Tứ Quý 2 sẽ KHÔNG ĐƯỢC PHÉP đánh Tứ Quý 2 để về bài', () => {
@@ -681,7 +681,6 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
 
       // bot3 đã hết bài về Nhất trước đó
       players[3].hand = [];
-      players[3].rankPosition = 1;
       engine.winners = [players[3]];
 
       // 3 người chơi còn lại (p0, bot1, bot2) mỗi người chỉ còn đúng 1 lá Heo (2)

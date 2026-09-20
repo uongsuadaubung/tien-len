@@ -2,7 +2,6 @@ import React from 'react';
 import { Player } from '../../engine/types';
 import { HandSortMode } from '../../stores/useGameStore';
 import { useUserStore } from '../../stores/useUserStore';
-import { useSettingsStore } from '../../stores/useSettingsStore';
 import { getAvailableSmartVariants } from '../../engine/hand-sorter';
 import { resolveHandSortStrategy } from '../../engine/strategies/hand-sort-strategy';
 import { useI18n } from '../../locales';
@@ -13,28 +12,28 @@ interface HandCardStyle extends React.CSSProperties {
   '--rot-deg'?: string;
 }
 
-interface PlayerHandViewProps {
-  player: Player;
-  selectedCardIds: Set<string>;
-  onToggleCardSelect: (cardId: string) => void;
-  onClearCardSelection: (() => void) | null;
-  onPlaySelectedCards: () => void;
-  onPassTurn: () => void;
-  onAutoSort: () => void;
-  onQuickSelect: (() => void) | null;
-  canQuickSelect: boolean;
-  quickSelectCandidatesCount: number;
-  isCurrentTurn: boolean;
-  canPlay: boolean;
-  canPass: boolean;
-  isLeader: boolean;
-  isDealing: boolean;
-  dealtCardsCount: number | null;
-  isFirstMoveOfGame: boolean;
-  sortMode: HandSortMode;
-  variantIndex: number;
-  cardSize: 'sm' | 'md' | 'lg' | 'mobile' | null;
-  reverseButtons?: boolean;
+export interface PlayerHandViewProps {
+  readonly player: Player;
+  readonly selectedCardIds: ReadonlySet<string>;
+  readonly onToggleCardSelect: (cardId: string) => void;
+  readonly onClearCardSelection: () => void;
+  readonly onPlaySelectedCards: () => void;
+  readonly onPassTurn: () => void;
+  readonly onAutoSort: () => void;
+  readonly onQuickSelect: () => void;
+  readonly canQuickSelect: boolean;
+  readonly quickSelectCandidatesCount: number;
+  readonly isCurrentTurn: boolean;
+  readonly canPlay: boolean;
+  readonly canPass: boolean;
+  readonly isLeader: boolean;
+  readonly isDealing: boolean;
+  readonly dealtCardsCount: number;
+  readonly isFirstMoveOfGame: boolean;
+  readonly sortMode: HandSortMode;
+  readonly variantIndex: number;
+  readonly cardSize: 'sm' | 'md' | 'lg' | 'mobile';
+  readonly reverseButtons: boolean;
 }
 
 export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
@@ -46,28 +45,25 @@ export const PlayerHandView: React.FC<PlayerHandViewProps> = ({
   onPassTurn,
   onAutoSort,
   onQuickSelect,
-  canQuickSelect = true,
-  quickSelectCandidatesCount = 0,
+  canQuickSelect,
+  quickSelectCandidatesCount,
   isCurrentTurn,
   canPlay,
   canPass,
   isLeader,
-  isDealing = false,
+  isDealing,
   dealtCardsCount,
-  isFirstMoveOfGame = false,
-  sortMode = 'NATURAL',
-  variantIndex = 0,
-  cardSize = 'md',
+  isFirstMoveOfGame,
+  sortMode,
+  variantIndex,
+  cardSize,
   reverseButtons
 }) => {
   const { t } = useI18n();
-  const storeReverseButtons = typeof window === 'undefined'
-    ? useSettingsStore.getState().reverseButtonsEnabled
-    : useSettingsStore(s => s.reverseButtonsEnabled);
-  const isReverseButtons = reverseButtons ?? storeReverseButtons;
+  const isReverseButtons = reverseButtons;
 
   const isMobileSize = cardSize === 'mobile';
-  const visibleCardCount = isDealing ? (dealtCardsCount ?? 0) : player.hand.length;
+  const visibleCardCount = isDealing ? dealtCardsCount : player.hand.length;
   const hand = player.hand.slice(0, visibleCardCount);
   const has3S = hand.some(c => c.rank === 3 && c.suit === 'SPADES');
   const isSelectedWith3S = Array.from(selectedCardIds).some(id => {

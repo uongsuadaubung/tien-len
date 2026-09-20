@@ -8,7 +8,6 @@ import {
   Wifi, 
   Crown, 
   Coins, 
-  Bot, 
   LogOut, 
   Plus, 
   Radio,
@@ -43,7 +42,7 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
     copiedLink,
     copiedPin,
     canAffordBet,
-    isRoomFull,
+    canStartGame,
     isPublicRoom,
     publicRooms,
     isLobbyLoading,
@@ -60,7 +59,6 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
     handleRefreshLobby,
     handleStartGame,
     handleLeave,
-    handleAddBot,
     handleRemoveSlot,
     handleClose,
     handleOpenBank
@@ -100,8 +98,9 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                 variant="gold"
                 size="md"
                 onClick={handleStartGame}
+                disabled={!canStartGame}
                 leftIcon={<Play className="w-4 h-4 text-black fill-current" />}
-                className="flex-1 font-black shadow-lg shadow-amber-500/20 cursor-pointer"
+                className="flex-1 font-black shadow-lg shadow-amber-500/20 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {t('online.startGameBtn')}
               </Button>
@@ -326,11 +325,6 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                   <Users className="w-3.5 h-3.5" />
                   <span>{t('online.playerListTitle', { current: roomState?.players.length || 1, max: roomState?.playerCount || 4 })}</span>
                 </span>
-                {isHost && !isRoomFull && (
-                  <span className="text-[9.5px] text-[var(--text-muted)]">
-                    {t('online.canAddBot')}
-                  </span>
-                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -384,26 +378,13 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                           )}
                         </div>
                       ) : (
-                        <div className="flex items-center justify-between w-full py-0.5">
-                          <div className="flex items-center gap-1.5 text-zinc-500">
-                            <div className="w-6 h-6 rounded-lg border border-dashed border-zinc-700 flex items-center justify-center text-[10px] font-bold">
-                              {idx + 1}
-                            </div>
-                            <span className="text-[10px] font-medium italic">
-                              {t('online.waitingPlayer')}
-                            </span>
+                        <div className="flex items-center gap-1.5 text-zinc-500 py-0.5">
+                          <div className="w-6 h-6 rounded-lg border border-dashed border-zinc-700 flex items-center justify-center text-[10px] font-bold">
+                            {idx + 1}
                           </div>
-
-                          {isHost && (
-                            <button
-                              onClick={() => handleAddBot(idx)}
-                              className="flex items-center gap-1 px-2 py-0.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[10px] font-bold transition-all active:scale-95 cursor-pointer"
-                            >
-                              <Plus className="w-2.5 h-2.5" />
-                              <Bot className="w-2.5 h-2.5" />
-                              <span>{t('online.addBot')}</span>
-                            </button>
-                          )}
+                          <span className="text-[10px] font-medium italic">
+                            {t('online.waitingPlayer')}
+                          </span>
                         </div>
                       )}
                     </div>

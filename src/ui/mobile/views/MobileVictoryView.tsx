@@ -12,7 +12,7 @@ import {
   Users,
   Building2
 } from 'lucide-react';
-import { useGameStore, CampaignResultMeta } from '../../../stores/useGameStore';
+import type { CampaignResultMeta } from '../../../stores/useGameStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useOnlineStore } from '../../../stores/useOnlineStore';
 import { MatchLogger } from '../../../engine/match-logger';
@@ -44,7 +44,7 @@ const PRIMARY_ICON_MAP: Record<PrimaryBtnIconType, React.ReactNode> = {
 };
 
 const SECONDARY_ICON_MAP: Record<SecondaryBtnIconType, React.ReactNode> = {
-  HOME: <Home className="w-4 h-4 text-amber-400" />,
+  HOME: <Home className="w-4 h-4" />,
   MAP: <Map className="w-4 h-4" />
 };
 
@@ -57,7 +57,6 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
 }) => {
   const { t } = useI18n();
   const { githubToken, autoBackupOnMatchEnd } = useSettingsStore();
-  const { myPlayerId } = useGameStore();
   const { roomState } = useOnlineStore();
 
   const {
@@ -65,7 +64,6 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
     isTableDismissed,
     isHumanBankrupt,
     bankruptBots,
-    displayPlayers,
     humanPayout,
     modalTitle: viewTitle,
     modalSubtitle: viewSubtitle,
@@ -86,18 +84,16 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
     totalOnlinePlayers,
     readyOnlinePlayers,
     handleExportJson,
-    winners,
-    allPlayers,
     instantWinType,
     getInstantWinTitle,
     isThreeSpadesWin,
     betAmount,
     activeGameType,
-    payouts,
     loanDeduction,
     eloDelta,
     lastEloBreakdown,
-    allEloDeltas
+    myPlayerId,
+    settlement
   } = useVictoryLogic({
     isOpen,
     onNextGame,
@@ -279,32 +275,18 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
 
           {/* DANH SÁCH BẢNG XẾP HẠNG & BÀI TÀN CUỘC CỦA TỪNG ĐẤU THỦ */}
           <div className="space-y-2">
-            {displayPlayers.map((p, idx) => {
-              const isWinner = idx === 0;
-              const rankLabel = isWinner
-                ? (instantWinType ? t('victory.instantWinBadge', { type: getInstantWinTitle(instantWinType) }) : `🥇 ${t('victory.rank1')}`)
-                : (instantWinType
-                  ? t('victory.instantWinPenalty')
-                  : (winners.length >= allPlayers.length - 1
-                    ? (idx === 1 ? `🥈 ${t('victory.rank2')}` : idx === 2 ? `🥉 ${t('victory.rank3')}` : `💥 ${t('victory.rank4')}`)
-                    : t('victory.lostCountingCards')));
-              const netPay = payouts ? payouts[p.id] : undefined;
-              const remainingCards = p.hand ? [...p.hand].sort((a, b) => a.weight - b.weight) : [];
-              const hasRottenTwo = !isWinner && !instantWinType && remainingCards.some(c => c.rank === 15);
-              const isCong = !isWinner && !instantWinType && remainingCards.length === 13;
-
-              // Biến động Elo của từng người chơi / bot
-              const pEloDelta = (allEloDeltas && (allEloDeltas[p.id] !== undefined || (p.botPersonaId && allEloDeltas[p.botPersonaId] !== undefined)))
-                ? (allEloDeltas[p.id] ?? (p.botPersonaId ? allEloDeltas[p.botPersonaId] : undefined))
-                : (p.id === myPlayerId ? eloDelta : undefined);
+            {settlement.players.map((p) => {
+              const rankLabel = p.rankLabelParams
+                ? t(p.rankLabelKey, p.rankLabelParams)
+                : t(p.rankLabelKey);
 
               return (
                 <div
                   key={p.id}
                   className={`p-2.5 rounded-2xl border flex flex-col gap-1.5 shadow transition-all ${
-                    isWinner
+                    p.isWinner
                       ? 'bg-[#1e1708] border-amber-400/70 shadow-amber-500/15'
-                      : p.id === myPlayerId
+                      : p.isLocal
                         ? 'bg-[#121826] border-amber-500/40'
                         : 'bg-[#0e1422] border-[#222c3d]'
                   }`}
@@ -314,7 +296,7 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="relative shrink-0">
                         <span className="text-xl sm:text-2xl">{p.avatar}</span>
-                        {p.id === myPlayerId && (
+                        {p.isLocal && (
                           <span className="absolute -bottom-1 -right-1 text-[7px] bg-amber-500 text-black font-black px-1 rounded-full shadow">
                             {t('hud.you').replace(/[()]/g, '').toUpperCase()}
                           </span>
@@ -324,7 +306,7 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
                         <div className="font-bold text-xs sm:text-sm text-zinc-100 truncate max-w-[120px] sm:max-w-[180px]">
                           {p.name}
                         </div>
-                        <span className={`text-[10px] font-bold ${isWinner ? 'text-amber-300' : 'text-zinc-400'}`}>
+                        <span className={`text-[10px] font-bold ${p.isWinner ? 'text-amber-300' : 'text-zinc-400'}`}>
                           {rankLabel}
                         </span>
                       </div>
@@ -333,27 +315,25 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
                     <div className="text-right flex items-center gap-2 shrink-0">
                       {!isCampaign && (
                         <>
-                          {pEloDelta !== undefined && (
+                          {p.eloDelta !== null && (
                             <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-lg ${
-                              pEloDelta > 0 
+                              p.eloDelta > 0 
                                 ? 'text-emerald-400 bg-emerald-950/60 border border-emerald-500/30' 
-                                : pEloDelta < 0 
+                                : p.eloDelta < 0 
                                   ? 'text-rose-400 bg-rose-950/60 border border-rose-500/30' 
                                   : 'text-zinc-400 bg-zinc-800/60'
                             }`}>
-                              {pEloDelta > 0 ? `+${pEloDelta}` : pEloDelta} Elo
+                              {p.eloDelta > 0 ? `+${p.eloDelta}` : p.eloDelta} Elo
                             </span>
                           )}
-                          {netPay !== undefined && (
-                            <div className={`font-black text-xs sm:text-sm ${netPay > 0 ? 'text-amber-400' : netPay < 0 ? 'text-rose-400' : 'text-zinc-400'}`}>
-                              {netPay > 0 ? `+${netPay.toLocaleString()}` : netPay < 0 ? `${netPay.toLocaleString()}` : '0'} 🪙
-                            </div>
-                          )}
+                          <div className={`font-black text-xs sm:text-sm ${p.netPayout > 0 ? 'text-amber-400' : p.netPayout < 0 ? 'text-rose-400' : 'text-zinc-400'}`}>
+                            {p.netPayout > 0 ? `+${p.netPayout.toLocaleString()}` : p.netPayout < 0 ? `${p.netPayout.toLocaleString()}` : '0'} 🪙
+                          </div>
                         </>
                       )}
                       {isCampaign && (
-                        <div className={`text-xs font-bold ${isWinner ? 'text-amber-400' : 'text-zinc-400'}`}>
-                          {isWinner ? t('victory.matchWon') : t('victory.cardsLeftCount', { count: remainingCards.length })}
+                        <div className={`text-xs font-bold ${p.isWinner ? 'text-amber-400' : 'text-zinc-400'}`}>
+                          {p.isWinner ? t('victory.matchWon') : t('victory.cardsLeftCount', { count: p.remainingCards.length })}
                         </div>
                       )}
                     </div>
@@ -361,13 +341,13 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
 
                   {/* Hàng 2: Bộ bài tàn cuộc thu nhỏ (MiniCardView) */}
                   <div className="pt-1.5 border-t border-white/[0.06] flex items-center justify-between flex-wrap gap-1.5">
-                    {remainingCards.length > 0 ? (
+                    {p.remainingCards.length > 0 ? (
                       <div className="flex items-center gap-1 flex-wrap">
                         <span className="text-[9px] text-zinc-400 font-medium mr-0.5">
-                          {t('victory.cardsLeftColon', { count: remainingCards.length })}
+                          {t('victory.cardsLeftColon', { count: p.remainingCards.length })}
                         </span>
                         <div className="flex items-center gap-0.5 flex-wrap">
-                          {remainingCards.map((c) => (
+                          {p.remainingCards.map((c) => (
                             <MiniCardView key={c.id} card={c} />
                           ))}
                         </div>
@@ -380,22 +360,22 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
 
                     {/* Huy hiệu cảnh báo đặc biệt */}
                     <div className="flex items-center gap-1 shrink-0">
-                      {isWinner && instantWinType && (
+                      {p.isWinner && instantWinType && (
                         <span className="text-[8px] font-black text-amber-300 bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.5 rounded-lg animate-pulse">
                           {t('victory.instantWinBadge', { type: getInstantWinTitle(instantWinType) })}
                         </span>
                       )}
-                      {!isWinner && instantWinType && (
+                      {!p.isWinner && instantWinType && (
                         <span className="text-[8px] font-bold text-rose-300 bg-rose-500/20 border border-rose-500/40 px-1.5 py-0.5 rounded-lg">
                           {t('victory.instantWinPenaltyLeaves')}
                         </span>
                       )}
-                      {hasRottenTwo && (
+                      {p.hasRottenTwo && (
                         <span className="text-[8px] font-bold text-amber-300 bg-amber-500/20 border border-amber-400/40 px-1.5 py-0.5 rounded-lg animate-pulse">
                           {t('victory.rottenTwoBadge')}
                         </span>
                       )}
-                      {isCong && (
+                      {p.isCong && (
                         <span className="text-[8px] font-bold text-rose-300 bg-rose-500/20 border border-rose-500/40 px-1.5 py-0.5 rounded-lg animate-pulse">
                           {t('victory.congsPenaltyBadge')}
                         </span>

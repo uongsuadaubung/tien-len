@@ -17,7 +17,12 @@ describe('Dealing & Card Play Animation Integration Tests', () => {
       const profile = loadPlayerProfile();
       driver.startMatch(1, {
         profile,
-        customRules: createDefaultGameRules(),
+        customRules: createDefaultGameRules({
+          instantWin: {
+            enabled: false,
+            payoutMultiplier: 26
+          }
+        }),
         playerCount: 4
       });
 

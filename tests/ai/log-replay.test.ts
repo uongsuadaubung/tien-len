@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'bun:test';
 import { GameEngine } from '../../src/engine/game';
 import { MatchLogger, MatchLogReport } from '../../src/engine/match-logger';
-import { BOT_PERSONAS } from '../../src/ai/bot-factory';
+import { BOT_PERSONAS, getBotConfig } from '../../src/ai/bot-factory';
 import { CardTracker } from '../../src/ai/card-tracker';
 import { replayTurnDecisionFromLog } from '../../src/ai/log-replayer';
 import { Card, createDefaultGameRules } from '../../src/engine/types';
@@ -33,7 +33,7 @@ describe('Log Replay & Deterministic Test Reproduction', () => {
     while (!game.isGameOver && safetyLoop < 400) {
       safetyLoop++;
       const currentTurnPlayer = game.getCurrentPlayer();
-      const botConfig = (BOT_PERSONAS as any)[currentTurnPlayer.botPersonaId || 'BOT_ELO_1750'] || BOT_PERSONAS.BOT_ELO_1750;
+      const botConfig = getBotConfig(currentTurnPlayer.botPersonaId || 'BOT_ELO_1750');
       game.executeBotTurn(botConfig, trackers[currentTurnPlayer.id]);
     }
 
@@ -46,7 +46,7 @@ describe('Log Replay & Deterministic Test Reproduction', () => {
       winners: game.winners,
       payouts: {},
       isThreeSpadesWin: game.isThreeSpadesWin,
-      instantWinType: game.instantWinner?.instantWinType || null,
+      instantWinType: game.instantWinType || null,
       loanDeduction: 0,
       eloDelta: 0
     });

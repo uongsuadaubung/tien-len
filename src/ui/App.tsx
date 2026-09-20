@@ -124,7 +124,7 @@ export const App: React.FC = () => {
   // Kiểm tra nếu chưa đặt tên thì mở Modal tạo tên khởi nghiệp (chỉ chạy SAU KHI đã nạp xong từ Dexie)
   useEffect(() => {
     if (!isHydrated) return;
-    if (!profile.name || profile.name.trim() === '') {
+    if (!profile.name || profile.name.trim() === '' || profile.name.startsWith('usr_')) {
       openModal('NAME_SETUP');
     }
   }, [isHydrated, profile.name, openModal]);

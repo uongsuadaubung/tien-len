@@ -1,10 +1,12 @@
-import { describe, expect, it, beforeEach } from 'bun:test';
+import { describe, expect, it, beforeEach, spyOn } from 'bun:test';
 import { useOnlineStore } from '../../src/stores/useOnlineStore';
 import { useGameStore } from '../../src/stores/useGameStore';
 import { useViewStore } from '../../src/stores/useViewStore';
 import { loadPlayerProfile } from '../../src/engine/storage';
 import { globalP2PClient } from '../../src/engine/network/p2p-client';
-import { createCard } from '../../src/engine/card';
+import { createCard, ALL_RANKS } from '../../src/engine/card';
+import { Card } from '../../src/engine/types';
+import { createPlayer } from '../../src/engine/player-factory';
 import { isValidMove } from '../../src/engine/validator';
 
 describe('Online P2P Match Flow & State Transition Tests', () => {
@@ -42,7 +44,33 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     expect(state.roomState?.status).toBe('WAITING');
   });
 
-  it('2. Host bắt đầu trận đấu: tự động lấp đầy Bot, chuyển screen sang GAME_TABLE và đóng modal ONLINE_ROOM', () => {
+  function fillRoomWithPeers(targetCount: number = 4) {
+    const room = useOnlineStore.getState().roomState;
+    if (!room) return;
+    const currentPlayers = [...room.players];
+    for (let i = currentPlayers.length; i < targetCount; i++) {
+      currentPlayers.push({
+        peerId: `peer_${i}`,
+        playerId: `p${i}`,
+        name: `Người chơi ${i}`,
+        avatar: '🤠',
+        elo: 1000 + i * 20,
+        coins: 50000,
+        isHost: false,
+        isReady: true,
+        isBot: false
+      });
+    }
+    useOnlineStore.setState({
+      roomState: {
+        ...room,
+        players: currentPlayers,
+        updatedAt: Date.now()
+      }
+    });
+  }
+
+  it('2. Host bắt đầu trận đấu: khi đủ người chơi thật, chuyển screen sang GAME_TABLE và đóng modal ONLINE_ROOM', () => {
     const profile = loadPlayerProfile();
     profile.name = 'Host Pro';
 
@@ -52,6 +80,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       betAmount: 5000,
       settlementRule: 'COUNT_CARDS',      isPublic: true
     });
+    fillRoomWithPeers(4);
 
     useOnlineStore.getState().startMatch();
 
@@ -152,8 +181,9 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     useOnlineStore.getState().createRoom(profile, {
       betAmount: 1000,
       playerCount: 4,
-      settlementRule: 'COUNT_CARDS',      isPublic: true
+      settlementRule: 'COUNT_CARDS',      isPublic: true
     });
+    fillRoomWithPeers(4);
 
     // Ván 1 bắt đầu
     useOnlineStore.getState().startMatch();
@@ -225,7 +255,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     const driver = useOnlineStore.getState().hostDriver!;
     driver.engine!.winners = [driver.engine!.players[0]];
     driver.engine!.isGameOver = true;
-    (driver as any).handleGameOver();
+    driver.handleGameOver({ skipDelay: true });
 
     const stateAfterEnd = useOnlineStore.getState();
     expect(stateAfterEnd.roomState?.status).toBe('ENDED');
@@ -293,7 +323,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     const driver = useOnlineStore.getState().hostDriver!;
     driver.engine!.winners = [driver.engine!.players[0]];
     driver.engine!.isGameOver = true;
-    (driver as any).handleGameOver();
+    driver.handleGameOver({ skipDelay: true });
     useOnlineStore.getState().voteRematch(true);
     driver.handleRematchVote('p1', true);
 
@@ -313,7 +343,8 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     expect([profile.id, 'p1']).toContain(turnPlayerId);
 
     const activePlayerInEngine = activeDriver.engine?.players.find(p => p.id === turnPlayerId)!;
-    const cardToPlay = activePlayerInEngine.hand[0];
+    const has3S = activePlayerInEngine.hand.find((c: Card) => c.rank === 3 && c.suit === 'SPADES');
+    const cardToPlay = has3S || activePlayerInEngine.hand[0];
 
     activeDriver.handlePlayerAction({
       type: 'PLAY',
@@ -462,6 +493,8 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       betAmount: 1000,
       settlementRule: 'COUNT_CARDS' as const,
       choppingMultiplier: 1,
+      congMultiplier: 1,
+      isPublic: true,
       congEnabled: true,
       prohibitEndingWithTwo: true,
       allowFourPairsCutAnytime: true,
@@ -474,10 +507,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     };
 
     // Khách nhận roomState DISBANDED
-    const onRoomStateFn = (globalP2PClient as any).onRoomStateCallbacks?.[0];
-    if (onRoomStateFn) {
-      onRoomStateFn(roomStateFromHost, 'host_peer_123');
-    }
+    globalP2PClient.emitRoomStateForTest(roomStateFromHost, 'host_peer_123');
 
     // Xác nhận Khách đã thoát online an toàn và hiện thông báo
     const guestState = useOnlineStore.getState();
@@ -504,9 +534,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     });
 
     // Giả lập Khách gửi join request vào phòng
-    const onJoinReqFn = (globalP2PClient as any).onJoinRequestCallbacks?.[0];
-    expect(onJoinReqFn).toBeDefined();
-    onJoinReqFn({
+    globalP2PClient.emitJoinRequestForTest({
       peerId: 'guest_peer_2p',
       playerId: 'p1',
       name: 'Guest Player',
@@ -592,15 +620,14 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
 
     const card3S = createCard(3, 'SPADES');
     const dummyHand = [card3S];
-    for (let r = 4; r <= 15; r++) {
-      dummyHand.push(createCard(r as any, 'HEARTS'));
+    for (const r of ALL_RANKS) {
+      if (r >= 4) {
+        dummyHand.push(createCard(r, 'HEARTS'));
+      }
     }
 
     // Giả lập Khách nhận gói tin onDealHand từ Host
-    const onDealHandFn = (globalP2PClient as any).onDealHandCallbacks?.[0];
-    expect(onDealHandFn).toBeDefined();
-
-    onDealHandFn({
+    globalP2PClient.emitDealHandForTest({
       playerId: 'p1',
       cards: dummyHand.map(c => ({ rank: c.rank, suit: c.suit, id: c.id })),
       leadPlayerId: 'p1',
@@ -608,7 +635,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       gameNumber: 1,
       isFirstMoveOfGame: true,
       isLeadMove: true
-    });
+    }, 'host_peer');
 
     const guestGameStore = useGameStore.getState();
 
@@ -660,12 +687,13 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     // Giả lập bài Khách có lá nhỏ nhất là 4 Bích (không có 3 Bích)
     const card4S = createCard(4, 'SPADES');
     const guestHand = [card4S];
-    for (let r = 5; r <= 16; r++) {
-      guestHand.push(createCard(Math.min(15, r) as any, 'CLUBS'));
+    for (const r of ALL_RANKS) {
+      if (r >= 5) {
+        guestHand.push(createCard(r, 'CLUBS'));
+      }
     }
 
-    const onDealHandFn = (globalP2PClient as any).onDealHandCallbacks?.[0];
-    onDealHandFn({
+    globalP2PClient.emitDealHandForTest({
       playerId: 'p1',
       cards: guestHand.map(c => ({ rank: c.rank, suit: c.suit, id: c.id })),
       leadPlayerId: 'p1',
@@ -673,7 +701,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       gameNumber: 1,
       isFirstMoveOfGame: false, // Không ai có 3 Bích nên không bắt buộc 3 Bích
       isLeadMove: true
-    });
+    }, 'host_peer');
 
     const store = useGameStore.getState();
     expect(store.matchState.status).toBe('PLAYING');
@@ -712,11 +740,10 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     });
 
     const card3S = createCard(3, 'SPADES');
-    const guestCards = [card3S, ...Array.from({ length: 12 }, (_, i) => createCard(((i % 11) + 4) as any, 'CLUBS'))];
+    const guestCards = [card3S, ...ALL_RANKS.filter(r => r !== 3).map(r => createCard(r, 'CLUBS'))];
 
     // 1. Giả lập Host chia bài cho Client
-    const onDealHandFn = (globalP2PClient as any).onDealHandCallbacks?.[0];
-    onDealHandFn({
+    globalP2PClient.emitDealHandForTest({
       playerId: guestId,
       cards: guestCards.map(c => ({ rank: c.rank, suit: c.suit, id: c.id })),
       leadPlayerId: hostId,
@@ -724,7 +751,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       gameNumber: 1,
       isFirstMoveOfGame: true,
       isLeadMove: true
-    });
+    }, 'host_peer');
 
     const store = useGameStore.getState();
     expect(store.matchState.status).toBe('PLAYING');
@@ -733,25 +760,26 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     expect(store.dealtCounts[guestId]).toBe(13);
 
     // 2. Host đánh ra lá bài 3 Bích (SINGLE [3S])
-    const onTableSyncFn = (globalP2PClient as any).onTableSyncCallbacks?.[0];
-    expect(typeof onTableSyncFn).toBe('function');
-
-    onTableSyncFn({
+    globalP2PClient.emitTableSyncForTest({
       currentTurnPlayerId: guestId, // Chuyển lượt sang Client
       leadPlayerId: hostId,
       currentMoveCards: [{ rank: 3, suit: 'SPADES', id: '3_SPADES' }],
       currentMovePlayerId: hostId,
+      isChop: false,
+      isCascadeChop: false,
       remainingCardCounts: {
         [hostId]: 12, // Host còn 12 lá
         [guestId]: 13 // Guest còn 13 lá
       },
+      passedPlayerIds: [],
+      roundNumber: 1,
       winners: [],
       isGameOver: false,
       lastActionMessage: 'Chủ Bàn đã đánh bài',
       gameNumber: 1,
       isFirstMoveOfGame: false,
       isLeadMove: false
-    });
+    }, 'host_peer');
 
     const updatedStore = useGameStore.getState();
 
@@ -775,6 +803,35 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     // 4. Kiểm tra HUD số lá bài của Host: Phải là 12, không bao giờ bị 0 hay rỗng
     expect(updatedStore.dealtCounts[hostId]).toBe(12);
     expect(updatedStore.dealtCounts[guestId]).toBe(13);
+  });
+
+  it('14. Khách đánh bài qua sendMoveAction: Gửi đúng cardIds lên Host, hiển thị bài đánh trên bàn và chuyển lượt', () => {
+    const profileGuest = { ...loadPlayerProfile(), id: 'guest_test_p1', name: 'Guest Tester', coins: 50000 };
+    useOnlineStore.getState().joinRoom(profileGuest, 'TL-3333');
+    useOnlineStore.setState({ myPlayerId: profileGuest.id, isHost: false });
+
+    // Giả lập guestDriver được khởi tạo
+    const sendSpy = spyOn(globalP2PClient, 'sendPlayerAction');
+
+    const cardToPlay = createCard(5, 'DIAMONDS');
+    useGameStore.setState({
+      myPlayerId: profileGuest.id,
+      players: [
+        createPlayer({ id: 'host_p0', name: 'Host', avatar: '🤠', score: 50000, hand: [] }),
+        createPlayer({ id: profileGuest.id, name: profileGuest.name, avatar: '🤠', score: 50000, hand: [cardToPlay] })
+      ]
+    });
+
+    // Khách thực hiện đánh bài
+    useOnlineStore.getState().sendMoveAction([cardToPlay.id]);
+
+    expect(sendSpy).toHaveBeenCalled();
+    const lastCall = sendSpy.mock.calls[sendSpy.mock.calls.length - 1][0];
+    expect(lastCall.type).toBe('PLAY');
+    expect(lastCall.playerId).toBe(profileGuest.id);
+    expect(lastCall.cardIds).toEqual([cardToPlay.id]);
+
+    sendSpy.mockRestore();
   });
 });
 

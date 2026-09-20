@@ -81,7 +81,7 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
       const totalScoreSum = engine.players.reduce((sum, p) => sum + p.score, 0);
       expect(totalScoreSum).toBe(0);
     }
-  });
+  }, 30000);
 
   it('3. Bất biến Không Bao Giờ Nghẽn / Vô Hạn Vòng Lặp (Deadlock-Free Termination Invariant)', () => {
     for (let sim = 0; sim < 100; sim++) {

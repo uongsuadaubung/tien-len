@@ -18,7 +18,13 @@ import { makeBotDecision, createDecisionContext } from '../ai/decision-maker';
 import { BotConfig } from '../ai/types';
 import { CardTracker } from '../ai/card-tracker';
 import { OpponentProfiler } from '../ai/opponent-profiler';
-import { calculateChopPenalty, calculateRottenPenalty } from './economy';
+import { 
+  calculateChopPenalty, 
+  calculateRottenPenalty,
+  calculateCountCardsSettlement,
+  calculateWinnerTakesAllSettlement,
+  calculateTraditionalSettlement
+} from './economy';
 import { MatchLogger, BotDecisionTelemetry } from './match-logger';
 import { evaluateChopTransition } from './state-machine';
 
@@ -79,7 +85,6 @@ export type StartGameResult =
 export class GameEngine {
   public players: Player[];
   public rules: GameRules;
-  public settings: GameSettings;
   public gameNumber: number = 1;
   public isFirstMoveOfGame: boolean = true;
   public isGameOver: boolean = false;
@@ -87,6 +92,7 @@ export class GameEngine {
   public winners: Player[] = [];
   public playedCardsInGame: Card[] = [];
   public instantWinner: Player | null = null;
+  public instantWinType: InstantWinType | null = null;
   public roundNumber: number = 1;
 
   constructor(players: Player[], rulesOrSettings?: GameRules | Partial<GameSettings>) {
@@ -98,19 +104,6 @@ export class GameEngine {
     } else {
       this.rules = convertSettingsToGameRules(rulesOrSettings);
     }
-
-    // Ánh xạ sang GameSettings để tương thích với các module đang đọc settings
-    this.settings = {
-      mode: this.rules.settlementRule,
-      betAmount: this.rules.table.betAmount,
-      allowFourPairsCutAnytime: this.rules.chopping.allowFourPairsCutAnytime,
-      instantWinEnabled: this.rules.instantWin.enabled,
-      soundEnabled: this.rules.table.soundEnabled,
-      playerCount: this.rules.table.playerCount,
-      prohibitEndingWithTwo: this.rules.gameFlow.prohibitEndingWithTwo,
-      threeSpadesEndingBonus: this.rules.gameFlow.threeSpadesEndingBonus,
-      cascadeChopEnabled: this.rules.chopping.cascadeMultiplier
-    };
 
     if (players.length === 0) {
       throw new Error('[GameEngine] Danh sách players không được rỗng!');
@@ -131,11 +124,11 @@ export class GameEngine {
   }
 
   public isRoundLeadMove(): boolean {
-    return !this.currentRound || !this.currentRound.moves || this.currentRound.moves.length === 0;
+    return this.currentRound.moves.length === 0;
   }
 
   public getLeadingMove(): PlayedMove | null {
-    if (!this.currentRound || !this.currentRound.moves || this.currentRound.moves.length === 0) return null;
+    if (this.currentRound.moves.length === 0) return null;
     return this.currentRound.moves[this.currentRound.moves.length - 1];
   }
 
@@ -172,18 +165,15 @@ export class GameEngine {
       player.playedCards = [];
       player.isPassedCurrentRound = false;
       player.hasPlayedFirstCard = false;
-      player.rankPosition = null;
-      player.instantWinType = null;
     });
 
     // 2. Kiểm tra Tới Trắng
-    if (this.settings.instantWinEnabled) {
+    if (this.rules.instantWin.enabled) {
       for (const player of this.players) {
         const instantType = checkInstantWin(player.hand, this.gameNumber === 1);
         if (instantType) {
-          player.instantWinType = instantType;
-          player.rankPosition = 1;
           this.instantWinner = player;
+          this.instantWinType = instantType;
           this.winners = [player];
           this.lastWinnerId = player.id;
           this.isGameOver = true;
@@ -211,7 +201,7 @@ export class GameEngine {
 
     MatchLogger.getInstance().startNewMatch({
       gameNumber: this.gameNumber,
-      gameMode: this.settings.mode || 'TRADITIONAL',
+      gameMode: this.rules.settlementRule,
       rules: this.rules,
       players: this.players
     });
@@ -267,14 +257,13 @@ export class GameEngine {
     this.isGameOver = false;
     this.playedCardsInGame = [];
     this.instantWinner = null;
+    this.instantWinType = null;
     this.roundNumber = 1;
 
     this.players.forEach(p => {
       p.playedCards = [];
       p.isPassedCurrentRound = false;
       p.hasPlayedFirstCard = false;
-      p.rankPosition = null;
-      p.instantWinType = null;
     });
 
     const { firstPlayerId, isFirstMoveOfGame } = this.determineFirstPlayer(previousWinnerId);
@@ -292,7 +281,7 @@ export class GameEngine {
 
     MatchLogger.getInstance().startNewMatch({
       gameNumber: this.gameNumber,
-      gameMode: this.settings.mode || 'TRADITIONAL',
+      gameMode: this.rules.settlementRule,
       rules: this.rules,
       players: this.players
     });
@@ -319,7 +308,7 @@ export class GameEngine {
     // Kiểm tra lượt đánh
     const isCurrentTurn = this.currentRound.currentTurnPlayerId === playerId;
     const isSpecialFourPairsJump =
-      this.settings.allowFourPairsCutAnytime &&
+      this.rules.chopping.allowFourPairsCutAnytime &&
       cards.length === 8 &&
       identifyCombination(cards)?.type === 'FOUR_PAIRS_SEQUENTIAL';
 
@@ -471,14 +460,13 @@ export class GameEngine {
 
     // 4. Kiểm tra người chơi đã Hết Bài (Về Nhất/Nhì/Ba)
     if (player.hand.length === 0) {
-      player.rankPosition = this.winners.length + 1;
       this.winners = [...this.winners, player];
 
       // Kiểm tra Về 3 Bích Cuối Cùng (Ăn Ba Bích):
       // Chỉ kích hoạt khi người về Nhất đánh lá ĐƠN 3 Bích và không phải ván 1 bắt buộc 3 Bích đi đầu
       const isThreeSpadesEndingEnabled = this.rules.gameFlow.threeSpadesEndingBonus;
       if (
-        player.rankPosition === 1 &&
+        this.winners.length === 1 &&
         isThreeSpadesEndingEnabled &&
         this.gameNumber > 1 &&
         cards.length === 1 &&
@@ -493,7 +481,6 @@ export class GameEngine {
         if (this.winners.length === this.players.length - 1) {
           const lastPlayer = this.players.find(p => !this.winners.some(w => w.id === p.id));
           if (lastPlayer) {
-            lastPlayer.rankPosition = this.players.length;
             this.winners = [...this.winners, lastPlayer];
           }
         }
@@ -627,7 +614,7 @@ export class GameEngine {
         rules: this.rules,
         hasPlayedFirstCard: currentPlayer.hasPlayedFirstCard,
         prohibitEndingWithTwo,
-        gameMode: this.settings.mode || 'TRADITIONAL',
+        gameMode: this.rules.settlementRule,
         mctsMap: null,
         compositeRuleStrategy: null,
         opponentProfiles: null
@@ -814,8 +801,7 @@ export class GameEngine {
     if (activeRemainingPlayers.length <= 1) {
       if (this.winners.length < this.players.length) {
         const lastPlayer = this.players.find(p => p.hand.length > 0);
-        if (lastPlayer && !lastPlayer.rankPosition) {
-          lastPlayer.rankPosition = this.players.length;
+        if (lastPlayer && !this.winners.some(w => w.id === lastPlayer.id)) {
           this.winners = [...this.winners, lastPlayer];
         }
       }
@@ -954,132 +940,62 @@ export class GameEngine {
   }
 
   /**
-   * Kết toán bàn chơi theo đúng luật settlementRule đã cấu hình
+   * Kết toán bàn chơi theo đúng luật settlementRule đã cấu hình (Pure delegation sang economy.ts)
    */
-  public settleEndGame(): void {
+  public settleEndGame(): Readonly<Record<string, number>> {
     if (this.winners[0]) {
       this.lastWinnerId = this.winners[0].id;
     }
-    if (this.rules.settlementRule === 'COUNT_CARDS') {
-      this.settleCountCardsEndGame(this.winners[0]);
-    } else if (this.rules.settlementRule === 'WINNER_TAKES_ALL') {
-      this.settleWinnerTakesAllEndGame(this.winners[0]);
-    } else {
-      this.settleTraditionalEndGame();
+
+    const winnerId = this.winners[0]?.id;
+    let payouts: Readonly<Record<string, number>> = {};
+
+    if (winnerId) {
+      const bet = this.rules.table.betAmount;
+      const penaltyMultiplier = this.rules.chopping.multiplier || 1;
+      const congMultiplier = this.rules.cong.multiplier || 1;
+
+      if (this.rules.settlementRule === 'COUNT_CARDS') {
+        payouts = calculateCountCardsSettlement(
+          this.players,
+          winnerId,
+          bet,
+          penaltyMultiplier,
+          this.isThreeSpadesWin,
+          congMultiplier
+        );
+      } else if (this.rules.settlementRule === 'WINNER_TAKES_ALL') {
+        payouts = calculateWinnerTakesAllSettlement(
+          this.players,
+          winnerId,
+          bet,
+          penaltyMultiplier,
+          this.isThreeSpadesWin,
+          congMultiplier
+        );
+      } else {
+        payouts = calculateTraditionalSettlement(
+          this.players,
+          this.winners,
+          bet,
+          penaltyMultiplier,
+          this.isThreeSpadesWin
+        );
+      }
+
+      // Áp dụng payout lên p.score để đồng bộ kết quả ván đấu
+      for (const p of this.players) {
+        if (payouts[p.id] !== undefined) {
+          p.score += payouts[p.id];
+        }
+      }
     }
 
     for (const p of this.players) {
       OpponentProfiler.getInstance().finalizeMatchForPlayer(p.id, p.hand);
     }
-  }
 
-  /**
-   * Tính toán kết quả cho chế độ Đếm Lá (CARD_COUNT)
-   */
-  private settleCountCardsEndGame(winner: Player): void {
-    if (!winner) return;
-    const bet = this.rules.table.betAmount;
-    const congMult = this.rules.cong.multiplier || 1;
-    const congPenaltyCards = this.rules.cong.penaltyCards || 26;
-    const threeSpadesMultiplier = this.isThreeSpadesWin ? 2 : 1;
-    let totalWinScore = 0;
-
-    for (const player of this.players) {
-      if (player.id === winner.id) continue;
-
-      const isCong = this.isPlayerCong(player.id);
-      let penalty = 0;
-
-      if (isCong && this.rules.cong.enabled) {
-        // Cóng: Bị phạt đền congPenaltyCards x bet x congMult + thối heo hàng
-        penalty = congPenaltyCards * bet * congMult + this.calculateRottenCardsPenalty(player.hand);
-      } else {
-        // Đếm lá: Số lá bài còn lại x cược + thối heo hàng
-        penalty = player.hand.length * bet + this.calculateRottenCardsPenalty(player.hand);
-      }
-
-      penalty *= threeSpadesMultiplier;
-
-      player.score -= penalty;
-      totalWinScore += penalty;
-    }
-
-    winner.score += totalWinScore;
-  }
-
-  /**
-   * Tính toán kết quả cho chế độ Nhất Ăn Tất (WINNER_TAKES_ALL)
-   */
-  private settleWinnerTakesAllEndGame(winner: Player): void {
-    if (!winner) return;
-    const bet = this.rules.table.betAmount;
-    const threeSpadesMultiplier = this.isThreeSpadesWin ? 2 : 1;
-    let totalWinScore = 0;
-
-    for (const player of this.players) {
-      if (player.id === winner.id) continue;
-      let penalty = bet + this.calculateRottenCardsPenalty(player.hand);
-      penalty *= threeSpadesMultiplier;
-      player.score -= penalty;
-      totalWinScore += penalty;
-    }
-
-    winner.score += totalWinScore;
-  }
-
-  /**
-   * Tính toán kết quả cho chế độ Truyền Thống (TRADITIONAL_RANK_BASED)
-   */
-  private settleTraditionalEndGame(): void {
-    const bet = this.rules.table.betAmount;
-    const threeSpadesMultiplier = this.isThreeSpadesWin ? 2 : 1;
-    // Thứ tự: Nhất (+3 cược), Nhì (+1 cược), Ba (-1 cược), Bét (-3 cược)
-    const [p1, p2, p3, p4] = this.winners;
-
-    if (p1 && p2 && p3 && p4) {
-      const p4Penalty = (this.isPlayerCong(p4.id) ? bet * 6 : bet * 3) * threeSpadesMultiplier;
-      let totalRottenPenalty = 0;
-
-      // Phạt thối heo cho tất cả người chơi còn giữ Heo khi ván kết thúc (p2, p3, p4)
-      for (const p of [p2, p3, p4]) {
-        let rotten = this.calculateRottenCardsPenalty(p.hand);
-        if (rotten > 0) {
-          rotten *= threeSpadesMultiplier;
-          p.score -= rotten;
-          totalRottenPenalty += rotten;
-        }
-      }
-
-      p1.score += p4Penalty + bet * 1 * threeSpadesMultiplier + totalRottenPenalty;
-      p2.score += bet * 1;
-      p3.score -= bet * 1;
-      p4.score -= p4Penalty;
-    } else if (this.winners.length === 2) {
-      const p1 = this.winners[0];
-      const p2 = this.winners[1];
-      if (p1 && p2) {
-        const p2Penalty = (this.isPlayerCong(p2.id) ? bet * 2 : bet * 1) * threeSpadesMultiplier;
-        const p2Rotten = this.calculateRottenCardsPenalty(p2.hand) * threeSpadesMultiplier;
-        p1.score += p2Penalty + p2Rotten;
-        p2.score -= (p2Penalty + p2Rotten);
-      }
-    } else if (this.winners.length === 3) {
-      const [p1, p2, p3] = this.winners;
-      if (p1 && p2 && p3) {
-        const p3Penalty = (this.isPlayerCong(p3.id) ? bet * 4 : bet * 2) * threeSpadesMultiplier;
-        let totalRotten = 0;
-        for (const p of [p2, p3]) {
-          let rotten = this.calculateRottenCardsPenalty(p.hand);
-          if (rotten > 0) {
-            rotten *= threeSpadesMultiplier;
-            totalRotten += rotten;
-          }
-        }
-        p1.score += p3Penalty + totalRotten;
-        p2.score += 0;
-        p3.score -= p3Penalty;
-      }
-    }
+    return payouts;
   }
 
   /**

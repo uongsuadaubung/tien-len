@@ -22,12 +22,16 @@ import { resolveStrategyForMatch, type MatchSetupContext } from './strategies/ga
 import { generateRealisticBotBankroll } from '../ai/bot-factory';
 import { OpponentProfiler } from '../ai/opponent-profiler';
 import type { ChopNotificationData } from '../stores/useGameStore';
+import { useGameStore } from '../stores/useGameStore';
+import { useUserStore } from '../stores/useUserStore';
 import { type PlayerProfile, loadPlayerProfile } from './storage';
 import type { CampaignChapter } from './campaign';
 import { getOptimalMoveHint, type MoveHint } from '../ai/hint-engine';
 import { getSortedQuickSelectCandidates } from './quick-response-finder';
 import { assertValidSnapshot } from './invariants/match-invariants';
-import type { IMatchDriver, DriverActionResult } from './match-driver.interface';
+import type { DriverActionResult } from './match-driver.interface';
+import { BaseMatchDriver } from './base-match-driver';
+import { createPerspectiveSettlement, type PerspectiveMatchSettlement } from './settlement/perspective-settlement';
 
 export interface TableSessionConfig {
   gameType: 'QUICK' | 'CAMPAIGN' | 'CUSTOM';
@@ -67,14 +71,13 @@ export type SnapshotListener = (snapshot: MatchSnapshot) => void;
 export type MatchStateListener = (state: MatchState) => void;
 export type CompletionListener = (result: MatchCompletionResult) => void;
 
-export class OfflineMatchDriver implements IMatchDriver {
+export class OfflineMatchDriver extends BaseMatchDriver {
   public tableConfig: TableSessionConfig | null = null;
   public engine: GameEngine | null = null;
   public trackers: Record<string, CardTracker> = {};
   public gameNumber: number = 1;
   public lastWinnerId: string | null = null;
   public rules: GameRules | null = null;
-  public settings: GameSettings | null = null;
   public botPersonaIds: BotPersonaIdTuple = ['BOT_ELO_850', 'BOT_ELO_1150', 'BOT_ELO_1450'];
   public customBotConfigs: CustomBotConfigTuple<BotConfig> = [{}, {}, {}];
   public playerCount: number = 4;
@@ -89,9 +92,9 @@ export class OfflineMatchDriver implements IMatchDriver {
   public instantWinType: InstantWinType | null = null;
   public matchPayouts: Record<string, number> = {};
   public eloDeltas: Record<string, number> = {};
+  public perspectiveSettlement: PerspectiveMatchSettlement | null = null;
 
   // Runtime control
-  private isDisposed: boolean = false;
   private botTimer: ReturnType<typeof setTimeout> | null = null;
   private chopTimer: ReturnType<typeof setTimeout> | null = null;
   private bannerTimer: ReturnType<typeof setTimeout> | null = null;
@@ -105,6 +108,7 @@ export class OfflineMatchDriver implements IMatchDriver {
   private completionListeners: Set<CompletionListener> = new Set();
 
   constructor(options: { gameSpeed: GameSpeedMode | null; autoSortEnabled: boolean | null } | null = null) {
+    super();
     if (options && options.gameSpeed !== null) this.gameSpeed = options.gameSpeed;
     if (options && options.autoSortEnabled !== null) this.autoSortEnabled = options.autoSortEnabled;
   }
@@ -155,13 +159,18 @@ export class OfflineMatchDriver implements IMatchDriver {
 
   private emitSnapshot(): void {
     if (this.isDisposed) return;
-    const snapshot = this.getSnapshot();
-    for (const listener of this.snapshotListeners) {
-      listener(snapshot);
-    }
     const matchState = this.getMatchState();
     for (const stateListener of this.matchStateListeners) {
       stateListener(matchState);
+    }
+    if (this.snapshotListeners.size > 0) {
+      const snapshot = mapMatchStateToSnapshot(matchState);
+      if (this.engine) {
+        assertValidSnapshot(snapshot);
+      }
+      for (const listener of this.snapshotListeners) {
+        listener(snapshot);
+      }
     }
   }
 
@@ -217,20 +226,69 @@ export class OfflineMatchDriver implements IMatchDriver {
     }
 
     if (this.engine.isGameOver) {
+      const winningMove = this.engine.currentRound.moves[this.engine.currentRound.moves.length - 1] ?? this.engine.getLeadingMove() ?? null;
+      const gameStore = useGameStore.getState();
+      let settlement = this.perspectiveSettlement ?? gameStore.perspectiveSettlement;
+      if (!settlement) {
+        const payouts: Record<string, number> = { ...this.matchPayouts };
+        this.engine.players.forEach(p => {
+          if (payouts[p.id] === undefined) {
+            payouts[p.id] = 0;
+          }
+        });
+
+        settlement = (this.tableConfig?.gameType === 'CAMPAIGN' && this.tableConfig.campaignChapter)
+          ? createPerspectiveSettlement({
+              subjectPlayerId: this.localPlayerId,
+              allPlayers: this.engine.players,
+              winners: this.engine.winners,
+              payouts,
+              eloDeltas: this.eloDeltas,
+              subjectEloDelta: this.eloDeltas[this.localPlayerId] ?? 0,
+              subjectEloBreakdown: null,
+              loanDeduction: 0,
+              isThreeSpadesWin: this.engine.isThreeSpadesWin,
+              instantWinType: this.instantWinType,
+              activeGameType: 'CAMPAIGN',
+              campaignChapter: this.tableConfig.campaignChapter,
+              campaignResultMeta: gameStore.campaignResultMeta,
+              betAmount: this.rules?.table.betAmount ?? 1000,
+              subjectCoins: useUserStore.getState().profile.coins
+            })
+          : createPerspectiveSettlement({
+              subjectPlayerId: this.localPlayerId,
+              allPlayers: this.engine.players,
+              winners: this.engine.winners,
+              payouts,
+              eloDeltas: this.eloDeltas,
+              subjectEloDelta: this.eloDeltas[this.localPlayerId] ?? 0,
+              subjectEloBreakdown: null,
+              loanDeduction: 0,
+              isThreeSpadesWin: this.engine.isThreeSpadesWin,
+              instantWinType: this.instantWinType,
+              activeGameType: 'QUICK',
+              betAmount: this.rules?.table.betAmount ?? 1000,
+              subjectCoins: useUserStore.getState().profile.coins
+            });
+      }
+
       return {
         status: 'GAME_OVER',
         gameNumber: this.engine.gameNumber,
         players: [...this.engine.players],
         winners: [...this.engine.winners],
+        winningMove,
         isThreeSpadesWin: this.engine.isThreeSpadesWin,
         matchPayouts: { ...this.matchPayouts },
         eloDeltas: { ...this.eloDeltas },
+        settlement,
         matchLogReport: null,
         rules: this.engine.rules,
         leadingMove: this.engine.getLeadingMove(),
         chopNotification: this.chopNotification ? { ...this.chopNotification } : null
       };
     }
+
 
     if (this.engine.currentRound.isFinished) {
       return {
@@ -278,7 +336,6 @@ export class OfflineMatchDriver implements IMatchDriver {
   public setupTable(config: TableSessionConfig, profile: PlayerProfile): void {
     this.tableConfig = config;
     this.rules = config.rules;
-    this.settings = config.settings;
     this.botPersonaIds = config.botPersonaIds;
     this.customBotConfigs = config.customBotConfigs;
     this.playerCount = config.playerCount;
@@ -413,8 +470,8 @@ export class OfflineMatchDriver implements IMatchDriver {
       const strategy = resolveStrategyForMatch(gameType, mode);
       const setup = strategy.setupMatch({
         profile: context.profile,
-        rules: context.rules ?? (context.customRules as GameRules | undefined),
-        settings: context.settings ?? (context.customSettings as GameSettings | undefined),
+        rules: context.rules,
+        settings: context.settings,
         customRules: context.customRules,
         customSettings: context.customSettings,
         customBotPersonaIds: context.customBotPersonaIds,
@@ -737,33 +794,27 @@ export class OfflineMatchDriver implements IMatchDriver {
     }, UI_TIMINGS.CHOP_ALERT_DURATION_MS);
   }
 
-  private scheduleGameOver(delayMs: number = UI_TIMINGS.GAME_OVER_MODAL_DELAY_MS): void {
-    if (delayMs > 0) {
-      if (this.gameOverTimer) clearTimeout(this.gameOverTimer);
-      this.gameOverTimer = setTimeout(() => {
-        if (!this.isDisposed && this.engine) {
-          this.handleGameOver();
-        }
-      }, delayMs);
-    } else {
-      this.handleGameOver();
-    }
-  }
-
-  private handleGameOver(): void {
+  public handleGameOver(options?: { skipDelay?: boolean }): void {
     if (!this.engine) return;
     this.cleanupTimers();
     this.botThinkingThought = null;
     this.lastWinnerId = this.engine.winners[0]?.id || null;
     this.emitSnapshot();
+    this.scheduleGameOverReveal(() => {
+      if (this.isDisposed || !this.engine) return;
+      for (const listener of this.completionListeners) {
+        listener({
+          engine: this.engine,
+          instantWin: false,
+          instantWinType: null
+        });
+      }
+    }, options);
+    this.gameOverTimer = this.endGameTimer;
+  }
 
-    for (const listener of this.completionListeners) {
-      listener({
-        engine: this.engine,
-        instantWin: false,
-        instantWinType: null
-      });
-    }
+  private scheduleGameOver(delayMs: number = UI_TIMINGS.GAME_OVER_MODAL_DELAY_MS): void {
+    this.handleGameOver({ skipDelay: delayMs <= 0 });
   }
 
   private cleanupTimers(): void {
@@ -782,6 +833,10 @@ export class OfflineMatchDriver implements IMatchDriver {
     if (this.gameOverTimer) {
       clearTimeout(this.gameOverTimer);
       this.gameOverTimer = null;
+    }
+    if (this.endGameTimer) {
+      clearTimeout(this.endGameTimer);
+      this.endGameTimer = null;
     }
   }
 
@@ -841,8 +896,8 @@ export class OfflineMatchDriver implements IMatchDriver {
     return true;
   }
 
-  public cleanup(): void {
-    this.isDisposed = true;
+  public override cleanup(): void {
+    super.cleanup();
     this.cleanupTimers();
     this.botThinkingThought = null;
     this.chopNotification = null;
@@ -854,7 +909,6 @@ export class OfflineMatchDriver implements IMatchDriver {
     this.trackers = {};
     this.tableConfig = null;
     this.rules = null;
-    this.settings = null;
     this.instantWinType = null;
   }
 }

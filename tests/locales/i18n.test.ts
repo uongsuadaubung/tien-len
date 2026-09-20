@@ -95,8 +95,8 @@ describe('Centralized i18n & Localization Dictionary System', () => {
     const template = t('game.turnWaiting');
     expect(template).toBe('Đang chờ {name} đi bài...');
 
-    // Key không hợp lệ ép kiểu
-    const invalid = t('invalid.key' as any);
+    // Key không hợp lệ
+    const invalid = t('invalid.key');
     expect(invalid).toBe('invalid.key');
   });
 

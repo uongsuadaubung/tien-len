@@ -4,7 +4,7 @@ import { CardTracker } from '../../src/ai/card-tracker';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { makeBotDecision } from '../../src/ai/decision-maker';
 import { createDecisionContext } from '../../src/ai/decision-types';
-import { TableScaleRuleStrategy, CountCardsSettlementStrategy } from '../../src/ai/rule-strategies';
+import { TableScaleRuleStrategy, CountCardsSettlementStrategy, type RuleDecisionContext } from '../../src/ai/rule-strategies';
 import { createDefaultGameRules } from '../../src/engine/types';
 
 describe('Table Scale Balance (2P, 3P & 4P)', () => {
@@ -13,8 +13,30 @@ describe('Table Scale Balance (2P, 3P & 4P)', () => {
     const table3P = new TableScaleRuleStrategy({ playerCount: 3, betAmount: 100, soundEnabled: true });
     const table4P = new TableScaleRuleStrategy({ playerCount: 4, betAmount: 100, soundEnabled: true });
 
-    const dummyMove = { cards: [], combination: {} as any, isChop: false };
-    const dummyContext = { antiLeaderAggression: 1.0 } as any;
+    const dummyCard = createCard(3, 'SPADES');
+    const dummyMove = {
+      cards: [dummyCard],
+      combination: { type: 'SINGLE' as const, cards: [dummyCard], highestCard: dummyCard, length: 1 },
+      isChop: false
+    };
+    const dummyContext: RuleDecisionContext = {
+      hand: [],
+      currentRoundLeadingMove: null,
+      isFirstMoveOfGame: false,
+      isLeadMove: false,
+      tracker: new CardTracker(),
+      remainingPlayerCards: {},
+      nextPlayerId: 'p1',
+      hasPlayedFirstCard: true,
+      isNextPlayerOneCard: false,
+      prohibitEndingWithTwo: false,
+      rules: createDefaultGameRules(),
+      handPartitioningOptimality: 1,
+      antiLeaderAggression: 1.0,
+      tempoControl: 1,
+      trapTendency: 0,
+      riskAppetite: 1
+    };
 
     expect(table2P.getRespondingScoreModifier(dummyMove, 5, null, dummyContext)).toBe(90);
     expect(table3P.getRespondingScoreModifier(dummyMove, 5, null, dummyContext)).toBe(30);
@@ -143,9 +165,24 @@ describe('Table Scale Balance (2P, 3P & 4P)', () => {
     };
 
     // Case 1: Opponent has 3 cards left, bot has 8 cards
-    const contextWithNearFinisher = {
-      remainingPlayerCards: { bot: 8, opp1: 3, opp2: 9, opp3: 10 }
-    } as any;
+    const contextWithNearFinisher: RuleDecisionContext = {
+      hand: [createCard(15, 'HEARTS')],
+      currentRoundLeadingMove: null,
+      isFirstMoveOfGame: false,
+      isLeadMove: false,
+      tracker: new CardTracker(),
+      remainingPlayerCards: { bot: 8, opp1: 3, opp2: 9, opp3: 10 },
+      nextPlayerId: 'opp1',
+      hasPlayedFirstCard: true,
+      isNextPlayerOneCard: false,
+      prohibitEndingWithTwo: false,
+      rules: createDefaultGameRules(),
+      handPartitioningOptimality: 1,
+      antiLeaderAggression: 1.0,
+      tempoControl: 1,
+      trapTendency: 0,
+      riskAppetite: 1
+    };
 
     const bonus = strategy.getRespondingScoreModifier(twoMove, 8, null, contextWithNearFinisher);
     // Should get +80 anti-thối-heo bonus!

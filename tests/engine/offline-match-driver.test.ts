@@ -105,5 +105,48 @@ describe('OfflineMatchDriver Unit Tests (Kiểm Thử Driver Vòng Lặp Ván Đ
 
     driver.cleanup();
   });
+
+  it('5. Khi ván kết thúc (Game Over), completionListeners chỉ được gọi sau khoảng đệm 2s (MATCH_END_REVEAL_DELAY_MS)', async () => {
+    const driver = new OfflineMatchDriver();
+    const profile = loadPlayerProfile();
+
+    const testRules = createDefaultGameRules();
+    testRules.instantWin.enabled = false;
+
+    driver.startMatch(1, {
+      profile,
+      customRules: testRules,
+      playerCount: 4
+    });
+
+    driver.finishDealing();
+
+    let completed = false;
+    driver.onComplete(() => {
+      completed = true;
+    });
+
+    // Giả lập ván bài kết thúc
+    driver.engine!.isGameOver = true;
+    driver.engine!.winners = [driver.engine!.players[0]];
+
+    // Gọi handleGameOver mà không skipDelay (mặc định)
+    driver.handleGameOver();
+
+    // Ngay lập tức: completionListeners chưa được gọi (chờ 2s)
+    expect(completed).toBe(false);
+
+    // Bàn đấu đã được cập nhật snapshot có isGameOver
+    const snap = driver.getSnapshot();
+    expect(snap.isGameOver).toBe(true);
+
+    // Chờ 2050ms
+    await new Promise(resolve => setTimeout(resolve, 2050));
+
+    // Sau 2s: completionListeners đã được gọi
+    expect(completed).toBe(true);
+
+    driver.cleanup();
+  });
 });
 

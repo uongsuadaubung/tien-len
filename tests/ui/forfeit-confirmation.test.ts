@@ -4,6 +4,7 @@ import { useGameStore } from '../../src/stores/useGameStore';
 import { useUserStore } from '../../src/stores/useUserStore';
 import { saveActiveMatchSession, clearActiveMatchSession } from '../../src/engine/storage';
 import { ECONOMY_CONSTANTS } from '../../src/engine/constants/economy';
+import { GameRulesBuilder } from '../../src/engine/types';
 
 describe('Kiểm Thử Cảnh Báo Xác Nhận Mất Tiền Cược Khi Thoát Trận (Forfeit Confirmation Tests)', () => {
   beforeEach(() => {
@@ -44,7 +45,7 @@ describe('Kiểm Thử Cảnh Báo Xác Nhận Mất Tiền Cược Khi Thoát T
         passedPlayerIds: [],
         chopNotification: null,
         botThinkingThought: null,
-        rules: {} as any,
+        rules: GameRulesBuilder.traditional().build(),
         isLeadMove: true,
         leadingMove: null
       }

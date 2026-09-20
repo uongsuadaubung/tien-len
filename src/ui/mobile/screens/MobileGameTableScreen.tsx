@@ -56,6 +56,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
     soundEnabled,
     quickResponseAssistEnabled,
     botReasoningLogEnabled,
+    reverseButtonsEnabled,
     toggleSound
   } = useSettingsStore();
 
@@ -316,19 +317,20 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
             onPlaySelectedCards={handlePlayCards}
             onPassTurn={handlePassTurnAction}
             onAutoSort={onAutoSort}
-            onQuickSelect={quickResponseAssistEnabled ? handleQuickSelect : null}
-            canQuickSelect={quickResponseAssistEnabled ? canQuickSelect : false}
+            onQuickSelect={handleQuickSelect}
+            canQuickSelect={quickResponseAssistEnabled && canQuickSelect}
             quickSelectCandidatesCount={quickSelectCandidates.length}
             isCurrentTurn={isMyTurn}
             canPlay={isValidPlaySelection}
             canPass={canPassTurn}
             isLeader={leadPlayerId === localPlayer.id}
             isDealing={isDealing}
-            dealtCardsCount={dealtCounts[localPlayer.id]}
+            dealtCardsCount={dealtCounts[localPlayer.id] ?? 0}
             isFirstMoveOfGame={isFirstMoveOfGame}
             sortMode={handSortMode}
             variantIndex={smartVariantIndex}
             cardSize="mobile"
+            reverseButtons={reverseButtonsEnabled}
           />
         </div>
       </main>

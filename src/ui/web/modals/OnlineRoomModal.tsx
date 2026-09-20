@@ -6,7 +6,6 @@ import {
   Check, 
   Play, 
   LogOut, 
-  Bot, 
   Crown, 
   Coins, 
   Sparkles, 
@@ -37,7 +36,7 @@ export const OnlineRoomModal: React.FC = () => {
     copiedLink,
     copiedPin,
     canAffordBet,
-    isRoomFull,
+    canStartGame,
     isPublicRoom,
     publicRooms,
     isLobbyLoading,
@@ -54,7 +53,6 @@ export const OnlineRoomModal: React.FC = () => {
     handleRefreshLobby,
     handleStartGame,
     handleLeave,
-    handleAddBot,
     handleRemoveSlot,
     handleClose,
     handleOpenBank
@@ -96,8 +94,9 @@ export const OnlineRoomModal: React.FC = () => {
                 variant="gold"
                 size="md"
                 onClick={handleStartGame}
+                disabled={!canStartGame}
                 leftIcon={<Play className="w-4 h-4 text-slate-950 fill-current" />}
-                className="flex-1 font-black shadow-lg shadow-amber-500/20 cursor-pointer"
+                className="flex-1 font-black shadow-lg shadow-amber-500/20 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {t('online.startGameBtn')}
               </Button>
@@ -327,11 +326,6 @@ export const OnlineRoomModal: React.FC = () => {
                   <Users className="w-3.5 h-3.5" />
                   <span>{t('online.playerListTitle', { current: roomState?.players.length || 1, max: roomState?.playerCount || 4 })}</span>
                 </span>
-                {isHost && !isRoomFull && (
-                  <span className="text-[10px] text-[var(--text-muted)]">
-                    {t('online.canAddBot')}
-                  </span>
-                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -385,26 +379,13 @@ export const OnlineRoomModal: React.FC = () => {
                           )}
                         </div>
                       ) : (
-                        <div className="flex items-center justify-between w-full py-1">
-                          <div className="flex items-center gap-2 text-zinc-500">
-                            <div className="w-8 h-8 rounded-xl border border-dashed border-zinc-700 flex items-center justify-center text-xs font-bold">
-                              {idx + 1}
-                            </div>
-                            <span className="text-[11px] font-medium italic">
-                              {t('online.waitingPlayer')}
-                            </span>
+                        <div className="flex items-center gap-2 text-zinc-500 py-1">
+                          <div className="w-8 h-8 rounded-xl border border-dashed border-zinc-700 flex items-center justify-center text-xs font-bold">
+                            {idx + 1}
                           </div>
-
-                          {isHost && (
-                            <button
-                              onClick={() => handleAddBot(idx)}
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[11px] font-bold transition-all active:scale-95 cursor-pointer"
-                            >
-                              <Plus className="w-3 h-3" />
-                              <Bot className="w-3 h-3" />
-                              <span>{t('online.addBot')}</span>
-                            </button>
-                          )}
+                          <span className="text-[11px] font-medium italic">
+                            {t('online.waitingPlayer')}
+                          </span>
                         </div>
                       )}
                     </div>

@@ -2,29 +2,32 @@ import { Card, Combination, Player } from './types';
 import { isRedCard, isTwo } from './card';
 
 export interface EconomySettings {
-  betAmount: number;
-  penaltyMultiplier: number | null;
-  hardcoreMultiplier: number | null;
+  readonly betAmount: number;
+  readonly penaltyMultiplier: number | null;
+  readonly hardcoreMultiplier: number | null;
 }
 
 export interface ChopPenaltyResult {
-  chopperId: string;
-  targetId: string;
-  amount: number;
-  description: string;
+  readonly chopperId: string;
+  readonly targetId: string;
+  readonly amount: number;
+  readonly description: string;
 }
 
 export interface EndGameSettlementResult {
-  payouts: Record<string, number>; // playerId -> net change
-  loanDeductions: Record<string, number>; // playerId -> loan repaid
-  congedPlayerIds: string[];
-  rottenPenalties: Record<string, number>;
+  readonly payouts: Readonly<Record<string, number>>; // playerId -> net change
+  readonly loanDeductions: Readonly<Record<string, number>>; // playerId -> loan repaid
+  readonly congedPlayerIds: readonly string[];
+  readonly rottenPenalties: Readonly<Record<string, number>>;
 }
 
 /**
  * Helper trích xuất hệ số nhân sát phạt (multiplier: 1x, 2x, 3x, 4x, 5x...)
  */
 function getMultiplier(val: number = 1): number {
+  if (val < 0) {
+    throw new Error(`[getMultiplier] Invariant violated: multiplier cannot be negative (got ${val})`);
+  }
   return Math.max(1, val);
 }
 
@@ -37,6 +40,9 @@ export function calculateChopPenalty(
   betAmount: number,
   penaltyMultiplier: number = 1
 ): { amount: number; description: string } {
+  if (betAmount < 0) {
+    throw new Error(`[calculateChopPenalty] Invariant violated: betAmount cannot be negative (got ${betAmount})`);
+  }
   const mult = getMultiplier(penaltyMultiplier);
   const bet = betAmount;
 
@@ -98,7 +104,10 @@ export function calculateChopPenalty(
 /**
  * Tính tiền phạt Thối Heo/Hàng khi ván đấu kết thúc
  */
-export function calculateRottenPenalty(hand: Card[], betAmount: number, penaltyMultiplier: number = 1): number {
+export function calculateRottenPenalty(hand: readonly Card[], betAmount: number, penaltyMultiplier: number = 1): number {
+  if (betAmount < 0) {
+    throw new Error(`[calculateRottenPenalty] Invariant violated: betAmount cannot be negative (got ${betAmount})`);
+  }
   let penalty = 0;
   const mult = getMultiplier(penaltyMultiplier);
   const bet = betAmount;
@@ -131,6 +140,9 @@ export function calculateRottenPenalty(hand: Card[], betAmount: number, penaltyM
  * - Có áp dụng hệ số nhân phạt Cóng riêng biệt (congMultiplier), độc lập với hệ số phạt Chặt/Thối.
  */
 export function calculateCongPenalty(betAmount: number, congMultiplier: number = 1): number {
+  if (betAmount < 0) {
+    throw new Error(`[calculateCongPenalty] Invariant violated: betAmount cannot be negative (got ${betAmount})`);
+  }
   const mult = getMultiplier(congMultiplier);
   return 26 * betAmount * mult;
 }
@@ -149,7 +161,17 @@ export function calculateCountCardsSettlement(
   penaltyMultiplier: number = 1,
   isThreeSpadesWin: boolean = false,
   congMultiplier: number = 1
-): Record<string, number> {
+): Readonly<Record<string, number>> {
+  if (players.length === 0) {
+    throw new Error('[calculateCountCardsSettlement] Invariant violated: players list cannot be empty');
+  }
+  if (!players.some(p => p.id === winnerId)) {
+    throw new Error(`[calculateCountCardsSettlement] Invariant violated: winnerId "${winnerId}" must exist in players`);
+  }
+  if (betAmount < 0) {
+    throw new Error(`[calculateCountCardsSettlement] Invariant violated: betAmount cannot be negative (got ${betAmount})`);
+  }
+
   const payouts: Record<string, number> = {};
   players.forEach(p => { payouts[p.id] = 0; });
 
@@ -197,7 +219,17 @@ export function calculateWinnerTakesAllSettlement(
   penaltyMultiplier: number = 1,
   isThreeSpadesWin: boolean = false,
   congMultiplier: number = 1
-): Record<string, number> {
+): Readonly<Record<string, number>> {
+  if (players.length === 0) {
+    throw new Error('[calculateWinnerTakesAllSettlement] Invariant violated: players list cannot be empty');
+  }
+  if (!players.some(p => p.id === winnerId)) {
+    throw new Error(`[calculateWinnerTakesAllSettlement] Invariant violated: winnerId "${winnerId}" must exist in players`);
+  }
+  if (betAmount < 0) {
+    throw new Error(`[calculateWinnerTakesAllSettlement] Invariant violated: betAmount cannot be negative (got ${betAmount})`);
+  }
+
   const payouts: Record<string, number> = {};
   players.forEach(p => { payouts[p.id] = 0; });
 
@@ -239,13 +271,26 @@ export function calculateTraditionalSettlement(
   penaltyMultiplier: number = 1,
   isThreeSpadesWin: boolean = false,
   congMultiplier: number = 1
-): Record<string, number> {
+): Readonly<Record<string, number>> {
+  if (players.length === 0) {
+    throw new Error('[calculateTraditionalSettlement] Invariant violated: players list cannot be empty');
+  }
+  if (winners.length === 0) {
+    throw new Error('[calculateTraditionalSettlement] Invariant violated: winners list cannot be empty');
+  }
+  if (!winners.every(w => players.some(p => p.id === w.id))) {
+    throw new Error('[calculateTraditionalSettlement] Invariant violated: all winners must exist in players');
+  }
+  if (betAmount < 0) {
+    throw new Error(`[calculateTraditionalSettlement] Invariant violated: betAmount cannot be negative (got ${betAmount})`);
+  }
+
   const payouts: Record<string, number> = {};
   players.forEach(p => { payouts[p.id] = 0; });
   const mult = getMultiplier(penaltyMultiplier);
   const threeSpadesMultiplier = isThreeSpadesWin ? 2 : 1;
 
-  if (winners.length === 4) {
+  if (winners.length >= 4) {
     payouts[winners[0].id] = betAmount * 3 * threeSpadesMultiplier;
     payouts[winners[1].id] = betAmount * 1;
     payouts[winners[2].id] = -betAmount * 1;
@@ -257,28 +302,31 @@ export function calculateTraditionalSettlement(
   } else if (winners.length === 2) {
     payouts[winners[0].id] = betAmount * 1 * threeSpadesMultiplier;
     payouts[winners[1].id] = -betAmount * 1 * threeSpadesMultiplier;
+  } else if (winners.length === 1) {
+    // Trường hợp ván dừng sớm khi mới có 1 người về Nhất: người về Nhất ăn các người còn lại
+    const remainingPlayers = players.filter(p => p.id !== winners[0].id);
+    payouts[winners[0].id] = betAmount * remainingPlayers.length * threeSpadesMultiplier;
+    remainingPlayers.forEach(p => {
+      payouts[p.id] = -betAmount * threeSpadesMultiplier;
+    });
   }
 
   // Thối heo / thối hàng cho những người không về Nhất
   const winnerFirst = winners[0];
   for (const player of players) {
-    if (player.id !== winnerFirst?.id && player.hand.length > 0) {
+    if (player.id !== winnerFirst.id && player.hand.length > 0) {
       let rotten = calculateRottenPenalty(player.hand, betAmount, mult);
       if (rotten > 0) {
         rotten *= threeSpadesMultiplier;
-        payouts[player.id] = (payouts[player.id] || 0) - rotten;
-        if (winnerFirst) {
-          payouts[winnerFirst.id] = (payouts[winnerFirst.id] || 0) + rotten;
-        }
+        payouts[player.id] -= rotten;
+        payouts[winnerFirst.id] += rotten;
       }
 
       if (player.hand.length === 13 && !player.hasPlayedFirstCard) {
         let cong = calculateCongPenalty(betAmount, congMultiplier);
         cong *= threeSpadesMultiplier;
-        payouts[player.id] = (payouts[player.id] || 0) - cong;
-        if (winnerFirst) {
-          payouts[winnerFirst.id] = (payouts[winnerFirst.id] || 0) + cong;
-        }
+        payouts[player.id] -= cong;
+        payouts[winnerFirst.id] += cong;
       }
     }
   }

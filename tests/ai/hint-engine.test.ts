@@ -2,14 +2,26 @@ import { describe, it, expect } from 'bun:test';
 import { getOptimalMoveHint, evaluateSelectionFeedback } from '../../src/ai/hint-engine';
 import { createCard, formatCard, formatCards, formatCardVietnamese } from '../../src/engine/card';
 import { CardTracker } from '../../src/ai/card-tracker';
-import { PlayedMove, CombinationType } from '../../src/engine/types';
+import { PlayedMove, Combination, CombinationType, Card } from '../../src/engine/types';
 
 describe('Quân Sư Thần Bài AI (Hint Engine)', () => {
-  const createPlayedMove = (playerId: string, combination: any): PlayedMove => ({
+  const createPlayedMove = (playerId: string, combination: Combination): PlayedMove => ({
     playerId,
     timestamp: Date.now(),
     combination,
     isChop: false
+  });
+
+  const createTestCombination = (
+    type: CombinationType,
+    cards: Card[],
+    highestCard: Card,
+    length: number
+  ): Combination => ({
+    type,
+    cards,
+    highestCard,
+    length
   });
 
   it('phát hiện FORCED_PASS khi người chơi không có bất kỳ bài nào đè được', () => {
@@ -18,12 +30,10 @@ describe('Quân Sư Thần Bài AI (Hint Engine)', () => {
     // Bài trên bàn là Đôi A
     const aHearts = createCard(14, 'HEARTS');
     const aDiamonds = createCard(14, 'DIAMONDS');
-    const leadingMove: PlayedMove = createPlayedMove('p1', {
-      type: 'PAIR' as CombinationType,
-      cards: [aHearts, aDiamonds],
-      highestCard: aDiamonds,
-      length: 2
-    });
+    const leadingMove: PlayedMove = createPlayedMove(
+      'p1',
+      createTestCombination('PAIR', [aHearts, aDiamonds], aDiamonds, 2)
+    );
     const tracker = new CardTracker(hand, 1.0);
     const remainingCards = { p0: 2, p1: 5, p2: 5, p3: 5 };
 
@@ -48,12 +58,10 @@ describe('Quân Sư Thần Bài AI (Hint Engine)', () => {
     // Người chơi có bài đè được
     const hand = [createCard(13, 'HEARTS'), createCard(14, 'HEARTS')];
     const qSpades = createCard(12, 'SPADES');
-    const leadingMove: PlayedMove = createPlayedMove('p3', {
-      type: 'SINGLE' as CombinationType,
-      cards: [qSpades],
-      highestCard: qSpades,
-      length: 1
-    });
+    const leadingMove: PlayedMove = createPlayedMove(
+      'p3',
+      createTestCombination('SINGLE', [qSpades], qSpades, 1)
+    );
     const tracker = new CardTracker(hand, 1.0);
     const remainingCards = { p0: 2, p1: 1, p2: 5, p3: 5 }; // p1 chỉ còn 1 lá!
 
@@ -264,12 +272,10 @@ describe('Quân Sư Thần Bài AI (Hint Engine)', () => {
       const hand = [c8s, c8c, c8d, c8h];
 
       const twoSpades = createCard(15, 'SPADES');
-      const leadingMove: PlayedMove = createPlayedMove('p1', {
-        type: 'SINGLE' as CombinationType,
-        cards: [twoSpades],
-        highestCard: twoSpades,
-        length: 1
-      });
+      const leadingMove: PlayedMove = createPlayedMove(
+        'p1',
+        createTestCombination('SINGLE', [twoSpades], twoSpades, 1)
+      );
       const tracker = new CardTracker(hand, 1.0);
       const remainingCards = { p0: 4, p1: 5, p2: 5, p3: 5 };
 
@@ -291,12 +297,10 @@ describe('Quân Sư Thần Bài AI (Hint Engine)', () => {
     it('phát hiện NGUY CƠ BỊ CÓNG khi chưa đánh được lá nào mà đối thủ sắp về', () => {
       const hand = [createCard(13, 'HEARTS'), createCard(14, 'HEARTS')];
       const qSpades = createCard(12, 'SPADES');
-      const leadingMove: PlayedMove = createPlayedMove('p2', {
-        type: 'SINGLE' as CombinationType,
-        cards: [qSpades],
-        highestCard: qSpades,
-        length: 1
-      });
+      const leadingMove: PlayedMove = createPlayedMove(
+        'p2',
+        createTestCombination('SINGLE', [qSpades], qSpades, 1)
+      );
       const tracker = new CardTracker(hand, 1.0);
       const remainingCards = { p0: 13, p1: 1, p2: 5, p3: 5 }; // p1 còn 1 lá sắp về!
 
@@ -322,12 +326,10 @@ describe('Quân Sư Thần Bài AI (Hint Engine)', () => {
     it('phát hiện CẢNH BÁO THỐI HEO khi tay bài sắp hết mà vẫn giữ Heo', () => {
       const hand = [createCard(10, 'SPADES'), createCard(15, 'HEARTS')]; // 2 lá, có Heo
       const nineSpades = createCard(9, 'SPADES');
-      const leadingMove: PlayedMove = createPlayedMove('p2', {
-        type: 'SINGLE' as CombinationType,
-        cards: [nineSpades],
-        highestCard: nineSpades,
-        length: 1
-      });
+      const leadingMove: PlayedMove = createPlayedMove(
+        'p2',
+        createTestCombination('SINGLE', [nineSpades], nineSpades, 1)
+      );
       const tracker = new CardTracker(hand, 1.0);
       const remainingCards = { p0: 2, p1: 5, p2: 5, p3: 5 };
 
@@ -356,16 +358,19 @@ describe('Quân Sư Thần Bài AI (Hint Engine)', () => {
         createCard(13, 'HEARTS')
       ];
       // Đối thủ vừa dùng 3 đôi thông
-      const leadingMove: PlayedMove = createPlayedMove('p2', {
-        type: 'THREE_PAIRS_SEQUENTIAL' as CombinationType,
-        cards: [
-          createCard(3, 'SPADES'), createCard(3, 'HEARTS'),
-          createCard(4, 'SPADES'), createCard(4, 'HEARTS'),
-          createCard(5, 'SPADES'), createCard(5, 'HEARTS')
-        ],
-        highestCard: createCard(5, 'HEARTS'),
-        length: 6
-      });
+      const leadingMove: PlayedMove = createPlayedMove(
+        'p2',
+        createTestCombination(
+          'THREE_PAIRS_SEQUENTIAL',
+          [
+            createCard(3, 'SPADES'), createCard(3, 'HEARTS'),
+            createCard(4, 'SPADES'), createCard(4, 'HEARTS'),
+            createCard(5, 'SPADES'), createCard(5, 'HEARTS')
+          ],
+          createCard(5, 'HEARTS'),
+          6
+        )
+      );
       const tracker = new CardTracker(hand, 1.0);
       const remainingCards = { p0: 4, p1: 5, p2: 5, p3: 5 };
 

@@ -8,6 +8,8 @@ import { CardTracker } from '../../src/ai/card-tracker';
 import { UI_TIMINGS } from '../../src/ui/constants/ui-timings';
 import { mapMatchStateToSnapshot } from '../../src/engine/state-machine/match-state-machine';
 import { GameOverMatchState } from '../../src/engine/state-machine/types';
+import { createPerspectiveSettlement } from '../../src/engine/settlement/perspective-settlement';
+import { GameSettingsSchema } from '../../src/engine/schemas/settings.schema';
 
 describe('Bot Winning Card Visibility & 2-Second Victory Modal Delay Tests', () => {
   it('1. UI_TIMINGS: GAME_OVER_MODAL_DELAY_MS được định nghĩa chính xác là 2000ms (2 giây)', () => {
@@ -23,14 +25,33 @@ describe('Bot Winning Card Visibility & 2-Second Victory Modal Delay Tests', () 
       length: 1
     });
 
+    const botPlayer = createBotPlayer('bot_1', 'BOT_ELO_1150', { name: 'Bot Cao Thủ' });
+    const mockSettlement = createPerspectiveSettlement({
+      subjectPlayerId: 'bot_1',
+      allPlayers: [botPlayer],
+      winners: [botPlayer],
+      payouts: { bot_1: 0 },
+      eloDeltas: { bot_1: 0 },
+      subjectEloDelta: 0,
+      subjectEloBreakdown: null,
+      loanDeduction: 0,
+      isThreeSpadesWin: false,
+      instantWinType: null,
+      betAmount: 1000,
+      subjectCoins: 50000,
+      activeGameType: 'QUICK'
+    });
+
     const gameOverState: GameOverMatchState = {
       status: 'GAME_OVER',
       gameNumber: 1,
-      players: [],
-      winners: [],
+      players: [botPlayer],
+      winners: [botPlayer],
+      winningMove,
       isThreeSpadesWin: false,
-      matchPayouts: {},
-      eloDeltas: {},
+      matchPayouts: { bot_1: 0 },
+      eloDeltas: { bot_1: 0 },
+      settlement: mockSettlement,
       matchLogReport: null,
       rules: createDefaultGameRules(),
       leadingMove: winningMove
@@ -77,7 +98,7 @@ describe('Bot Winning Card Visibility & 2-Second Victory Modal Delay Tests', () 
     driver.tableConfig = {
       gameType: 'QUICK',
       rules,
-      settings: engine.settings,
+      settings: GameSettingsSchema.parse({ betAmount: 1000, mode: rules.settlementRule }),
       playerCount: 2,
       botPersonaIds: ['BOT_ELO_1150', 'BOT_ELO_850', 'BOT_ELO_1450'],
       customBotConfigs: [{}, {}, {}],
@@ -145,7 +166,7 @@ describe('Bot Winning Card Visibility & 2-Second Victory Modal Delay Tests', () 
     driver.tableConfig = {
       gameType: 'QUICK',
       rules,
-      settings: engine.settings,
+      settings: GameSettingsSchema.parse({ betAmount: 1000, mode: rules.settlementRule }),
       playerCount: 2,
       botPersonaIds: ['BOT_ELO_1150', 'BOT_ELO_850', 'BOT_ELO_1450'],
       customBotConfigs: [{}, {}, {}],

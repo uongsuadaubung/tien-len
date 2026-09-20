@@ -182,11 +182,9 @@ export function evaluateTwoManagementScore(
     const isTargetNearFinish = remainingTargetCards <= (activeOpponentsCount <= 2 ? 3 : 2);
     const opponentCounts = Object.entries(context.remainingPlayerCards)
       .filter(([id, cnt]) => id !== config.id && cnt > 0)
-      .map(([_, cnt]) => cnt);
+      .map(([, cnt]) => cnt);
     const minOpponentCards = opponentCounts.length > 0 ? Math.min(...opponentCounts) : 10;
     const anyOpponentNearFinish = minOpponentCards <= 2;
-    const isSolo = activeOpponentsCount === 1;
-    const isSelfNearFinish = hand.length <= 4;
     const twoCount = hand.filter(isTwo).length;
 
     // Bung Heo đè bài thường khi:

@@ -116,9 +116,16 @@ export function sanitizeAndValidateProfile(parsed: Partial<PlayerProfile>): Play
     return initialAch;
   });
 
+  const rawName = parsed.name ?? '';
+  const sanitizedName = (!rawName || rawName.startsWith('usr_')) ? '' : rawName;
+  const rawAvatar = parsed.avatar ?? '🤠';
+  const sanitizedAvatar = (!rawAvatar || rawAvatar === '👤') ? '🤠' : rawAvatar;
+
   return {
     ...DEFAULT_PROFILE,
     ...parsed,
+    name: sanitizedName,
+    avatar: sanitizedAvatar,
     lastDailyResetDate: todayStr,
     dailyQuests,
     achievements,
@@ -149,11 +156,11 @@ export async function hydrateStorageFromIndexedDB(): Promise<{
       // Đảm bảo profile luôn tồn tại trong db.players
       if (cachedProfile.id) {
         const existingPlayer = await dbGetPlayer(cachedProfile.id);
-        if (!existingPlayer) {
+        if (!existingPlayer || existingPlayer.name.startsWith('usr_') || existingPlayer.avatar === '👤') {
           await dbSavePlayer({
             id: cachedProfile.id,
-            name: cachedProfile.name,
-            avatar: cachedProfile.avatar,
+            name: cachedProfile.name || 'Người Chơi',
+            avatar: cachedProfile.avatar || '🤠',
             elo: cachedProfile.elo,
             coins: cachedProfile.coins,
             status: 'ACTIVE',
@@ -162,8 +169,13 @@ export async function hydrateStorageFromIndexedDB(): Promise<{
           }).catch(() => {});
         }
       }
-      // Chỉ lưu lại nếu có thay đổi ngày mới hoặc bản ghi cũ chưa có ID
-      if (dbProfile.lastDailyResetDate !== cachedProfile.lastDailyResetDate || !dbProfile.id) {
+      // Lưu lại nếu có thay đổi ngày mới, tên bị lỗi cần làm sạch hoặc bản ghi cũ chưa có ID
+      if (
+        dbProfile.lastDailyResetDate !== cachedProfile.lastDailyResetDate ||
+        !dbProfile.id ||
+        (dbProfile.name && dbProfile.name.startsWith('usr_')) ||
+        dbProfile.avatar === '👤'
+      ) {
         dbSavePlayerProfile(cachedProfile).catch(() => {});
       }
     } else {

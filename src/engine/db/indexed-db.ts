@@ -260,6 +260,18 @@ export async function dbGetPlayerProfile(id?: string): Promise<PlayerProfile | n
   if (id) {
     const p = await dbGetPlayer(id);
     if (p) {
+      let needsSave = false;
+      if (p.name && p.name.startsWith('usr_')) {
+        p.name = '';
+        needsSave = true;
+      }
+      if (p.avatar === '👤') {
+        p.avatar = '🤠';
+        needsSave = true;
+      }
+      if (needsSave) {
+        dbSavePlayer(p).catch(() => {});
+      }
       const parsed = PlayerProfileSchema.safeParse(p);
       return parsed.success ? parsed.data : null;
     }
@@ -268,6 +280,18 @@ export async function dbGetPlayerProfile(id?: string): Promise<PlayerProfile | n
   const allPlayers = await dbGetAllPlayers();
   const human = allPlayers.find(p => p.id.startsWith('usr_'));
   if (human) {
+    let needsSave = false;
+    if (human.name && human.name.startsWith('usr_')) {
+      human.name = '';
+      needsSave = true;
+    }
+    if (human.avatar === '👤') {
+      human.avatar = '🤠';
+      needsSave = true;
+    }
+    if (needsSave) {
+      dbSavePlayer(human).catch(() => {});
+    }
     const parsed = PlayerProfileSchema.safeParse(human);
     return parsed.success ? parsed.data : null;
   }
@@ -504,15 +528,25 @@ export async function dbUpdatePlayerMatchResult(
     isWin: boolean;
     chopsDone?: number;
     congsGiven?: number;
-  }
+  },
+  playerMeta?: { name?: string; avatar?: string }
 ): Promise<PlayerRecord | null> {
   let p = await dbGetPlayer(id);
   if (!p) {
+    const isHuman = id.startsWith('usr_');
+    const defaultName = isHuman ? 'Người Chơi' : id;
+    const resolvedName = (playerMeta?.name && !playerMeta.name.startsWith('usr_'))
+      ? playerMeta.name
+      : defaultName;
+    const resolvedAvatar = (playerMeta?.avatar && playerMeta.avatar !== '👤')
+      ? playerMeta.avatar
+      : (isHuman ? '🤠' : '🤖');
+
     // If not in DB yet, create base record
     p = {
       id,
-      name: id,
-      avatar: '👤',
+      name: resolvedName,
+      avatar: resolvedAvatar,
       coins: 50000,
       elo: 1000,
       stats: {
@@ -526,6 +560,18 @@ export async function dbUpdatePlayerMatchResult(
       },
       updatedAt: Date.now()
     };
+  } else {
+    // Tự động chữa lành nếu bản ghi cũ từng bị lưu nhầm name là id (e.g. usr_...)
+    if (p.name === p.id || (p.id.startsWith('usr_') && p.name.startsWith('usr_'))) {
+      if (playerMeta?.name && !playerMeta.name.startsWith('usr_')) {
+        p.name = playerMeta.name;
+      } else if (p.id.startsWith('usr_')) {
+        p.name = 'Người Chơi';
+      }
+    }
+    if (p.id.startsWith('usr_') && (p.avatar === '👤' || !p.avatar)) {
+      p.avatar = (playerMeta?.avatar && playerMeta.avatar !== '👤') ? playerMeta.avatar : '🤠';
+    }
   }
 
   const nextCoins = Math.max(0, p.coins + updates.deltaCoins);

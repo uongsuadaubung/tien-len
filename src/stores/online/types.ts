@@ -7,6 +7,7 @@ import {
   type PublicRoomSummary 
 } from '../../engine/network/network.schema';
 import { HostEngineDriver } from '../../engine/network/host-engine-driver';
+import { GuestEngineDriver } from '../../engine/network/guest-engine-driver';
 import { type GameSettlementRule } from '../../engine/types';
 import { type PlayerProfile } from '../../engine/storage';
 
@@ -108,7 +109,6 @@ export interface RoomSliceActions {
   createRoom: (profile: PlayerProfile, options: CreateRoomOptions) => void;
   joinRoom: (profile: PlayerProfile, roomCode: string) => void;
   joinPublicRoom: (profile: PlayerProfile, room: PublicRoomSummary) => void;
-  addBotToSlot: (slotIdx: number) => void;
   removeSlot: (slotIdx: number) => void;
   clearDisbandNotice: () => void;
   leaveRoom: () => void;
@@ -119,6 +119,7 @@ export interface RoomSliceActions {
 
 export interface MatchSliceState {
   hostDriver: HostEngineDriver | null;
+  guestDriver: GuestEngineDriver | null;
   lastTableSync: TableStateSyncPacket | null;
   gameEndSummary: GameEndPacket | null;
 }

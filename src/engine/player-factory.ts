@@ -28,9 +28,7 @@ export function createPlayer(overrides?: PlayerCreationOverrides): Player {
     playedCards: overrides?.playedCards ?? [],
     score: overrides?.score ?? 50000,
     isPassedCurrentRound: overrides?.isPassedCurrentRound ?? false,
-    hasPlayedFirstCard: overrides?.hasPlayedFirstCard ?? false,
-    rankPosition: overrides?.rankPosition ?? null,
-    instantWinType: overrides?.instantWinType ?? null
+    hasPlayedFirstCard: overrides?.hasPlayedFirstCard ?? false
   };
 }
 
@@ -56,9 +54,7 @@ export function createBotPlayer(
     playedCards: overrides?.playedCards ?? [],
     score: overrides?.score ?? 1000,
     isPassedCurrentRound: overrides?.isPassedCurrentRound ?? false,
-    hasPlayedFirstCard: overrides?.hasPlayedFirstCard ?? false,
-    rankPosition: overrides?.rankPosition ?? null,
-    instantWinType: overrides?.instantWinType ?? null
+    hasPlayedFirstCard: overrides?.hasPlayedFirstCard ?? false
   };
 }
 

@@ -12,7 +12,7 @@ import {
   Users,
   Building2
 } from 'lucide-react';
-import { useGameStore, CampaignResultMeta } from '../../../stores/useGameStore';
+import type { CampaignResultMeta } from '../../../stores/useGameStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useOnlineStore } from '../../../stores/useOnlineStore';
 import { MatchLogger } from '../../../engine/match-logger';
@@ -57,7 +57,6 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 }) => {
   const { t } = useI18n();
   const { githubToken, autoBackupOnMatchEnd } = useSettingsStore();
-  const { myPlayerId } = useGameStore();
   const { roomState } = useOnlineStore();
 
   const {
@@ -66,7 +65,6 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     isTableDismissed,
     isHumanBankrupt,
     bankruptBots,
-    displayPlayers,
     humanPayout,
     modalTitle,
     modalSubtitle,
@@ -87,16 +85,14 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     totalOnlinePlayers,
     readyOnlinePlayers,
     handleExportJson,
-    winners,
-    allPlayers,
     instantWinType,
     getInstantWinTitle,
     isThreeSpadesWin,
-    payouts,
     loanDeduction,
     eloDelta,
     lastEloBreakdown,
-    allEloDeltas
+    myPlayerId,
+    settlement
   } = useVictoryLogic({
     isOpen,
     onNextGame,
@@ -293,29 +289,15 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
         {/* Bảng Xếp Hạng & Bài Tàn Cuộc Của Người Chơi */}
         <div className="space-y-2.5 max-h-64 sm:max-h-80 overflow-y-auto pr-1">
-          {displayPlayers.map((p, idx) => {
-            const isWinner = idx === 0;
-            const rankLabel = isWinner
-              ? (instantWinType ? t('victory.instantWinBadge', { type: getInstantWinTitle(instantWinType) }) : `🥇 ${t('victory.rank1')}`)
-              : (instantWinType
-                ? t('victory.instantWinPenalty')
-                : (winners.length >= allPlayers.length - 1
-                  ? (idx === 1 ? `🥈 ${t('victory.rank2')}` : idx === 2 ? `🥉 ${t('victory.rank3')}` : `💥 ${t('victory.rank4')}`)
-                  : t('victory.lostCountingCards')));
-            const netPay = payouts ? payouts[p.id] : undefined;
-            const remainingCards = p.hand ? [...p.hand].sort((a, b) => a.weight - b.weight) : [];
-            const hasRottenTwo = !isWinner && !instantWinType && remainingCards.some(c => c.rank === 15);
-            const isCong = !isWinner && !instantWinType && remainingCards.length === 13;
-
-            // Biến động Elo của từng người chơi / bot
-            const pEloDelta = (allEloDeltas && (allEloDeltas[p.id] !== undefined || (p.botPersonaId && allEloDeltas[p.botPersonaId] !== undefined)))
-              ? (allEloDeltas[p.id] ?? (p.botPersonaId ? allEloDeltas[p.botPersonaId] : undefined))
-              : (p.id === myPlayerId ? eloDelta : undefined);
+          {settlement.players.map((p) => {
+            const rankLabel = p.rankLabelParams
+              ? t(p.rankLabelKey, p.rankLabelParams)
+              : t(p.rankLabelKey);
 
             return (
               <Card
                 key={p.id}
-                variant={isWinner ? 'active' : 'card'}
+                variant={p.isWinner ? 'active' : 'card'}
                 className="p-2.5 sm:p-3 flex flex-col gap-2"
               >
                 {/* Hàng 1: Thông tin người chơi & Tiền thưởng / Elo kết quả */}
@@ -323,7 +305,9 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                   <div className="flex items-center gap-2.5">
                     <span className="text-xl">{p.avatar}</span>
                     <div className="text-left">
-                      <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)]">{p.name}</div>
+                      <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)]">
+                        {p.name} {p.isLocal ? `(${t('hud.you')})` : ''}
+                      </div>
                       <span className="text-[10px] font-semibold text-[var(--color-gold)]">{rankLabel}</span>
                     </div>
                   </div>
@@ -331,27 +315,25 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                   <div className="text-right flex flex-col items-end justify-center">
                     {!isCampaign && (
                       <div className="flex items-center gap-2">
-                        {pEloDelta !== undefined && (
+                        {p.eloDelta !== null && (
                           <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
-                            pEloDelta > 0 
+                            p.eloDelta > 0 
                               ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' 
-                              : pEloDelta < 0 
+                              : p.eloDelta < 0 
                                 ? 'text-rose-400 bg-rose-500/10 border border-rose-500/20' 
                                 : 'text-zinc-400 bg-zinc-500/10'
                           }`}>
-                            {pEloDelta > 0 ? `+${pEloDelta}` : pEloDelta} Elo
+                            {p.eloDelta > 0 ? `+${p.eloDelta}` : p.eloDelta} Elo
                           </span>
                         )}
-                        {netPay !== undefined && (
-                          <div className={`font-bold text-xs sm:text-sm ${netPay > 0 ? 'text-[var(--color-gold)]' : netPay < 0 ? 'text-[#f87171]' : 'text-[var(--text-muted)]'}`}>
-                            {netPay > 0 ? `+${netPay.toLocaleString()}` : netPay < 0 ? `${netPay.toLocaleString()}` : '0'} 🪙
-                          </div>
-                        )}
+                        <div className={`font-bold text-xs sm:text-sm ${p.netPayout > 0 ? 'text-[var(--color-gold)]' : p.netPayout < 0 ? 'text-[#f87171]' : 'text-[var(--text-muted)]'}`}>
+                          {p.netPayout > 0 ? `+${p.netPayout.toLocaleString()}` : p.netPayout < 0 ? `${p.netPayout.toLocaleString()}` : '0'} 🪙
+                        </div>
                       </div>
                     )}
                     {isCampaign && (
-                      <div className={`text-xs font-bold ${isWinner ? 'text-[var(--color-gold)]' : 'text-[var(--text-muted)]'}`}>
-                        {isWinner ? t('victory.matchWon') : t('victory.cardsLeftCount', { count: remainingCards.length })}
+                      <div className={`text-xs font-bold ${p.isWinner ? 'text-[var(--color-gold)]' : 'text-[var(--text-muted)]'}`}>
+                        {p.isWinner ? t('victory.matchWon') : t('victory.cardsLeftCount', { count: p.remainingCards.length })}
                       </div>
                     )}
                   </div>
@@ -359,13 +341,13 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
                 {/* Hàng 2: Hiển thị bộ bài tàn cuộc thu nhỏ (Endgame Cards Reveal) */}
                 <div className="pt-1.5 border-t border-white/[0.06] flex items-center justify-between flex-wrap gap-1.5">
-                  {remainingCards.length > 0 ? (
+                  {p.remainingCards.length > 0 ? (
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-[10px] text-zinc-400 font-medium mr-0.5">
-                        {t('victory.cardsLeftColon', { count: remainingCards.length })}
+                        {t('victory.cardsLeftColon', { count: p.remainingCards.length })}
                       </span>
                       <div className="flex items-center gap-1 flex-wrap">
-                        {remainingCards.map((c) => (
+                        {p.remainingCards.map((c) => (
                           <MiniCardView key={c.id} card={c} />
                         ))}
                       </div>
@@ -378,22 +360,22 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
                   {/* Huy hiệu cảnh báo đặc biệt / Tới Trắng */}
                   <div className="flex items-center gap-1">
-                    {isWinner && instantWinType && (
+                    {p.isWinner && instantWinType && (
                       <span className="text-[9px] font-bold text-[var(--color-gold)] bg-[var(--color-gold-bg)] border border-[var(--color-gold-border)] px-1.5 py-0.5 rounded animate-pulse">
                         {t('victory.instantWinBadge', { type: getInstantWinTitle(instantWinType) })}
                       </span>
                     )}
-                    {!isWinner && instantWinType && (
+                    {!p.isWinner && instantWinType && (
                       <span className="text-[9px] font-bold text-rose-300 bg-rose-500/20 border border-rose-500/40 px-1.5 py-0.5 rounded">
                         {t('victory.instantWinPenaltyLeaves')}
                       </span>
                     )}
-                    {hasRottenTwo && (
+                    {p.hasRottenTwo && (
                       <span className="text-[9px] font-bold text-amber-300 bg-amber-500/20 border border-amber-400/40 px-1.5 py-0.5 rounded animate-pulse">
                         {t('victory.rottenTwoBadge')}
                       </span>
                     )}
-                    {isCong && (
+                    {p.isCong && (
                       <span className="text-[9px] font-bold text-rose-300 bg-rose-500/20 border border-rose-500/40 px-1.5 py-0.5 rounded animate-pulse">
                         {t('victory.congsPenaltyBadge')}
                       </span>

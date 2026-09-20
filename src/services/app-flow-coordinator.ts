@@ -447,8 +447,6 @@ export class AppFlowCoordinator {
       const strategy = resolveStrategyForMatch(gameType, mode);
       const setup = strategy.setupMatch({
         profile,
-        rules: options?.customRules as GameRules | undefined,
-        settings: options?.customSettings as GameSettings | undefined,
         customRules: options?.customRules,
         customSettings: options?.customSettings,
         customBotPersonaIds: options?.customBotPersonaIds,
