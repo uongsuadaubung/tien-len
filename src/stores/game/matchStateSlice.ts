@@ -219,8 +219,26 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
     const isLead = sync.isLeadMove ?? (leadingMove === null);
 
     set((state) => {
+      // 1. Loại bỏ các lá bài vừa đánh ra khỏi tay người chơi (Authoritative Fog-of-War Card Removal)
+      const playedCardIds = new Set(sync.currentMoveCards?.map(c => c.id) || []);
+      const updatedPlayers = state.players.map(p => {
+        if (p.id === sync.currentMovePlayerId && playedCardIds.size > 0) {
+          const newPlayed = (sync.currentMoveCards?.map(c => createCard(c.rank, c.suit)) || []);
+          const existingPlayedIds = new Set(p.playedCards.map(c => c.id));
+          return {
+            ...p,
+            hand: p.hand.filter(c => !playedCardIds.has(c.id)),
+            playedCards: [
+              ...p.playedCards,
+              ...newPlayed.filter(c => !existingPlayedIds.has(c.id))
+            ]
+          };
+        }
+        return p;
+      });
+
       const mergedDealtCounts = { ...state.dealtCounts, ...sync.remainingCardCounts };
-      for (const p of state.players) {
+      for (const p of updatedPlayers) {
         if (p.hand && p.hand.length > 0) {
           mergedDealtCounts[p.id] = p.hand.length;
         } else if (sync.remainingCardCounts[p.id] !== undefined) {
@@ -231,7 +249,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
       let nextMatchState: MatchState = state.matchState;
       if (sync.isGameOver) {
         const winningPlayers = sync.winners
-          .map(id => state.players.find(p => p.id === id))
+          .map(id => updatedPlayers.find(p => p.id === id))
           .filter((p): p is Player => p !== undefined && p !== null);
         const previousLeadingMove = state.matchState.status === 'PLAYING'
           ? state.matchState.leadingMove
@@ -241,7 +259,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
 
         nextMatchState = createProvisionalOnlineGameOverState({
           gameNumber: sync.gameNumber || state.gameNumber,
-          players: state.players,
+          players: updatedPlayers,
           winners: winningPlayers,
           winningMove: resolvedWinningMove,
           isThreeSpadesWin: false,
@@ -260,7 +278,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
           status: 'PLAYING',
           gameNumber: sync.gameNumber || state.gameNumber,
           roundNumber: sync.roundNumber || (state.matchState.status === 'PLAYING' ? state.matchState.roundNumber : 1),
-          players: state.players,
+          players: updatedPlayers,
           currentTurnPlayerId: currentTurnId,
           leadPlayerId: leadId,
           roundMoves: leadingMove ? [leadingMove] : [],
@@ -284,6 +302,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
 
       return {
         ...state,
+        players: updatedPlayers,
         matchState: nextMatchState,
         gameNumber: sync.gameNumber || state.gameNumber,
         isDealing: false,
@@ -295,7 +314,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
           : leadingMove,
         winners: nextMatchState.status === 'GAME_OVER'
           ? [...nextMatchState.winners]
-          : (sync.winners ? sync.winners.map(id => state.players.find(p => p.id === id)).filter((p): p is Player => p !== undefined && p !== null) : []),
+          : (sync.winners ? sync.winners.map(id => updatedPlayers.find(p => p.id === id)).filter((p): p is Player => p !== undefined && p !== null) : []),
         isGameOver: sync.isGameOver,
         chopNotification: sync.chopNotification ? {
           visible: sync.chopNotification.visible,

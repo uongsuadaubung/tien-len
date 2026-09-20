@@ -15,7 +15,8 @@ import {
   type GameEndPacket,
   type OnlinePlayer,
   type NetworkCard,
-  type RematchVotePacket
+  type RematchVotePacket,
+  type NetworkChopNotification
 } from './network.schema';
 import { P2PClient } from './p2p-client';
 import { useGameStore } from '../../stores/useGameStore';
@@ -26,6 +27,9 @@ import { BaseMatchDriver } from '../base-match-driver';
 import { settleCompletedMatch } from '../../services/match-settlement-service';
 import { createProvisionalOnlineGameOverState } from '../settlement/perspective-settlement';
 import { useUserStore } from '../../stores/useUserStore';
+import { CardTracker } from '../../ai/card-tracker';
+import { getOptimalMoveHint, type MoveHint } from '../../ai/hint-engine';
+import { UI_TIMINGS } from '../../ui/constants/ui-timings';
 
 export interface HostEngineDriverCallbacks {
   onRoomStateChange: ((updatedRoomState: OnlineRoomState) => void) | null;
@@ -36,6 +40,9 @@ export class HostEngineDriver extends BaseMatchDriver {
   public engine: GameEngine | null = null;
   public chopsByPlayer: Record<string, number> = {};
   public gotChoppedByPlayer: Record<string, number> = {};
+  public chopNotification: NetworkChopNotification | null = null;
+  private chopTimer: ReturnType<typeof setTimeout> | null = null;
+  public trackers: Record<string, CardTracker> = {};
   private p2pClient: P2PClient;
   public roomState: OnlineRoomState;
   private unsubscribeActions: Array<() => void> = [];
@@ -107,6 +114,12 @@ export class HostEngineDriver extends BaseMatchDriver {
     this.engine = engine;
     const startResult = engine.startNewGame(this.gameNumber, this.lastWinnerId || undefined);
 
+    // Khởi tạo CardTracker theo góc nhìn hợp lệ cho từng người chơi
+    this.trackers = {};
+    this.engine.players.forEach(p => {
+      this.trackers[p.id] = new CardTracker(p.hand, 1.0);
+    });
+
     // 4. Fog of War: Dispatch private hands
     this.roomState.players.forEach((op: OnlinePlayer) => {
       const p = engine.players.find(pl => pl.id === op.playerId);
@@ -134,6 +147,7 @@ export class HostEngineDriver extends BaseMatchDriver {
       this.instantWinType = startResult.instantWinType;
       useGameStore.getState().setInstantWinType(startResult.instantWinType);
       useGameStore.getState().setIsGameOver(true);
+      this.broadcastCurrentTableState('Có người chơi tới trắng!');
       this.handleGameOver();
       return;
     }
@@ -179,6 +193,11 @@ export class HostEngineDriver extends BaseMatchDriver {
       const selectedCards = player.hand.filter(c => packet.cardIds?.includes(c.id));
       const res = this.engine.playMove(packet.playerId, selectedCards);
       if (res.success) {
+        // Cập nhật thẻ bài đã đánh vào tất cả trackers
+        Object.values(this.trackers).forEach(tracker => {
+          tracker.recordMove(res.playedMove);
+        });
+
         GameEventBus.getInstance().emit({
           type: 'CARD_PLAYED',
           playerId: packet.playerId,
@@ -190,6 +209,24 @@ export class HostEngineDriver extends BaseMatchDriver {
         if (res.isChop && res.choppedPlayerId) {
           this.chopsByPlayer[player.id] = (this.chopsByPlayer[player.id] || 0) + 1;
           this.gotChoppedByPlayer[res.choppedPlayerId] = (this.gotChoppedByPlayer[res.choppedPlayerId] || 0) + 1;
+          const victim = this.engine.getPlayer(res.choppedPlayerId);
+          const chopperName = player.name;
+          const targetName = victim ? victim.name : 'Đối thủ';
+          this.chopNotification = {
+            visible: true,
+            chopperName,
+            targetName,
+            amount: res.penaltyAmount,
+            isCascade: res.isCascadeChop,
+            chainCount: res.chopChainCount
+          };
+
+          this.clearManagedTimer(this.chopTimer);
+          this.chopTimer = this.createManagedTimer(() => {
+            this.chopNotification = null;
+            this.broadcastCurrentTableState();
+          }, UI_TIMINGS.CHOP_ALERT_DURATION_MS);
+
           GameEventBus.getInstance().emit({
             type: 'CHOP_EXECUTED',
             chopperPlayerId: player.id,
@@ -268,7 +305,7 @@ export class HostEngineDriver extends BaseMatchDriver {
       remainingCardCounts,
       passedPlayerIds: [...this.engine.currentRound.passedPlayerIds],
       roundNumber: this.engine.roundNumber,
-      chopNotification: null,
+      chopNotification: this.chopNotification ? { ...this.chopNotification } : null,
       winners: this.engine.winners.map(w => w.id),
       isGameOver: this.engine.isGameOver,
       lastActionMessage: message,
@@ -293,7 +330,7 @@ export class HostEngineDriver extends BaseMatchDriver {
         isLeadMove,
         isFirstMoveOfGame,
         passedPlayerIds: this.engine.currentRound.passedPlayerIds,
-        chopNotification: null,
+        chopNotification: this.chopNotification ? { ...this.chopNotification } : null,
         botThinkingThought: null,
         rules: this.engine.rules
       });
@@ -337,6 +374,9 @@ export class HostEngineDriver extends BaseMatchDriver {
       const gameStore = useGameStore.getState();
       const payouts = gameStore.matchPayouts;
       const eloDeltas = gameStore.allEloDeltas;
+
+      // Đồng bộ bài tàn cuộc (Fog of War reveal) của tất cả người chơi cho máy Host
+      gameStore.setPlayers(this.engine.players.map(p => ({ ...p, hand: [...p.hand] })));
 
       // 2. Cập nhật số dư Xu và Elo mới cho từng người chơi trong phòng (Host và Guest)
       const resetPlayers = this.roomState.players.map(p => {
@@ -470,8 +510,54 @@ export class HostEngineDriver extends BaseMatchDriver {
     void this.p2pClient.broadcastRoomState(updatedRoom);
   }
 
+  public reorderPlayerHand(playerId: string, newHand: Card[]): boolean {
+    if (!this.engine) return false;
+    const player = this.engine.getPlayer(playerId);
+    if (!player) return false;
+    player.hand = [...newHand];
+    return true;
+  }
+
+  public getTracker(playerId: string): CardTracker | null {
+    if (!this.trackers[playerId]) {
+      const player = this.engine?.getPlayer(playerId);
+      if (player) {
+        this.trackers[playerId] = new CardTracker(player.hand, 1.0);
+      }
+    }
+    return this.trackers[playerId] ?? null;
+  }
+
+  public getAiHint(playerId: string): MoveHint | null {
+    if (!this.engine) return null;
+    const player = this.engine.getPlayer(playerId);
+    if (!player || player.hand.length === 0) return null;
+    const tracker = this.getTracker(playerId);
+    if (!tracker) return null;
+    const remainingCounts = this.engine.players.reduce((acc, p) => ({ ...acc, [p.id]: p.hand.length }), {});
+    const nextPlayerId = this.engine.getNextActivePlayerId(playerId);
+    const nextPlayer = nextPlayerId ? this.engine.getPlayer(nextPlayerId) : null;
+    const isNextPlayerOneCard = nextPlayer ? nextPlayer.hand.length === 1 : false;
+
+    return getOptimalMoveHint(
+      player.hand,
+      this.engine.getLeadingMove(),
+      this.engine.isFirstMoveOfGame,
+      this.engine.isRoundLeadMove(),
+      tracker,
+      remainingCounts,
+      nextPlayerId,
+      isNextPlayerOneCard,
+      this.engine.rules.gameFlow.prohibitEndingWithTwo
+    );
+  }
+
   public override cleanup(): void {
     super.cleanup();
+    this.clearManagedTimer(this.chopTimer);
+    this.chopTimer = null;
+    this.chopNotification = null;
+    this.trackers = {};
     this.unsubscribeActions.forEach(un => un());
     this.unsubscribeActions = [];
     this.engine = null;

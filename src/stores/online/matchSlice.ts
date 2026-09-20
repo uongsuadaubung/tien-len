@@ -16,6 +16,7 @@ import {
 import { createPlayer } from '../../engine/player-factory';
 import { type PlayingTurnMatchState, createPlayingTurnMatchState } from '../../engine/state-machine/types';
 import { type MatchSlice, type OnlineSliceCreator } from './types';
+import { appFlowCoordinator } from '../../services/app-flow-coordinator';
 
 export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
   hostDriver: null,
@@ -133,6 +134,7 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
         ? { ...state.sessionState, hostDriver: driver }
         : state.sessionState
     }));
+    appFlowCoordinator.setActiveDriver(driver);
 
     driver.startMatch((hostCards) => {
       const currentPlayers = initialPlayers.map((p, idx) => {

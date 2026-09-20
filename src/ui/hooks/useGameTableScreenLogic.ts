@@ -220,10 +220,7 @@ export function useGameTableScreenLogic({
   }, [isMyTurn, activeTurn, localPlayer.hand, gameRules, selectedCardIds, setSelectedCardIds]);
 
   const handleOpenXRay = useCallback(() => {
-    const tracker = appFlowCoordinator.getPlayerTracker(localPlayer.id);
-    if (!tracker) {
-      throw new Error('[useGameTableScreenLogic] Invariant: Tracker must be initialized when at game table');
-    }
+    const tracker = appFlowCoordinator.getPlayerTracker(localPlayer.id) ?? new CardTracker(localPlayer.hand, 1.0);
     useViewStore.getState().openModal({
       type: 'XRAY',
       tracker,

@@ -27,6 +27,7 @@ import { createPerspectiveSettlement } from '../../engine/settlement/perspective
 import { type PlayingTurnMatchState, type GameOverMatchState, createPlayingTurnMatchState } from '../../engine/state-machine/types';
 import { type RoomSlice, type OnlineSliceCreator } from './types';
 import { GuestEngineDriver } from '../../engine/network/guest-engine-driver';
+import { appFlowCoordinator } from '../../services/app-flow-coordinator';
 
 export function generateRoomPin(existingRooms: readonly PublicRoomSummary[] = []): string {
   const existingCodes = new Set(existingRooms.map(r => r.roomCode.toUpperCase().trim()));
@@ -507,12 +508,16 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         return { ...p, hand: [] };
       });
 
-      if (!get().isHost && !get().guestDriver) {
-        const guestDriver = new GuestEngineDriver({
-          p2pClient: globalP2PClient,
-          myPlayerId: myId
-        });
-        set({ guestDriver });
+      if (!get().isHost) {
+        let guestDriver = get().guestDriver;
+        if (!guestDriver) {
+          guestDriver = new GuestEngineDriver({
+            p2pClient: globalP2PClient,
+            myPlayerId: myId
+          });
+          set({ guestDriver });
+        }
+        appFlowCoordinator.setActiveDriver(guestDriver);
       }
 
       const isFirstMoveOfGame = dealPacket.isFirstMoveOfGame ?? false;
@@ -739,6 +744,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
     if (guestDriver) {
       guestDriver.cleanup();
     }
+    appFlowCoordinator.setActiveDriver(null);
     globalP2PClient.leave();
 
     const defaultProfileId = loadPlayerProfile().id;

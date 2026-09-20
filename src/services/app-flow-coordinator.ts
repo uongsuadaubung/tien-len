@@ -35,16 +35,31 @@ import { assertValidMatchStartup } from '../engine/invariants/match-invariants';
 import { settleCompletedMatch } from './match-settlement-service';
 import { CardTracker } from '../ai/card-tracker';
 import { dbSaveGameSettings } from '../engine/db/indexed-db';
+import type { IMatchDriver } from '../engine/match-driver.interface';
 
 export class AppFlowCoordinator {
   private static instance: AppFlowCoordinator | null = null;
   public driver: OfflineMatchDriver | null = null;
+  private activeDriver: IMatchDriver | null = null;
 
   public static getInstance(): AppFlowCoordinator {
     if (!AppFlowCoordinator.instance) {
       AppFlowCoordinator.instance = new AppFlowCoordinator();
     }
     return AppFlowCoordinator.instance;
+  }
+
+  public setActiveDriver(driver: IMatchDriver | null): void {
+    this.activeDriver = driver;
+    if (driver instanceof OfflineMatchDriver) {
+      this.driver = driver;
+    } else if (driver === null) {
+      this.driver = null;
+    }
+  }
+
+  public getActiveDriver(): IMatchDriver | null {
+    return this.activeDriver;
   }
 
   // =========================================================================
@@ -346,15 +361,15 @@ export class AppFlowCoordinator {
     });
 
     // 1. Quản lý vòng đời Driver
-    if (this.driver) {
-      this.driver.cleanup();
+    if (this.activeDriver) {
+      this.activeDriver.cleanup();
     }
     const settings = useSettingsStore.getState();
     const driver = new OfflineMatchDriver({
       gameSpeed: settings.gameSpeed,
       autoSortEnabled: settings.autoSortEnabled
     });
-    this.driver = driver;
+    this.setActiveDriver(driver);
 
     driver.subscribeMatchState((matchState) => {
       useGameStore.getState().applyMatchState(matchState);
@@ -481,7 +496,10 @@ export class AppFlowCoordinator {
   public returnToLobby(reason?: string): void {
     void reason;
     // 1. Dọn dẹp Driver và Timers
-    if (this.driver) {
+    if (this.activeDriver) {
+      this.activeDriver.cleanup();
+      this.setActiveDriver(null);
+    } else if (this.driver) {
       this.driver.cleanup();
       this.driver = null;
     }
@@ -516,7 +534,10 @@ export class AppFlowCoordinator {
       return;
     }
 
-    if (this.driver) {
+    if (this.activeDriver) {
+      this.activeDriver.cleanup();
+      this.setActiveDriver(null);
+    } else if (this.driver) {
       this.driver.cleanup();
       this.driver = null;
     }
@@ -628,46 +649,51 @@ export class AppFlowCoordinator {
     const selectedIds = gameStore.selectedCardIds;
     if (selectedIds.size === 0) return false;
 
+    const driver = this.activeDriver ?? this.driver;
+    if (driver) {
+      const myPlayerId = gameStore.myPlayerId;
+      const player = gameStore.players.find(p => p.id === myPlayerId);
+      if (!player) return false;
+
+      const cardsToPlay = player.hand.filter(c => selectedIds.has(c.id));
+      if (cardsToPlay.length === 0) return false;
+
+      const res = driver.playCards(player.id, cardsToPlay);
+      if (res.success) {
+        gameStore.clearCardSelection();
+        return true;
+      }
+      return false;
+    }
+
     if (gameStore.activeGameType === 'ONLINE') {
       useOnlineStore.getState().sendMoveAction(Array.from(selectedIds));
       gameStore.clearCardSelection();
       return true;
     }
 
-    if (!this.driver || !this.driver.engine) return false;
-    const targetPlayerId = gameStore.myPlayerId || this.driver.localPlayerId;
-    const player = this.driver.engine.getPlayer(targetPlayerId) ?? this.driver.engine.players[0];
-    if (!player) return false;
-
-    const cardsToPlay = player.hand.filter(c => selectedIds.has(c.id));
-    if (cardsToPlay.length === 0) return false;
-
-    const res = this.driver.playCards(player.id, cardsToPlay);
-    if (res.success) {
-      gameStore.clearCardSelection();
-      return true;
-    }
     return false;
   }
 
   public passTurn(): boolean {
     const gameStore = useGameStore.getState();
+    const driver = this.activeDriver ?? this.driver;
+    if (driver) {
+      const myPlayerId = gameStore.myPlayerId;
+      const res = driver.passTurn(myPlayerId);
+      if (res.success) {
+        gameStore.clearCardSelection();
+        return true;
+      }
+      return false;
+    }
+
     if (gameStore.activeGameType === 'ONLINE') {
       useOnlineStore.getState().sendPassAction();
       gameStore.clearCardSelection();
       return true;
     }
 
-    if (!this.driver || !this.driver.engine) return false;
-    const targetPlayerId = gameStore.myPlayerId || this.driver.localPlayerId;
-    const player = this.driver.engine.getPlayer(targetPlayerId) ?? this.driver.engine.players[0];
-    if (!player) return false;
-
-    const res = this.driver.passTurn(player.id);
-    if (res.success) {
-      gameStore.clearCardSelection();
-      return true;
-    }
     return false;
   }
 
@@ -691,11 +717,13 @@ export class AppFlowCoordinator {
   }
 
   public getAiHint(playerId: string) {
-    return this.driver ? this.driver.getAiHint(playerId) : null;
+    const driver = this.activeDriver ?? this.driver;
+    return driver ? driver.getAiHint(playerId) : null;
   }
 
   public getPlayerTracker(playerId: string): CardTracker | null {
-    return this.driver !== null ? this.driver.getTracker(playerId) : null;
+    const driver = this.activeDriver ?? this.driver;
+    return driver !== null ? driver.getTracker(playerId) : null;
   }
 
   public getValidMoves(playerId: string) {
@@ -703,11 +731,12 @@ export class AppFlowCoordinator {
   }
 
   public reorderPlayerHand(playerId: string, newHand: Card[]): boolean {
-    return this.driver ? this.driver.reorderPlayerHand(playerId, newHand) : false;
+    const driver = this.activeDriver ?? this.driver;
+    return driver ? driver.reorderPlayerHand(playerId, newHand) : false;
   }
 
   public hasActiveMatch(): boolean {
-    return this.driver !== null && this.driver.engine !== null;
+    return this.activeDriver !== null || (this.driver !== null && this.driver.engine !== null);
   }
 }
 

@@ -1,5 +1,7 @@
 import type { Card } from './types';
 import type { IMatchDriver, DriverActionResult } from './match-driver.interface';
+import type { CardTracker } from '../ai/card-tracker';
+import type { MoveHint } from '../ai/hint-engine';
 import { UI_TIMINGS } from '../ui/constants/ui-timings';
 
 /**
@@ -15,6 +17,10 @@ export abstract class BaseMatchDriver implements IMatchDriver {
   public abstract playCards(playerId: string, cards: Card[]): DriverActionResult;
   public abstract passTurn(playerId: string): DriverActionResult;
   public abstract handleGameOver(options?: { skipDelay?: boolean }): void;
+
+  public abstract reorderPlayerHand(playerId: string, newHand: Card[]): boolean;
+  public abstract getTracker(playerId: string): CardTracker | null;
+  public abstract getAiHint(playerId: string): MoveHint | null;
 
   /**
    * Tạo timer an toàn có đăng ký vòng đời tự hủy
