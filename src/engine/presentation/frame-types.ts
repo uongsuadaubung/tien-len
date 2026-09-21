@@ -26,7 +26,7 @@ export interface SeatRenderModel {
   isPassed: boolean;
   isLocal: boolean;
   isBot: boolean;
-  botPersonaId?: string;
+  botPersonaId: string | null;
   statusText: string | null;
   score: number;
 }
@@ -59,11 +59,9 @@ export interface ControlsRenderModel {
  * ActiveBannerRenderModel
  * Banner thông báo trạng thái hoặc hiệu ứng đặc biệt
  */
-export interface ActiveBannerRenderModel {
-  type: 'DEALING' | 'CHOP' | 'CONG' | 'VICTORY' | 'INFO';
-  message: string;
-  amount?: number;
-}
+export type ActiveBannerRenderModel =
+  | { readonly type: 'CHOP'; readonly message: string; readonly amount: number }
+  | { readonly type: 'DEALING' | 'CONG' | 'VICTORY' | 'INFO'; readonly message: string; readonly amount: null };
 
 /**
  * TableRenderFrame

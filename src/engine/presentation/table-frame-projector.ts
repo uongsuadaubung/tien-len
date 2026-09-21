@@ -2,7 +2,6 @@ import type { Card, MatchPlayer, GameRules } from '../types';
 import { 
   type MatchState,
   isPlayingMatchState,
-  isDealingMatchState,
   isTerminalMatchState,
   isGameOverMatchState,
   isRoundEndedMatchState
@@ -27,13 +26,11 @@ export interface TableFrameProjectionContext {
   readonly selectedCardIds: ReadonlySet<string>;
   readonly gameRules: GameRules;
   readonly players: readonly MatchPlayer[];
-  readonly dealtCounts?: Readonly<Record<string, number>>;
-  readonly currentHint?: MoveHint | null;
-  readonly botThinkingThought?: { botId: string; text: string } | null;
-  readonly gameNumber?: number;
-  readonly betAmount?: number;
-  readonly isDealing?: boolean;
-  readonly dealBanner?: string | null;
+  readonly dealtCounts: Readonly<Record<string, number>>;
+  readonly currentHint: MoveHint | null;
+  readonly botThinkingThought: { botId: string; text: string } | null;
+  readonly isDealing: boolean;
+  readonly dealBanner: string | null;
 }
 
 function getCombinationName(type: string, length: number): string {
@@ -62,16 +59,15 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
     selectedCardIds,
     gameRules,
     players,
-    dealtCounts = {},
-    currentHint = null,
-    botThinkingThought = null,
-    gameNumber = 1,
-    betAmount = gameRules.table.betAmount
+    dealtCounts,
+    currentHint,
+    botThinkingThought,
+    isDealing,
+    dealBanner
   } = ctx;
 
   const localPlayer = players.find(p => p.id === localPlayerId) ?? null;
   const isPlaying = isPlayingMatchState(matchState);
-  const isDealing = ctx.isDealing !== undefined ? ctx.isDealing : isDealingMatchState(matchState);
   const isGameOver = isTerminalMatchState(matchState);
 
   const activeTurn = isPlaying ? matchState : null;
@@ -209,7 +205,7 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
       isPassed: p.isPassedCurrentRound,
       isLocal,
       isBot: p.isBot,
-      botPersonaId: p.isBot ? p.botPersonaId : undefined,
+      botPersonaId: p.isBot ? (p.botPersonaId ?? null) : null,
       statusText,
       score: p.score
     };
@@ -217,10 +213,10 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
 
   // 6. Banners & Notifications
   let activeBanner: ActiveBannerRenderModel | null = null;
-  const dealBanner: string | null = ctx.dealBanner ?? (matchState.status === 'DEALING' ? matchState.dealBanner : null);
+  const effectiveDealBanner: string | null = dealBanner ?? (matchState.status === 'DEALING' ? matchState.dealBanner : null);
 
-  if (dealBanner) {
-    activeBanner = { type: 'DEALING', message: dealBanner };
+  if (effectiveDealBanner) {
+    activeBanner = { type: 'DEALING', message: effectiveDealBanner, amount: null };
   } else if (activeTurn?.chopNotification && activeTurn.chopNotification.visible) {
     const chop = activeTurn.chopNotification;
     activeBanner = {
@@ -231,12 +227,14 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
   } else if (matchState.status === 'INSTANT_WIN') {
     activeBanner = {
       type: 'VICTORY',
-      message: 'Tới Trắng!'
+      message: 'Tới Trắng!',
+      amount: null
     };
   } else if (matchState.status === 'GAME_OVER') {
     activeBanner = {
       type: 'VICTORY',
-      message: 'Ván đấu kết thúc'
+      message: 'Ván đấu kết thúc',
+      amount: null
     };
   }
 
@@ -251,16 +249,16 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
   }
 
   return {
-    gameNumber,
+    gameNumber: matchState.gameNumber,
     status: matchState.status,
-    betAmount,
+    betAmount: gameRules.table.betAmount,
     localPlayerId,
     seats,
     myHand,
     discardPile,
     controls,
     activeBanner,
-    dealBanner,
+    dealBanner: effectiveDealBanner,
     isDealing,
     dealtCounts,
     isGameOver,

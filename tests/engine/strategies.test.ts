@@ -61,7 +61,9 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       gotChoppedByPlayer: {},
       streaksByPlayer: {},
       isBankLoanActive: false,
+      campaignReward: null,
       penaltyMultiplier: 1,
+      congMultiplier: 1,
       isThreeSpadesWin: false,
       isInstantWin: false
     });
@@ -90,7 +92,9 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       gotChoppedByPlayer: {},
       streaksByPlayer: {},
       isBankLoanActive: false,
+      campaignReward: null,
       penaltyMultiplier: 1,
+      congMultiplier: 1,
       isThreeSpadesWin: false,
       isInstantWin: false
     });
@@ -124,6 +128,7 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       isBankLoanActive: false,
       campaignReward: 5000,
       penaltyMultiplier: 1,
+      congMultiplier: 1,
       isThreeSpadesWin: false,
       isInstantWin: false
     });
@@ -152,7 +157,9 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       gotChoppedByPlayer: {},
       streaksByPlayer: {},
       isBankLoanActive: false,
+      campaignReward: null,
       penaltyMultiplier: 1,
+      congMultiplier: 1,
       isThreeSpadesWin: false,
       isInstantWin: false
     });

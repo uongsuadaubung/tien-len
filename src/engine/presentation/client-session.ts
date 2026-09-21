@@ -11,7 +11,7 @@ import { getOptimalMoveHint, type MoveHint } from '../../ai/hint-engine';
 import { getSortedQuickSelectCandidates } from '../quick-response-finder';
 import type { HandSortMode } from '../../stores/game/types';
 import { useGameStore } from '../../stores/useGameStore';
-import { createPlayingTurnMatchState, type MatchState } from '../state-machine/types';
+import { createPlayingTurnMatchState, isPlayingMatchState, type MatchState } from '../state-machine/types';
 import { createPerspectiveSettlement } from '../settlement/perspective-settlement';
 import { CAMPAIGN_CHAPTERS } from '../campaign';
 
@@ -371,8 +371,7 @@ export class ClientSession implements IGameSession {
       players: this.players,
       dealtCounts: this.isDealing ? this.dealtCounts : (this.latestSync?.remainingCardCounts ?? this.dealtCounts),
       currentHint: this.currentHint,
-      gameNumber: this.gameNumber,
-      betAmount: this.gameRules.table.betAmount,
+      botThinkingThought: isPlayingMatchState(this.latestMatchState) ? this.latestMatchState.botThinkingThought : null,
       isDealing: this.isDealing,
       dealBanner: this.dealBanner
     });

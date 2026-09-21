@@ -1182,6 +1182,12 @@ export class GameEngine {
           p.score += payouts[p.id];
         }
       }
+    } else {
+      const defaultPayouts: Record<string, number> = {};
+      for (const p of this.players) {
+        defaultPayouts[p.id] = 0;
+      }
+      payouts = defaultPayouts;
     }
 
     for (const p of this.players) {

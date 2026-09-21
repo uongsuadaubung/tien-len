@@ -38,7 +38,8 @@ describe('AuthoritativeMatchHost (Unified Listen Server)', () => {
 
   it('should deal private cards to each player and broadcast authoritative table sync', () => {
     const rules = createDefaultGameRules({
-      table: { playerCount: 2, betAmount: 1000, soundEnabled: true }
+      table: { playerCount: 2, betAmount: 1000, soundEnabled: true },
+      instantWin: { enabled: false }
     });
 
     const host = new AuthoritativeMatchHost({
@@ -90,7 +91,8 @@ describe('AuthoritativeMatchHost (Unified Listen Server)', () => {
 
   it('should accept valid move action from the current player and update table state', () => {
     const rules = createDefaultGameRules({
-      table: { playerCount: 2, betAmount: 1000, soundEnabled: true }
+      table: { playerCount: 2, betAmount: 1000, soundEnabled: true },
+      instantWin: { enabled: false }
     });
 
     const host = new AuthoritativeMatchHost({

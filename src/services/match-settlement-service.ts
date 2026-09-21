@@ -56,7 +56,6 @@ interface BaseSettlementInput {
   readonly betAmount: number;
   readonly isThreeSpadesWin: boolean;
   readonly instantWinType: InstantWinType | null;
-  readonly loanDeduction?: number;
   readonly heldDeposit: number;
   readonly congsGivenCount: number;
 }
@@ -252,7 +251,7 @@ export interface MatchSettlementExecutionResult {
 
 export function settleCompletedMatch(
   engine: GameEngine, 
-  driver?: { setSettlementResult?: (payouts: Record<string, number>, eloDeltas: Record<string, number>) => void }
+  subjectPlayerId: string
 ): MatchSettlementExecutionResult {
   const gameStore = useGameStore.getState();
   const userStore = useUserStore.getState();
@@ -263,9 +262,9 @@ export function settleCompletedMatch(
   const resolvedInstantWinType = engine.instantWinType;
   gameStore.setInstantWinType(resolvedInstantWinType ?? undefined);
 
-  const humanPlayer = engine.players.find(p => p.id === gameStore.myPlayerId);
+  const humanPlayer = engine.players.find(p => p.id === subjectPlayerId);
   if (!humanPlayer) {
-    throw new Error(`[MatchSettlementService] Không tìm thấy player với id="${gameStore.myPlayerId}" trong danh sách bàn đấu khi kết toán!`);
+    throw new Error(`[MatchSettlementService] Invariant violated: Subject player "${subjectPlayerId}" not found in engine.players`);
   }
   const humanPlayerId = humanPlayer.id;
 
@@ -329,9 +328,9 @@ export function settleCompletedMatch(
     gotChoppedByPlayer,
     streaksByPlayer,
     isBankLoanActive,
-    campaignReward: currentCampaignChapter?.rewardCoins,
-    penaltyMultiplier: engine.rules.chopping.multiplier || 1,
-    congMultiplier: engine.rules.cong.multiplier || 1,
+    campaignReward: currentCampaignChapter ? (currentCampaignChapter.rewardCoins ?? null) : null,
+    penaltyMultiplier: engine.rules.chopping.multiplier,
+    congMultiplier: engine.rules.cong.multiplier,
     isThreeSpadesWin: engine.isThreeSpadesWin,
     isInstantWin: !!engine.instantWinner
   });
@@ -344,10 +343,6 @@ export function settleCompletedMatch(
   gameStore.setLastEloDelta(settlement.eloDelta);
   gameStore.setLastEloBreakdown(settlement.eloBreakdown ?? null);
   gameStore.setAllEloDeltas(settlement.allEloDeltas ?? {});
-
-  if (driver?.setSettlementResult) {
-    driver.setSettlementResult(settlement.payouts, settlement.allEloDeltas ?? {});
-  }
 
   const session = getActiveMatchSession();
   const heldDeposit = session ? session.depositAmount : 0;

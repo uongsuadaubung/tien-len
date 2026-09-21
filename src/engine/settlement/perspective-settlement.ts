@@ -161,7 +161,7 @@ export function createPerspectiveSettlement(
   // 2. Chuyển đổi từng người chơi thành SettledPlayerCardView hoàn chỉnh
   const playerCardViews: SettledPlayerCardView[] = sortedPlayers.map((player, idx) => {
     const isLocal = player.id === effectiveSubjectId;
-    const isWinner = idx === 0;
+    const isWinner = winners.length > 0 && winners[0].id === player.id;
     const remainingCards = [...(player.hand || [])]
       .filter((c): c is Card => c != null && typeof c.weight === 'number')
       .sort((a, b) => a.weight - b.weight);

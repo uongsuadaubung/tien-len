@@ -790,7 +790,6 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         betAmount: get().roomState?.betAmount ?? gameStore.gameRules.table.betAmount,
         isThreeSpadesWin: endPacket.isThreeSpadesWin ?? false,
         instantWinType: endPacket.instantWinType ?? null,
-        loanDeduction: endPacket.loanDeduction ?? 0,
         heldDeposit: 0,
         congsGivenCount,
         activeGameType: 'ONLINE'

@@ -86,7 +86,9 @@ export function useGameTableScreenLogic({
     currentHint,
     gameRules,
     dealtCounts: storeDealtCounts,
-    botThinkingThought: storeBotThinkingThought
+    botThinkingThought: storeBotThinkingThought,
+    isDealing: storeIsDealing,
+    dealBanner: storeDealBanner
   } = state;
 
   const myPlayerId = storeMyPlayerId;
@@ -109,9 +111,24 @@ export function useGameTableScreenLogic({
       gameRules,
       players,
       dealtCounts: storeDealtCounts,
-      currentHint
+      currentHint,
+      botThinkingThought: storeBotThinkingThought,
+      isDealing: storeIsDealing,
+      dealBanner: storeDealBanner
     });
-  }, [matchState, localPlayer.id, localPlayer.hand, selectedCardIds, gameRules, players, storeDealtCounts, currentHint]);
+  }, [
+    matchState,
+    localPlayer.id,
+    localPlayer.hand,
+    selectedCardIds,
+    gameRules,
+    players,
+    storeDealtCounts,
+    currentHint,
+    storeBotThinkingThought,
+    storeIsDealing,
+    storeDealBanner
+  ]);
 
   // Các cờ điều khiển do Engine tính toán 100%, Web UI hoàn toàn không can thiệp logic
   const isMyTurn = frame.controls.isMyTurn;

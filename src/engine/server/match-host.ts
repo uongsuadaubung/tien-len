@@ -379,7 +379,7 @@ export class AuthoritativeMatchHost {
   public handleGameOver(options?: { skipDelay?: boolean }): void {
     const doSettle = () => {
       if (this.isDisposed) return;
-      const settlementResult = settleCompletedMatch(this.engine);
+      const settlementResult = settleCompletedMatch(this.engine, this.hostPlayerId);
 
       const allPlayerHands: Record<string, Card[]> = {};
       for (const p of this.engine.players) {

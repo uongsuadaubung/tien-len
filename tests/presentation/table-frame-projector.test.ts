@@ -61,13 +61,22 @@ describe('TableFrameProjector (Pure Game Engine Projector)', () => {
       botThinkingThought: null
     });
 
+    const defaultContextParams = {
+      dealtCounts: {},
+      currentHint: null,
+      botThinkingThought: null,
+      isDealing: false,
+      dealBanner: null
+    };
+
     const frame = projectTableFrame({
       matchState: playingState,
       localPlayerId,
       localHand: players[0].hand,
       selectedCardIds: new Set(['3_SPADES']),
       gameRules: rules,
-      players
+      players,
+      ...defaultContextParams
     });
 
     expect(frame.controls.isMyTurn).toBe(true);
@@ -102,7 +111,12 @@ describe('TableFrameProjector (Pure Game Engine Projector)', () => {
       localHand: players[0].hand,
       selectedCardIds: new Set(['4_HEARTS']),
       gameRules: rules,
-      players
+      players,
+      dealtCounts: {},
+      currentHint: null,
+      botThinkingThought: null,
+      isDealing: false,
+      dealBanner: null
     });
 
     expect(frame.controls.isMyTurn).toBe(true);
@@ -134,7 +148,12 @@ describe('TableFrameProjector (Pure Game Engine Projector)', () => {
       localHand: players[0].hand,
       selectedCardIds: new Set(['3_SPADES']),
       gameRules: rules,
-      players
+      players,
+      dealtCounts: {},
+      currentHint: null,
+      botThinkingThought: null,
+      isDealing: false,
+      dealBanner: null
     });
 
     expect(frame.controls.isMyTurn).toBe(false);
@@ -156,12 +175,18 @@ describe('TableFrameProjector (Pure Game Engine Projector)', () => {
       localHand: players[0].hand,
       selectedCardIds: new Set(),
       gameRules: rules,
-      players
+      players,
+      dealtCounts: {},
+      currentHint: null,
+      botThinkingThought: null,
+      isDealing: false,
+      dealBanner: null
     });
 
     const botSeat = frame.seats.find(s => s.playerId === botId);
     expect(botSeat).toBeDefined();
     expect(botSeat?.cardCount).toBe(2);
+    expect(botSeat?.botPersonaId).toBe('BOT_ELO_1150');
     // Ensure no 'hand' field exists on SeatRenderModel
     expect((botSeat as any).hand).toBeUndefined();
   });
@@ -205,7 +230,12 @@ describe('TableFrameProjector (Pure Game Engine Projector)', () => {
       players: [
         { ...players[0], hand: quadHand, cardCount: quadHand.length },
         players[1]
-      ]
+      ],
+      dealtCounts: {},
+      currentHint: null,
+      botThinkingThought: null,
+      isDealing: false,
+      dealBanner: null
     });
 
     expect(frame.controls.canPlay).toBe(true);
