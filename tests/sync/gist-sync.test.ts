@@ -4,7 +4,7 @@ import { computeHash, hasProgress, applyRemoteSaveData, getLocalSaveData } from 
 import { validateToken, findGistId, uploadToGist, downloadFromGist } from '../../src/engine/sync/github-api';
 import type { TienLenSaveData } from '../../src/engine/sync/types';
 import { useUserStore } from '../../src/stores/useUserStore';
-import { useSettingsStore } from '../../src/stores/useSettingsStore';
+import { useSettingsStore, resetSettingsStore } from '../../src/stores/useSettingsStore';
 import { DEFAULT_PROFILE } from '../../src/engine/storage';
 import { generateInitial200Bots } from '../../src/engine/ecosystem/bot-generator';
 
@@ -35,20 +35,7 @@ describe('GitHub Gist Synchronization Unit Tests', () => {
 
   const resetStores = () => {
     useUserStore.getState().resetProfile();
-    useSettingsStore.getState().hydrateSettings({
-      soundEnabled: true,
-      autoSortEnabled: true,
-      aiHintEnabled: false,
-      quickResponseAssistEnabled: false,
-      xrayEnabled: false,
-      botReasoningLogEnabled: false,
-      gameSpeed: 'REALISTIC',
-      githubToken: '',
-      gistId: '',
-      lastSync: 0,
-      lastSyncedHash: '',
-      cachedGithubUser: null
-    });
+    resetSettingsStore();
   };
 
   beforeEach(() => {

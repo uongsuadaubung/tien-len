@@ -1,7 +1,7 @@
-import { describe, expect, it, beforeEach } from 'bun:test';
+import { describe, expect, it, beforeEach, afterEach } from 'bun:test';
 import { useGameStore } from '../../src/stores/useGameStore';
 import { useUserStore } from '../../src/stores/useUserStore';
-import { useSettingsStore } from '../../src/stores/useSettingsStore';
+import { useSettingsStore, resetSettingsStore } from '../../src/stores/useSettingsStore';
 import { useViewStore } from '../../src/stores/useViewStore';
 import { createCard } from '../../src/engine/card';
 
@@ -10,6 +10,11 @@ describe('Zustand State Stores Integration Tests (Kiểm Thử Tích Hợp State
     useUserStore.getState().resetProfile();
     useViewStore.getState().closeAllModals();
     useGameStore.getState().clearCardSelection();
+    resetSettingsStore();
+  });
+
+  afterEach(() => {
+    resetSettingsStore();
   });
 
   it('1. useUserStore: Cập nhật Xu, Elo và Vay Nợ chợ đen', () => {
@@ -97,6 +102,13 @@ describe('Zustand State Stores Integration Tests (Kiểm Thử Tích Hợp State
     expect(useSettingsStore.getState().reverseButtonsEnabled).toBe(true);
     settingsStore.toggleReverseButtons();
     expect(useSettingsStore.getState().reverseButtonsEnabled).toBe(false);
+
+    // Kiểm tra resetSettings() hoàn trả 100% về DEFAULT_SETTINGS
+    settingsStore.setReverseButtonsEnabled(true);
+    settingsStore.setGameSpeed('FAST');
+    settingsStore.resetSettings();
+    expect(useSettingsStore.getState().reverseButtonsEnabled).toBe(false);
+    expect(useSettingsStore.getState().gameSpeed).toBe('REALISTIC');
   });
 
   it('5. useGameStore: resetMatchState làm sạch 100% dữ liệu bàn đấu và bộ nhớ tạm', () => {

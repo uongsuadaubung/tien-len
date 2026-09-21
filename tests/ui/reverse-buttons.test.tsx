@@ -1,8 +1,8 @@
-import { describe, expect, it, beforeEach } from 'bun:test';
+import { describe, expect, it, beforeEach, afterEach } from 'bun:test';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { SavedSettingsSchema } from '../../src/engine/schemas/settings.schema';
-import { useSettingsStore } from '../../src/stores/useSettingsStore';
+import { useSettingsStore, resetSettingsStore } from '../../src/stores/useSettingsStore';
 import { getLocalSaveData } from '../../src/engine/sync/sync-service';
 import { vi } from '../../src/locales/vi';
 import { en } from '../../src/locales/en';
@@ -13,7 +13,11 @@ import { createCard } from '../../src/engine/card';
 
 describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button Layout Tests)', () => {
   beforeEach(() => {
-    useSettingsStore.setState({ reverseButtonsEnabled: false });
+    resetSettingsStore();
+  });
+
+  afterEach(() => {
+    resetSettingsStore();
   });
 
   it('1. SavedSettingsSchema: Giá trị mặc định phải là false và parse hợp lệ', () => {

@@ -111,6 +111,7 @@ interface SettingsState {
   setLastSyncRecord: (timestamp: number, hash: string) => void;
   clearGithubAuth: () => void;
   hydrateSettings: (settings: Partial<SavedSettings>) => void;
+  resetSettings: () => void;
 }
 
 const initial = loadInitialSettings();
@@ -306,8 +307,20 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     };
     persistSettings(next);
     return next;
+  }),
+  resetSettings: () => set((state) => {
+    const next = {
+      ...state,
+      ...DEFAULT_SETTINGS
+    };
+    persistSettings(next);
+    return next;
   })
 }));
+
+export function resetSettingsStore(): void {
+  useSettingsStore.getState().resetSettings();
+}
 
 // Khởi động đồng bộ settings từ IndexedDB
 if (typeof window !== 'undefined') {

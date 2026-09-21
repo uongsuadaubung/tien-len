@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
-import { useSettingsStore, DEFAULT_SETTINGS } from '../../src/stores/useSettingsStore';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { useSettingsStore, DEFAULT_SETTINGS, resetSettingsStore } from '../../src/stores/useSettingsStore';
 import { useUserStore } from '../../src/stores/useUserStore';
 import { appFlowCoordinator } from '../../src/services/app-flow-coordinator';
 import { dbGetGameSettings, dbSaveGameSettings } from '../../src/engine/db/indexed-db';
@@ -12,6 +12,10 @@ describe('Settings Persistence & Stability Tests (Kiểm Thử Độ Ổn Địn
       ...DEFAULT_SETTINGS,
       onlineMultiplayerBetaEnabled: false
     });
+  });
+
+  afterEach(() => {
+    resetSettingsStore();
   });
 
   it('1. Bật onlineMultiplayerBetaEnabled và lưu bền vững vào dbGetGameSettings', async () => {
