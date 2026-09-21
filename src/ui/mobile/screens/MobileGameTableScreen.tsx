@@ -337,7 +337,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
             onPassTurn={handlePassTurnAction}
             onAutoSort={onAutoSort}
             onQuickSelect={handleQuickSelect}
-            canQuickSelect={quickResponseAssistEnabled && canQuickSelect}
+            canQuickSelect={canQuickSelect}
             quickSelectCandidatesCount={quickSelectCandidates.length}
             isCurrentTurn={isMyTurn}
             canPlay={isValidPlaySelection}
@@ -351,6 +351,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
             variantIndex={smartVariantIndex}
             cardSize="mobile"
             reverseButtons={reverseButtonsEnabled}
+            quickResponseAssistEnabled={quickResponseAssistEnabled}
           />
         </div>
       </main>

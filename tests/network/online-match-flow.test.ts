@@ -8,6 +8,8 @@ import { createCard, ALL_RANKS } from '../../src/engine/card';
 import { Card } from '../../src/engine/types';
 import { createPlayer } from '../../src/engine/player-factory';
 import { isValidMove } from '../../src/engine/validator';
+import { identifyCombination } from '../../src/engine/combinations';
+import { appFlowCoordinator } from '../../src/services/app-flow-coordinator';
 
 describe('Online P2P Match Flow & State Transition Tests', () => {
   beforeEach(() => {
@@ -100,12 +102,12 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     expect(modalState.isOnlineRoomOpen).toBe(false);
   });
 
-  it('3. Rời phòng: dọn dẹp sạch sẽ hostDriver, roomState và đưa screen về trạng thái ban đầu', () => {
+  it('3. Rời phòng: dọn dẹp sạch sẽ hostInstance, roomState và đưa screen về trạng thái ban đầu', () => {
     const profile = loadPlayerProfile();
     useOnlineStore.getState().createRoom(profile, {
       playerCount: 4,
       betAmount: 1000,
-      settlementRule: 'COUNT_CARDS',      isPublic: true
+      settlementRule: 'COUNT_CARDS',      isPublic: true
     });
 
     useOnlineStore.getState().startMatch();
@@ -118,7 +120,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     expect(state.isHost).toBe(false);
     expect(state.roomCode).toBeNull();
     expect(state.roomState).toBeNull();
-    expect(state.hostDriver).toBeNull();
+    expect(state.hostInstance).toBeNull();
   });
 
   it('4. Sắp xếp bài khi chơi Online: hoạt động mượt mà cho cả Host và Guest', () => {
@@ -204,7 +206,8 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     // 1. activeGameType vẫn là ONLINE (không bị rơi về QUICK offline bot)
     expect(useGameStore.getState().activeGameType).toBe('ONLINE');
     // 3. Trạng thái ván mới đã reset chuẩn
-    if (useGameStore.getState().instantWinType) {
+    const isInstantWin = Boolean(useGameStore.getState().instantWinType || useOnlineStore.getState().hostInstance?.instantWinType);
+    if (isInstantWin) {
       expect(useGameStore.getState().isGameOver).toBe(true);
     } else {
       expect(useGameStore.getState().isGameOver).toBe(false);
@@ -254,7 +257,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     expect(useGameStore.getState().activeGameType).toBe('ONLINE');
 
     // Giả lập ván 1 kết thúc -> HostEngineDriver handleGameOver reset isReady của tất cả người chơi về false
-    const driver = useOnlineStore.getState().hostDriver!;
+    const driver = useOnlineStore.getState().hostInstance!;
     driver.engine!.winners = [driver.engine!.players[0]];
     driver.engine!.isGameOver = true;
     driver.handleGameOver({ skipDelay: true });
@@ -322,7 +325,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     useOnlineStore.getState().startMatch();
 
     // Kết thúc ván 1 và kích hoạt Rematch
-    const driver = useOnlineStore.getState().hostDriver!;
+    const driver = useOnlineStore.getState().hostInstance!;
     driver.engine!.winners = [driver.engine!.players[0]];
     driver.engine!.isGameOver = true;
     driver.handleGameOver({ skipDelay: true });
@@ -330,8 +333,9 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     driver.handleRematchVote('p1', true);
 
     // Ván 2 tự động khởi động
+    const activeDriver = useOnlineStore.getState().hostInstance!;
+    activeDriver.finishDealing();
     const gameStore = useGameStore.getState();
-    const activeDriver = useOnlineStore.getState().hostDriver!;
     expect(gameStore.activeGameType).toBe('ONLINE');
     expect(gameStore.gameNumber).toBe(2);
     expect(gameStore.players.length).toBe(2);
@@ -399,9 +403,9 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     expect(useOnlineStore.getState().roomState?.players.length).toBe(2);
 
     // Giả lập guest ngắt kết nối (onPeerLeave)
-    const hostDriver = useOnlineStore.getState().hostDriver;
-    if (hostDriver) {
-      hostDriver.handlePeerLeave('guest_peer_leave_1');
+    const hostInstance = useOnlineStore.getState().hostInstance;
+    if (hostInstance) {
+      hostInstance.handlePeerLeave('guest_peer_leave_1');
     } else {
       const currentRoom = useOnlineStore.getState().roomState!;
       const updatedPlayers = currentRoom.players.filter(p => p.peerId !== 'guest_peer_leave_1');
@@ -463,7 +467,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     expect(useOnlineStore.getState().roomState?.status).toBe('PLAYING');
 
     // Khách rời phòng giữa chừng -> Kích hoạt Grace Period 25s
-    const driver = useOnlineStore.getState().hostDriver!;
+    const driver = useOnlineStore.getState().hostInstance!;
     driver.handlePeerLeave('guest_peer_playing_leave');
 
     // Xác nhận bàn chơi chưa giải tán ngay mà bước vào Grace Period 25s
@@ -555,6 +559,7 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
 
     // Host bắt đầu trận đấu 2 người
     useOnlineStore.getState().startMatch();
+    useOnlineStore.getState().hostInstance?.finishDealing();
 
     const gameState = useGameStore.getState();
     const onlineState = useOnlineStore.getState();
@@ -574,10 +579,10 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       expect(gameState.matchState.currentTurnPlayerId).toBeDefined();
       expect(gameState.matchState.leadPlayerId).toBeDefined();
 
-      const hostDriver = useOnlineStore.getState().hostDriver;
-      expect(hostDriver).not.toBeNull();
-      const firstTurnId = hostDriver?.engine?.currentRound.currentTurnPlayerId;
-      const isFirstMoveOfGame = hostDriver?.engine?.isFirstMoveOfGame;
+      const hostInstance = useOnlineStore.getState().hostInstance;
+      expect(hostInstance).not.toBeNull();
+      const firstTurnId = hostInstance?.engine?.currentRound.currentTurnPlayerId;
+      const isFirstMoveOfGame = hostInstance?.engine?.isFirstMoveOfGame;
 
       expect(gameState.currentTurnPlayerId).toBe(firstTurnId ?? null);
       expect(gameState.isFirstMoveOfGame).toBe(isFirstMoveOfGame ?? false);
@@ -859,6 +864,381 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     expect(lastCall.cardIds).toEqual([cardToPlay.id]);
 
     sendSpy.mockRestore();
+  });
+
+  it('15. Bỏ phiếu Rematch qua mạng P2P (Guest sẵn sàng trước, Host sẵn sàng sau): Tự động bắt đầu Ván 2 và dọn dẹp modal Victory', () => {
+    const profileHost = {
+      ...loadPlayerProfile(),
+      name: 'Host Rematch Test',
+      avatar: '🤠',
+      elo: 1600,
+      coins: 90000
+    };
+
+    useOnlineStore.getState().createRoom(profileHost, {
+      betAmount: 1000,
+      playerCount: 2,
+      settlementRule: 'COUNT_CARDS',
+      isPublic: true
+    });
+
+    const guestPlayer = {
+      peerId: 'guest_peer_rematch_1',
+      playerId: 'guest_rematch_p1',
+      name: 'Guest Rematcher',
+      avatar: '😎',
+      elo: 1300,
+      coins: 50000,
+      isHost: false,
+      isReady: true,
+      isBot: false
+    };
+
+    const room = useOnlineStore.getState().roomState!;
+    useOnlineStore.setState({
+      roomState: {
+        ...room,
+        players: [...room.players, guestPlayer]
+      }
+    });
+
+    // 1. Khởi động Ván 1
+    useOnlineStore.getState().startMatch();
+    const driver = useOnlineStore.getState().hostInstance!;
+    driver.engine!.winners = [driver.engine!.players[0]];
+    driver.engine!.isGameOver = true;
+    driver.handleGameOver({ skipDelay: true });
+
+    // Đảm bảo ván 1 kết thúc, modal Victory được mở giả định
+    useViewStore.getState().openModal('VICTORY');
+    expect(useViewStore.getState().isVictoryOpen).toBe(true);
+    expect(useOnlineStore.getState().roomState?.status).toBe('ENDED');
+    expect(useOnlineStore.getState().roomState?.players[0].isReady).toBe(false);
+    expect(useOnlineStore.getState().roomState?.players[1].isReady).toBe(false);
+
+    // 2. Khách gửi REMATCH_VOTE qua mạng P2P trước
+    globalP2PClient.emitRematchVoteForTest({
+      playerId: guestPlayer.playerId,
+      isReady: true,
+      timestamp: Date.now()
+    }, guestPlayer.peerId);
+
+    // Host đã tiếp nhận vote của khách: Khách = true, Host = false -> Chưa bắt đầu ván mới
+    expect(useOnlineStore.getState().roomState?.players[1].isReady).toBe(true);
+    expect(useOnlineStore.getState().roomState?.players[0].isReady).toBe(false);
+    expect(useViewStore.getState().isVictoryOpen).toBe(true);
+
+    // 3. Giờ Host bấm sẵn sàng -> Cả 2 đều sẵn sàng -> Tự động kích hoạt Ván 2
+    useOnlineStore.getState().voteRematch(true);
+
+    expect(useOnlineStore.getState().roomState?.status).toBe('PLAYING');
+    expect(useViewStore.getState().isVictoryOpen).toBe(false);
+    expect(useGameStore.getState().gameNumber).toBe(2);
+    if (!useGameStore.getState().instantWinType) {
+      expect(useGameStore.getState().isGameOver).toBe(false);
+      expect(useGameStore.getState().players[0].hand.length).toBe(13);
+    }
+  });
+
+  it('16. Bỏ phiếu Rematch qua mạng P2P (Host sẵn sàng trước, Guest sẵn sàng sau): Tự động bắt đầu Ván 2 và dọn dẹp modal Victory', () => {
+    const profileHost = {
+      ...loadPlayerProfile(),
+      name: 'Host Rematch Test 2',
+      avatar: '🤠',
+      elo: 1600,
+      coins: 90000
+    };
+
+    useOnlineStore.getState().createRoom(profileHost, {
+      betAmount: 1000,
+      playerCount: 2,
+      settlementRule: 'COUNT_CARDS',
+      isPublic: true
+    });
+
+    const guestPlayer = {
+      peerId: 'guest_peer_rematch_2',
+      playerId: 'guest_rematch_p2',
+      name: 'Guest Rematcher 2',
+      avatar: '😎',
+      elo: 1300,
+      coins: 50000,
+      isHost: false,
+      isReady: true,
+      isBot: false
+    };
+
+    const room = useOnlineStore.getState().roomState!;
+    useOnlineStore.setState({
+      roomState: {
+        ...room,
+        players: [...room.players, guestPlayer]
+      }
+    });
+
+    // 1. Khởi động Ván 1
+    useOnlineStore.getState().startMatch();
+    const driver = useOnlineStore.getState().hostInstance!;
+    driver.engine!.winners = [driver.engine!.players[0]];
+    driver.engine!.isGameOver = true;
+    driver.handleGameOver({ skipDelay: true });
+
+    useViewStore.getState().openModal('VICTORY');
+    expect(useViewStore.getState().isVictoryOpen).toBe(true);
+    expect(useOnlineStore.getState().roomState?.status).toBe('ENDED');
+
+    // 2. Host bấm sẵn sàng trước
+    useOnlineStore.getState().voteRematch(true);
+    expect(useOnlineStore.getState().roomState?.players[0].isReady).toBe(true);
+    expect(useOnlineStore.getState().roomState?.players[1].isReady).toBe(false);
+    expect(useViewStore.getState().isVictoryOpen).toBe(true);
+
+    // 3. Khách gửi REMATCH_VOTE qua mạng P2P sau -> Cả 2 sẵn sàng -> Tự động kích hoạt Ván 2
+    globalP2PClient.emitRematchVoteForTest({
+      playerId: guestPlayer.playerId,
+      isReady: true,
+      timestamp: Date.now()
+    }, guestPlayer.peerId);
+
+    expect(useOnlineStore.getState().roomState?.status).toBe('PLAYING');
+    expect(useViewStore.getState().isVictoryOpen).toBe(false);
+    expect(useGameStore.getState().gameNumber).toBe(2);
+    if (!useGameStore.getState().instantWinType) {
+      expect(useGameStore.getState().isGameOver).toBe(false);
+      expect(useGameStore.getState().players[0].hand.length).toBe(13);
+    }
+  });
+
+  it('17. Rematch Ván 2 Online: Khách (Guest) nhận đủ 13 lá bài và kích hoạt hiệu ứng chia bài (isDealing: true) đồng bộ với Host', () => {
+    const profileGuest = {
+      ...loadPlayerProfile(),
+      name: 'Guest Player 17',
+      avatar: '🤠',
+      elo: 1500,
+      coins: 80000
+    };
+
+    useOnlineStore.getState().joinRoom(profileGuest, 'TL-1717');
+
+    const dummyHandGame1 = Array.from({ length: 13 }, (_, i) => createCard(((i % 13) + 1) as any, 'HEARTS'));
+
+    // Giả lập Khách nhận bài ván 1
+    globalP2PClient.emitDealHandForTest({
+      playerId: profileGuest.id,
+      cards: dummyHandGame1.map(c => ({ rank: c.rank, suit: c.suit, id: c.id })),
+      leadPlayerId: profileGuest.id,
+      firstTurnPlayerId: profileGuest.id,
+      gameNumber: 1,
+      isFirstMoveOfGame: true,
+      isLeadMove: true
+    }, 'host_peer_17');
+
+    expect(useGameStore.getState().players.find(p => p.id === profileGuest.id)?.hand.length).toBe(13);
+
+    // Kết thúc ván 1: status -> ENDED
+    const roomStateEnded: any = {
+      roomCode: 'TL-1717',
+      hostPeerId: 'host_peer_17',
+      status: 'ENDED',
+      playerCount: 2,
+      betAmount: 1000,
+      settlementRule: 'COUNT_CARDS',
+      choppingMultiplier: 1,
+      allowFourPairsCutAnytime: true,
+      cascadeChopEnabled: true,
+      congEnabled: true,
+      congMultiplier: 1,
+      prohibitEndingWithTwo: true,
+      threeSpadesEndingBonus: false,
+      players: [
+        { peerId: 'host_peer_17', playerId: 'host_p17', name: 'Host 17', avatar: '🤠', coins: 90000, isHost: true, isReady: false },
+        { peerId: 'guest_peer_17', playerId: profileGuest.id, name: 'Guest 17', avatar: '🤠', coins: 70000, isHost: false, isReady: false }
+      ],
+      updatedAt: Date.now()
+    };
+    globalP2PClient.emitRoomStateForTest(roomStateEnded, 'host_peer_17');
+    useViewStore.getState().openModal('VICTORY');
+
+    // Cả 2 cùng vote rematch -> Host bắt đầu Ván 2
+    const dummyHandGame2 = Array.from({ length: 13 }, (_, i) => createCard(((i % 13) + 1) as any, 'SPADES'));
+
+    // Host gửi room_state PLAYING
+    const roomStatePlayingGame2 = {
+      ...roomStateEnded,
+      status: 'PLAYING',
+      updatedAt: Date.now()
+    };
+    globalP2PClient.emitRoomStateForTest(roomStatePlayingGame2, 'host_peer_17');
+
+    // Host gửi DEAL_HAND cho Guest
+    globalP2PClient.emitDealHandForTest({
+      playerId: profileGuest.id,
+      cards: dummyHandGame2.map(c => ({ rank: c.rank, suit: c.suit, id: c.id })),
+      leadPlayerId: 'host_p17',
+      firstTurnPlayerId: 'host_p17',
+      gameNumber: 2,
+      isFirstMoveOfGame: false,
+      isLeadMove: true
+    }, 'host_peer_17');
+
+    // Host broadcast TABLE_SYNC đang chia bài (isDealing: true)
+    globalP2PClient.emitTableSyncForTest({
+      seq: 1,
+      timestamp: Date.now(),
+      roundNumber: 1,
+      isChop: false,
+      isCascadeChop: false,
+      gameNumber: 2,
+      isGameOver: false,
+      currentTurnPlayerId: null,
+      leadPlayerId: null,
+      remainingCardCounts: { host_p17: 0, [profileGuest.id]: 0 },
+      passedPlayerIds: [],
+      winners: [],
+      isDealing: true,
+      dealtCounts: { host_p17: 0, [profileGuest.id]: 0 }
+    }, 'host_peer_17');
+
+    const guestGameStore = useGameStore.getState();
+
+    // Xác nhận trên máy Khách:
+    // 1. Khách ĐÃ CÓ đủ 13 lá bài cho ván 2 (Không bị rỗng [] hay 0 lá)
+    const guestHand = guestGameStore.players.find(p => p.id === profileGuest.id)?.hand || [];
+    expect(guestHand.length).toBe(13);
+    expect(guestHand.every(c => c.suit === 'SPADES')).toBe(true);
+
+    // 2. Hiệu ứng chia bài ĐANG CHẠY (isDealing: true)
+    expect(guestGameStore.isDealing).toBe(true);
+    expect(guestGameStore.currentScreen).toBe('GAME_TABLE');
+    expect(useViewStore.getState().isVictoryOpen).toBe(false);
+
+    // 3. Khi hoạt ảnh chia bài hoàn tất (finishDealing từ Host gửi TABLE_SYNC)
+    globalP2PClient.emitTableSyncForTest({
+      seq: 2,
+      timestamp: Date.now(),
+      roundNumber: 1,
+      isChop: false,
+      isCascadeChop: false,
+      gameNumber: 2,
+      isGameOver: false,
+      currentTurnPlayerId: 'host_p17',
+      leadPlayerId: 'host_p17',
+      remainingCardCounts: { host_p17: 13, [profileGuest.id]: 13 },
+      passedPlayerIds: [],
+      winners: [],
+      isDealing: false,
+      dealtCounts: { host_p17: 13, [profileGuest.id]: 13 }
+    }, 'host_peer_17');
+
+    const syncedGuestStore = useGameStore.getState();
+    expect(syncedGuestStore.isDealing).toBe(false);
+    expect(syncedGuestStore.matchState.status).toBe('PLAYING');
+    expect(syncedGuestStore.players.find(p => p.id === profileGuest.id)?.hand.length).toBe(13);
+  });
+
+  it('18. Khách bỏ lượt ở vòng cũ -> Host cầm cái mở vòng mới -> Khách được giải phóng cờ Bỏ lượt và có thể đánh bài đè bình thường', () => {
+    const profileGuest = { ...loadPlayerProfile(), name: 'Guest Passer', coins: 80000 };
+    useOnlineStore.getState().joinRoom(profileGuest, 'TL-PASS-TEST');
+
+    const cardJClubs = createCard(11, 'CLUBS');
+    const cardJHearts = createCard(11, 'HEARTS');
+    const guestHand = [cardJClubs, cardJHearts];
+
+    // Khách nhận bài
+    globalP2PClient.emitDealHandForTest({
+      playerId: profileGuest.id,
+      cards: guestHand.map(c => ({ rank: c.rank, suit: c.suit, id: c.id })),
+      leadPlayerId: 'host_p18',
+      firstTurnPlayerId: 'host_p18',
+      gameNumber: 1,
+      isFirstMoveOfGame: false,
+      isLeadMove: true
+    }, 'host_peer_18');
+
+    // Host mở vòng 1 với bộ 5-6-7-8, lượt chuyển sang Guest
+    globalP2PClient.emitTableSyncForTest({
+      seq: 1,
+      timestamp: Date.now(),
+      roundNumber: 1,
+      isChop: false,
+      isCascadeChop: false,
+      gameNumber: 1,
+      isGameOver: false,
+      currentTurnPlayerId: profileGuest.id,
+      leadPlayerId: 'host_p18',
+      remainingCardCounts: { host_p18: 9, [profileGuest.id]: 2 },
+      passedPlayerIds: [],
+      currentMoveCards: [createCard(5, 'HEARTS'), createCard(6, 'CLUBS'), createCard(7, 'CLUBS'), createCard(8, 'HEARTS')],
+      currentMovePlayerId: 'host_p18',
+      winners: [],
+      isFirstMoveOfGame: false,
+      isLeadMove: false,
+      isDealing: false,
+      dealtCounts: { host_p18: 9, [profileGuest.id]: 2 }
+    }, 'host_peer_18');
+
+    // Guest bấm Bỏ Lượt ở Vòng 1
+    useOnlineStore.getState().sendPassAction();
+
+    // Xác nhận trên store: Guest mang cờ isPassedCurrentRound: true
+    const guestStoreAfterPass = useGameStore.getState();
+    const guestPlayerAfterPass = guestStoreAfterPass.players.find(p => p.id === profileGuest.id);
+    expect(guestPlayerAfterPass?.isPassedCurrentRound).toBe(true);
+
+    // Host thắng vòng 1 (CẦM CÁI) và bắt đầu Vòng 2 với Đôi 9 (9♣, 9♦). Lượt chuyển sang Guest.
+    // TABLE_SYNC của vòng mới reset passedPlayerIds = []
+    globalP2PClient.emitTableSyncForTest({
+      seq: 2,
+      timestamp: Date.now(),
+      roundNumber: 2,
+      isChop: false,
+      isCascadeChop: false,
+      gameNumber: 1,
+      isGameOver: false,
+      currentTurnPlayerId: profileGuest.id,
+      leadPlayerId: 'host_p18',
+      remainingCardCounts: { host_p18: 7, [profileGuest.id]: 2 },
+      passedPlayerIds: [], // Đã reset sạch sẽ cho vòng mới
+      currentMoveCards: [createCard(9, 'CLUBS'), createCard(9, 'DIAMONDS')],
+      currentMovePlayerId: 'host_p18',
+      winners: [],
+      isFirstMoveOfGame: false,
+      isLeadMove: false,
+      isDealing: false,
+      dealtCounts: { host_p18: 7, [profileGuest.id]: 2 }
+    }, 'host_peer_18');
+
+    const guestStoreInRound2 = useGameStore.getState();
+    const guestPlayerInRound2 = guestStoreInRound2.players.find(p => p.id === profileGuest.id);
+
+    // Xác nhận 1: isPassedCurrentRound đã được giải phóng (false)
+    expect(guestPlayerInRound2?.isPassedCurrentRound).toBe(false);
+
+    // Xác nhận 2: Thẩm định nước đi Đôi J đè Đôi 9 thành công mà không bị chặn bởi cờ Bỏ lượt
+    const validMoveRes = isValidMove({
+      cards: [cardJClubs, cardJHearts],
+      target: identifyCombination([createCard(9, 'CLUBS'), createCard(9, 'DIAMONDS')]),
+      isLeadMove: false,
+      isFirstMoveOfGame: false,
+      firstMoveRequiredCard: null,
+      hasPassedRound: guestPlayerInRound2?.isPassedCurrentRound ?? false,
+      allowFourPairsCutAnytime: true,
+      isFinishingMove: true,
+      prohibitEndingWithTwo: true
+    });
+    expect(validMoveRes.valid).toBe(true);
+
+    // Xác nhận 3: ClientSession của Khách cho phép đánh bài (canPlay = true) và không bị khóa Bỏ lượt
+    const session = appFlowCoordinator.getActiveSession();
+    expect(session).not.toBeNull();
+    if (session) {
+      session.sendIntent({ type: 'TOGGLE_CARD_SELECT', cardId: cardJClubs.id });
+      session.sendIntent({ type: 'TOGGLE_CARD_SELECT', cardId: cardJHearts.id });
+      const frame = session.getLatestFrame();
+      expect(frame.controls.canPlay).toBe(true);
+      expect(frame.controls.playButtonLabel).toBe('Đánh (2 lá)');
+      expect(frame.seats.find(s => s.playerId === profileGuest.id)?.isPassed).toBe(false);
+    }
   });
 });
 

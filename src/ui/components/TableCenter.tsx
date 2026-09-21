@@ -102,34 +102,37 @@ export const TableCenter: React.FC<TableCenterProps> = ({
       )}
 
       {/* Hiển thị bài vừa đánh */}
-      {!isDealing && currentMove && currentMove.combination.cards.length > 0 ? (
-        <div className={`flex flex-col items-center justify-center pointer-events-auto overflow-visible ${scaleClass}`}>
-          <div
-            key={`${currentMove.playerId}-${currentMove.timestamp}-${currentMove.combination.cards.map(c => c.id).join('-')}`}
-            className={`flex items-center justify-center ${spacingClass} overflow-visible ${getSlideAnimationClass(currentMove.playerId)}`}
-          >
-            {currentMove.combination.cards.map((card, idx) => (
-              <CardView
-                key={card.id}
-                card={card}
-                disabled
-                size="table"
-                style={{
-                  transform: `rotate(${(idx - (currentMove.combination.cards.length - 1) / 2) * rotFactor}deg)`,
-                  zIndex: 30 + idx
-                }}
-              />
-            ))}
+      {!isDealing && currentMove && currentMove.combination.cards.length > 0 ? (() => {
+        const moveKey = `${currentMove.playerId}-${currentMove.combination.cards.map(c => c.id).join('_')}`;
+        return (
+          <div className={`flex flex-col items-center justify-center pointer-events-auto overflow-visible ${scaleClass}`}>
+            <div
+              key={moveKey}
+              className={`flex items-center justify-center ${spacingClass} overflow-visible ${getSlideAnimationClass(currentMove.playerId)}`}
+            >
+              {currentMove.combination.cards.map((card, idx) => (
+                <CardView
+                  key={card.id}
+                  card={card}
+                  disabled
+                  size="table"
+                  style={{
+                    transform: `rotate(${(idx - (currentMove.combination.cards.length - 1) / 2) * rotFactor}deg)`,
+                    zIndex: 30 + idx
+                  }}
+                />
+              ))}
+            </div>
+            <div
+              key={`badge-${moveKey}`}
+              className={`mt-1.5 bg-[#0e1422] px-2.5 py-0.5 rounded-full border border-amber-400/60 text-amber-300 ${isMobileSize ? 'text-[10px]' : 'text-xs'} font-bold flex items-center gap-1.5 shadow-xl animate-fade-in`}
+            >
+              <Sparkles className="w-3 h-3 text-amber-300" />
+              <span>{formatCombinationDisplayName(currentMove.combination, t)}</span>
+            </div>
           </div>
-          <div
-            key={`badge-${currentMove.timestamp}-${currentMove.combination.type}`}
-            className={`mt-1.5 bg-[#0e1422] px-2.5 py-0.5 rounded-full border border-amber-400/60 text-amber-300 ${isMobileSize ? 'text-[10px]' : 'text-xs'} font-bold flex items-center gap-1.5 shadow-xl animate-fade-in`}
-          >
-            <Sparkles className="w-3 h-3 text-amber-300" />
-            <span>{formatCombinationDisplayName(currentMove.combination, t)}</span>
-          </div>
-        </div>
-      ) : !isDealing ? (
+        );
+      })() : !isDealing ? (
         <div className={`flex flex-col items-center justify-center text-center ${isMobileSize ? 'p-2 rounded-lg' : 'p-4 rounded-xl'} bg-[#121724] border border-[#d4af37]/25 shadow-md`}>
           <div className={`text-[#f3e5ab] font-extrabold ${isMobileSize ? 'text-xs' : 'text-sm'} tracking-wider uppercase`}>
             {isLeadMove && !isGameOver ? t('table.newRoundLead') : t('table.tableEmptyTitle')}

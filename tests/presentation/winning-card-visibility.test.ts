@@ -38,6 +38,10 @@ describe('Winning Move Card Visibility on Table Tests', () => {
     host.startMatch(1);
 
     // Override hands on engine and send DEAL_HAND
+    host.engine.isGameOver = false;
+    host.engine.instantWinType = null;
+    host.engine.winners = [];
+    host.instantWinType = null;
     host.engine.players[0].hand = [winningCard];
     host.engine.players[1].hand = [createCard(4, 'SPADES'), createCard(5, 'SPADES')];
     host.engine.currentRound.leadPlayerId = 'human_0';

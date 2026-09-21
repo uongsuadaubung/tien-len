@@ -103,6 +103,7 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
         variantIndex={0}
         cardSize="md"
         reverseButtons={false}
+        quickResponseAssistEnabled={true}
       />
     );
 
@@ -130,6 +131,7 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
         variantIndex={0}
         cardSize="md"
         reverseButtons={true}
+        quickResponseAssistEnabled={true}
       />
     );
 
@@ -165,8 +167,83 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
         variantIndex={0}
         cardSize="md"
         reverseButtons={storeState.reverseButtonsEnabled}
+        quickResponseAssistEnabled={true}
       />
     );
     expect(htmlFromStoreReversed).toContain('flex-row-reverse');
+  });
+
+  it('6. PlayerHandView: Ẩn/Hiện nút Bắt Bài chuẩn theo cài đặt quickResponseAssistEnabled', () => {
+    const mockPlayer: MatchPlayer = {
+      id: 'p1',
+      name: 'Test Player',
+      cardCount: 13,
+      hand: [],
+      playedCards: [],
+      score: 10000,
+      avatar: '🤠',
+      isBot: false,
+      isPassedCurrentRound: false,
+      hasPlayedFirstCard: false
+    };
+
+    // Khi quickResponseAssistEnabled = false: Nút Bắt Bài KHÔNG được hiển thị
+    const htmlDisabled = renderToString(
+      <PlayerHandView
+        player={mockPlayer}
+        selectedCardIds={new Set()}
+        onToggleCardSelect={() => {}}
+        onClearCardSelection={() => {}}
+        onPlaySelectedCards={() => {}}
+        onPassTurn={() => {}}
+        onAutoSort={() => {}}
+        onQuickSelect={() => {}}
+        canQuickSelect={true}
+        quickSelectCandidatesCount={1}
+        isCurrentTurn={true}
+        canPlay={true}
+        canPass={true}
+        isLeader={false}
+        isDealing={false}
+        dealtCardsCount={0}
+        isFirstMoveOfGame={false}
+        sortMode="NATURAL"
+        variantIndex={0}
+        cardSize="md"
+        reverseButtons={false}
+        quickResponseAssistEnabled={false}
+      />
+    );
+
+    // Khi quickResponseAssistEnabled = true: Nút Bắt Bài CÓ hiển thị
+    const htmlEnabled = renderToString(
+      <PlayerHandView
+        player={mockPlayer}
+        selectedCardIds={new Set()}
+        onToggleCardSelect={() => {}}
+        onClearCardSelection={() => {}}
+        onPlaySelectedCards={() => {}}
+        onPassTurn={() => {}}
+        onAutoSort={() => {}}
+        onQuickSelect={() => {}}
+        canQuickSelect={true}
+        quickSelectCandidatesCount={1}
+        isCurrentTurn={true}
+        canPlay={true}
+        canPass={true}
+        isLeader={false}
+        isDealing={false}
+        dealtCardsCount={0}
+        isFirstMoveOfGame={false}
+        sortMode="NATURAL"
+        variantIndex={0}
+        cardSize="md"
+        reverseButtons={false}
+        quickResponseAssistEnabled={true}
+      />
+    );
+
+    expect(htmlDisabled).not.toContain('Bắt Bài');
+    expect(htmlEnabled).toContain('Bắt Bài');
   });
 });

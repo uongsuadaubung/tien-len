@@ -386,6 +386,10 @@ export class P2PClient {
   public emitGameEndForTest(packet: GameEndPacket, senderPeerId: string): void {
     this.onGameEndCallbacks.forEach(cb => cb(packet, senderPeerId));
   }
+
+  public emitRematchVoteForTest(packet: RematchVotePacket, senderPeerId: string): void {
+    this.onRematchVoteCallbacks.forEach(cb => cb(packet, senderPeerId));
+  }
 }
 
 export const globalP2PClient = new P2PClient();

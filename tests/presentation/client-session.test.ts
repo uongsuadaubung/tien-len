@@ -147,4 +147,80 @@ describe('ClientSession (Dumb View Presentation Controller)', () => {
 
     session.dispose();
   });
+
+  it('should properly reset isPassedCurrentRound and enable canPlay when starting a new round after passing', () => {
+    const { hostTransport, clientTransport } = createMemoryDuplexTransport('HOST', localPlayerId);
+    const session = new ClientSession({
+      localPlayerId,
+      transport: clientTransport,
+      gameRules: rules,
+      initialPlayers: mockPlayers
+    });
+
+    const cardJClubs = createCard(11, 'CLUBS');
+    const cardJHearts = createCard(11, 'HEARTS');
+
+    // 1. Deal cards to local player
+    hostTransport.send({
+      type: 'DEAL_HAND',
+      packet: {
+        playerId: localPlayerId,
+        cards: [cardJClubs, cardJHearts],
+        leadPlayerId: botId,
+        firstTurnPlayerId: localPlayerId,
+        gameNumber: 1
+      }
+    });
+
+    // 2. Local player passes in Round 1
+    session.sendIntent({ type: 'SUBMIT_PASS' });
+    let frame = session.getLatestFrame();
+    const localSeatAfterPass = frame.seats.find(s => s.playerId === localPlayerId);
+    expect(localSeatAfterPass?.isPassed).toBe(true);
+    expect(frame.controls.canPass).toBe(false);
+
+    // 3. Opponent wins round 1 and opens Round 2 with Pair of 9s (passedPlayerIds is reset to [])
+    hostTransport.send({
+      type: 'TABLE_SYNC',
+      packet: {
+        gameNumber: 1,
+        seq: 2,
+        timestamp: Date.now(),
+        roundNumber: 2,
+        isGameOver: false,
+        currentTurnPlayerId: localPlayerId,
+        leadPlayerId: botId,
+        remainingCardCounts: { [localPlayerId]: 2, [botId]: 5 },
+        passedPlayerIds: [],
+        currentMoveCards: [createCard(9, 'CLUBS'), createCard(9, 'DIAMONDS')],
+        currentMovePlayerId: botId,
+        isChop: false,
+        isCascadeChop: false,
+        chopNotification: null,
+        winners: [],
+        isFirstMoveOfGame: false,
+        firstMoveRequiredCard: null,
+        isLeadMove: false,
+        isDealing: false,
+        dealBanner: null,
+        dealtCounts: {},
+        reconnectNotice: null
+      }
+    });
+
+    frame = session.getLatestFrame();
+    const localSeatInNewRound = frame.seats.find(s => s.playerId === localPlayerId);
+    expect(localSeatInNewRound?.isPassed).toBe(false);
+    expect(frame.controls.canPass).toBe(true);
+
+    // 4. Select Pair of Jacks to beat Pair of 9s
+    session.sendIntent({ type: 'TOGGLE_CARD_SELECT', cardId: '11_CLUBS' });
+    session.sendIntent({ type: 'TOGGLE_CARD_SELECT', cardId: '11_HEARTS' });
+
+    frame = session.getLatestFrame();
+    expect(frame.controls.canPlay).toBe(true);
+    expect(frame.controls.playButtonLabel).toBe('Đánh (2 lá)');
+
+    session.dispose();
+  });
 });

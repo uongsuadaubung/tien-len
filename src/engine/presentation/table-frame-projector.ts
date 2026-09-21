@@ -98,11 +98,11 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
 
   // 2. Tính toán Controls (Nút Đánh, Bỏ Lượt, Chọn Nhanh)
   const selectedCards = localHand.filter(c => selectedCardIds.has(c.id));
+  const hasPassedRound = localPlayer ? localPlayer.isPassedCurrentRound : false;
   let canPlay = false;
   let playButtonLabel = 'Đánh';
 
   if (isMyTurn && selectedCards.length > 0) {
-    const hasPassedRound = localPlayer ? localPlayer.isPassedCurrentRound : false;
     const isFinishingMove = selectedCards.length === localHand.length;
 
     const baseContext = {
@@ -138,7 +138,7 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
     }
   }
 
-  const canPass = isMyTurn && !isFirstMoveOfGame;
+  const canPass = isMyTurn && !isFirstMoveOfGame && !isLeadMove && !hasPassedRound;
 
   // 3. Tính toán Quick Select Candidates
   let canQuickSelect = false;

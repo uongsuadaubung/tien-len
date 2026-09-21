@@ -18,6 +18,7 @@ import { formatCardVietnamese, sortCards } from '../card';
 import { CardTracker } from '../../ai/card-tracker';
 import { getOptimalMoveHint, type MoveHint } from '../../ai/hint-engine';
 import { getSortedQuickSelectCandidates } from '../quick-response-finder';
+import { cloneMatchPlayers } from '../player-factory';
 
 export interface MatchHostOptions {
   rules: GameRules;
@@ -67,7 +68,7 @@ export class AuthoritativeMatchHost {
     this.hostPlayerId = options.hostPlayerId;
     this.instantDelay = options.instantDelay ?? false;
     this.enableDealingAnimation = options.enableDealingAnimation ?? false;
-    this.engine = new GameEngine(options.players.map(p => ({ ...p, hand: [...p.hand] })), options.rules);
+    this.engine = new GameEngine(cloneMatchPlayers(options.players), options.rules);
   }
 
   /**
@@ -214,6 +215,10 @@ export class AuthoritativeMatchHost {
    * Tiếp nhận và xử lý hành động từ Client (Đánh bài hoặc Bỏ lượt)
    */
   public handleClientPacket(playerId: string, msg: ClientToHostPacket): void {
+    if (msg.type === 'REMATCH_VOTE') {
+      this.handleRematchVote(msg.packet.playerId, msg.packet.isReady);
+      return;
+    }
     if (msg.type !== 'PLAYER_ACTION') return;
     const packet = msg.packet;
     if (packet.playerId !== playerId) {
@@ -474,6 +479,9 @@ export class AuthoritativeMatchHost {
   }
 
   public playCards(playerId: string, cards: Card[]): { success: boolean; error?: string } {
+    if (this.isDealing) {
+      this.finishDealing();
+    }
     const res = this.engine.playMove(playerId, cards);
     if (res.success) {
       this.lastPlayedMove = res.playedMove;
@@ -485,6 +493,9 @@ export class AuthoritativeMatchHost {
         t.recordMove(res.playedMove);
       }
       this.broadcastTableSync();
+      if (this.engine.isGameOver) {
+        this.handleGameOver({ skipDelay: this.instantDelay });
+      }
     }
     return res;
   }

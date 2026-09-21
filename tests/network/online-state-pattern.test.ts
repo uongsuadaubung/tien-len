@@ -116,7 +116,7 @@ describe('OnlineSessionState & State Pattern (P2P Multiplayer Online Room Sessio
       roomState: { ...dummyRoomState, status: 'PLAYING' },
       isHost: true,
       myPlayerId: 'p0',
-      hostDriver: null
+      hostInstance: null
     };
 
     store.setSessionState(playingState);
@@ -126,7 +126,7 @@ describe('OnlineSessionState & State Pattern (P2P Multiplayer Online Room Sessio
     if (current.status === 'IN_ROOM_PLAYING') {
       expect(current.roomState.status).toBe('PLAYING');
       expect(current.roomCode).toBe('TL-9999');
-      expect(current.hostDriver).toBeNull();
+      expect(current.hostInstance).toBeNull();
     }
   });
 

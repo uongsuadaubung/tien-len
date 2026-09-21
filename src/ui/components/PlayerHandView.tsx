@@ -36,6 +36,7 @@ export interface PlayerHandViewProps {
   readonly variantIndex: number;
   readonly cardSize: 'sm' | 'md' | 'lg' | 'mobile';
   readonly reverseButtons: boolean;
+  readonly quickResponseAssistEnabled: boolean;
 }
 
 const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
@@ -60,7 +61,8 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
   sortMode,
   variantIndex,
   cardSize,
-  reverseButtons
+  reverseButtons,
+  quickResponseAssistEnabled
 }) => {
   const { t } = useI18n();
   const isReverseButtons = reverseButtons;
@@ -160,7 +162,7 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
                 </button>
 
                 {/* Nút Bắt Bài (Tự động chọn nhanh tổ hợp vừa khít để đè bài trên bàn) */}
-                {onQuickSelect && (
+                {quickResponseAssistEnabled && onQuickSelect && (
                   <button
                     onClick={onQuickSelect}
                     disabled={!canQuickSelect}

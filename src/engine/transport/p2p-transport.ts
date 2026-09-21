@@ -40,6 +40,23 @@ export class P2PHostPeerTransport implements IHostPeerTransport {
     });
     this.unsubs.push(unsubAction);
 
+    if (typeof this.p2pClient.onRematchVote === 'function') {
+      const unsubRematch = this.p2pClient.onRematchVote((data, fromPeer) => {
+        if (!this.isConnected) return;
+        const match = (fromPeer === this.peerId || data.playerId === this.targetPlayerId);
+        if (match) {
+          const packet: ClientToHostPacket = {
+            type: 'REMATCH_VOTE',
+            packet: data
+          };
+          for (const listener of this.listeners) {
+            listener(packet);
+          }
+        }
+      });
+      this.unsubs.push(unsubRematch);
+    }
+
     const unsubLeave = this.p2pClient.onPeerLeave(leftPeerId => {
       if (leftPeerId === this.peerId) {
         this.disconnect();

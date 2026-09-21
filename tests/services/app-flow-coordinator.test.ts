@@ -10,15 +10,27 @@ import { createPlayer } from '../../src/engine/player-factory';
 import { createPerspectiveSettlement } from '../../src/engine/settlement/perspective-settlement';
 import type { GameOverMatchState } from '../../src/engine/state-machine/types';
 
+import { loadPlayerProfile } from '../../src/engine/storage';
+
 describe('AppFlowCoordinator Unit Tests (Kiểm Thử Cổng Điều Phối Chuyển Cảnh Tập Trung)', () => {
   beforeEach(() => {
     appFlowCoordinator.returnToLobby();
     useViewStore.getState().closeAllModals();
+    const p = loadPlayerProfile();
+    useUserStore.getState().setProfile({
+      ...p,
+      coins: Math.max(p.coins || 0, 50000)
+    });
   });
 
   afterEach(() => {
     appFlowCoordinator.returnToLobby();
     useViewStore.getState().closeAllModals();
+    const p = loadPlayerProfile();
+    useUserStore.getState().setProfile({
+      ...p,
+      coins: Math.max(p.coins || 0, 50000)
+    });
   });
 
   it('1. returnToLobby: Dọn dẹp sạch sẽ tài nguyên và đưa màn hình về LOBBY', () => {

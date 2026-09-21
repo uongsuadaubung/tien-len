@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "bun run scripts/build.ts",
+    "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint src/",
     "test": "bun test --timeout 15000",

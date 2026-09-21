@@ -68,7 +68,6 @@ export interface InRoomPlayingOnlineState {
   readonly isHost: boolean;
   readonly myPlayerId: string;
   readonly hostInstance?: AuthoritativeMatchHost | null;
-  readonly hostDriver?: AuthoritativeMatchHost | null;
 }
 
 export interface DisbandedOnlineState {
@@ -122,7 +121,6 @@ export interface RoomSliceActions {
 
 export interface MatchSliceState {
   hostInstance: AuthoritativeMatchHost | null;
-  hostDriver?: AuthoritativeMatchHost | null;
   guestDriver?: unknown;
   lastTableSync: TableStateSyncPacket | null;
   gameEndSummary: GameEndPacket | null;
@@ -130,6 +128,7 @@ export interface MatchSliceState {
 
 export interface MatchSliceActions {
   startMatch: () => void;
+  startRematchOnHost: () => void;
   sendMoveAction: (cardIds: string[]) => void;
   sendPassAction: () => void;
   voteRematch: (isReady: boolean) => void;

@@ -14,6 +14,7 @@ import { getSortedQuickSelectCandidates, type QuickSelectCandidate } from '../..
 import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useGameStore } from '../../stores/useGameStore';
 import { useViewStore } from '../../stores/useViewStore';
+import { useOnlineStore } from '../../stores/useOnlineStore';
 import { appFlowCoordinator } from '../../services/app-flow-coordinator';
 
 export interface UseGameTableScreenLogicProps {
@@ -91,11 +92,19 @@ export function useGameTableScreenLogic({
     dealBanner: storeDealBanner
   } = state;
 
-  const myPlayerId = storeMyPlayerId;
+  const onlineMyPlayerId = useOnlineStore.getState().myPlayerId;
+  const effectiveMyPlayerId = storeMyPlayerId || onlineMyPlayerId;
 
   // Xác định người chơi cục bộ theo perspective - Invariant Bàn Đấu
-  const foundIndex = players.findIndex(p => p.id === myPlayerId);
-  const myPlayerIndex = foundIndex !== -1 ? foundIndex : 0;
+  let foundIndex = players.findIndex(p => p.id === effectiveMyPlayerId);
+  if (foundIndex === -1 && state.activeGameType === 'ONLINE') {
+    foundIndex = players.findIndex(p => p.id === onlineMyPlayerId);
+  }
+  if (foundIndex === -1) {
+    const humanIndex = players.findIndex(p => !p.isBot);
+    foundIndex = humanIndex !== -1 ? humanIndex : 0;
+  }
+  const myPlayerIndex = foundIndex;
   const localPlayer = players[myPlayerIndex];
   if (!localPlayer) {
     throw new Error('[useGameTableScreenLogic] Invariant Violated: Table must have at least 1 valid player');

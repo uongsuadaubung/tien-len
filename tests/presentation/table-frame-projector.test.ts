@@ -241,4 +241,82 @@ describe('TableFrameProjector (Pure Game Engine Projector)', () => {
     expect(frame.controls.canPlay).toBe(true);
     expect(frame.controls.playButtonLabel).toBe('Chặt!');
   });
+
+  it('should project canPass = false when local player has already passed the round or is leading the round', () => {
+    const singleMove = createPlayedMove(botId, identifyCombination([createCard(9, 'SPADES')])!);
+
+    // 1. Case A: Player is leading the round (isLeadMove = true) -> CANNOT PASS
+    const leadState = createPlayingTurnMatchState({
+      status: 'PLAYING',
+      gameNumber: 1,
+      roundNumber: 1,
+      players,
+      rules,
+      roundMoves: [],
+      currentTurnPlayerId: localPlayerId,
+      leadPlayerId: localPlayerId,
+      leadingMove: null,
+      passedPlayerIds: [],
+      isLeadMove: true,
+      isFirstMoveOfGame: false,
+      firstMoveRequiredCard: null,
+      chopNotification: null,
+      botThinkingThought: null
+    });
+
+    const leadFrame = projectTableFrame({
+      matchState: leadState,
+      localPlayerId,
+      localHand: [createCard(10, 'SPADES')],
+      selectedCardIds: new Set(),
+      gameRules: rules,
+      players,
+      dealtCounts: {},
+      currentHint: null,
+      botThinkingThought: null,
+      isDealing: false,
+      dealBanner: null
+    });
+
+    expect(leadFrame.controls.canPass).toBe(false);
+
+    // 2. Case B: Player has already passed this round (hasPassedRound = true) -> CANNOT PASS
+    const passedPlayers = [
+      { ...players[0], isPassedCurrentRound: true },
+      players[1]
+    ];
+    const passedState = createPlayingTurnMatchState({
+      status: 'PLAYING',
+      gameNumber: 1,
+      roundNumber: 1,
+      players: passedPlayers,
+      rules,
+      roundMoves: [singleMove],
+      currentTurnPlayerId: localPlayerId,
+      leadPlayerId: botId,
+      leadingMove: singleMove,
+      passedPlayerIds: [localPlayerId],
+      isLeadMove: false,
+      isFirstMoveOfGame: false,
+      firstMoveRequiredCard: null,
+      chopNotification: null,
+      botThinkingThought: null
+    });
+
+    const passedFrame = projectTableFrame({
+      matchState: passedState,
+      localPlayerId,
+      localHand: [createCard(10, 'SPADES')],
+      selectedCardIds: new Set(),
+      gameRules: rules,
+      players: passedPlayers,
+      dealtCounts: {},
+      currentHint: null,
+      botThinkingThought: null,
+      isDealing: false,
+      dealBanner: null
+    });
+
+    expect(passedFrame.controls.canPass).toBe(false);
+  });
 });

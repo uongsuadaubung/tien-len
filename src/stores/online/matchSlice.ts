@@ -13,7 +13,7 @@ import {
   type GameFlowRulesBuilder,
   type TableRulesBuilder 
 } from '../../engine/types';
-import { createPlayer } from '../../engine/player-factory';
+import { createPlayer, syncStorePlayersFromFrame, resetPlayersForNewGame } from '../../engine/player-factory';
 import { type MatchSlice, type OnlineSliceCreator } from './types';
 import { createMemoryDuplexTransport } from '../../engine/transport/memory-transport';
 import { P2PHostPeerTransport } from '../../engine/transport/p2p-transport';
@@ -23,13 +23,6 @@ import { saveActiveOnlineSession, clearActiveOnlineSession } from '../../engine/
 
 export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
   hostInstance: null,
-  get hostDriver() {
-    try {
-      return get ? (get()?.hostInstance ?? null) : null;
-    } catch {
-      return null;
-    }
-  },
   guestDriver: null,
   lastTableSync: null,
   gameEndSummary: null,
@@ -125,6 +118,7 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
       rules: customRules,
       players: initialPlayers,
       hostPlayerId: get().myPlayerId,
+      enableDealingAnimation: true,
       onGameOver: (settlementResult) => {
         clearActiveOnlineSession();
         const current = get().roomState;
@@ -149,7 +143,7 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
       },
       onRematchVote: (playerId, isReady) => {
         const current = get().roomState;
-        if (!current) return;
+        if (!current || !get().isHost) return;
         const updatedPlayers = current.players.map(p => {
           if (p.playerId === playerId) {
             return { ...p, isReady };
@@ -163,12 +157,9 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
         };
         set({ roomState: updatedRoom });
         void globalP2PClient.broadcastRoomState(updatedRoom);
-        const allReady = updatedPlayers.every(p => p.isReady);
-        if (allReady && updatedPlayers.length === updatedRoom.playerCount) {
-          const nextGameNum = (host.gameNumber || 1) + 1;
-          const lastWinner = host.engine?.winners[0]?.id;
-          useGameStore.getState().setGameNumber(nextGameNum);
-          host.startMatch(nextGameNum, lastWinner);
+        const allReady = updatedPlayers.length >= 2 && updatedPlayers.every(p => p.isReady);
+        if (allReady && current.status === 'ENDED') {
+          get().startRematchOnHost();
         }
       },
       onPeerLeave: (peerId) => {
@@ -188,6 +179,15 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
             players: updatedPlayers,
             updatedAt: Date.now()
           });
+        } else if (current.status === 'ENDED') {
+          const updatedPlayers = current.players.filter(p => p.peerId !== peerId && p.playerId !== peerId);
+          const updatedRoom: OnlineRoomState = {
+            ...current,
+            players: updatedPlayers,
+            updatedAt: Date.now()
+          };
+          set({ roomState: updatedRoom });
+          void globalP2PClient.broadcastRoomState(updatedRoom);
         } else if (current.status === 'PLAYING') {
           const leavingPlayer = current.players.find(p => p.peerId === peerId || p.playerId === peerId);
           if (!leavingPlayer) return;
@@ -263,18 +263,7 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
       const matchState = clientSession.getLatestMatchState();
       store.applyMatchState(matchState);
       store.setPlayers(prevPlayers => {
-        return prevPlayers.map(p => {
-          if (p.id === frame.localPlayerId) {
-            return { ...p, hand: myCards };
-          }
-          if (matchState.status === 'GAME_OVER') {
-            const revealedPlayer = matchState.players.find(mp => mp.id === p.id);
-            if (revealedPlayer && revealedPlayer.hand && revealedPlayer.hand.length > 0) {
-              return { ...p, hand: revealedPlayer.hand };
-            }
-          }
-          return p;
-        });
+        return syncStorePlayersFromFrame(prevPlayers, frame, matchState);
       });
     });
 
@@ -290,15 +279,13 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
 
     set({
       hostInstance: host,
-      hostDriver: host,
       sessionState: {
         status: 'IN_ROOM_PLAYING',
         roomCode: updatedState.roomCode,
         roomState: updatedState,
         isHost: true,
         myPlayerId: get().myPlayerId,
-        hostInstance: host,
-        hostDriver: host
+        hostInstance: host
       }
     });
 
@@ -336,8 +323,55 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
     useGameStore.getState().clearCardSelection();
   },
 
+  startRematchOnHost: () => {
+    const { hostInstance, roomState, myPlayerId } = get();
+    if (!hostInstance || !roomState) return;
+
+    const nextGameNum = (hostInstance.gameNumber || 1) + 1;
+    const lastWinner = hostInstance.lastWinnerId;
+
+    // 1. Cập nhật RoomState: Chuyển status sang PLAYING
+    const nextRoomState: OnlineRoomState = {
+      ...roomState,
+      status: 'PLAYING',
+      updatedAt: Date.now()
+    };
+    set({ roomState: nextRoomState });
+    void globalP2PClient.broadcastRoomState(nextRoomState);
+
+    // 2. Làm sạch UI bàn đấu và đóng các modal trên máy Host
+    const gameStore = useGameStore.getState();
+    const viewStore = useViewStore.getState();
+    gameStore.setGameNumber(nextGameNum);
+    gameStore.setIsGameOver(false);
+    gameStore.setInstantWinType(undefined);
+    gameStore.setDealBanner(null);
+    gameStore.setWinners([]);
+    gameStore.clearCardSelection();
+    gameStore.setCurrentMove(null);
+    gameStore.setCurrentHint(null);
+    gameStore.setPlayers(prevPlayers => {
+      if (prevPlayers && prevPlayers.length > 0) {
+        return resetPlayersForNewGame(prevPlayers, myPlayerId, []);
+      }
+      return prevPlayers;
+    });
+    viewStore.closeModal('VICTORY');
+    viewStore.closeModal('ONLINE_ROOM');
+
+    // Lưu active online session
+    saveActiveOnlineSession({
+      roomCode: nextRoomState.roomCode,
+      playerId: myPlayerId,
+      savedAt: Date.now()
+    });
+
+    // 3. Kích hoạt ván đấu mới trên Authoritative Host
+    hostInstance.startMatch(nextGameNum, lastWinner);
+  },
+
   voteRematch: (isReady: boolean) => {
-    const { isHost, hostInstance, roomState, myPlayerId } = get();
+    const { isHost, roomState, myPlayerId } = get();
     if (!roomState) return;
 
     if (isHost) {
@@ -355,15 +389,9 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
       set({ roomState: updatedState });
       void globalP2PClient.broadcastRoomState(updatedState);
 
-      const allReady = updatedState.players.every(p => p.isReady);
-      if (allReady && updatedState.players.length === updatedState.playerCount) {
-        if (hostInstance) {
-          const nextGameNum = (hostInstance.engine?.gameNumber || 1) + 1;
-          const lastWinner = hostInstance.engine?.winners[0]?.id;
-          hostInstance.startMatch(nextGameNum, lastWinner);
-        } else {
-          get().startMatch();
-        }
+      const allReady = updatedPlayers.length >= 2 && updatedPlayers.every(p => p.isReady);
+      if (allReady && roomState.status === 'ENDED') {
+        get().startRematchOnHost();
       }
     } else {
       const updatedPlayers = roomState.players.map(p => {

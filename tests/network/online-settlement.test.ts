@@ -82,18 +82,18 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
 
     useOnlineStore.getState().startMatch();
 
-    const hostDriver = useOnlineStore.getState().hostDriver;
-    expect(hostDriver).not.toBeNull();
-    if (!hostDriver || !hostDriver.engine) return;
+    const hostInstance = useOnlineStore.getState().hostInstance;
+    expect(hostInstance).not.toBeNull();
+    if (!hostInstance || !hostInstance.engine) return;
 
     // Giả lập Host đánh hết bài và về Nhất
-    const p0 = hostDriver.engine.players.find(p => p.id === profile.id)!;
+    const p0 = hostInstance.engine.players.find(p => p.id === profile.id)!;
     p0.hand = [];
-    hostDriver.engine.winners = [p0];
-    hostDriver.engine.isGameOver = true;
+    hostInstance.engine.winners = [p0];
+    hostInstance.engine.isGameOver = true;
 
     // Kích hoạt kết thúc ván đấu
-    hostDriver.handleGameOver({ skipDelay: true });
+    hostInstance.handleGameOver({ skipDelay: true });
 
     const updatedProfile = useUserStore.getState().profile;
     const gameStore = useGameStore.getState();
@@ -128,12 +128,12 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
 
     useOnlineStore.getState().startMatch();
 
-    const hostDriver = useOnlineStore.getState().hostDriver;
-    if (!hostDriver || !hostDriver.engine) return;
+    const hostInstance = useOnlineStore.getState().hostInstance;
+    if (!hostInstance || !hostInstance.engine) return;
 
     // Giả lập Bot 1 (p1) về Nhất, Host còn 5 lá bài
-    const p1 = hostDriver.engine.players.find(p => p.id === 'p1')!;
-    const p0 = hostDriver.engine.players.find(p => p.id === profile.id)!;
+    const p1 = hostInstance.engine.players.find(p => p.id === 'p1')!;
+    const p0 = hostInstance.engine.players.find(p => p.id === profile.id)!;
     p1.hand = [];
     p0.hand = [
       createCard(3, 'SPADES'),
@@ -142,10 +142,10 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
       createCard(6, 'HEARTS'),
       createCard(7, 'SPADES')
     ];
-    hostDriver.engine.winners = [p1];
-    hostDriver.engine.isGameOver = true;
+    hostInstance.engine.winners = [p1];
+    hostInstance.engine.isGameOver = true;
 
-    hostDriver.handleGameOver({ skipDelay: true });
+    hostInstance.handleGameOver({ skipDelay: true });
 
     const updatedProfile = useUserStore.getState().profile;
     const gameStore = useGameStore.getState();
@@ -228,23 +228,23 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
 
     useOnlineStore.getState().startMatch();
 
-    const hostDriver = useOnlineStore.getState().hostDriver;
-    if (!hostDriver || !hostDriver.engine) return;
+    const hostInstance = useOnlineStore.getState().hostInstance;
+    if (!hostInstance || !hostInstance.engine) return;
 
     // Giả lập Host về Nhất, các đối thủ đã đánh bài (không cóng) và không giữ heo thối
-    const p0 = hostDriver.engine.players.find(p => p.id === profile.id)!;
+    const p0 = hostInstance.engine.players.find(p => p.id === profile.id)!;
     p0.hand = [];
-    hostDriver.engine.players.forEach(p => {
+    hostInstance.engine.players.forEach(p => {
       p.hasPlayedFirstCard = true;
       if (p.id !== profile.id) {
         p.hand = [createCard(3, 'SPADES')]; // 1 lá không phải 2
       }
     });
 
-    hostDriver.engine.winners = [p0];
-    hostDriver.engine.isGameOver = true;
+    hostInstance.engine.winners = [p0];
+    hostInstance.engine.isGameOver = true;
 
-    hostDriver.handleGameOver({ skipDelay: true });
+    hostInstance.handleGameOver({ skipDelay: true });
 
     const gameStore = useGameStore.getState();
     const hostPayout = gameStore.matchPayouts[profile.id];
@@ -395,17 +395,17 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
 
     useOnlineStore.getState().startMatch();
 
-    const hostDriver = useOnlineStore.getState().hostDriver;
-    expect(hostDriver).not.toBeNull();
-    if (!hostDriver || !hostDriver.engine) return;
+    const hostInstance = useOnlineStore.getState().hostInstance;
+    expect(hostInstance).not.toBeNull();
+    if (!hostInstance || !hostInstance.engine) return;
 
-    const p0 = hostDriver.engine.players.find(p => p.id === profile.id)!;
+    const p0 = hostInstance.engine.players.find(p => p.id === profile.id)!;
     p0.hand = [];
-    hostDriver.engine.winners = [p0];
-    hostDriver.engine.isGameOver = true;
+    hostInstance.engine.winners = [p0];
+    hostInstance.engine.isGameOver = true;
 
     // Gọi handleGameOver mà KHÔNG truyền skipDelay (mặc định chờ 2s)
-    hostDriver.handleGameOver();
+    hostInstance.handleGameOver();
 
     // Ngay lúc vừa gọi: Chưa mở VictoryModal (chờ 2s)
     expect(useViewStore.getState().isVictoryOpen).toBe(false);
@@ -490,14 +490,14 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
 
     useOnlineStore.getState().startMatch();
 
-    const hostDriver = useOnlineStore.getState().hostDriver;
-    expect(hostDriver).not.toBeNull();
-    if (!hostDriver || !hostDriver.engine) return;
+    const hostInstance = useOnlineStore.getState().hostInstance;
+    expect(hostInstance).not.toBeNull();
+    if (!hostInstance || !hostInstance.engine) return;
 
     const broadcastSpy = spyOn(globalP2PClient, 'broadcastTableSync');
 
     try {
-      const engine = hostDriver.engine;
+      const engine = hostInstance.engine;
       const hostPlayer = engine.players.find(p => p.id === profile.id)!;
       const guestPlayer = engine.players.find(p => p.id !== profile.id)!;
 
@@ -510,7 +510,7 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
       engine.currentRound.leadPlayerId = hostPlayer.id;
 
       // Host đánh lá bài cuối cùng
-      const playRes = hostDriver.playCards(hostPlayer.id, [winningCard]);
+      const playRes = hostInstance.playCards(hostPlayer.id, [winningCard]);
       expect(playRes.success).toBe(true);
       expect(engine.isGameOver).toBe(true);
       expect(hostPlayer.hand.length).toBe(0);

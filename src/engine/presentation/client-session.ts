@@ -1,4 +1,5 @@
 import { createPlayedMove, type Card, type MatchPlayer, type GameRules, type PlayedMove } from '../types';
+import { deriveSynchronizedPlayers, syncStorePlayersFromFrame, cloneMatchPlayers, updatePlayersHand, updatePlayerInList, revealPlayersHands, resetPlayersForNewGame } from '../player-factory';
 import type { IClientTransport, HostToClientPacket } from '../transport/transport.interface';
 import type { TableStateSyncPacket } from '../network/network.schema';
 import type { IGameSession } from './game-session.interface';
@@ -60,7 +61,11 @@ export class ClientSession implements IGameSession {
     this.transport = options.transport;
     this.activeGameType = options.activeGameType ?? 'QUICK';
     this.gameRules = options.gameRules;
-    this.players = options.initialPlayers.map(p => ({ ...p, hand: [...p.hand] }));
+    this.players = cloneMatchPlayers(options.initialPlayers);
+    const localInitialPlayer = this.players.find(p => p.id === this.localPlayerId);
+    if (localInitialPlayer && localInitialPlayer.hand && localInitialPlayer.hand.length > 0) {
+      this.myHand = [...localInitialPlayer.hand];
+    }
     this.latestMatchState = {
       status: 'WAITING',
       gameNumber: 1,
@@ -83,6 +88,7 @@ export class ClientSession implements IGameSession {
           }
           this.lastPlayedMove = null;
           this.myHand = sortCards(msg.packet.cards.map(c => createCard(c.rank, c.suit)));
+          this.players = resetPlayersForNewGame(this.players, this.localPlayerId, this.myHand);
           const reqCard = msg.packet.firstMoveRequiredCard
             ? createCard(msg.packet.firstMoveRequiredCard.rank, msg.packet.firstMoveRequiredCard.suit)
             : null;
@@ -115,13 +121,11 @@ export class ClientSession implements IGameSession {
         this.emitAudioCue(isWinner ? 'VICTORY' : 'DEFEAT');
 
         if (msg.packet.allPlayerHands) {
-          this.players = this.players.map(p => {
-            const revealed = msg.packet.allPlayerHands[p.id];
-            return {
-              ...p,
-              hand: revealed ? revealed.map(c => createCard(c.rank, c.suit)) : [...p.hand]
-            };
-          });
+          const revealedCards: Record<string, Card[]> = {};
+          for (const [pid, cards] of Object.entries(msg.packet.allPlayerHands)) {
+            revealedCards[pid] = cards.map(c => createCard(c.rank, c.suit));
+          }
+          this.players = revealPlayersHands(this.players, revealedCards);
         }
 
         const winners = this.players.filter(p => msg.packet.winners.includes(p.id));
@@ -217,7 +221,12 @@ export class ClientSession implements IGameSession {
     if (sync.currentMoveCards && sync.currentMoveCards.length > 0 && sync.currentMovePlayerId) {
       const cards = sync.currentMoveCards.map(c => createCard(c.rank, c.suit));
       const combo = identifyCombination(cards);
-      if (combo) {
+      const isSameMove = this.lastPlayedMove &&
+        this.lastPlayedMove.playerId === sync.currentMovePlayerId &&
+        this.lastPlayedMove.combination.cards.length === cards.length &&
+        this.lastPlayedMove.combination.cards.every((c, i) => c.id === cards[i].id);
+
+      if (combo && !isSameMove) {
         this.lastPlayedMove = createPlayedMove(sync.currentMovePlayerId, combo);
       }
       const sig = `${sync.currentMovePlayerId}:${sync.currentMoveCards.map(c => c.id).sort().join(',')}`;
@@ -235,8 +244,13 @@ export class ClientSession implements IGameSession {
     if (!sync.isGameOver) {
       const leadingMoveCards = sync.currentMoveCards ? sync.currentMoveCards.map(c => createCard(c.rank, c.suit)) : [];
       const leadingCombo = leadingMoveCards.length > 0 ? identifyCombination(leadingMoveCards) : null;
+      const isSameMove = this.lastPlayedMove &&
+        this.lastPlayedMove.playerId === sync.currentMovePlayerId &&
+        this.lastPlayedMove.combination.cards.length === leadingMoveCards.length &&
+        this.lastPlayedMove.combination.cards.every((c, i) => c.id === leadingMoveCards[i].id);
+
       const leadingMove = (leadingCombo && sync.currentMovePlayerId)
-        ? createPlayedMove(sync.currentMovePlayerId, leadingCombo)
+        ? (isSameMove ? this.lastPlayedMove : createPlayedMove(sync.currentMovePlayerId, leadingCombo))
         : null;
 
       const reqCard = sync.firstMoveRequiredCard 
@@ -249,17 +263,14 @@ export class ClientSession implements IGameSession {
         this.selectedCardIds.clear();
       }
 
-      this.players = this.players.map(p => {
-        if (p.id === this.localPlayerId) {
-          return { ...p, hand: [...this.myHand], cardCount: this.myHand.length };
-        }
-        const count = sync.remainingCardCounts?.[p.id] ?? p.cardCount;
-        return {
-          ...p,
-          isPassedCurrentRound: sync.passedPlayerIds?.includes(p.id) ?? false,
-          cardCount: count,
-          hand: []
-        };
+      this.players = deriveSynchronizedPlayers(this.players, {
+        myPlayerId: this.localPlayerId,
+        myHand: this.myHand,
+        passedPlayerIds: sync.passedPlayerIds,
+        remainingCardCounts: sync.remainingCardCounts,
+        currentMoveCards: leadingMoveCards,
+        currentMovePlayerId: sync.currentMovePlayerId,
+        isGameOver: false
       });
 
       this.latestMatchState = createPlayingTurnMatchState({
@@ -382,26 +393,8 @@ export class ClientSession implements IGameSession {
 
     // Đồng bộ vào useGameStore để các component Web/Mobile hiển thị mượt mà 1:1
     const store = useGameStore.getState();
-    const myCards = [...this.myHand];
-    const isGameOver = this.latestMatchState.status === 'GAME_OVER';
     const basePlayers = store.players.length > 0 ? store.players : this.players;
-    const updatedPlayers = basePlayers.map(p => {
-      if (p.id === this.localPlayerId) {
-        return { ...p, hand: myCards };
-      }
-      const sessionPlayer = this.players.find(sp => sp.id === p.id);
-      const hasRevealedHand = isGameOver && sessionPlayer && sessionPlayer.hand && sessionPlayer.hand.length > 0 && sessionPlayer.hand.every(c => c !== null);
-      if (hasRevealedHand && sessionPlayer) {
-        return { ...p, hand: [...sessionPlayer.hand] };
-      }
-      const seat = frame.seats.find(s => s.playerId === p.id);
-      return {
-        ...p,
-        isPassedCurrentRound: seat?.isPassed ?? false,
-        cardCount: seat?.cardCount ?? p.cardCount,
-        hand: []
-      };
-    });
+    const updatedPlayers = syncStorePlayersFromFrame(basePlayers, frame, this.latestMatchState);
 
     const effectiveCurrentMove = this.latestMatchState.status === 'PLAYING'
       ? this.latestMatchState.leadingMove
@@ -486,16 +479,43 @@ export class ClientSession implements IGameSession {
         }
 
         const combo = identifyCombination(selected);
+        let playedMove: PlayedMove | null = null;
         if (combo) {
-          this.lastPlayedMove = createPlayedMove(this.localPlayerId, combo);
+          playedMove = createPlayedMove(this.localPlayerId, combo);
+          this.lastPlayedMove = playedMove;
         }
 
-        // Loại bỏ bài đã đánh khỏi tay người chơi cục bộ
+        // 1. Loại bỏ bài đã đánh khỏi tay người chơi cục bộ (Optimistic local hand removal)
         const playedIds = new Set(selected.map(c => c.id));
         this.myHand = this.myHand.filter(c => !playedIds.has(c.id));
-        this.players = this.players.map(p => p.id === this.localPlayerId ? { ...p, hand: [...this.myHand] } : p);
+        this.players = updatePlayersHand(this.players, this.localPlayerId, this.myHand);
         this.selectedCardIds.clear();
 
+        // 2. Optimistic UI Projection: Chiếu ngay nước đi ra giữa bàn và phát âm thanh (0ms)
+        if (playedMove) {
+          const sig = `${this.localPlayerId}:${selected.map(c => c.id).sort().join(',')}`;
+          this.lastMoveSignature = sig;
+          if (playedMove.isChop) {
+            this.emitAudioCue('CHOP');
+          } else {
+            this.emitAudioCue('CARD_PLAY');
+          }
+
+          if (this.latestMatchState.status === 'PLAYING') {
+            this.latestMatchState = createPlayingTurnMatchState({
+              ...this.latestMatchState,
+              players: this.players,
+              currentTurnPlayerId: '', // Vô hiệu hóa nút Đánh/Bỏ lượt ngay lập tức để tránh spam click
+              leadingMove: playedMove,
+              roundMoves: [...this.latestMatchState.roundMoves, playedMove],
+              isLeadMove: false,
+              isFirstMoveOfGame: false,
+              firstMoveRequiredCard: null
+            });
+          }
+        }
+
+        // 3. Gửi gói tin lên mạng cho Host xác thực và phát sóng chính thức
         this.transport.send({
           type: 'PLAYER_ACTION',
           packet: {
@@ -512,6 +532,15 @@ export class ClientSession implements IGameSession {
       case 'SUBMIT_PASS': {
         this.selectedCardIds.clear();
         this.emitAudioCue('PASS');
+        this.players = updatePlayerInList(this.players, this.localPlayerId, { isPassedCurrentRound: true });
+        if (this.latestMatchState.status === 'PLAYING') {
+          this.latestMatchState = {
+            ...this.latestMatchState,
+            players: this.players,
+            currentTurnPlayerId: '', // Vô hiệu hóa nút Bỏ lượt ngay lập tức để tránh bấm 2 lần
+            passedPlayerIds: Array.from(new Set([...this.latestMatchState.passedPlayerIds, this.localPlayerId]))
+          };
+        }
         this.transport.send({
           type: 'PLAYER_ACTION',
           packet: {
@@ -550,14 +579,14 @@ export class ClientSession implements IGameSession {
       }
       case 'SORT_HAND': {
         this.myHand = sortCards(this.myHand);
-        this.players = this.players.map(p => p.id === this.localPlayerId ? { ...p, hand: [...this.myHand] } : p);
+        this.players = updatePlayersHand(this.players, this.localPlayerId, this.myHand);
         this.emitAudioCue('CARD_SLIDE');
         this.updateAndEmitFrame();
         break;
       }
       case 'REORDER_HAND': {
         this.myHand = [...intent.newHand];
-        this.players = this.players.map(p => p.id === this.localPlayerId ? { ...p, hand: [...this.myHand] } : p);
+        this.players = updatePlayersHand(this.players, this.localPlayerId, this.myHand);
         this.emitAudioCue('CARD_SLIDE');
         this.updateAndEmitFrame();
         break;

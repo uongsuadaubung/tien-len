@@ -1,4 +1,5 @@
 import type { MatchPlayer } from '../types';
+import { cloneMatchPlayers } from '../player-factory';
 import {
   type MatchState,
   assertNever
@@ -168,7 +169,7 @@ export function transitionToWaiting(params: {
   return {
     status: 'WAITING',
     gameNumber: params.gameNumber,
-    players: params.players.map(p => ({ ...p, hand: [...p.hand], playedCards: [...p.playedCards] })),
+    players: cloneMatchPlayers(params.players),
     rules: params.rules,
     lastWinnerId: params.lastWinnerId ?? null
   };
@@ -240,7 +241,7 @@ export function transitionToPlaying(
     status: 'PLAYING',
     gameNumber: params.gameNumber ?? from.gameNumber,
     roundNumber: params.roundNumber,
-    players: params.players.map(p => ({ ...p, hand: [...p.hand], playedCards: [...p.playedCards] })),
+    players: cloneMatchPlayers(params.players),
     rules: from.rules,
     currentTurnPlayerId: params.currentTurnPlayerId,
     leadPlayerId: params.leadPlayerId,
@@ -432,7 +433,7 @@ export function reduceMatchState(state: MatchState, action: MatchEngineAction): 
         status: 'PLAYING',
         gameNumber: action.gameNumber ?? state.gameNumber,
         roundNumber: action.roundNumber,
-        players: action.players.map(p => ({ ...p, hand: [...p.hand], playedCards: [...p.playedCards] })),
+        players: cloneMatchPlayers(action.players),
         rules: state.rules,
         currentTurnPlayerId: action.currentTurnPlayerId,
         leadPlayerId: action.leadPlayerId,
@@ -453,7 +454,7 @@ export function reduceMatchState(state: MatchState, action: MatchEngineAction): 
           gameNumber: action.gameNumber ?? state.gameNumber,
           roundNumber: state.roundNumber,
           players: action.players
-            ? action.players.map(p => ({ ...p, hand: [...p.hand], playedCards: [...p.playedCards] }))
+            ? cloneMatchPlayers(action.players)
             : state.players,
           rules: state.rules,
           currentTurnPlayerId: action.currentTurnPlayerId,

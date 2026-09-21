@@ -17,6 +17,7 @@ import {
   type MatchPlayer
 } from '../engine/types';
 import { resolveStrategyForMatch } from '../engine/strategies/game-mode-strategy';
+import { syncStorePlayersFromFrame } from '../engine/player-factory';
 import { calculateRequiredDeposit, ECONOMY_CONSTANTS } from '../engine/constants/economy';
 import { 
   saveActiveMatchSession, 
@@ -505,24 +506,7 @@ export class AppFlowCoordinator {
       store.applyMatchState(matchState);
 
       store.setPlayers(prevPlayers => {
-        return prevPlayers.map(p => {
-          if (p.id === frame.localPlayerId) {
-            return { ...p, hand: myCards };
-          }
-          if (matchState.status === 'GAME_OVER') {
-            const revealedPlayer = matchState.players.find(mp => mp.id === p.id);
-            if (revealedPlayer && revealedPlayer.hand && revealedPlayer.hand.length > 0 && revealedPlayer.hand.every(c => c !== null)) {
-              return { ...p, hand: [...revealedPlayer.hand] };
-            }
-          }
-          const seat = frame.seats.find(s => s.playerId === p.id);
-          return {
-            ...p,
-            isPassedCurrentRound: seat?.isPassed ?? false,
-            cardCount: seat?.cardCount ?? 0,
-            hand: []
-          };
-        });
+        return syncStorePlayersFromFrame(prevPlayers, frame, matchState);
       });
     });
 

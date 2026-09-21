@@ -18,7 +18,7 @@ import { identifyCombination } from '../../engine/combinations';
 import { GameEventBus } from '../../engine/events/game-event-bus';
 import { type TableStateSyncPacket } from '../../engine/network/network.schema';
 import { ECONOMY_CONSTANTS } from '../../engine/constants/economy';
-import { createPlayer, createBotPlayer } from '../../engine/player-factory';
+import { createPlayer, createBotPlayer, deriveSynchronizedPlayers, cloneMatchPlayers, cloneMatchPlayer, updatePlayerInList } from '../../engine/player-factory';
 import { loadPlayerProfile } from '../../engine/storage';
 import { createProvisionalOnlineGameOverState } from '../../engine/settlement/perspective-settlement';
 import { useViewStore } from '../useViewStore';
@@ -64,7 +64,7 @@ export const DEFAULT_MATCH_STATE: MatchState = {
   lastWinnerId: null
 };
 
-export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) => ({
+export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, get) => ({
   currentScreen: 'LOBBY',
   myPlayerId: initialProfile.id,
   gameNumber: 1,
@@ -110,7 +110,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
     }
     const isLobbyOrWaiting = state.currentScreen === 'LOBBY' || state.matchState.status === 'WAITING';
     const updatedPlayers = isLobbyOrWaiting
-      ? state.players.map((p) => (p.id === state.myPlayerId ? { ...p, id } : p))
+      ? updatePlayerInList(state.players, state.myPlayerId, { id })
       : state.players;
     return {
       myPlayerId: id,
@@ -132,14 +132,14 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
   setPlayers: (playersOrUpdater) => set((state) => {
     const players = typeof playersOrUpdater === 'function' ? playersOrUpdater(state.players) : playersOrUpdater;
     return {
-      players: players.map(p => ({ ...p, hand: [...p.hand], playedCards: [...p.playedCards] }))
+      players: cloneMatchPlayers(players)
     };
   }),
   setCurrentTurnPlayerId: (id) => set({ currentTurnPlayerId: id }),
   setLeadPlayerId: (id) => set({ leadPlayerId: id }),
   setCurrentMove: (move) => set({ currentMove: move }),
   setWinners: (winners) => set({
-    winners: winners.map(p => ({ ...p, hand: [...p.hand], playedCards: [...p.playedCards] }))
+    winners: cloneMatchPlayers(winners)
   }),
   setIsGameOver: (gameOver) => set({ isGameOver: gameOver }),
   setInstantWinType: (type) => set({ instantWinType: type }),
@@ -191,7 +191,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
         players: matchState.players ? matchState.players.map(p => {
           const existing = state.players.find(sp => sp.id === p.id);
           const hand = (p.hand && p.hand.length > 0) ? p.hand : (existing?.hand ?? []);
-          return { ...p, hand: [...hand], playedCards: [...p.playedCards] };
+          return cloneMatchPlayer(p, { hand: [...hand], playedCards: [...p.playedCards] });
         }) : state.players,
         gameNumber: matchState.gameNumber,
         isDealing,
@@ -230,69 +230,68 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
   },
 
   applyAuthoritativeTableSync: (sync: TableStateSyncPacket) => {
+    const currentTurnId = sync.currentTurnPlayerId || '';
+    const leadId = sync.leadPlayerId || '';
+    const currentState = get();
+
     let leadingMove: PlayedMove | null = null;
+    let isNewMove = false;
+
     if (sync.currentMoveCards && sync.currentMoveCards.length > 0) {
       const moveCards = sync.currentMoveCards.map(c => createCard(c.rank, c.suit));
       const combo = identifyCombination(moveCards);
       if (combo) {
-        leadingMove = createPlayedMove(
-          sync.currentMovePlayerId || '',
-          combo,
-          sync.isChop ? {
-            choppedPlayerId: '',
-            penaltyAmount: 0,
-            isCascadeChop: sync.isCascadeChop ?? false
-          } : undefined,
-          Date.now()
-        );
+        const prevLeading = currentState.matchState.status === 'PLAYING'
+          ? currentState.matchState.leadingMove
+          : currentState.currentMove;
+        const isSameMove = prevLeading &&
+          prevLeading.playerId === sync.currentMovePlayerId &&
+          prevLeading.combination.cards.length === moveCards.length &&
+          prevLeading.combination.cards.every((c: Card, i: number) => c.id === moveCards[i].id);
+
+        if (isSameMove && prevLeading) {
+          leadingMove = prevLeading;
+          isNewMove = false;
+        } else {
+          leadingMove = createPlayedMove(
+            sync.currentMovePlayerId || '',
+            combo,
+            sync.isChop ? {
+              choppedPlayerId: '',
+              penaltyAmount: 0,
+              isCascadeChop: sync.isCascadeChop ?? false
+            } : undefined,
+            Date.now()
+          );
+          isNewMove = true;
+        }
       }
     }
 
-    const currentTurnId = sync.currentTurnPlayerId || '';
-    const leadId = sync.leadPlayerId || '';
     const isLead = sync.isLeadMove ?? (leadingMove === null);
+    const isFirstMove = sync.isFirstMoveOfGame ?? (currentState.matchState.status === 'PLAYING' ? currentState.matchState.isFirstMoveOfGame : false);
+    const existingFirstMoveCard = currentState.matchState.status === 'PLAYING' && currentState.matchState.isFirstMoveOfGame
+      ? currentState.matchState.firstMoveRequiredCard
+      : currentState.firstMoveRequiredCard;
+    const requiredCard = isFirstMove
+      ? (sync.firstMoveRequiredCard
+        ? createCard(sync.firstMoveRequiredCard.rank, sync.firstMoveRequiredCard.suit)
+        : existingFirstMoveCard)
+      : null;
 
     set((state) => {
-      const isFirstMove = sync.isFirstMoveOfGame ?? (state.matchState.status === 'PLAYING' ? state.matchState.isFirstMoveOfGame : false);
-      const existingFirstMoveCard = state.matchState.status === 'PLAYING' && state.matchState.isFirstMoveOfGame
-        ? state.matchState.firstMoveRequiredCard
-        : state.firstMoveRequiredCard;
-      const requiredCard = isFirstMove
-        ? (sync.firstMoveRequiredCard
-          ? createCard(sync.firstMoveRequiredCard.rank, sync.firstMoveRequiredCard.suit)
-          : existingFirstMoveCard)
-        : null;
 
-      // 1. Loại bỏ các lá bài vừa đánh ra khỏi tay người chơi (Authoritative Fog-of-War Card Removal)
-      const playedCardIds = new Set(sync.currentMoveCards?.map(c => c.id) || []);
-      const updatedPlayers = state.players.map(p => {
-        if (p.id === sync.currentMovePlayerId && playedCardIds.size > 0) {
-          const newPlayed = (sync.currentMoveCards?.map(c => createCard(c.rank, c.suit)) || []);
-          const existingPlayedIds = new Set((p.playedCards || []).map(c => c.id));
-          
-          // An toàn trước Fog-of-War: Đối thủ dùng cardCount và hand rỗng [] để tránh lỗi truy cập thuộc tính lá bài
-          let nextHand: Card[];
-          let nextCardCount: number;
-          const isRealCards = p.hand && p.hand.length > 0 && p.hand.every(c => c !== null && typeof c === 'object' && 'id' in c);
-          if (isRealCards && p.id === state.myPlayerId) {
-            nextHand = p.hand.filter(c => c && !playedCardIds.has(c.id));
-            nextCardCount = nextHand.length;
-          } else {
-            nextCardCount = sync.remainingCardCounts?.[p.id] ?? Math.max(0, (p.cardCount ?? p.hand.length) - playedCardIds.size);
-            nextHand = [];
-          }
-
-          return {
-            ...p,
-            hand: nextHand,
-            cardCount: nextCardCount,
-            playedCards: [
-              ...(p.playedCards || []),
-              ...newPlayed.filter(c => !existingPlayedIds.has(c.id))
-            ]
-          };
-        }
-        return p;
+      // 1. Đồng bộ người chơi chuẩn hóa (Single Source of Truth qua deriveSynchronizedPlayers)
+      const currentMoveCards = sync.currentMoveCards ? sync.currentMoveCards.map(c => createCard(c.rank, c.suit)) : undefined;
+      const myPlayer = state.players.find(p => p.id === state.myPlayerId);
+      const updatedPlayers = deriveSynchronizedPlayers(state.players, {
+        myPlayerId: state.myPlayerId,
+        myHand: myPlayer ? myPlayer.hand : [],
+        passedPlayerIds: sync.passedPlayerIds,
+        remainingCardCounts: sync.remainingCardCounts,
+        currentMoveCards,
+        currentMovePlayerId: sync.currentMovePlayerId,
+        isGameOver: sync.isGameOver
       });
 
       const mergedDealtCounts = { ...state.dealtCounts, ...sync.remainingCardCounts };
@@ -333,6 +332,16 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
           matchLogReport: state.matchLogReport,
           existingSettlement: currentSettlement
         });
+      } else if (sync.isDealing) {
+        nextMatchState = {
+          status: 'DEALING',
+          gameNumber: sync.gameNumber || state.gameNumber,
+          players: updatedPlayers,
+          dealtCounts: sync.dealtCounts ? { ...sync.dealtCounts } : mergedDealtCounts,
+          dealBanner: sync.dealBanner ?? null,
+          totalCardsDealt: Object.values(sync.dealtCounts || {}).reduce((a, b) => a + b, 0),
+          rules: state.gameRules
+        };
       } else if (currentTurnId && leadId) {
         const playingState: PlayingTurnMatchState = createPlayingTurnMatchState({
           status: 'PLAYING',
@@ -361,13 +370,17 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
         nextMatchState = playingState;
       }
 
+      const isDealingNow = sync.isDealing ?? false;
+      const effectiveDealtCounts = (isDealingNow && sync.dealtCounts) ? { ...sync.dealtCounts } : mergedDealtCounts;
+
       return {
         ...state,
         players: updatedPlayers,
         matchState: nextMatchState,
         gameNumber: sync.gameNumber || state.gameNumber,
-        isDealing: false,
-        dealtCounts: mergedDealtCounts,
+        isDealing: isDealingNow,
+        dealBanner: sync.dealBanner !== undefined ? sync.dealBanner : state.dealBanner,
+        dealtCounts: effectiveDealtCounts,
         currentTurnPlayerId: currentTurnId,
         leadPlayerId: leadId,
         currentMove: sync.isGameOver
@@ -391,7 +404,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
       };
     });
 
-    if (leadingMove) {
+    if (leadingMove && isNewMove) {
       const remainingCount = (sync.remainingCardCounts && sync.remainingCardCounts[leadingMove.playerId] !== undefined)
         ? sync.remainingCardCounts[leadingMove.playerId]
         : 0;

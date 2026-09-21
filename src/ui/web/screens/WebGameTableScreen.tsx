@@ -266,7 +266,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
             onPassTurn={handlePassTurnAction}
             onAutoSort={onAutoSort}
             onQuickSelect={handleQuickSelect}
-            canQuickSelect={quickResponseAssistEnabled && canQuickSelect}
+            canQuickSelect={canQuickSelect}
             quickSelectCandidatesCount={quickSelectCandidates.length}
             isCurrentTurn={isMyTurn}
             canPlay={isValidPlaySelection}
@@ -280,6 +280,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
             variantIndex={smartVariantIndex}
             cardSize="md"
             reverseButtons={reverseButtonsEnabled}
+            quickResponseAssistEnabled={quickResponseAssistEnabled}
           />
         </div>
       </main>

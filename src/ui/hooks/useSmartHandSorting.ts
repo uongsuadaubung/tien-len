@@ -4,6 +4,7 @@ import { sortCardsSmart, getAvailableSmartVariants } from '../../engine/hand-sor
 import { soundManager } from '../audio/sound-manager';
 import { useGameStore } from '../../stores/useGameStore';
 import { appFlowCoordinator } from '../../services/app-flow-coordinator';
+import { updatePlayersHand } from '../../engine/player-factory';
 import type { Card } from '../../engine/types';
 
 /**
@@ -47,16 +48,8 @@ export function useSmartHandSorting() {
       }
     }
 
-    // Cập nhật bất biến vào useGameStore
-    const updatedPlayers = players.map(p => {
-      if (p.id === localPlayer.id) {
-        return {
-          ...p,
-          hand: nextSortedHand
-        };
-      }
-      return p;
-    });
+    // Cập nhật bất biến vào useGameStore bằng single source helper
+    const updatedPlayers = updatePlayersHand(players, localPlayer.id, nextSortedHand);
     setPlayers(updatedPlayers);
 
     // Đồng bộ an toàn vào Engine thông qua cổng Coordinator chuẩn mực
