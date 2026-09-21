@@ -13,6 +13,7 @@ interface TableCenterProps {
   chopNotification?: ChopNotificationInfo | null;
   isDealing: boolean;
   cardSize?: 'md' | 'table';
+  isGameOver?: boolean;
 }
 
 const COMBO_I18N_KEY_MAP: Record<CombinationType, I18nKeyPath> = {
@@ -47,7 +48,8 @@ export const TableCenter: React.FC<TableCenterProps> = ({
   isLeadMove,
   chopNotification,
   isDealing,
-  cardSize = 'md'
+  cardSize = 'md',
+  isGameOver = false
 }) => {
   const { t } = useI18n();
   const { myPlayerId, players } = useGameStore();
@@ -58,34 +60,23 @@ export const TableCenter: React.FC<TableCenterProps> = ({
     const myIndex = Math.max(0, players.findIndex(p => p.id === myPlayerId));
     const targetIndex = players.findIndex(p => p.id === playerId);
     
-    if (targetIndex === -1 || targetIndex === myIndex) {
-      return 'card-slide-bottom'; // từ dưới lên (ghế chính mình)
-    }
-
-    if (numPlayers === 2) {
-      // Chế độ 1v1: Bot đối diện luôn ngồi ở ghế Trên
-      return 'card-slide-top';
-    }
-
+    if (targetIndex === -1 || targetIndex === myIndex) return 'card-slide-bottom';
+    
+    if (numPlayers === 2) return 'card-slide-top';
     if (numPlayers === 3) {
-      const diff = (targetIndex - myIndex + 3) % 3;
-      if (diff === 1) return 'card-slide-left';  // Bot bên trái
-      if (diff === 2) return 'card-slide-top';   // Bot bên trên
-      return 'card-slide-bottom';
+      const relIdx = (targetIndex - myIndex + 3) % 3;
+      return relIdx === 1 ? 'card-slide-left' : 'card-slide-top';
     }
-
-    // Chế độ 4 người chơi tiêu chuẩn
-    const diff = (targetIndex - myIndex + 4) % 4;
-    if (diff === 1) return 'card-slide-left';   // Bot bên trái -> trượt từ trái sang
-    if (diff === 2) return 'card-slide-top';    // Bot bên trên -> trượt từ trên xuống
-    if (diff === 3) return 'card-slide-right';  // Bot bên phải -> trượt từ phải sang
-    return 'card-slide-bottom';
+    const relIdx = (targetIndex - myIndex + 4) % 4;
+    if (relIdx === 1) return 'card-slide-left';
+    if (relIdx === 2) return 'card-slide-top';
+    return 'card-slide-right';
   };
 
   const isMobileSize = cardSize === 'md';
-  const spacingClass = isMobileSize ? '-space-x-4' : '-space-x-7';
-  const scaleClass = isMobileSize ? 'scale-90' : 'scale-100';
-  const rotFactor = isMobileSize ? 2.5 : 4;
+  const scaleClass = isMobileSize ? 'scale-90 sm:scale-100' : 'scale-100 md:scale-110';
+  const spacingClass = isMobileSize ? '-space-x-5 sm:-space-x-6' : '-space-x-6 md:-space-x-8';
+  const rotFactor = isMobileSize ? 3 : 4;
 
   return (
     <div className="relative flex flex-col items-center justify-center pointer-events-none select-none z-10 w-full min-h-[140px]">
@@ -141,10 +132,10 @@ export const TableCenter: React.FC<TableCenterProps> = ({
       ) : !isDealing ? (
         <div className={`flex flex-col items-center justify-center text-center ${isMobileSize ? 'p-2 rounded-lg' : 'p-4 rounded-xl'} bg-[#121724] border border-[#d4af37]/25 shadow-md`}>
           <div className={`text-[#f3e5ab] font-extrabold ${isMobileSize ? 'text-xs' : 'text-sm'} tracking-wider uppercase`}>
-            {isLeadMove ? t('table.newRoundLead') : t('table.tableEmptyTitle')}
+            {isLeadMove && !isGameOver ? t('table.newRoundLead') : t('table.tableEmptyTitle')}
           </div>
           <span className={`text-slate-400 ${isMobileSize ? 'text-[10px]' : 'text-xs'} mt-0.5`}>
-            {isLeadMove ? t('table.leaderPrompt') : t('table.waitingLeadPrompt')}
+            {isLeadMove && !isGameOver ? t('table.leaderPrompt') : t('table.waitingLeadPrompt')}
           </span>
         </div>
       ) : (

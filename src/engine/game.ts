@@ -1,6 +1,6 @@
 import { 
   Card, 
-  Player, 
+  MatchPlayer, 
   PlayedMove, 
   Round, 
   GameSettings, 
@@ -21,12 +21,19 @@ import { OpponentProfiler } from '../ai/opponent-profiler';
 import { 
   calculateChopPenalty, 
   calculateRottenPenalty,
-  calculateCountCardsSettlement,
-  calculateWinnerTakesAllSettlement,
-  calculateTraditionalSettlement
+  calculateCountCardsSettlement, 
+  calculateWinnerTakesAllSettlement, 
+  calculateTraditionalSettlement 
 } from './economy';
 import { MatchLogger, BotDecisionTelemetry } from './match-logger';
-import { evaluateChopTransition } from './state-machine';
+import {
+  evaluateChopTransition,
+  type MatchState,
+  type MatchEngineAction,
+  reduceMatchState,
+  transitionToWaiting
+} from './state-machine';
+import { createPerspectiveSettlement } from './settlement/perspective-settlement';
 
 export type PlayMoveResult =
   | {
@@ -73,7 +80,7 @@ export type PassTurnResult =
 export type StartGameResult =
   | {
       readonly instantWin: true;
-      readonly instantWinner: Player;
+      readonly instantWinner: MatchPlayer;
       readonly instantWinType: InstantWinType;
     }
   | {
@@ -83,21 +90,89 @@ export type StartGameResult =
     };
 
 export class GameEngine {
-  public players: Player[];
+  private _state: MatchState;
+  public players: MatchPlayer[];
   public rules: GameRules;
   public gameNumber: number = 1;
   public isFirstMoveOfGame: boolean = true;
   public firstMoveRequiredCard: Card | null = null;
   public isGameOver: boolean = false;
   public currentRound!: Round;
-  public winners: Player[] = [];
+  public winners: MatchPlayer[] = [];
   public playedCardsInGame: Card[] = [];
-  public instantWinner: Player | null = null;
+  public instantWinner: MatchPlayer | null = null;
   public instantWinType: InstantWinType | null = null;
   public roundNumber: number = 1;
 
-  constructor(players: Player[], rulesOrSettings?: GameRules | Partial<GameSettings>) {
+  public get state(): MatchState {
+    return this._state;
+  }
+
+  public dispatch(action: MatchEngineAction): void {
+    this._state = reduceMatchState(this._state, action);
+    this.syncFacadeFromState();
+  }
+
+  public syncFacadeFromState(): void {
+    this.gameNumber = this._state.gameNumber;
+    if (this._state.status === 'PLAYING') {
+      this.roundNumber = this._state.roundNumber;
+      this.isFirstMoveOfGame = this._state.isFirstMoveOfGame;
+      this.firstMoveRequiredCard = this._state.firstMoveRequiredCard;
+      this.currentRound = {
+        moves: [...this._state.roundMoves],
+        leadPlayerId: this._state.leadPlayerId,
+        currentTurnPlayerId: this._state.currentTurnPlayerId,
+        passedPlayerIds: [...this._state.passedPlayerIds],
+        isFinished: false
+      };
+      this.isGameOver = false;
+    } else if (this._state.status === 'ROUND_ENDED') {
+      this.roundNumber = this._state.roundNumber;
+      this.currentRound = {
+        moves: [...this._state.lastRoundMoves],
+        leadPlayerId: this._state.nextLeadPlayerId,
+        currentTurnPlayerId: this._state.nextLeadPlayerId,
+        passedPlayerIds: [],
+        isFinished: true
+      };
+    } else if (this._state.status === 'INSTANT_WIN') {
+      this.isGameOver = true;
+      this.instantWinner = this._state.instantWinner;
+      this.instantWinType = this._state.instantWinType;
+      this.winners = [this._state.instantWinner];
+    } else if (this._state.status === 'GAME_OVER') {
+      this.isGameOver = true;
+      this.winners = [...this._state.winners];
+      this.isThreeSpadesWin = this._state.isThreeSpadesWin;
+    }
+  }
+
+  public syncStateFromFacade(): void {
+    if (this._state.status === 'PLAYING') {
+      this._state = reduceMatchState(this._state, {
+        type: 'UPDATE_TURN',
+        gameNumber: this.gameNumber,
+        players: this.players,
+        currentTurnPlayerId: this.currentRound.currentTurnPlayerId,
+        leadPlayerId: this.currentRound.leadPlayerId,
+        leadingMove: this.getLeadingMove(),
+        isLeadMove: this.isRoundLeadMove(),
+        isFirstMoveOfGame: this.isFirstMoveOfGame,
+        firstMoveRequiredCard: this.firstMoveRequiredCard,
+        roundMoves: this.currentRound.moves,
+        passedPlayerIds: this.currentRound.passedPlayerIds
+      });
+    }
+  }
+
+  constructor(players: MatchPlayer[], rulesOrSettings?: GameRules | Partial<GameSettings>) {
     this.players = players;
+    for (const p of this.players) {
+      if (p.cardCount === undefined) {
+        p.cardCount = p.hand.length;
+      }
+    }
     
     // Khởi tạo GameRules hợp thành
     if (isGameRules(rulesOrSettings)) {
@@ -110,6 +185,13 @@ export class GameEngine {
       throw new Error('[GameEngine] Danh sách players không được rỗng!');
     }
 
+    this._state = transitionToWaiting({
+      gameNumber: 1,
+      players: this.players,
+      rules: this.rules,
+      lastWinnerId: null
+    });
+
     const firstPlayerId = players[0].id;
     this.currentRound = {
       moves: [],
@@ -120,7 +202,7 @@ export class GameEngine {
     };
   }
 
-  public getPlayer(id: string): Player | undefined {
+  public getPlayer(id: string): MatchPlayer | undefined {
     return this.players.find(p => p.id === id);
   }
 
@@ -163,6 +245,7 @@ export class GameEngine {
 
     this.players.forEach((player, index) => {
       player.hand = hands[index];
+      player.cardCount = player.hand.length;
       player.playedCards = [];
       player.isPassedCurrentRound = false;
       player.hasPlayedFirstCard = false;
@@ -179,7 +262,15 @@ export class GameEngine {
           this.lastWinnerId = player.id;
           this.isGameOver = true;
           this.isFirstMoveOfGame = false;
-          this.calculateInstantWinSettlement(player);
+          const { payouts, eloDeltas } = this.calculateInstantWinSettlement(player);
+          this._state = reduceMatchState(this._state, {
+            type: 'TRIGGER_INSTANT_WIN',
+            instantWinner: player,
+            instantWinType: instantType,
+            matchPayouts: payouts,
+            eloDeltas
+          });
+          this.syncFacadeFromState();
           return { instantWin: true, instantWinner: player, instantWinType: instantType };
         }
       }
@@ -201,6 +292,22 @@ export class GameEngine {
       passedPlayerIds: [],
       isFinished: false
     };
+
+    this._state = reduceMatchState(this._state, {
+      type: 'START_PLAYING',
+      gameNumber: this.gameNumber,
+      roundNumber: 1,
+      players: this.players,
+      currentTurnPlayerId: firstPlayerId,
+      leadPlayerId: firstPlayerId,
+      leadingMove: null,
+      isLeadMove: true,
+      isFirstMoveOfGame: this.isFirstMoveOfGame,
+      firstMoveRequiredCard: this.firstMoveRequiredCard,
+      roundMoves: [],
+      passedPlayerIds: []
+    });
+    this.syncFacadeFromState();
 
     MatchLogger.getInstance().startNewMatch({
       gameNumber: this.gameNumber,
@@ -293,6 +400,22 @@ export class GameEngine {
       isFinished: false
     };
 
+    this._state = reduceMatchState(this._state, {
+      type: 'START_PLAYING',
+      gameNumber: this.gameNumber,
+      roundNumber: 1,
+      players: this.players,
+      currentTurnPlayerId: firstPlayerId,
+      leadPlayerId: firstPlayerId,
+      leadingMove: null,
+      isLeadMove: true,
+      isFirstMoveOfGame: this.isFirstMoveOfGame,
+      firstMoveRequiredCard: this.firstMoveRequiredCard,
+      roundMoves: [],
+      passedPlayerIds: []
+    });
+    this.syncFacadeFromState();
+
     MatchLogger.getInstance().startNewMatch({
       gameNumber: this.gameNumber,
       gameMode: this.rules.settlementRule,
@@ -309,6 +432,7 @@ export class GameEngine {
     cards: Card[],
     botTelemetry: BotDecisionTelemetry | null = null
   ): PlayMoveResult {
+    this.syncStateFromFacade();
     const player = this.getPlayer(playerId);
     if (!player) return { success: false, error: 'Không tìm thấy người chơi' };
 
@@ -371,6 +495,7 @@ export class GameEngine {
     const playedIds = new Set(cards.map(c => c.id));
     const handSizeBeforeMove = player.hand.length;
     player.hand = player.hand.filter(c => !playedIds.has(c.id));
+    player.cardCount = player.hand.length;
     player.playedCards = [...player.playedCards, ...cards];
     player.hasPlayedFirstCard = true;
     this.playedCardsInGame = [...this.playedCardsInGame, ...cards];
@@ -552,6 +677,7 @@ export class GameEngine {
     playerId: string,
     botTelemetry: BotDecisionTelemetry | null = null
   ): PassTurnResult {
+    this.syncStateFromFacade();
     if (this.currentRound.currentTurnPlayerId !== playerId) {
       return { success: false, error: 'Chưa đến lượt của bạn' };
     }
@@ -801,7 +927,7 @@ export class GameEngine {
     };
   }
 
-  public getCurrentPlayer(): Player {
+  public getCurrentPlayer(): MatchPlayer {
     let player = this.getPlayer(this.currentRound?.currentTurnPlayerId);
     if (player && player.hand.length === 0 && !this.isGameOver) {
       const nextId = this.getNextEligiblePlayerId(player.id);
@@ -873,6 +999,12 @@ export class GameEngine {
         nextLeadPlayerId = this.getNextActivePlayerId(nextLeadPlayerId);
       }
 
+      this._state = reduceMatchState(this._state, {
+        type: 'FINISH_ROUND',
+        roundWinnerId: lastMover.playerId,
+        nextLeadPlayerId
+      });
+
       this.startNewRound(nextLeadPlayerId);
       return;
     }
@@ -884,6 +1016,21 @@ export class GameEngine {
       // Nếu chưa có ai ra bài trong vòng, quyền mở vòng chuyển sang cho người kế tiếp
       this.currentRound.leadPlayerId = nextPlayerId;
     }
+
+    this._state = reduceMatchState(this._state, {
+      type: 'UPDATE_TURN',
+      gameNumber: this.gameNumber,
+      players: this.players,
+      currentTurnPlayerId: nextPlayerId,
+      leadPlayerId: this.currentRound.leadPlayerId,
+      leadingMove: this.getLeadingMove(),
+      isLeadMove: this.isRoundLeadMove(),
+      isFirstMoveOfGame: this.isFirstMoveOfGame,
+      firstMoveRequiredCard: this.firstMoveRequiredCard,
+      roundMoves: this.currentRound.moves,
+      passedPlayerIds: this.currentRound.passedPlayerIds
+    });
+    this.syncFacadeFromState();
   }
 
   /**
@@ -909,6 +1056,22 @@ export class GameEngine {
       passedPlayerIds: [],
       isFinished: false
     };
+
+    this._state = reduceMatchState(this._state, {
+      type: 'START_PLAYING',
+      gameNumber: this.gameNumber,
+      roundNumber: this.roundNumber,
+      players: this.players,
+      currentTurnPlayerId: validLeadId,
+      leadPlayerId: validLeadId,
+      leadingMove: null,
+      isLeadMove: true,
+      isFirstMoveOfGame: false,
+      firstMoveRequiredCard: null,
+      roundMoves: [],
+      passedPlayerIds: []
+    });
+    this.syncFacadeFromState();
   }
 
   public getNextEligiblePlayerId(fromPlayerId: string): string {
@@ -1025,26 +1188,65 @@ export class GameEngine {
       OpponentProfiler.getInstance().finalizeMatchForPlayer(p.id, p.hand);
     }
 
+    const subjectId = winnerId ?? this.players[0].id;
+    const subject = this.getPlayer(subjectId) ?? this.players[0];
+
+    const perspectiveSettlement = createPerspectiveSettlement({
+      subjectPlayerId: subject.id,
+      allPlayers: this.players,
+      winners: this.winners,
+      payouts,
+      eloDeltas: {},
+      subjectEloDelta: 0,
+      subjectEloBreakdown: null,
+      loanDeduction: 0,
+      isThreeSpadesWin: this.isThreeSpadesWin,
+      instantWinType: this.instantWinType,
+      activeGameType: 'QUICK',
+      betAmount: this.rules.table.betAmount,
+      subjectCoins: subject.score
+    });
+
+    this._state = reduceMatchState(this._state, {
+      type: 'END_GAME',
+      gameNumber: this.gameNumber,
+      winners: this.winners,
+      winningMove: this.getLeadingMove(),
+      settlement: perspectiveSettlement,
+      isThreeSpadesWin: this.isThreeSpadesWin,
+      matchPayouts: payouts,
+      eloDeltas: {}
+    });
+    this.syncFacadeFromState();
+
     return payouts;
   }
 
   /**
    * Tính toán kết quả Tới Trắng
    */
-  private calculateInstantWinSettlement(winner: Player): void {
+  private calculateInstantWinSettlement(winner: MatchPlayer): {
+    payouts: Record<string, number>;
+    eloDeltas: Record<string, number>;
+  } {
     const bet = this.rules.table.betAmount;
     const mult = this.rules.instantWin.payoutMultiplier || 26;
     // Thắng tới trắng: Mỗi nhà đền mult mức cược
     const rewardPerPlayer = mult * bet;
     let totalWin = 0;
+    const payouts: Record<string, number> = {};
 
     for (const player of this.players) {
       if (player.id !== winner.id) {
         player.score -= rewardPerPlayer;
+        payouts[player.id] = -rewardPerPlayer;
         totalWin += rewardPerPlayer;
       }
     }
 
     winner.score += totalWin;
+    payouts[winner.id] = totalWin;
+
+    return { payouts, eloDeltas: {} };
   }
 }

@@ -2,11 +2,11 @@ import { globalP2PClient } from '../../engine/network/p2p-client';
 import { globalLobbyDiscoveryClient } from '../../engine/network/lobby-discovery';
 import { type OnlineRoomState } from '../../engine/network/network.schema';
 import { PlayerCountSchema } from '../../engine/schemas/settings.schema';
-import { HostEngineDriver } from '../../engine/network/host-engine-driver';
+import { AuthoritativeMatchHost } from '../../engine/server/match-host';
 import { useGameStore } from '../useGameStore';
 import { useViewStore } from '../useViewStore';
 import { 
-  type Player, 
+  type MatchPlayer, 
   GameRulesBuilder,
   type ChoppingRulesBuilder,
   type CongRulesBuilder,
@@ -14,12 +14,22 @@ import {
   type TableRulesBuilder 
 } from '../../engine/types';
 import { createPlayer } from '../../engine/player-factory';
-import { type PlayingTurnMatchState, createPlayingTurnMatchState } from '../../engine/state-machine/types';
 import { type MatchSlice, type OnlineSliceCreator } from './types';
+import { createMemoryDuplexTransport } from '../../engine/transport/memory-transport';
+import { P2PHostPeerTransport } from '../../engine/transport/p2p-transport';
+import { ClientSession } from '../../engine/presentation/client-session';
 import { appFlowCoordinator } from '../../services/app-flow-coordinator';
+import { saveActiveOnlineSession, clearActiveOnlineSession } from '../../engine/storage';
 
 export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
-  hostDriver: null,
+  hostInstance: null,
+  get hostDriver() {
+    try {
+      return get ? (get()?.hostInstance ?? null) : null;
+    } catch {
+      return null;
+    }
+  },
   guestDriver: null,
   lastTableSync: null,
   gameEndSummary: null,
@@ -49,13 +59,18 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
         roomState: updatedState,
         isHost: true,
         myPlayerId: get().myPlayerId,
-        hostDriver: null
+        hostInstance: null
       },
       roomState: updatedState
     });
     void globalP2PClient.broadcastRoomState(updatedState);
 
-    // Khởi tạo GameEngine và HostEngineDriver
+    // Dọn dẹp host và session cũ nếu có
+    if (get().hostInstance) {
+      get().hostInstance?.dispose();
+    }
+    appFlowCoordinator.setActiveSession(null);
+
     const gameStore = useGameStore.getState();
     const customRules = new GameRulesBuilder()
       .withSettlement(updatedState.settlementRule)
@@ -78,7 +93,7 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
       )
       .build();
 
-    const initialPlayers: Player[] = current.players.map(p => {
+    const initialPlayers: MatchPlayer[] = current.players.map(p => {
       return createPlayer({ id: p.playerId, name: p.name, avatar: p.avatar, score: p.coins });
     });
 
@@ -94,182 +109,259 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
     gameStore.setCurrentScreen('GAME_TABLE');
     gameStore.setIsDealing(false);
     gameStore.setInstantWinType(undefined);
+    gameStore.setIsGameOver(false);
     useViewStore.getState().closeModal('ONLINE_ROOM');
     useViewStore.getState().closeModal('VICTORY');
 
-    const prevDriver = get().hostDriver;
-    const prevGameNumber = prevDriver ? prevDriver.gameNumber : 0;
-    const prevWinnerId = prevDriver ? prevDriver.lastWinnerId : null;
+    // Lưu vết phiên phòng Online đang chơi để hỗ trợ F5 / mở lại trình duyệt tự động Reconnect
+    saveActiveOnlineSession({
+      roomCode: updatedState.roomCode,
+      playerId: get().myPlayerId,
+      savedAt: Date.now()
+    });
 
-    if (prevDriver) {
-      prevDriver.cleanup();
-    }
-
-    const driver = new HostEngineDriver(globalP2PClient, updatedState, {
-      onRoomStateChange: (updatedRoomState) => {
-        set({ roomState: updatedRoomState });
-        if (updatedRoomState.status === 'DISBANDED') {
-          const reason = updatedRoomState.disbandReason || 'Bàn chơi đã tự động giải tán.';
-          get().leaveRoom();
-          set({
-            disbandNotice: {
-              title: 'BÀN CHƠI ĐÃ BỊ GIẢI TÁN',
-              message: reason
-            }
+    // 1. Tạo AuthoritativeMatchHost
+    const host = new AuthoritativeMatchHost({
+      rules: customRules,
+      players: initialPlayers,
+      hostPlayerId: get().myPlayerId,
+      onGameOver: (settlementResult) => {
+        clearActiveOnlineSession();
+        const current = get().roomState;
+        if (current) {
+          const updatedPlayers = current.players.map(p => {
+            const payout = settlementResult?.payouts?.[p.playerId] ?? 0;
+            return {
+              ...p,
+              coins: Math.max(0, p.coins + payout),
+              isReady: false
+            };
           });
-          useViewStore.getState().closeModal('VICTORY');
-          useViewStore.getState().closeModal('ONLINE_ROOM');
-          useGameStore.getState().resetMatchState();
+          const endedState: OnlineRoomState = {
+            ...current,
+            status: 'ENDED',
+            players: updatedPlayers,
+            updatedAt: Date.now()
+          };
+          set({ roomState: endedState });
+          void globalP2PClient.broadcastRoomState(endedState);
         }
       },
-      onAutoStartMatch: () => {
-        get().startMatch();
-      }
-    });
-    driver.gameNumber = prevGameNumber;
-    driver.lastWinnerId = prevWinnerId;
-    set(state => ({
-      hostDriver: driver,
-      sessionState: state.sessionState.status === 'IN_ROOM_PLAYING'
-        ? { ...state.sessionState, hostDriver: driver }
-        : state.sessionState
-    }));
-    appFlowCoordinator.setActiveDriver(driver);
-
-    driver.startMatch((hostCards) => {
-      const currentPlayers = initialPlayers.map((p, idx) => {
-        if (idx === 0) {
-          return { ...p, hand: hostCards };
-        }
-        return p;
-      });
-      const engine = driver.engine;
-      if (!engine) {
-        throw new Error('[OnlineMatchSlice] driver.engine không được null khi bắt đầu ván đấu!');
-      }
-      const currentTurnId = engine.currentRound.currentTurnPlayerId;
-      const leadId = engine.currentRound.leadPlayerId;
-      const isFirstMoveOfGame = engine.isFirstMoveOfGame;
-      const isLeadMove = engine.isRoundLeadMove();
-
-      gameStore.setGameNumber(driver.gameNumber);
-      gameStore.setPlayers(currentPlayers);
-      gameStore.setCurrentTurnPlayerId(currentTurnId);
-      gameStore.setLeadPlayerId(leadId);
-      gameStore.setIsFirstMoveOfGame(isFirstMoveOfGame);
-      gameStore.setIsLeadMove(isLeadMove);
-      gameStore.setWinners([]);
-      gameStore.setInstantWinType(undefined);
-      gameStore.setIsGameOver(false);
-      gameStore.setCurrentMove(null);
-      gameStore.setSelectedCardIds(new Set<string>());
-      gameStore.setCurrentHint(null);
-
-      const playingState: PlayingTurnMatchState = createPlayingTurnMatchState({
-        status: 'PLAYING',
-        gameNumber: driver.gameNumber,
-        roundNumber: engine.roundNumber,
-        players: currentPlayers,
-        currentTurnPlayerId: currentTurnId,
-        leadPlayerId: leadId,
-        roundMoves: [],
-        leadingMove: null,
-        isLeadMove,
-        isFirstMoveOfGame,
-        firstMoveRequiredCard: isFirstMoveOfGame ? engine.firstMoveRequiredCard : null,
-        passedPlayerIds: [],
-        chopNotification: null,
-        botThinkingThought: null,
-        rules: customRules
-      });
-      gameStore.setMatchState(playingState);
-
-      const counts: Record<string, number> = {};
-      currentPlayers.forEach(p => {
-        counts[p.id] = 13;
-      });
-      gameStore.setDealtCounts(counts);
-      useViewStore.getState().closeModal('VICTORY');
-    });
-  },
-
-  sendMoveAction: (cardIds: string[]) => {
-    const { isHost, hostDriver, guestDriver, myPlayerId } = get();
-    const gameStore = useGameStore.getState();
-
-    // Optimistically update local player hand & clear selection
-    const currentPlayers = gameStore.players.map(p => {
-      if (p.id === myPlayerId) {
-        return {
-          ...p,
-          hand: p.hand.filter(c => !cardIds.includes(c.id))
-        };
-      }
-      return p;
-    });
-    gameStore.setPlayers(currentPlayers);
-    gameStore.clearCardSelection();
-
-    if (isHost && hostDriver) {
-      hostDriver.playCardIds(myPlayerId, cardIds);
-    } else if (guestDriver) {
-      guestDriver.playCardIds(myPlayerId, cardIds);
-    } else {
-      void globalP2PClient.sendPlayerAction({
-        type: 'PLAY',
-        playerId: myPlayerId,
-        cardIds,
-        timestamp: Date.now()
-      });
-    }
-  },
-
-  sendPassAction: () => {
-    const { isHost, hostDriver, guestDriver, myPlayerId } = get();
-    const gameStore = useGameStore.getState();
-    gameStore.clearCardSelection();
-
-    if (isHost && hostDriver) {
-      hostDriver.handlePlayerAction({
-        type: 'PASS',
-        playerId: myPlayerId,
-        timestamp: Date.now()
-      });
-    } else if (guestDriver) {
-      guestDriver.passTurn(myPlayerId);
-    } else {
-      void globalP2PClient.sendPlayerAction({
-        type: 'PASS',
-        playerId: myPlayerId,
-        timestamp: Date.now()
-      });
-    }
-  },
-
-  voteRematch: (isReady: boolean) => {
-    const { isHost, hostDriver, roomState, myPlayerId } = get();
-    if (!roomState) return;
-
-    if (isHost) {
-      if (hostDriver) {
-        hostDriver.handleRematchVote(myPlayerId, isReady);
-      } else {
-        const updatedPlayers = roomState.players.map(p => {
-          if (p.isHost || p.playerId === myPlayerId) {
+      onRematchVote: (playerId, isReady) => {
+        const current = get().roomState;
+        if (!current) return;
+        const updatedPlayers = current.players.map(p => {
+          if (p.playerId === playerId) {
             return { ...p, isReady };
           }
           return p;
         });
-        const updatedState: OnlineRoomState = {
-          ...roomState,
+        const updatedRoom: OnlineRoomState = {
+          ...current,
           players: updatedPlayers,
           updatedAt: Date.now()
         };
-        set({ roomState: updatedState });
-        void globalP2PClient.broadcastRoomState(updatedState);
+        set({ roomState: updatedRoom });
+        void globalP2PClient.broadcastRoomState(updatedRoom);
+        const allReady = updatedPlayers.every(p => p.isReady);
+        if (allReady && updatedPlayers.length === updatedRoom.playerCount) {
+          const nextGameNum = (host.gameNumber || 1) + 1;
+          const lastWinner = host.engine?.winners[0]?.id;
+          useGameStore.getState().setGameNumber(nextGameNum);
+          host.startMatch(nextGameNum, lastWinner);
+        }
+      },
+      onPeerLeave: (peerId) => {
+        const current = get().roomState;
+        if (!current) return;
+        if (current.status === 'WAITING') {
+          const updatedPlayers = current.players.filter(p => p.peerId !== peerId);
+          set({
+            roomState: {
+              ...current,
+              players: updatedPlayers,
+              updatedAt: Date.now()
+            }
+          });
+          void globalP2PClient.broadcastRoomState({
+            ...current,
+            players: updatedPlayers,
+            updatedAt: Date.now()
+          });
+        } else if (current.status === 'PLAYING') {
+          const leavingPlayer = current.players.find(p => p.peerId === peerId || p.playerId === peerId);
+          if (!leavingPlayer) return;
+          const leavingName = leavingPlayer.name || 'Một người chơi';
 
-        const allReady = updatedState.players.every(p => p.isReady);
-        if (allReady && updatedState.players.length === updatedState.playerCount) {
+          // Kích hoạt Grace Period 25s thay vì giải tán bàn ngay lập tức
+          const deadline = Date.now() + 25000;
+          const updatedPlayers = current.players.map(p => {
+            if (p.playerId === leavingPlayer.playerId) {
+              return {
+                ...p,
+                isDisconnected: true,
+                disconnectDeadline: deadline
+              };
+            }
+            return p;
+          });
+          const updatedRoom: OnlineRoomState = {
+            ...current,
+            players: updatedPlayers,
+            updatedAt: Date.now()
+          };
+          set({ roomState: updatedRoom });
+          void globalP2PClient.broadcastRoomState(updatedRoom);
+
+          host.handlePeerDisconnect(leavingPlayer.playerId, peerId, 25000, () => {
+            const latestRoom = get().roomState;
+            if (!latestRoom || latestRoom.status !== 'PLAYING') return;
+            const disbanded: OnlineRoomState = {
+              ...latestRoom,
+              status: 'DISBANDED',
+              disbandReason: `${leavingName} đã mất kết nối quá thời gian chờ (25s).`,
+              updatedAt: Date.now()
+            };
+            set({
+              roomState: disbanded,
+              disbandNotice: {
+                title: 'BÀN CHƠI ĐÃ BỊ GIẢI TÁN',
+                message: disbanded.disbandReason || ''
+              }
+            });
+            clearActiveOnlineSession();
+            void globalP2PClient.broadcastRoomState(disbanded);
+            useViewStore.getState().closeModal('VICTORY');
+            useViewStore.getState().closeModal('ONLINE_ROOM');
+            useGameStore.getState().resetMatchState();
+            useGameStore.getState().setActiveGameType('QUICK');
+            useGameStore.getState().setCurrentScreen('LOBBY');
+          });
+        }
+      }
+    });
+
+    // 2. Đăng ký Host local transport và ClientSession
+    const hostTransports = createMemoryDuplexTransport('HOST', get().myPlayerId);
+    host.registerClient(get().myPlayerId, hostTransports.hostTransport);
+
+    const clientSession = new ClientSession({
+      localPlayerId: get().myPlayerId,
+      transport: hostTransports.clientTransport,
+      gameRules: customRules,
+      initialPlayers,
+      activeGameType: 'ONLINE'
+    });
+
+    // Đăng ký đồng bộ frame từ ClientSession sang Zustand Store
+    clientSession.subscribeFrame(frame => {
+      const store = useGameStore.getState();
+      const myCards = frame.myHand.map(h => h.card);
+      store.setGameNumber(frame.gameNumber);
+      store.setIsDealing(frame.isDealing);
+      store.setDealtCounts(frame.dealtCounts);
+      const matchState = clientSession.getLatestMatchState();
+      store.applyMatchState(matchState);
+      store.setPlayers(prevPlayers => {
+        return prevPlayers.map(p => {
+          if (p.id === frame.localPlayerId) {
+            return { ...p, hand: myCards };
+          }
+          if (matchState.status === 'GAME_OVER') {
+            const revealedPlayer = matchState.players.find(mp => mp.id === p.id);
+            if (revealedPlayer && revealedPlayer.hand && revealedPlayer.hand.length > 0) {
+              return { ...p, hand: revealedPlayer.hand };
+            }
+          }
+          return p;
+        });
+      });
+    });
+
+    appFlowCoordinator.setActiveSession(clientSession);
+
+    // 3. Đăng ký Supabase Realtime transport cho từng khách từ xa (Remote Guests)
+    for (const player of updatedState.players) {
+      if (player.playerId !== get().myPlayerId) {
+        const peerTransport = new P2PHostPeerTransport(globalP2PClient, player.peerId, player.playerId);
+        host.registerClient(player.playerId, peerTransport);
+      }
+    }
+
+    set({
+      hostInstance: host,
+      hostDriver: host,
+      sessionState: {
+        status: 'IN_ROOM_PLAYING',
+        roomCode: updatedState.roomCode,
+        roomState: updatedState,
+        isHost: true,
+        myPlayerId: get().myPlayerId,
+        hostInstance: host,
+        hostDriver: host
+      }
+    });
+
+    // 4. Bắt đầu ván đấu trên Server Host
+    host.startMatch(1);
+  },
+
+  sendMoveAction: (cardIds: string[]) => {
+    const session = appFlowCoordinator.getActiveSession();
+    if (session) {
+      session.sendIntent({ type: 'SET_SELECTED_CARDS', cardIds });
+      session.sendIntent({ type: 'SUBMIT_PLAY' });
+    } else {
+      void globalP2PClient.sendPlayerAction({
+        type: 'PLAY',
+        playerId: get().myPlayerId,
+        cardIds,
+        timestamp: Date.now()
+      });
+    }
+    useGameStore.getState().clearCardSelection();
+  },
+
+  sendPassAction: () => {
+    const session = appFlowCoordinator.getActiveSession();
+    if (session) {
+      session.sendIntent({ type: 'SUBMIT_PASS' });
+    } else {
+      void globalP2PClient.sendPlayerAction({
+        type: 'PASS',
+        playerId: get().myPlayerId,
+        timestamp: Date.now()
+      });
+    }
+    useGameStore.getState().clearCardSelection();
+  },
+
+  voteRematch: (isReady: boolean) => {
+    const { isHost, hostInstance, roomState, myPlayerId } = get();
+    if (!roomState) return;
+
+    if (isHost) {
+      const updatedPlayers = roomState.players.map(p => {
+        if (p.isHost || p.playerId === myPlayerId) {
+          return { ...p, isReady };
+        }
+        return p;
+      });
+      const updatedState: OnlineRoomState = {
+        ...roomState,
+        players: updatedPlayers,
+        updatedAt: Date.now()
+      };
+      set({ roomState: updatedState });
+      void globalP2PClient.broadcastRoomState(updatedState);
+
+      const allReady = updatedState.players.every(p => p.isReady);
+      if (allReady && updatedState.players.length === updatedState.playerCount) {
+        if (hostInstance) {
+          const nextGameNum = (hostInstance.engine?.gameNumber || 1) + 1;
+          const lastWinner = hostInstance.engine?.winners[0]?.id;
+          hostInstance.startMatch(nextGameNum, lastWinner);
+        } else {
           get().startMatch();
         }
       }

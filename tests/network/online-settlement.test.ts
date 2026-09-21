@@ -12,7 +12,10 @@ import { GameEndPacket, OnlineRoomState, OnlinePlayer, TableStateSyncPacket } fr
 describe('Online P2P Settlement & Coin Payout Tests', () => {
   beforeEach(() => {
     useOnlineStore.getState().leaveRoom();
+    useGameStore.getState().resetMatchState();
+    const profile = loadPlayerProfile();
     useGameStore.setState({
+      myPlayerId: profile.id,
       currentScreen: 'LOBBY',
       players: [],
       currentTurnPlayerId: null,
@@ -26,7 +29,6 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     });
     useViewStore.getState().closeAllModals();
 
-    const profile = loadPlayerProfile();
     profile.coins = 50000;
     profile.elo = 1000;
     profile.stats = {

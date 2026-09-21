@@ -5,7 +5,7 @@ import { GameEngine } from '../../src/engine/game';
 import { makeBotDecision, DecisionContext, createDecisionContext } from '../../src/ai/decision-maker';
 import { CardTracker } from '../../src/ai/card-tracker';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
-import { Player, createDefaultGameRules, Card, PlayedMove } from '../../src/engine/types';
+import { MatchPlayer, createDefaultGameRules, Card, PlayedMove } from '../../src/engine/types';
 import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 
 describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 & Rotten 2 Rules)', () => {
@@ -94,7 +94,7 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
   });
 
   describe('2. GameEngine Thực Thi Luật & Phạt Thối Heo', () => {
-    function createTestPlayers(): Player[] {
+    function createTestPlayers(): MatchPlayer[] {
       return [
         createPlayer({ id: 'p0', name: 'Player', avatar: '', score: 1000 }),
         createBotPlayer('bot1', null, { name: 'Bot 1', avatar: '', score: 1000 }),
@@ -516,7 +516,7 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
   });
 
   describe('4. GameEngine Gameplay: Xử lý 1 Rác + Tứ Quý 2', () => {
-    function createTestPlayers(): Player[] {
+    function createTestPlayers(): MatchPlayer[] {
       return [
         createPlayer({ id: 'p0', name: 'Player', avatar: '', score: 1000 }),
         createBotPlayer('bot1', null, { name: 'Bot 1', avatar: '', score: 1000 }),
@@ -609,7 +609,7 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
   });
 
   describe('5. Cơ Chế Bỏ Lượt Khi Cầm Cái (Lead Turn Pass) & Chống Deadlock', () => {
-    function createTestPlayers(): Player[] {
+    function createTestPlayers(): MatchPlayer[] {
       return [
         createPlayer({ id: 'p0', name: 'Player', avatar: '', score: 1000 }),
         createBotPlayer('bot1', null, { name: 'Bot 1', avatar: '', score: 1000 }),

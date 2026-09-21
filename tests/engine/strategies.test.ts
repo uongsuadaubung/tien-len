@@ -7,14 +7,14 @@ import {
   resolveStrategyForMatch,
   getGameModeStrategy
 } from '../../src/engine/strategies/game-mode-strategy';
-import { Player } from '../../src/engine/types';
+import { MatchPlayer } from '../../src/engine/types';
 import { parseCards } from '../../src/engine/card';
 import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 
 describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lược)', () => {
   const BET = 500;
 
-  const createSamplePlayers = (): Player[] => [
+  const createSamplePlayers = (): MatchPlayer[] => [
     createPlayer({
       id: 'p0',
       name: 'Người Chơi',
@@ -205,7 +205,7 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       dailyMilestonesClaimed: { 1: false, 3: false, 5: false }
     };
 
-    const makeTestPlayer = (p: Partial<Player> & { id: string; name: string }): Player =>
+    const makeTestPlayer = (p: Partial<MatchPlayer> & { id: string; name: string }): MatchPlayer =>
       createPlayer({
         avatar: '🤖',
         isBot: p.id !== 'p0',
@@ -243,7 +243,7 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
   test('7. GameEngine Lifecycle: Bot về Nhất trong Đếm Lá kết thúc ván ngay lập tức', () => {
     const { GameEngine } = require('../../src/engine/game');
     
-    const makeTestPlayer = (p: Partial<Player> & { id: string; name: string }): Player =>
+    const makeTestPlayer = (p: Partial<MatchPlayer> & { id: string; name: string }): MatchPlayer =>
       createPlayer({
         avatar: '🤖',
         isBot: p.id !== 'p0',
@@ -253,7 +253,7 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       });
 
     // --- KỊCH BẢN 1: ĐẾM LÁ (COUNT_CARDS) ---
-    const ugPlayers: Player[] = [
+    const ugPlayers: MatchPlayer[] = [
       makeTestPlayer({ id: 'p0', name: 'Player', avatar: '🤠', isBot: false, hand: parseCards('4D 5D 6D') }),
       makeTestPlayer({ id: 'p1', name: 'Bot 1', hand: parseCards('9S') }),
       makeTestPlayer({ id: 'p2', name: 'Bot 2', hand: parseCards('7D 8D 2S') }),
@@ -275,7 +275,7 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
     expect(ugEngine.winners[0].id).toBe('p1');
 
     // --- KỊCH BẢN 2: CHIẾN DỊCH (CAMPAIGN) ---
-    const campPlayers: Player[] = [
+    const campPlayers: MatchPlayer[] = [
       makeTestPlayer({ id: 'p0', name: 'Player', avatar: '🤠', isBot: false, hand: parseCards('4D 5D') }),
       makeTestPlayer({ id: 'p1', name: 'Bot 1', hand: parseCards('KS') }),
       makeTestPlayer({ id: 'p2', name: 'Bot 2', hand: parseCards('7D 8D') }),
@@ -296,7 +296,7 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
     expect(campEngine.winners[0].id).toBe('p1');
 
     // --- KỊCH BẢN 3: NHẤT ĂN TẤT (WINNER_TAKES_ALL) ---
-    const wtaPlayers: Player[] = [
+    const wtaPlayers: MatchPlayer[] = [
       makeTestPlayer({ id: 'p0', name: 'Player', avatar: '🤠', isBot: false, hand: parseCards('4D 5D') }),
       makeTestPlayer({ id: 'p1', name: 'Bot 1', hand: parseCards('AS') }),
       makeTestPlayer({ id: 'p2', name: 'Bot 2', hand: parseCards('7D 8D') }),
@@ -315,7 +315,7 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
     expect(wtaEngine.isGameOver).toBe(true);
 
     // --- KỊCH BẢN 4: TRUYỀN THỐNG (TRADITIONAL) - 1 người hết bài thì ván CHƯA dừng ---
-    const tradPlayers: Player[] = [
+    const tradPlayers: MatchPlayer[] = [
       makeTestPlayer({ id: 'p0', name: 'Player', avatar: '🤠', isBot: false, hand: parseCards('4D 5D') }),
       makeTestPlayer({ id: 'p1', name: 'Bot 1', hand: parseCards('QS') }),
       makeTestPlayer({ id: 'p2', name: 'Bot 2', hand: parseCards('7D 8D') }),
@@ -355,7 +355,7 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       }
     });
 
-    const soloPlayers: Player[] = [
+    const soloPlayers: MatchPlayer[] = [
       createPlayer({ id: 'p0', name: 'Player', avatar: '🤠', hand: parseCards('4D 5D'), score: 10000, hasPlayedFirstCard: true }),
       createBotPlayer('p1', null, { name: 'Bot 1', avatar: '🤖', hand: parseCards('9S'), score: 10000, hasPlayedFirstCard: true })
     ];

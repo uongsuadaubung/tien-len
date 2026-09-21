@@ -756,7 +756,6 @@ export function resolveCompositeRuleStrategy(
       });
       break;
 
-    case 'CUSTOM':
     case 'QUICK':
     default:
       defaultRules = createDefaultGameRules({

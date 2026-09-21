@@ -1,12 +1,17 @@
 import { 
-  type Player, 
+  type MatchPlayer, 
   type PlayedMove, 
+  type Card,
   createPlayedMove 
 } from '../../engine/types';
 import { 
   type MatchState,
   type PlayingTurnMatchState,
-  createPlayingTurnMatchState 
+  createPlayingTurnMatchState,
+  getCurrentTurnPlayerIdFromMatchState,
+  getActiveLeadingMoveFromMatchState,
+  getWinnersFromMatchState,
+  isGameOverFromMatchState
 } from '../../engine/state-machine/types';
 import { createCard } from '../../engine/card';
 import { identifyCombination } from '../../engine/combinations';
@@ -27,7 +32,7 @@ import type {
 
 const initialProfile = loadPlayerProfile();
 
-export const DEFAULT_PLAYERS: Player[] = [
+export const DEFAULT_PLAYERS: MatchPlayer[] = [
   createPlayer({
     id: initialProfile.id,
     name: initialProfile.name || 'Bạn (Người Chơi)',
@@ -124,8 +129,11 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
   setChopNotification: (notif) => set({ chopNotification: notif }),
   setQuestToast: (toast) => set({ questToast: toast }),
 
-  setPlayers: (players) => set({
-    players: players.map(p => ({ ...p, hand: [...p.hand], playedCards: [...p.playedCards] }))
+  setPlayers: (playersOrUpdater) => set((state) => {
+    const players = typeof playersOrUpdater === 'function' ? playersOrUpdater(state.players) : playersOrUpdater;
+    return {
+      players: players.map(p => ({ ...p, hand: [...p.hand], playedCards: [...p.playedCards] }))
+    };
   }),
   setCurrentTurnPlayerId: (id) => set({ currentTurnPlayerId: id }),
   setLeadPlayerId: (id) => set({ leadPlayerId: id }),
@@ -167,8 +175,12 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
       } else if (matchState.players) {
         const counts: Record<string, number> = { ...state.dealtCounts };
         for (const p of matchState.players) {
-          if (p.hand && p.hand.length > 0) {
-            counts[p.id] = p.hand.length;
+          if (counts[p.id] === undefined) {
+            const existing = state.players.find(sp => sp.id === p.id);
+            const handLen = (p.hand && p.hand.length > 0) ? p.hand.length : (existing?.hand?.length ?? 0);
+            if (handLen > 0) {
+              counts[p.id] = handLen;
+            }
           }
         }
         updatedDealtCounts = counts;
@@ -176,10 +188,14 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
 
       return {
         matchState,
-        players: matchState.players ? matchState.players.map(p => ({ ...p, hand: [...p.hand], playedCards: [...p.playedCards] })) : state.players,
+        players: matchState.players ? matchState.players.map(p => {
+          const existing = state.players.find(sp => sp.id === p.id);
+          const hand = (p.hand && p.hand.length > 0) ? p.hand : (existing?.hand ?? []);
+          return { ...p, hand: [...hand], playedCards: [...p.playedCards] };
+        }) : state.players,
         gameNumber: matchState.gameNumber,
         isDealing,
-        dealBanner: isDealing ? matchState.dealBanner : null,
+        dealBanner: matchState.status === 'DEALING' ? matchState.dealBanner : (isDealing ? state.dealBanner : null),
         dealtCounts: updatedDealtCounts,
         currentTurnPlayerId: isPlaying ? matchState.currentTurnPlayerId : null,
         leadPlayerId: isPlaying ? matchState.leadPlayerId : (isRoundEnded ? matchState.nextLeadPlayerId : null),
@@ -190,9 +206,19 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
         isGameOver: isGameOver || isInstantWin,
         isThreeSpadesWin: isGameOver ? matchState.isThreeSpadesWin : false,
         instantWinType: isInstantWin ? matchState.instantWinType : null,
-        matchPayouts: isGameOver || isInstantWin ? matchState.matchPayouts : state.matchPayouts,
-        allEloDeltas: isGameOver || isInstantWin ? matchState.eloDeltas : state.allEloDeltas,
-        perspectiveSettlement: isGameOver ? matchState.settlement : state.perspectiveSettlement,
+        matchPayouts: (isGameOver && matchState.matchPayouts && Object.keys(matchState.matchPayouts).length > 0)
+          ? matchState.matchPayouts
+          : (isInstantWin ? matchState.matchPayouts : state.matchPayouts),
+        allEloDeltas: (isGameOver && matchState.eloDeltas && Object.keys(matchState.eloDeltas).length > 0)
+          ? matchState.eloDeltas
+          : (isInstantWin ? matchState.eloDeltas : state.allEloDeltas),
+        perspectiveSettlement: isGameOver
+          ? (matchState.settlement && matchState.settlement.players && matchState.settlement.players.some(p => p.netPayout !== 0)
+              ? matchState.settlement
+              : (state.perspectiveSettlement && state.perspectiveSettlement.players && state.perspectiveSettlement.players.some(p => p.netPayout !== 0)
+                  ? state.perspectiveSettlement
+                  : matchState.settlement))
+          : state.perspectiveSettlement,
         matchLogReport: isGameOver || isInstantWin ? matchState.matchLogReport : state.matchLogReport,
         chopNotification: isPlaying || isRoundEnded ? matchState.chopNotification : null,
         botThinkingThought: null,
@@ -242,12 +268,26 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
       const updatedPlayers = state.players.map(p => {
         if (p.id === sync.currentMovePlayerId && playedCardIds.size > 0) {
           const newPlayed = (sync.currentMoveCards?.map(c => createCard(c.rank, c.suit)) || []);
-          const existingPlayedIds = new Set(p.playedCards.map(c => c.id));
+          const existingPlayedIds = new Set((p.playedCards || []).map(c => c.id));
+          
+          // An toàn trước Fog-of-War: Đối thủ dùng cardCount và hand rỗng [] để tránh lỗi truy cập thuộc tính lá bài
+          let nextHand: Card[];
+          let nextCardCount: number;
+          const isRealCards = p.hand && p.hand.length > 0 && p.hand.every(c => c !== null && typeof c === 'object' && 'id' in c);
+          if (isRealCards && p.id === state.myPlayerId) {
+            nextHand = p.hand.filter(c => c && !playedCardIds.has(c.id));
+            nextCardCount = nextHand.length;
+          } else {
+            nextCardCount = sync.remainingCardCounts?.[p.id] ?? Math.max(0, (p.cardCount ?? p.hand.length) - playedCardIds.size);
+            nextHand = [];
+          }
+
           return {
             ...p,
-            hand: p.hand.filter(c => !playedCardIds.has(c.id)),
+            hand: nextHand,
+            cardCount: nextCardCount,
             playedCards: [
-              ...p.playedCards,
+              ...(p.playedCards || []),
               ...newPlayed.filter(c => !existingPlayedIds.has(c.id))
             ]
           };
@@ -257,10 +297,12 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
 
       const mergedDealtCounts = { ...state.dealtCounts, ...sync.remainingCardCounts };
       for (const p of updatedPlayers) {
-        if (p.hand && p.hand.length > 0) {
+        if (p.id === state.myPlayerId && p.hand && p.hand.length > 0) {
           mergedDealtCounts[p.id] = p.hand.length;
-        } else if (sync.remainingCardCounts[p.id] !== undefined) {
+        } else if (sync.remainingCardCounts && sync.remainingCardCounts[p.id] !== undefined) {
           mergedDealtCounts[p.id] = sync.remainingCardCounts[p.id];
+        } else if (p.cardCount !== undefined) {
+          mergedDealtCounts[p.id] = p.cardCount;
         }
       }
 
@@ -268,7 +310,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
       if (sync.isGameOver) {
         const winningPlayers = sync.winners
           .map(id => updatedPlayers.find(p => p.id === id))
-          .filter((p): p is Player => p !== undefined && p !== null);
+          .filter((p): p is MatchPlayer => p !== undefined && p !== null);
         const previousLeadingMove = state.matchState.status === 'PLAYING'
           ? state.matchState.leadingMove
           : (state.matchState.status === 'GAME_OVER' ? state.matchState.winningMove : null);
@@ -333,7 +375,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
           : leadingMove,
         winners: nextMatchState.status === 'GAME_OVER'
           ? [...nextMatchState.winners]
-          : (sync.winners ? sync.winners.map(id => updatedPlayers.find(p => p.id === id)).filter((p): p is Player => p !== undefined && p !== null) : []),
+          : (sync.winners ? sync.winners.map(id => updatedPlayers.find(p => p.id === id)).filter((p): p is MatchPlayer => p !== undefined && p !== null) : []),
         isGameOver: sync.isGameOver,
         chopNotification: sync.chopNotification ? {
           visible: sync.chopNotification.visible,
@@ -350,10 +392,9 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
     });
 
     if (leadingMove) {
-      if (sync.remainingCardCounts && sync.remainingCardCounts[leadingMove.playerId] === undefined) {
-        throw new Error(`[applyAuthoritativeTableSync] Invariant violated: Missing remainingCardCounts for player "${leadingMove.playerId}"`);
-      }
-      const remainingCount = sync.remainingCardCounts ? sync.remainingCardCounts[leadingMove.playerId] : 0;
+      const remainingCount = (sync.remainingCardCounts && sync.remainingCardCounts[leadingMove.playerId] !== undefined)
+        ? sync.remainingCardCounts[leadingMove.playerId]
+        : 0;
       GameEventBus.getInstance().emit({
         type: 'CARD_PLAYED',
         playerId: leadingMove.playerId,
@@ -368,26 +409,6 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
       useViewStore.getState().closeModal('ONLINE_ROOM');
     }
   },
-
-  applyMatchSnapshot: (snapshot) => set((state) => ({
-    ...state,
-    gameNumber: snapshot.gameNumber ?? state.gameNumber,
-    players: snapshot.players ? snapshot.players.map(p => ({ ...p, hand: [...p.hand], playedCards: [...p.playedCards] })) : state.players,
-    currentTurnPlayerId: snapshot.currentTurnPlayerId !== undefined ? snapshot.currentTurnPlayerId : state.currentTurnPlayerId,
-    leadPlayerId: snapshot.leadPlayerId !== undefined ? snapshot.leadPlayerId : state.leadPlayerId,
-    currentMove: snapshot.currentMove !== undefined ? snapshot.currentMove : state.currentMove,
-    winners: snapshot.winners ? snapshot.winners.map(p => ({ ...p, hand: [...p.hand], playedCards: [...p.playedCards] })) : state.winners,
-    isGameOver: snapshot.isGameOver !== undefined ? snapshot.isGameOver : state.isGameOver,
-    instantWinType: snapshot.instantWinType !== undefined ? snapshot.instantWinType : state.instantWinType,
-    isDealing: snapshot.isDealing !== undefined ? snapshot.isDealing : state.isDealing,
-    dealtCounts: snapshot.dealtCounts !== undefined ? snapshot.dealtCounts : state.dealtCounts,
-    dealBanner: snapshot.dealBanner !== undefined ? snapshot.dealBanner : state.dealBanner,
-    chopNotification: snapshot.chopNotification !== undefined ? snapshot.chopNotification : state.chopNotification,
-    botThinkingThought: snapshot.botThinkingThought !== undefined ? snapshot.botThinkingThought : state.botThinkingThought,
-    isFirstMoveOfGame: snapshot.isFirstMoveOfGame !== undefined ? (snapshot.isFirstMoveOfGame ?? false) : state.isFirstMoveOfGame,
-    firstMoveRequiredCard: snapshot.firstMoveRequiredCard !== undefined ? snapshot.firstMoveRequiredCard : state.firstMoveRequiredCard,
-    isLeadMove: snapshot.isLeadMove !== undefined ? (snapshot.isLeadMove ?? false) : state.isLeadMove
-  })),
 
   resetMatchState: () => set({
     matchState: DEFAULT_MATCH_STATE,
@@ -421,3 +442,16 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set) =>
     perspectiveSettlement: null
   })
 });
+
+/* =================================================================================
+ * TYPED STATE SELECTORS (Single Source of Truth)
+ * ================================================================================= */
+
+export const selectMatchStatus = (state: { matchState: MatchState }) => state.matchState.status;
+export const selectIsPlaying = (state: { matchState: MatchState }) => state.matchState.status === 'PLAYING';
+export const selectIsDealing = (state: { matchState: MatchState }) => state.matchState.status === 'DEALING';
+export const selectIsGameOver = (state: { matchState: MatchState }) => isGameOverFromMatchState(state.matchState);
+export const selectCurrentTurnPlayerId = (state: { matchState: MatchState }) => getCurrentTurnPlayerIdFromMatchState(state.matchState);
+export const selectLeadingMove = (state: { matchState: MatchState }) => getActiveLeadingMoveFromMatchState(state.matchState);
+export const selectWinners = (state: { matchState: MatchState }) => getWinnersFromMatchState(state.matchState);
+

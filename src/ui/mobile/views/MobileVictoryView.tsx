@@ -168,7 +168,7 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
                     <span className="text-base shrink-0">{op.avatar}</span>
                     <div className="flex-1 min-w-0">
                       <div className="text-[11px] font-bold truncate text-zinc-200">
-                        {op.name} {op.playerId === myPlayerId ? `(${t('hud.you')})` : ''}
+                        {op.name.replace(/\s*\([^)]*\)$/, '')}{op.playerId === myPlayerId ? ` ${t('hud.you')}` : ''}
                       </div>
                       <div className="text-[9px] font-semibold flex items-center gap-0.5">
                         {op.isReady ? (
@@ -304,7 +304,7 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
                       </div>
                       <div className="text-left min-w-0">
                         <div className="font-bold text-xs sm:text-sm text-zinc-100 truncate max-w-[120px] sm:max-w-[180px]">
-                          {p.name}
+                          {p.name.replace(/\s*\([^)]*\)$/, '')}
                         </div>
                         <span className={`text-[10px] font-bold ${p.isWinner ? 'text-amber-300' : 'text-zinc-400'}`}>
                           {rankLabel}

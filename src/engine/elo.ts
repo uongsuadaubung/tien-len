@@ -1,6 +1,6 @@
 import { BOT_PERSONAS, generateRandomBotConfig, getBotConfig } from '../ai/bot-factory';
 import { BotConfig } from '../ai/types';
-import { Player } from './types';
+import { MatchPlayer } from './types';
 import { 
   RANK_TIERS, 
   RankTierInfo, 
@@ -184,8 +184,8 @@ export function calculateEloDelta(
 }
 
 export interface TableEloSettlementParams {
-  readonly players: readonly Player[];
-  readonly winners: readonly Player[];
+  readonly players: readonly MatchPlayer[];
+  readonly winners: readonly MatchPlayer[];
   readonly playerElos: Readonly<Record<string, number>>;
   readonly chopsByPlayer: Readonly<Record<string, number>>;
   readonly gotChoppedByPlayer: Readonly<Record<string, number>>;

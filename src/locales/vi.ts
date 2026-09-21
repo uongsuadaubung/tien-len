@@ -805,6 +805,7 @@ export const vi = {
     breakeven: 'Xu (Hòa vốn)'
   },
   online: {
+    reconnectWaitingBanner: '{name} mất kết nối. Đang chờ ({seconds}s)...',
     modalTitle: 'Phòng Chơi Trực Tuyến P2P',
     modalSubtitle: 'Tạo phòng hoặc kết nối phòng bạn bè bằng mã PIN 4 số',
     createRoomBtn: 'Tạo Phòng Mới',
@@ -836,6 +837,8 @@ export const vi = {
     leaveBtn: 'Rời Phòng',
     startGameBtn: 'Bắt Đầu Trận Đấu',
     waitingHost: 'Đang đợi Chủ phòng bắt đầu ván...',
+    connectingToHost: 'Đang kết nối tới chủ bàn {roomCode}...',
+    connectingP2P: 'Đang kết nối P2P...',
     cantAffordRoom: 'Không Đủ Xu Để Tạo Phòng',
     createCustomPrompt: 'Bạn muốn mở bàn chơi với luật riêng?',
     roomPrivacyTitle: 'Quyền Riêng Tư Phòng',

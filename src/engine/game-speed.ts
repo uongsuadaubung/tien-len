@@ -9,6 +9,7 @@ export interface BotThinkingContext {
   isNextOneCard: boolean;
   hasValidMoves: boolean;
   isFacingHeoOrChop: boolean;
+  isFirstMoveOfGame?: boolean;
 }
 
 export interface BotThinkingDelayResult {
@@ -20,12 +21,13 @@ export interface BotThinkingDelayResult {
  * Tính toán thời gian suy nghĩ động và biểu cảm tâm lý của Bot
  * - FAST (Siêu Nhanh): 350ms - 600ms (dành cho cày cuốc).
  * - REALISTIC (Chân Thực - Mặc định):
- *   + Không có bài (bỏ lượt): 500ms - 800ms
- *   + Nước thường / theo vòng: 800ms - 1.3s
+ *   + Nước mở màn ván (isFirstMoveOfGame): 1.8s - 2.2s
+ *   + Không có bài (bỏ lượt): 550ms - 800ms
+ *   + Nước thường / theo vòng: 900ms - 1.3s
  *   + Lượt mở đầu (cầm cái): 1.1s - 1.6s
  *   + Căng thẳng (chặn người 1 lá): 2.2s - 2.8s
- *   + Cực kỳ căng thẳng (chặt Heo / chặt Hàng): 2.4s - 3.2s
- * - DELIBERATE (Cân Não): 2.2s - 3.5s cho mọi tình huống.
+ *   + Cực kỳ căng thẳng (chặt Heo / chặt Hàng): 2.4s - 3.1s
+ * - DELIBERATE (Cân Não): 2.5s - 3.3s cho mọi tình huống.
  */
 export function calculateDynamicBotDelay(
   context: BotThinkingContext,
@@ -49,6 +51,14 @@ export function calculateDynamicBotDelay(
   }
 
   // REALISTIC (Chân Thực - Mặc định)
+  // 0. Lượt đầu tiên mở màn của cả ván đấu (cho người chơi thời gian đọc bài và quan sát)
+  if (context.isFirstMoveOfGame) {
+    return {
+      delayMs: 1800 + Math.floor(Math.random() * 400),
+      thoughtText: '🤔 Đang suy nghĩ...'
+    };
+  }
+
   // 1. Không có bài bắt (Forced Pass): dứt khoát bỏ lượt nhanh
   if (!context.hasValidMoves && !context.isLead) {
     return {

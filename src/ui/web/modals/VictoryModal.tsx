@@ -185,7 +185,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                   <span className="text-lg">{op.avatar}</span>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-bold truncate text-[var(--text-primary)]">
-                      {op.name} {op.playerId === myPlayerId ? `(${t('hud.you')})` : ''}
+                      {op.name.replace(/\s*\([^)]*\)$/, '')}{op.playerId === myPlayerId ? ` ${t('hud.you')}` : ''}
                     </div>
                     <div className="text-[10px] font-semibold flex items-center gap-1">
                       {op.isReady ? (
@@ -306,7 +306,7 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
                     <span className="text-xl">{p.avatar}</span>
                     <div className="text-left">
                       <div className="font-bold text-xs sm:text-sm text-[var(--text-primary)]">
-                        {p.name} {p.isLocal ? `(${t('hud.you')})` : ''}
+                        {p.name.replace(/\s*\([^)]*\)$/, '')}{p.isLocal ? ` ${t('hud.you')}` : ''}
                       </div>
                       <span className="text-[10px] font-semibold text-[var(--color-gold)]">{rankLabel}</span>
                     </div>

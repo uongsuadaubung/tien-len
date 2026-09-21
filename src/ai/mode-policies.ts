@@ -182,7 +182,6 @@ export function resolveAIModePolicy(gameMode?: string): AIModePolicyStrategy {
     case 'RANKED':
       return TRADITIONAL_POLICY;
 
-    case 'CUSTOM':
     case 'QUICK':
     default:
       return COUNT_CARDS_POLICY;

@@ -103,7 +103,7 @@ export const OnlineRoomModal: React.FC = () => {
             ) : (
               <div className="flex-1 py-2.5 px-4 rounded-xl bg-[var(--bg-card)] border border-amber-500/20 text-center text-xs font-bold text-amber-200/80 flex items-center justify-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                {t('online.waitingHost')}
+                {roomState === null ? t('online.connectingP2P') : t('online.waitingHost')}
               </div>
             )}
           </div>
@@ -318,6 +318,14 @@ export const OnlineRoomModal: React.FC = () => {
                 </Badge>
               )}
             </div>
+
+            {/* Thông báo trạng thái đang kết nối P2P cho Khách */}
+            {!isHost && roomState === null && (
+              <div className="flex items-center justify-center gap-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold animate-pulse">
+                <Radio className="w-4 h-4 text-amber-400 animate-spin" />
+                <span>{t('online.connectingToHost', { roomCode: roomCode || '' })}</span>
+              </div>
+            )}
 
             {/* Lưới Ghế Ngồi (Player Seats Grid) */}
             <div className="space-y-2">

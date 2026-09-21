@@ -1,30 +1,32 @@
-# TÀI LIỆU KIẾN TRÚC & HƯỚNG DẪN CHẾ ĐỘ CHƠI ONLINE (ONLINE P2P MULTIPLAYER)
+# TÀI LIỆU KIẾN TRÚC & HƯỚNG DẪN CHẾ ĐỘ CHƠI ONLINE (SUPABASE REALTIME MULTIPLAYER)
 ## DỰ ÁN: TIẾN LÊN MIỀN NAM WEB GAME & AI BOT ENGINE
 
 ---
 
 ## 1. TỔNG QUAN HỆ THỐNG (HIGH-LEVEL OVERVIEW)
 
-Chế độ **Chơi Online Cùng Bạn Bè** được xây dựng dựa trên kiến trúc **Serverless WebRTC P2P (Peer-to-Peer)** hiện đại, cho phép người chơi tạo phòng, mời bạn bè qua mã PIN 4 số hoặc đường link trực tiếp mà không tốn chi phí hạ tầng máy chủ trung gian.
+Chế độ **Chơi Online Cùng Bạn Bè** được xây dựng dựa trên kiến trúc **Listen Server qua Supabase Realtime Channels (WebSocket Broadcast & Presence)** hiện đại và ổn định vượt trội. Hệ thống loại bỏ hoàn toàn các nhược điểm rớt mạng xuyên NAT/STUN của WebRTC cũ, cho phép người chơi tạo phòng, mời bạn bè qua mã PIN 4 số hoặc danh sách phòng công khai với độ trễ cực thấp (<50ms).
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│                                   KIẾN TRÚC MẠNG P2P (SERVERLESS)                        │
+│              KIẾN TRÚC MULTIPLAYER SUPABASE REALTIME (LISTEN SERVER)                     │
 │                                                                                          │
 │           ┌──────────────────────────────────────────────────────────────────┐           │
 │           │                   Chủ Phòng (Host Authoritative)                 │           │
-│           │   - Nắm giữ GameEngine & HostEngineDriver (implement IMatchDriver) │           │
+│           │   - Nắm giữ GameEngine & AuthoritativeMatchHost (Listen Server)  │           │
 │           │   - Chia bài riêng tư (Fog of War) cho từng máy khách            │           │
 │           │   - Điều phối lượt đánh, kiểm tra tính hợp lệ của nước đi        │           │
 │           │   - Tính toán kết toán (Settlement), thưởng phạt, cộng trừ Xu    │           │
-│           │   - Đồng bộ MatchState: WAITING, PLAYING, GAME_OVER chuẩn hóa    │           │
+│           │   - Gửi sync TableStateSyncPacket và nhận PlayerActionPacket     │           │
 │           └────────────────────────┬───────────────────┬─────────────────────┘           │
 │                                    │                   │                                 │
-│                Encrypted P2P Data  │                   │  Encrypted P2P Data             │
-│                Channel (Sub-50ms)  │                   │  Channel (Sub-50ms)             │
+│                Supabase Realtime   │                   │  Supabase Realtime              │
+│                Broadcast Channel   │                   │  Broadcast Channel              │
+│                (WebSocket Sub-50ms)│                   │  (WebSocket Sub-50ms)           │
 │                                    ▼                   ▼                                 │
 │                   ┌──────────────────────┐       ┌──────────────────────┐                │
-│                   │    Máy Khách (p1)    │       │    Máy Khách (p2)    │                │
+│                   │   Máy Khách (p1)     │       │   Máy Khách (p2)     │                │
+│                   │  - ClientSession     │       │  - ClientSession     │                │
 │                   │  - Nhận 13 lá riêng  │       │  - Nhận 13 lá riêng  │                │
 │                   │  - Gửi nước đi/bỏ qua│       │  - Gửi nước đi/bỏ qua│                │
 │                   │  - Nhận Sync bàn đấu │       │  - Nhận Sync bàn đấu │                │
@@ -33,9 +35,9 @@ Chế độ **Chơi Online Cùng Bạn Bè** được xây dựng dựa trên ki
 ```
 
 ### Triết lý Thiết Kế & Trải Nghiệm Người Dùng (UX):
-1. **Không dùng thuật ngữ kỹ thuật:** Loại bỏ hoàn toàn các từ ngữ chuyên môn như *"P2P"*, *"WebRTC"*, *"Serverless"*, *"0đ server"*. Giao diện chỉ sử dụng ngôn ngữ tự nhiên: **"Chơi Online"**, **"Tạo Phòng"**, **"Vào Phòng"**, **"Mã PIN 4 số"**.
+1. **Không dùng thuật ngữ kỹ thuật:** Loại bỏ hoàn toàn các từ ngữ chuyên môn như *"P2P"*, *"WebRTC"*, *"WebSocket"*, *"NAT"*. Giao diện chỉ sử dụng ngôn ngữ tự nhiên: **"Chơi Online"**, **"Tạo Phòng"**, **"Vào Phòng"**, **"Mã PIN 4 số"**.
 2. **Mã PIN 4 số ngắn gọn:** Mã phòng có định dạng chuẩn `TL-XXXX` (hoặc 4 chữ số `XXXX`) giúp người chơi trên điện thoại và máy tính nhập liệu cực kỳ nhanh chóng qua bàn phím ảo tích hợp.
-3. **Thống nhất giao diện Web & Mobile:** 100% các màn hình sử dụng chung Design Tokens (`--color-gold`, `--bg-container`, `--border-container`), Modal Primitive chuẩn và Hook chia sẻ [useOnlineRoomLogic.ts](file:///c:/Users/uongsuadaubung/Desktop/tien_len_mien_nam/src/ui/hooks/useOnlineRoomLogic.ts).
+3. **Thống nhất giao diện Web & Mobile:** 100% các màn hình sử dụng chung Design Tokens (`--color-gold`, `--bg-container`, `--border-container`), Modal Primitive chuẩn và Hook chia sẻ [useOnlineRoomLogic.ts](file:///c:/Users/kien.hm/Desktop/tien-len/src/ui/hooks/useOnlineRoomLogic.ts).
 
 ---
 
@@ -55,9 +57,9 @@ src/stores/
 
 ### Phân công trách nhiệm của từng Slice:
 - **`types.ts`**: Chứa các interface `CreateRoomOptions`, `OnlineDisbandNotice`, `RoomSliceState`, `MatchSliceState`, `ChatSliceState`. Tuân thủ **Strict Typing Policy**: Tuyệt đối không dùng `prop?: Type` mà luôn dùng `prop: Type | null`.
-- **`roomSlice.ts`**: Xử lý sinh mã PIN `TL-XXXX`, khởi tạo phòng cho Host, kết nối phòng cho Guest, lắng nghe sự kiện thoát phòng (`onPeerLeave`), xử lý thêm/xóa Bot ghế trống.
-- **`matchSlice.ts`**: Xử lý bắt đầu ván `startMatch` (lấp đầy Bot vào ghế trống nếu thiếu người, khởi tạo `HostEngineDriver` triển khai `IMatchDriver`), thiết lập `PlayingTurnMatchState` và `GameOverMatchState` vào `useGameStore`, gửi nước đi lạc quan `sendMoveAction`, gửi bỏ lượt `sendPassAction`, bỏ phiếu ván mới `voteRematch`. Kết hợp cùng `AppFlowCoordinator` tạo cổng dispatch đồng nhất cho cả Offline và Online.
-- **`chatSlice.ts`**: Quản lý hàng đợi 50 tin nhắn gần nhất và phát tán gói tin chat qua mạng P2P.
+- **`roomSlice.ts`**: Xử lý sinh mã PIN `TL-XXXX`, khởi tạo phòng cho Host, kết nối phòng cho Guest qua `P2PClientTransport` + `ClientSession`, lắng nghe sự kiện thoát phòng (`onPeerLeave`), xử lý thêm/xóa Bot ghế trống.
+- **`matchSlice.ts`**: Xử lý bắt đầu ván `startMatch` (lấp đầy Bot vào ghế trống nếu thiếu người, khởi tạo `AuthoritativeMatchHost` làm Listen Server), đồng bộ `TableStateSyncPacket` vào `ClientSession`, gửi nước đi `sendMoveAction`, gửi bỏ lượt `sendPassAction`, bỏ phiếu ván mới `voteRematch`.
+- **`chatSlice.ts`**: Quản lý hàng đợi 50 tin nhắn gần nhất và phát tán gói tin chat qua Supabase Realtime Broadcast.
 
 ---
 

@@ -12,14 +12,14 @@ import {
   calculateCongPenalty
 } from '../../src/engine/economy';
 import { GameEngine } from '../../src/engine/game';
-import { Player } from '../../src/engine/types';
+import { MatchPlayer } from '../../src/engine/types';
 import { parseCards } from '../../src/engine/card';
 import { createPlayer } from '../../src/engine/player-factory';
 
 describe('Extensible Game Modes & Settlement Engine Tests', () => {
   const BET = 500;
 
-  const makeTestPlayer = (p: Partial<Player> & { id: string; name: string }): Player =>
+  const makeTestPlayer = (p: Partial<MatchPlayer> & { id: string; name: string }): MatchPlayer =>
     createPlayer({
       avatar: '🤖',
       isBot: p.id !== 'p0',
@@ -53,7 +53,7 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
   });
 
   test('2. Chế độ Đếm Lá (COUNT_CARDS) Bàn thường: 1 người về Nhất ăn theo số lá bài còn lại của đối thủ', () => {
-    const players: Player[] = [
+    const players: MatchPlayer[] = [
       makeTestPlayer({
         id: 'p0',
         name: 'Người Chơi',
@@ -99,7 +99,7 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
   });
 
   test('3. Đếm lá sát phạt hệ số nhân x2: Phạt nhân đôi lá và thối heo x2', () => {
-    const players: Player[] = [
+    const players: MatchPlayer[] = [
       makeTestPlayer({
         id: 'p0',
         name: 'Người Chơi',
@@ -148,7 +148,7 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
   });
 
   test('4. Chế độ Nhất Ăn Tất (WINNER_TAKES_ALL): Người về Nhất ăn trọn tiền cược cơ bản từ tất cả người thua', () => {
-    const players: Player[] = [
+    const players: MatchPlayer[] = [
       makeTestPlayer({
         id: 'p0',
         name: 'Người Chơi',
@@ -184,7 +184,7 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
   });
 
   test('5. GameEngine COUNT_CARDS: Kết thúc ván ngay khi 1 người đánh hết bài', () => {
-    const initialPlayers: Player[] = [
+    const initialPlayers: MatchPlayer[] = [
       makeTestPlayer({
         id: 'p0',
         name: 'Bạn',
@@ -233,7 +233,7 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
   });
 
   test('6. GameEngine Solo 1v1 (2 Người chơi): Kết thúc chuẩn mực', () => {
-    const initialPlayers: Player[] = [
+    const initialPlayers: MatchPlayer[] = [
       makeTestPlayer({
         id: 'p0',
         name: 'Bạn',

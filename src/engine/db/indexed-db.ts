@@ -330,11 +330,27 @@ export async function dbGetGameSettings(): Promise<Record<string, unknown> | nul
   try {
     const db = getGameDB();
     const record = await db.game_settings.get('current');
-    if (record?.data) {
+    if (record?.data && typeof record.data === 'object') {
+      const rawObj = record.data;
+      // Bẫy lỗi: Nếu dữ liệu bị lẫn GameSettings (bàn cờ) thay vì SavedSettings (thiết lập người dùng)
+      if ('mode' in rawObj && !('autoSortEnabled' in rawObj)) {
+        console.warn('[dbGetGameSettings] Phát hiện dữ liệu bàn cờ bị ghi đè nhầm vào settings, bỏ qua để bảo vệ dữ liệu người dùng');
+        return memoryStore.game_settings;
+      }
+
       const parsed = SavedSettingsSchema.safeParse(record.data);
       if (parsed.success) {
         memoryStore.game_settings = parsed.data;
         return parsed.data;
+      } else {
+        // Phục hồi an toàn: nếu chỉ có 1 trường lạ/bị lỗi, không làm mất toàn bộ thiết lập
+        const defaults = SavedSettingsSchema.parse({});
+        const recovered = { ...defaults, ...rawObj };
+        const secondAttempt = SavedSettingsSchema.safeParse(recovered);
+        if (secondAttempt.success) {
+          memoryStore.game_settings = secondAttempt.data;
+          return secondAttempt.data;
+        }
       }
     }
     return memoryStore.game_settings;
@@ -344,6 +360,11 @@ export async function dbGetGameSettings(): Promise<Record<string, unknown> | nul
 }
 
 export async function dbSaveGameSettings(settings: Record<string, unknown>): Promise<void> {
+  // Tuyệt đối chặn không cho phép ghi GameSettings (bàn đấu) vào key 'current' của thiết lập người dùng
+  if (typeof settings === 'object' && settings !== null && 'mode' in settings && !('autoSortEnabled' in settings)) {
+    console.error('[dbSaveGameSettings] Bị gọi nhầm với GameSettings của bàn đấu! Đã chặn để bảo vệ thiết lập người dùng.');
+    return;
+  }
   memoryStore.game_settings = settings;
   try {
     const db = getGameDB();

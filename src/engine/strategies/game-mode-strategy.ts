@@ -1,6 +1,6 @@
 import { 
   GameSettings, 
-  Player, 
+  MatchPlayer, 
   GameRules, 
   GameRulesBuilder,
   normalizePlayerCount,
@@ -51,7 +51,7 @@ export interface MatchSetupResult {
   botPersonaIds: [string, string, string];
   customBotConfigs: [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>];
   playerCount: number;
-  initialPlayers: Player[];
+  initialPlayers: MatchPlayer[];
 }
 
 /**
@@ -60,8 +60,8 @@ export interface MatchSetupResult {
  * Toàn bộ dữ liệu tại thời điểm kết toán phải là non-nullable, không fallback.
  */
 export interface MatchSettlementContext {
-  readonly players: readonly Player[];
-  readonly winners: readonly Player[];
+  readonly players: readonly MatchPlayer[];
+  readonly winners: readonly MatchPlayer[];
   readonly betAmount: number;
   readonly subjectPlayerId: string; // ✅ Non-nullable: ID cụ thể của người chơi được kết toán
   readonly playerElos: Readonly<Record<string, number>>;
@@ -100,8 +100,8 @@ function buildInitialPlayers(
   botPersonaIds: [string, string, string],
   playerCount: number,
   betAmount: number = 100
-): Player[] {
-  const players: Player[] = [
+): MatchPlayer[] {
+  const players: MatchPlayer[] = [
     createPlayer({
       id: profile.id,
       name: (profile.name && !profile.name.startsWith('usr_')) ? profile.name : 'Bạn (Người Chơi)',
@@ -569,18 +569,18 @@ export function getGameModeStrategy(strategyId: string): GameModeStrategy {
 
 /**
  * Định vị Strategy chính xác nhất cho phiên đấu hiện tại
- * @param activeGameType 'QUICK' | 'CAMPAIGN' | 'CUSTOM'
+ * @param activeGameType 'QUICK' | 'CAMPAIGN' | 'ONLINE'
  * @param customMode 'TRADITIONAL' | 'COUNT_CARDS' | 'WINNER_TAKES_ALL'
  */
 export function resolveStrategyForMatch(
-  activeGameType: 'QUICK' | 'CAMPAIGN' | 'CUSTOM' | string,
+  activeGameType: 'QUICK' | 'CAMPAIGN' | 'ONLINE' | string,
   customMode: GameSettlementRule | string = 'COUNT_CARDS'
 ): GameModeStrategy {
   switch (activeGameType) {
     case 'CAMPAIGN':
       return GAME_MODE_STRATEGIES.CAMPAIGN;
     case 'QUICK':
-    case 'CUSTOM':
+    case 'ONLINE':
     default:
       if (customMode === 'COUNT_CARDS') {
         return GAME_MODE_STRATEGIES.COUNT_CARDS;

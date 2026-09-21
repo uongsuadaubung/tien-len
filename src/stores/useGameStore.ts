@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Player, PlayedMove } from '../engine/types';
+import type { MatchPlayer, PlayedMove } from '../engine/types';
 import type { MatchState } from '../engine/state-machine/types';
 import type { GameStoreState } from './game/types';
 import { createTableConfigSlice } from './game/tableConfigSlice';
@@ -40,7 +40,7 @@ export const selectCurrentMove = (state: GameStoreState): PlayedMove | null =>
         : (state.matchState.status === 'ROUND_ENDED' && state.matchState.lastRoundMoves.length > 0
             ? state.matchState.lastRoundMoves[state.matchState.lastRoundMoves.length - 1]
             : null));
-export const selectWinners = (state: GameStoreState): readonly Player[] =>
+export const selectWinners = (state: GameStoreState): readonly MatchPlayer[] =>
   state.matchState.status === 'GAME_OVER'
     ? state.matchState.winners
     : (state.matchState.status === 'INSTANT_WIN' ? [state.matchState.instantWinner] : []);

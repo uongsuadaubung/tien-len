@@ -271,8 +271,9 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
   }, [createRoom, profile, tableConfig, currentSettlementRule, isPublicRoom]);
 
   const handleJoin = useCallback(() => {
-    if (inputPin.trim().length === 0) return;
-    const code = inputPin.toUpperCase().startsWith('TL-') ? inputPin.trim() : `TL-${inputPin.trim()}`;
+    const raw = inputPin.trim().toUpperCase();
+    if (raw.length === 0) return;
+    const code = raw.startsWith('TL-') ? raw : `TL-${raw}`;
     joinRoom(profile, code);
   }, [inputPin, joinRoom, profile]);
 

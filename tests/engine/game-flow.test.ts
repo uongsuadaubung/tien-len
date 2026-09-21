@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import { parseCard, parseCards } from '../../src/engine/card';
 import { GameEngine } from '../../src/engine/game';
-import { Player } from '../../src/engine/types';
+import { MatchPlayer } from '../../src/engine/types';
 import { CardTracker } from '../../src/ai/card-tracker';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 
-const createMockPlayers = (): Player[] => [
+const createMockPlayers = (): MatchPlayer[] => [
   createPlayer({ id: 'p1', name: 'Người Chơi', avatar: 'user', score: 1000 }),
   createBotPlayer('p2', null, { name: 'Bé Năm', avatar: 'bot1', score: 1000 }),
   createBotPlayer('p3', null, { name: 'Chú Bảy', avatar: 'bot2', score: 1000 }),

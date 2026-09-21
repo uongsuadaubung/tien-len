@@ -26,10 +26,20 @@ export const OnlinePlayerSchema = z.object({
   coins: z.number().default(50000),
   isHost: z.boolean().default(false),
   isReady: z.boolean().default(false),
-  isBot: z.boolean().default(false)
+  isBot: z.boolean().default(false),
+  isDisconnected: z.boolean().optional(),
+  disconnectDeadline: z.number().nullable().optional()
 });
 
 export type OnlinePlayer = z.infer<typeof OnlinePlayerSchema>;
+
+export const ReconnectNoticeSchema = z.object({
+  playerId: z.string(),
+  playerName: z.string(),
+  deadline: z.number()
+});
+
+export type ReconnectNotice = z.infer<typeof ReconnectNoticeSchema>;
 
 export const RoomStatusSchema = z.enum(['WAITING', 'STARTING', 'PLAYING', 'ENDED', 'DISBANDED']);
 export type RoomStatus = z.infer<typeof RoomStatusSchema>;
@@ -137,7 +147,11 @@ export const TableStateSyncPacketSchema = z.object({
   gameNumber: z.number().default(1),
   isFirstMoveOfGame: z.boolean().optional(),
   firstMoveRequiredCard: NetworkCardSchema.nullable().optional(),
-  isLeadMove: z.boolean().optional()
+  isLeadMove: z.boolean().optional(),
+  isDealing: z.boolean().optional(),
+  dealBanner: z.string().nullable().optional(),
+  dealtCounts: z.record(z.string(), z.number()).optional(),
+  reconnectNotice: ReconnectNoticeSchema.nullable().optional()
 });
 
 export type TableStateSyncPacket = z.infer<typeof TableStateSyncPacketSchema>;

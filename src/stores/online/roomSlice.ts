@@ -13,21 +13,36 @@ import { useGameStore } from '../useGameStore';
 import { useViewStore } from '../useViewStore';
 import { useUserStore } from '../useUserStore';
 import { 
-  type Player, 
+  type MatchPlayer, 
   GameRulesBuilder,
   type ChoppingRulesBuilder,
   type CongRulesBuilder,
   type GameFlowRulesBuilder,
   type TableRulesBuilder
 } from '../../engine/types';
-import { loadPlayerProfile } from '../../engine/storage';
+import { loadPlayerProfile, saveActiveOnlineSession, clearActiveOnlineSession } from '../../engine/storage';
 import { createPlayer } from '../../engine/player-factory';
 import { applyAuthoritativeSettlementToProfile } from '../../services/match-settlement-service';
 import { createPerspectiveSettlement } from '../../engine/settlement/perspective-settlement';
 import { type PlayingTurnMatchState, type GameOverMatchState, createPlayingTurnMatchState } from '../../engine/state-machine/types';
 import { type RoomSlice, type OnlineSliceCreator } from './types';
-import { GuestEngineDriver } from '../../engine/network/guest-engine-driver';
+import { P2PClientTransport, P2PHostPeerTransport } from '../../engine/transport/p2p-transport';
+import { ClientSession } from '../../engine/presentation/client-session';
 import { appFlowCoordinator } from '../../services/app-flow-coordinator';
+
+let activeJoinRetryTimer: ReturnType<typeof setInterval> | null = null;
+let activeJoinSafetyTimeout: ReturnType<typeof setTimeout> | null = null;
+
+function clearJoinTimers(): void {
+  if (activeJoinRetryTimer) {
+    clearInterval(activeJoinRetryTimer);
+    activeJoinRetryTimer = null;
+  }
+  if (activeJoinSafetyTimeout) {
+    clearTimeout(activeJoinSafetyTimeout);
+    activeJoinSafetyTimeout = null;
+  }
+}
 
 export function generateRoomPin(existingRooms: readonly PublicRoomSummary[] = []): string {
   const existingCodes = new Set(existingRooms.map(r => r.roomCode.toUpperCase().trim()));
@@ -94,6 +109,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
   myPlayerId: loadPlayerProfile().id,
   connectionStatus: 'IDLE',
   disbandNotice: null,
+  reconnectNotice: null,
   publicRooms: [],
   isBrowsingLobby: false,
   isLobbyLoading: false,
@@ -193,10 +209,56 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       syncLobbyBroadcast(initialRoomState);
     }
 
+    // Host chủ động phát sóng roomState ngay khi có máy khách kết nối phòng qua Supabase Realtime (Peer Join)
+    globalP2PClient.onPeerJoin((peerId) => {
+      const current = get().roomState;
+      if (current && current.status === 'WAITING') {
+        void globalP2PClient.broadcastRoomState(current, peerId);
+      }
+    });
+
     // Host lắng nghe yêu cầu tham gia của các máy khách
     globalP2PClient.onJoinRequest((incomingPlayer, peerId) => {
       const current = get().roomState;
-      if (!current || current.status !== 'WAITING') return;
+      if (!current) return;
+
+      // Xử lý Reconnect khi trận đấu đang diễn ra (PLAYING)
+      if (current.status === 'PLAYING') {
+        const { hostDriver } = get();
+        const existingPlayer = current.players.find(p => p.playerId === incomingPlayer.playerId);
+        if (existingPlayer && hostDriver) {
+          const updatedPlayers = current.players.map(p => {
+            if (p.playerId === incomingPlayer.playerId) {
+              return {
+                ...p,
+                peerId,
+                isDisconnected: false,
+                disconnectDeadline: null
+              };
+            }
+            return p;
+          });
+          const reconnectedRoom: OnlineRoomState = {
+            ...current,
+            players: updatedPlayers,
+            updatedAt: Date.now()
+          };
+          set({ roomState: reconnectedRoom, reconnectNotice: null });
+          void globalP2PClient.broadcastRoomState(reconnectedRoom);
+
+          const newHostPeerTransport = new P2PHostPeerTransport(globalP2PClient, peerId, incomingPlayer.playerId);
+          hostDriver.handlePlayerReconnect(incomingPlayer.playerId, newHostPeerTransport);
+          return;
+        }
+      }
+
+      if (current.status !== 'WAITING') return;
+
+      const existingPlayer = current.players.find(p => p.peerId === peerId);
+      if (existingPlayer) {
+        void globalP2PClient.broadcastRoomState(current, peerId);
+        return;
+      }
 
       if (current.players.length >= current.playerCount) {
         return; // Phòng đã đầy
@@ -309,7 +371,11 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
   },
 
   joinRoom: (profile, roomCode) => {
-    const formattedCode = roomCode.toUpperCase().trim();
+    clearJoinTimers();
+    let formattedCode = roomCode.toUpperCase().trim();
+    if (!formattedCode.startsWith('TL-') && /^[A-Z0-9]{4}$/.test(formattedCode)) {
+      formattedCode = `TL-${formattedCode}`;
+    }
     globalP2PClient.join(formattedCode);
 
     useGameStore.setState({
@@ -381,6 +447,16 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       const myId = me ? me.playerId : get().myPlayerId;
       const isPlaying = roomState.status === 'PLAYING';
 
+      // Nếu nhận roomState từ Host nhưng mình chưa được ghi nhận vào danh sách players
+      if (!me && roomState.status === 'WAITING' && roomState.players.length < roomState.playerCount) {
+        void globalP2PClient.sendJoinRequest(candidatePlayer, roomState.hostPeerId);
+        void globalP2PClient.sendJoinRequest(candidatePlayer);
+      }
+
+      if (me) {
+        clearJoinTimers();
+      }
+
       useGameStore.setState({
         myPlayerId: myId,
         activeGameType: 'ONLINE'
@@ -407,24 +483,18 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       });
 
       if (roomState.status === 'PLAYING') {
+        saveActiveOnlineSession({
+          roomCode: roomState.roomCode,
+          playerId: myId,
+          savedAt: Date.now()
+        });
+
         const gameStore = useGameStore.getState();
         useViewStore.getState().closeModal('ONLINE_ROOM');
         useViewStore.getState().closeModal('VICTORY');
 
-        if (!get().isHost && !get().guestDriver) {
-          const guestDriver = new GuestEngineDriver({
-            p2pClient: globalP2PClient,
-            myPlayerId: myId
-          });
-          set({ guestDriver });
-        }
-
-        const currentPlayersMap = new Map(gameStore.players.map(p => [p.id, p]));
-
-        const initialPlayers: Player[] = roomState.players.map(p => {
-          const existing = currentPlayersMap.get(p.playerId);
-          const hand = existing ? existing.hand : [];
-          return createPlayer({ id: p.playerId, name: p.name, avatar: p.avatar, score: p.coins, hand });
+        const initialPlayers: MatchPlayer[] = roomState.players.map(p => {
+          return createPlayer({ id: p.playerId, name: p.name, avatar: p.avatar, score: p.coins, hand: [] });
         });
 
         const customRules = new GameRulesBuilder()
@@ -459,6 +529,43 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         gameStore.setIsDealing(false);
         gameStore.setCurrentScreen('GAME_TABLE');
         gameStore.setActiveGameType('ONLINE');
+
+        if (!get().isHost && roomState.hostPeerId) {
+          const clientTransport = new P2PClientTransport(globalP2PClient, roomState.hostPeerId);
+          const clientSession = new ClientSession({
+            localPlayerId: myId,
+            transport: clientTransport,
+            gameRules: customRules,
+            initialPlayers,
+            activeGameType: 'ONLINE'
+          });
+
+          clientSession.subscribeFrame(frame => {
+            const store = useGameStore.getState();
+            const myCards = frame.myHand.map(h => h.card);
+            store.setGameNumber(frame.gameNumber);
+            store.setIsDealing(frame.isDealing);
+            store.setDealtCounts(frame.dealtCounts);
+            const matchState = clientSession.getLatestMatchState();
+            store.applyMatchState(matchState);
+            store.setPlayers(prevPlayers => {
+              return prevPlayers.map(p => {
+                if (p.id === frame.localPlayerId) {
+                  return { ...p, hand: myCards };
+                }
+                if (matchState.status === 'GAME_OVER') {
+                  const revealedPlayer = matchState.players.find(mp => mp.id === p.id);
+                  if (revealedPlayer && revealedPlayer.hand && revealedPlayer.hand.length > 0) {
+                    return { ...p, hand: revealedPlayer.hand };
+                  }
+                }
+                return p;
+              });
+            });
+          });
+
+          appFlowCoordinator.setActiveSession(clientSession);
+        }
       }
     });
 
@@ -508,16 +615,42 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         return { ...p, hand: [] };
       });
 
-      if (!get().isHost) {
-        let guestDriver = get().guestDriver;
-        if (!guestDriver) {
-          guestDriver = new GuestEngineDriver({
-            p2pClient: globalP2PClient,
-            myPlayerId: myId
+      if (!get().isHost && !appFlowCoordinator.getActiveSession()) {
+        const hostPeerId = room?.hostPeerId || 'host';
+        const clientTransport = new P2PClientTransport(globalP2PClient, hostPeerId);
+        const clientSession = new ClientSession({
+          localPlayerId: myId,
+          transport: clientTransport,
+          gameRules: gameStore.gameRules,
+          initialPlayers: currentPlayers,
+          activeGameType: 'ONLINE'
+        });
+
+        clientSession.subscribeFrame(frame => {
+          const store = useGameStore.getState();
+          const myCards = frame.myHand.map(h => h.card);
+          store.setGameNumber(frame.gameNumber);
+          store.setIsDealing(frame.isDealing);
+          store.setDealtCounts(frame.dealtCounts);
+          const matchState = clientSession.getLatestMatchState();
+          store.applyMatchState(matchState);
+          store.setPlayers(prevPlayers => {
+            return prevPlayers.map(p => {
+              if (p.id === frame.localPlayerId) {
+                return { ...p, hand: myCards };
+              }
+              if (matchState.status === 'GAME_OVER') {
+                const revealedPlayer = matchState.players.find(mp => mp.id === p.id);
+                if (revealedPlayer && revealedPlayer.hand && revealedPlayer.hand.length > 0) {
+                  return { ...p, hand: revealedPlayer.hand };
+                }
+              }
+              return p;
+            });
           });
-          set({ guestDriver });
-        }
-        appFlowCoordinator.setActiveDriver(guestDriver);
+        });
+
+        appFlowCoordinator.setActiveSession(clientSession);
       }
 
       const isFirstMoveOfGame = dealPacket.isFirstMoveOfGame ?? false;
@@ -579,12 +712,16 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
 
     // Client lắng nghe đồng bộ bàn đấu công khai từ Host (Authoritative Single Source of Truth)
     globalP2PClient.onTableSync((sync: TableStateSyncPacket) => {
-      set({ lastTableSync: sync });
+      set({ 
+        lastTableSync: sync,
+        reconnectNotice: sync.reconnectNotice ?? null
+      });
       useGameStore.getState().applyAuthoritativeTableSync(sync);
     });
 
     // Client lắng nghe gói tin kết thúc ván đấu & kết toán
     globalP2PClient.onGameEnd((endPacket: GameEndPacket) => {
+      clearActiveOnlineSession();
       set({ gameEndSummary: endPacket });
       const gameStore = useGameStore.getState();
 
@@ -628,7 +765,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       const winningPlayers = endPacket.winners.length > 0
         ? endPacket.winners
             .map(id => updatedPlayers.find(p => p.id === id))
-            .filter((p): p is Player => p !== undefined && p !== null)
+            .filter((p): p is MatchPlayer => p !== undefined && p !== null)
         : [];
 
       if (winningPlayers.length > 0) {
@@ -699,14 +836,43 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       set(s => ({ chatMessages: [...s.chatMessages.slice(-50), chat] }));
     });
 
-    // Handshake
-    globalP2PClient.onPeerJoin(() => {
+    // Handshake đa tầng
+    globalP2PClient.onPeerJoin((peerId) => {
+      void globalP2PClient.sendJoinRequest(candidatePlayer, peerId);
       void globalP2PClient.sendJoinRequest(candidatePlayer);
     });
 
-    setTimeout(() => {
-      void globalP2PClient.sendJoinRequest(candidatePlayer);
-    }, 500);
+    // Thử gửi ngay 1 lần lập tức và định kỳ mỗi 1000ms tối đa 8 lần nếu chưa được ghi nhận vào phòng
+    void globalP2PClient.sendJoinRequest(candidatePlayer);
+    let attempts = 0;
+    activeJoinRetryTimer = setInterval(() => {
+      attempts++;
+      const current = get();
+      const meInRoom = current.roomState?.players.some(p => p.peerId === globalP2PClient.selfPeerId);
+      if (!meInRoom && current.isOnlineMatch && !current.isHost && attempts <= 8) {
+        void globalP2PClient.sendJoinRequest(candidatePlayer);
+      } else {
+        if (activeJoinRetryTimer) {
+          clearInterval(activeJoinRetryTimer);
+          activeJoinRetryTimer = null;
+        }
+      }
+    }, 1000);
+
+    // Timer an toàn 25s nếu không kết nối được tới Host
+    activeJoinSafetyTimeout = setTimeout(() => {
+      const current = get();
+      if (current.sessionState.status === 'CONNECTING' && current.roomState === null && !current.isHost) {
+        set({
+          connectionStatus: 'DISCONNECTED',
+          disbandNotice: {
+            title: 'KẾT NỐI KHÔNG THÀNH CÔNG',
+            message: 'Không tìm thấy phòng hoặc không thể kết nối tới chủ bàn. Vui lòng kiểm tra lại mã PIN và đảm bảo chủ phòng đang mở bàn!'
+          }
+        });
+        current.leaveRoom();
+      }
+    }, 25000);
   },
 
   removeSlot: (slotIdx: number) => {
@@ -738,19 +904,19 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
     set({ disbandNotice: null });
   },
 
+  clearReconnectNotice: () => {
+    set({ reconnectNotice: null });
+  },
+
   leaveRoom: () => {
+    clearJoinTimers();
+    clearActiveOnlineSession();
     globalLobbyDiscoveryClient.stopBroadcasting();
-    const { isHost, hostDriver, guestDriver, roomState } = get();
-    if (isHost && hostDriver && roomState && roomState.status !== 'DISBANDED') {
-      hostDriver.disbandRoom('Chủ phòng đã giải tán bàn chơi.');
+    const { isHost, hostInstance, roomState } = get();
+    if (isHost && hostInstance && roomState && roomState.status !== 'DISBANDED') {
+      hostInstance.dispose();
     }
-    if (hostDriver) {
-      hostDriver.cleanup();
-    }
-    if (guestDriver) {
-      guestDriver.cleanup();
-    }
-    appFlowCoordinator.setActiveDriver(null);
+    appFlowCoordinator.setActiveSession(null);
     globalP2PClient.leave();
 
     const defaultProfileId = loadPlayerProfile().id;
@@ -773,8 +939,9 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       chatMessages: [],
       lastTableSync: null,
       gameEndSummary: null,
-      hostDriver: null,
-      guestDriver: null
+      reconnectNotice: null,
+      hostInstance: null,
+      hostDriver: null
     });
   }
 });

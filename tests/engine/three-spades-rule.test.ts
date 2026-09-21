@@ -2,7 +2,7 @@ import { describe, test, expect } from 'bun:test';
 import { createCard } from '../../src/engine/card';
 import { GameEngine } from '../../src/engine/game';
 import { calculateCountCardsSettlement, calculateWinnerTakesAllSettlement, calculateTraditionalSettlement } from '../../src/engine/economy';
-import { Player, createDefaultGameRules, GameRulesBuilder } from '../../src/engine/types';
+import { MatchPlayer, createDefaultGameRules, GameRulesBuilder } from '../../src/engine/types';
 import { GameFlowRuleStrategyBuilder, RuleDecisionContext } from '../../src/ai/rule-strategies';
 import { CardTracker } from '../../src/ai/card-tracker';
 import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
@@ -14,7 +14,7 @@ describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)',
   const card5H = createCard(5, 'HEARTS');
   const card2H = createCard(15, 'HEARTS');
 
-  function createTestPlayers(): Player[] {
+  function createTestPlayers(): MatchPlayer[] {
     return [
       createPlayer({ id: 'p0', name: 'Người Chơi', score: 10000, hasPlayedFirstCard: true }),
       createBotPlayer('p1', null, { name: 'Bot 1', score: 10000, hasPlayedFirstCard: true }),

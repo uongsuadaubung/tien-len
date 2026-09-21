@@ -5,7 +5,7 @@ import {
   assertEconomicBalance,
   InvariantViolationError
 } from '../../src/engine/invariants/match-invariants';
-import type { MatchSnapshot } from '../../src/engine/offline-match-driver';
+import type { MatchSnapshot } from '../../src/engine/session-types';
 
 describe('State Invariants & Runtime Assertions (Kiểm Thử Chốt Chặn Toàn Vẹn)', () => {
   describe('1. Chốt chặn 1: assertValidMatchStartup', () => {
@@ -94,10 +94,10 @@ describe('State Invariants & Runtime Assertions (Kiểm Thử Chốt Chặn Toà
     const createBaseSnapshot = (): MatchSnapshot => ({
       gameNumber: 1,
       players: [
-        { id: 'p0', name: 'User', avatar: '😎', hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, score: 0, isBot: false },
-        { id: 'p1', name: 'Bot 1', avatar: '🤖', hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, score: 0, isBot: true, botPersonaId: 'BOT_ELO_850' },
-        { id: 'p2', name: 'Bot 2', avatar: '🦊', hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, score: 0, isBot: true, botPersonaId: 'BOT_ELO_1150' },
-        { id: 'p3', name: 'Bot 3', avatar: '🦁', hand: [], playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, score: 0, isBot: true, botPersonaId: 'BOT_ELO_1450' }
+        { id: 'p0', name: 'User', avatar: '😎', hand: [], cardCount: 0, playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, score: 0, isBot: false },
+        { id: 'p1', name: 'Bot 1', avatar: '🤖', hand: [], cardCount: 0, playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, score: 0, isBot: true, botPersonaId: 'BOT_ELO_850' },
+        { id: 'p2', name: 'Bot 2', avatar: '🦊', hand: [], cardCount: 0, playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, score: 0, isBot: true, botPersonaId: 'BOT_ELO_1150' },
+        { id: 'p3', name: 'Bot 3', avatar: '🦁', hand: [], cardCount: 0, playedCards: [], isPassedCurrentRound: false, hasPlayedFirstCard: false, score: 0, isBot: true, botPersonaId: 'BOT_ELO_1450' }
       ],
       currentTurnPlayerId: 'p0',
       leadPlayerId: 'p0',

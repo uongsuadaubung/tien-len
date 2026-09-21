@@ -408,23 +408,28 @@ export const ECOSYSTEM_CONSTANTS = {
 
 ---
 
-## 11. HỢP ĐỒNG ĐIỀU KHIỂN BÀN ĐẤU & STATE PATTERN (`IMatchDriver` & `MatchState`)
+## 11. KIẾN TRÚC MÁY CHỦ LUẬT DUY NHẤT & STATE PATTERN (`AuthoritativeMatchHost` & `ClientSession`)
 
-### 11.1. `IMatchDriver` ([`src/engine/match-driver.interface.ts`](../src/engine/match-driver.interface.ts))
-Hợp đồng trừu tượng hóa điều khiển bàn đấu thống nhất cho cả `OfflineMatchDriver` và `HostEngineDriver`:
+### 11.1. `AuthoritativeMatchHost` & `ClientSession`
+Kiến trúc Unified Listen Server thống nhất 100% logic cho cả Offline (RAM) lẫn Online (Supabase Realtime):
 
 ```typescript
-export interface DriverActionResult {
-  success: boolean;
-  reason?: string;
-  error?: string;
+// src/engine/server/match-host.ts (Single Source of Truth)
+export class AuthoritativeMatchHost {
+  public readonly engine: GameEngine;
+  public readonly hostPlayerId: string;
+  public startMatch(roundNumber?: number, preserveWinnerId?: string | null): void;
+  public playCards(playerId: string, cards: Card[]): { success: boolean; error?: string };
+  public dealCardStep(playerIndex: number, currentCardCount: number): void;
+  public finishDealing(): void;
+  public dispose(): void;
 }
 
-export interface IMatchDriver {
-  readonly gameNumber: number;
-  playCards(playerId: string, cards: Card[]): DriverActionResult;
-  passTurn(playerId: string): DriverActionResult;
-  cleanup(): void;
+// src/engine/presentation/client-session.ts (Dumb View Controller)
+export class ClientSession implements IGameSession {
+  public sendIntent(intent: UserIntent): void; // TOGGLE_CARD_SELECT, SUBMIT_PLAY, SUBMIT_PASS, SORT_HAND, REORDER_HAND
+  public subscribeFrame(listener: (frame: TableRenderFrame) => void): () => void;
+  public dispose(): void;
 }
 ```
 

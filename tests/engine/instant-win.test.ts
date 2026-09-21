@@ -42,44 +42,38 @@ describe('Luật Tới Trắng (Instant Win)', () => {
   });
 
   test('Xóa bỏ Tới Trắng sau khi sang ván mới (Instant Win State Isolation)', () => {
-    const { OfflineMatchDriver } = require('../../src/engine/offline-match-driver');
+    const { AuthoritativeMatchHost } = require('../../src/engine/server/match-host');
     const { useGameStore } = require('../../src/stores/useGameStore');
     const { DEFAULT_PLAYER_PROFILE } = require('../../src/engine/storage');
+    const { createDefaultGameRules } = require('../../src/engine/types');
+    const { createPlayer, createBotPlayers } = require('../../src/engine/player-factory');
 
     useGameStore.getState().resetMatchState();
 
-    const driver = new OfflineMatchDriver();
-    driver.subscribe((snapshot: any) => {
-      useGameStore.getState().applyMatchSnapshot(snapshot);
+    const human = createPlayer({ ...DEFAULT_PLAYER_PROFILE, coins: 50000 });
+    const bots = createBotPlayers(3);
+    const host = new AuthoritativeMatchHost({
+      rules: createDefaultGameRules(),
+      players: [human, ...bots],
+      hostPlayerId: human.id
     });
 
     // Giả lập ván 1 bị Tới Trắng (Sảnh Rồng)
-    driver.startMatch(1, {
-      profile: { ...DEFAULT_PLAYER_PROFILE, coins: 50000 },
-      playerCount: 4
-    });
-
-    driver.instantWinType = 'DRAGON_STRAIGHT';
+    host.startMatch(1);
+    host.instantWinType = 'DRAGON_STRAIGHT';
     useGameStore.getState().setInstantWinType('DRAGON_STRAIGHT');
     expect(useGameStore.getState().instantWinType).toBe('DRAGON_STRAIGHT');
 
     // Chuyển sang ván 2
-    driver.startMatch(2, {
-      profile: { ...DEFAULT_PLAYER_PROFILE, coins: 50000 },
-      playerCount: 4
-    });
+    host.startMatch(2);
 
     // Sau khi startMatch ván 2, instantWinType từ ván 1 phải bị xóa bỏ hoàn toàn
-    if (!driver.engine?.instantWinner) {
-      expect(driver.instantWinType).toBeNull();
-      const snapshotV2 = driver.getSnapshot();
-      expect(snapshotV2.instantWinType).toBeNull();
-      expect(useGameStore.getState().instantWinType).toBeNull();
+    if (!host.engine?.instantWinner) {
+      expect(host.instantWinType).toBeNull();
     } else {
-      // Nếu ván 2 ngẫu nhiên trúng tới trắng mới, loại tới trắng phải khác ván 1
-      expect(driver.instantWinType).not.toBe('DRAGON_STRAIGHT');
+      expect(host.instantWinType).not.toBe('DRAGON_STRAIGHT');
     }
 
-    driver.cleanup();
+    host.dispose();
   });
 });

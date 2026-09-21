@@ -1,8 +1,6 @@
-import { 
-  OfflineMatchDriver, 
-  type MatchCompletionResult, 
-  type TableSessionConfig 
-} from '../engine/offline-match-driver';
+import type { 
+  TableSessionConfig 
+} from '../engine/session-types';
 import { useViewStore } from '../stores/useViewStore';
 import { useGameStore } from '../stores/useGameStore';
 import { useUserStore } from '../stores/useUserStore';
@@ -15,7 +13,8 @@ import {
   type GameRules, 
   type GameSettings, 
   type DeepPartial, 
-  type Card
+  type Card,
+  type MatchPlayer
 } from '../engine/types';
 import { resolveStrategyForMatch } from '../engine/strategies/game-mode-strategy';
 import { calculateRequiredDeposit, ECONOMY_CONSTANTS } from '../engine/constants/economy';
@@ -32,15 +31,34 @@ import type { CampaignChapter } from '../engine/campaign';
 import type { CustomGameModalConfig } from '../ui/web/modals/CustomGameModal';
 import type { BotConfig } from '../ai/types';
 import { assertValidMatchStartup } from '../engine/invariants/match-invariants';
-import { settleCompletedMatch } from './match-settlement-service';
 import { CardTracker } from '../ai/card-tracker';
-import { dbSaveGameSettings } from '../engine/db/indexed-db';
-import type { IMatchDriver } from '../engine/match-driver.interface';
+import { AuthoritativeMatchHost } from '../engine/server/match-host';
+import { BotAgent } from '../engine/server/bot-agent';
+import { ClientSession } from '../engine/presentation/client-session';
+import { createMemoryDuplexTransport } from '../engine/transport/memory-transport';
+import { soundManager } from '../ui/audio/sound-manager';
+import { GameEngine } from '../engine/game';
+import { createBotPlayer, createMatchPlayerFromProfile } from '../engine/player-factory';
+import { generateRealisticBotBankroll } from '../ai/bot-factory';
+import type { IGameSession } from '../engine/presentation/game-session.interface';
+
+export interface AppFlowDriver {
+  tableConfig: TableSessionConfig;
+  engine: GameEngine;
+  rules: GameRules;
+  gameNumber: number;
+  localPlayerId: string;
+  startRound: (gameNum: number, preserveWinnerId?: string | null) => void;
+  cleanup: () => void;
+}
 
 export class AppFlowCoordinator {
   private static instance: AppFlowCoordinator | null = null;
-  public driver: OfflineMatchDriver | null = null;
-  private activeDriver: IMatchDriver | null = null;
+  public driver: AppFlowDriver | null = null;
+  public activeSession: IGameSession | null = null;
+  public activeHost: AuthoritativeMatchHost | null = null;
+  public activeBots: BotAgent[] = [];
+  public currentTableConfig: TableSessionConfig | null = null;
 
   public static getInstance(): AppFlowCoordinator {
     if (!AppFlowCoordinator.instance) {
@@ -49,17 +67,15 @@ export class AppFlowCoordinator {
     return AppFlowCoordinator.instance;
   }
 
-  public setActiveDriver(driver: IMatchDriver | null): void {
-    this.activeDriver = driver;
-    if (driver instanceof OfflineMatchDriver) {
-      this.driver = driver;
-    } else if (driver === null) {
-      this.driver = null;
+  public setActiveSession(session: IGameSession | null): void {
+    if (this.activeSession && this.activeSession !== session) {
+      this.activeSession.dispose();
     }
+    this.activeSession = session;
   }
 
-  public getActiveDriver(): IMatchDriver | null {
-    return this.activeDriver;
+  public getActiveSession(): IGameSession | null {
+    return this.activeSession;
   }
 
   // =========================================================================
@@ -153,7 +169,6 @@ export class AppFlowCoordinator {
 
         // Lưu cấu hình bàn chơi và GameSettings ngay khi vào trận (Zero-Fallback)
         useGameStore.getState().setGameSettings(quickSettings);
-        dbSaveGameSettings(quickSettings).catch(() => {});
 
         const strategy = resolveStrategyForMatch('QUICK', config.settlementRule);
         const setup = strategy.setupMatch({
@@ -210,7 +225,6 @@ export class AppFlowCoordinator {
       .build();
 
     useGameStore.getState().setGameSettings(campaignSettings);
-    dbSaveGameSettings(campaignSettings).catch(() => {});
 
     const setup = strategy.setupMatch({
       profile: liveProfile,
@@ -256,7 +270,6 @@ export class AppFlowCoordinator {
 
     // Lưu cấu hình vào store và IndexedDB ngay khi vào trận (Zero-Fallback Pre-initialization)
     useGameStore.getState().setGameSettings(config.settings);
-    dbSaveGameSettings(config.settings).catch(() => {});
     useGameStore.getState().setQuickTableConfig({
       playerCount: config.playerCount ?? 4,
       settlementRule,
@@ -314,7 +327,7 @@ export class AppFlowCoordinator {
           )
           .build();
 
-        const strategy = resolveStrategyForMatch('CUSTOM', config.settings.mode);
+        const strategy = resolveStrategyForMatch('QUICK', config.settings.mode);
         const setup = strategy.setupMatch({
           profile: liveProfile,
           rules: customRules,
@@ -327,7 +340,7 @@ export class AppFlowCoordinator {
         });
 
         this.startTable({
-          gameType: 'CUSTOM',
+          gameType: 'QUICK',
           rules: setup.rules,
           settings: setup.settings,
           playerCount: setup.playerCount,
@@ -360,24 +373,18 @@ export class AppFlowCoordinator {
       settings: config.settings
     });
 
-    // 1. Quản lý vòng đời Driver
-    if (this.activeDriver) {
-      this.activeDriver.cleanup();
+    this.currentTableConfig = config;
+
+    // 1. Quản lý dọn dẹp các phiên và host cũ
+    if (this.activeHost) {
+      this.activeHost.dispose();
+      this.activeHost = null;
     }
-    const settings = useSettingsStore.getState();
-    const driver = new OfflineMatchDriver({
-      gameSpeed: settings.gameSpeed,
-      autoSortEnabled: settings.autoSortEnabled
-    });
-    this.setActiveDriver(driver);
-
-    driver.subscribeMatchState((matchState) => {
-      useGameStore.getState().applyMatchState(matchState);
-    });
-
-    driver.onComplete((result: MatchCompletionResult) => {
-      settleCompletedMatch(result.engine, driver);
-    });
+    if (this.activeBots.length > 0) {
+      this.activeBots.forEach(b => b.dispose());
+      this.activeBots = [];
+    }
+    this.setActiveSession(null);
 
     // 2. Tính cọc và trừ cọc an toàn
     const multiplier = config.rules.chopping.multiplier || 1;
@@ -413,30 +420,157 @@ export class AppFlowCoordinator {
       timestamp: Date.now()
     });
 
-    // 4. Khởi tạo Bàn trong Driver
-    driver.setupTable(config, currentProfile);
+    // 4. Khởi tạo danh sách người chơi (Người chơi thật + Các Bot)
+    const initialPlayers: MatchPlayer[] = [
+      createMatchPlayerFromProfile(currentProfile)
+    ];
 
-    // 5. Đồng bộ cấu hình vào Zustand Store (Single Source of Truth)
+    for (let i = 0; i < config.playerCount - 1; i++) {
+      const personaId = config.botPersonaIds[i] || 'BOT_ELO_1150';
+      const botCfg = { ...getBotConfig(personaId), ...(config.customBotConfigs[i] || {}) };
+      const botId = `bot_${i + 1}`;
+      initialPlayers.push(
+        createBotPlayer(botId, personaId, {
+          name: botCfg.name,
+          avatar: botCfg.avatar,
+          score: generateRealisticBotBankroll(botCfg, config.settings.betAmount)
+        })
+      );
+    }
+
+    // 5. Khởi tạo AuthoritativeMatchHost (Listen Server trong RAM)
+    const host = new AuthoritativeMatchHost({
+      rules: config.rules,
+      players: initialPlayers,
+      hostPlayerId: currentProfile.id,
+      enableDealingAnimation: true
+    });
+    this.activeHost = host;
+
+    // 6. Kết nối ClientSession cho người chơi thật qua InMemoryTransport
+    const humanTransports = createMemoryDuplexTransport('HOST', currentProfile.id);
+    host.registerClient(currentProfile.id, humanTransports.hostTransport);
+
+    const clientSession = new ClientSession({
+      localPlayerId: currentProfile.id,
+      transport: humanTransports.clientTransport,
+      gameRules: config.rules,
+      initialPlayers,
+      activeGameType: config.gameType === 'CAMPAIGN' ? 'CAMPAIGN' : 'QUICK'
+    });
+    this.setActiveSession(clientSession);
+
+    // Đăng ký phát âm thanh từ ClientSession ra SoundManager
+    clientSession.subscribeAudioCue(cue => {
+      switch (cue) {
+        case 'DEAL_START': soundManager.playShuffle(); break;
+        case 'CARD_PLAY': soundManager.playCardSlap(); break;
+        case 'CHOP': soundManager.playChop(); break;
+        case 'CARD_SLIDE': soundManager.playCardDeal(); break;
+        case 'PASS': soundManager.playPass(); break;
+        case 'VICTORY': soundManager.playVictory(); break;
+        case 'DEFEAT': soundManager.playDefeat(); break;
+      }
+    });
+
+    // 7. Kết nối BotAgent độc lập cho từng Bot qua InMemoryTransport
+    for (let i = 0; i < config.playerCount - 1; i++) {
+      const botId = `bot_${i + 1}`;
+      const personaId = config.botPersonaIds[i] || 'BOT_ELO_1150';
+      const botTransports = createMemoryDuplexTransport('HOST', botId);
+      host.registerClient(botId, botTransports.hostTransport);
+
+      const botAgent = new BotAgent({
+        botId,
+        personaId,
+        customConfig: config.customBotConfigs[i],
+        transport: botTransports.clientTransport,
+        gameSpeed: () => useSettingsStore.getState().gameSpeed,
+        onThinkingChange: (bId, thought) => {
+          useGameStore.getState().setBotThinkingThought(thought ? { botId: bId, text: thought } : null);
+        }
+      });
+      this.activeBots.push(botAgent);
+    }
+
+    // 8. Đồng bộ Frame từ ClientSession sang Zustand Store cho Web UI & Modals
+    clientSession.subscribeFrame(frame => {
+      const store = useGameStore.getState();
+      const myCards = frame.myHand.map(h => h.card);
+      store.setGameNumber(frame.gameNumber);
+      store.setIsDealing(frame.isDealing);
+      store.setDealtCounts(frame.dealtCounts);
+
+      const matchState = clientSession.getLatestMatchState();
+      store.applyMatchState(matchState);
+
+      store.setPlayers(prevPlayers => {
+        return prevPlayers.map(p => {
+          if (p.id === frame.localPlayerId) {
+            return { ...p, hand: myCards };
+          }
+          if (matchState.status === 'GAME_OVER') {
+            const revealedPlayer = matchState.players.find(mp => mp.id === p.id);
+            if (revealedPlayer && revealedPlayer.hand && revealedPlayer.hand.length > 0 && revealedPlayer.hand.every(c => c !== null)) {
+              return { ...p, hand: [...revealedPlayer.hand] };
+            }
+          }
+          const seat = frame.seats.find(s => s.playerId === p.id);
+          return {
+            ...p,
+            isPassedCurrentRound: seat?.isPassed ?? false,
+            cardCount: seat?.cardCount ?? 0,
+            hand: []
+          };
+        });
+      });
+    });
+
+    // 9. Cầu nối tương thích ngược cho các test suite kiểm tra appFlowCoordinator.driver
+    this.driver = {
+      tableConfig: config,
+      engine: host.engine,
+      rules: config.rules,
+      get gameNumber() {
+        return host.gameNumber;
+      },
+      set gameNumber(val: number) {
+        host.gameNumber = val;
+      },
+      localPlayerId: currentProfile.id,
+      startRound: (gameNum: number, preserveWinnerId?: string | null) => {
+        host.startMatch(gameNum, preserveWinnerId);
+        useGameStore.getState().setGameNumber(gameNum);
+      },
+      cleanup: () => {
+        if (this.activeHost) {
+          this.activeHost.dispose();
+          this.activeHost = null;
+        }
+      }
+    };
+
+    // 10. Đồng bộ cấu hình ban đầu vào Zustand Store (Single Source of Truth)
     const gameStore = useGameStore.getState();
     gameStore.setMyPlayerId(currentProfile.id);
+    gameStore.setPlayers(initialPlayers);
     gameStore.resetMatchState();
     gameStore.setInstantWinType(undefined);
     gameStore.setActiveGameType(config.gameType === 'CAMPAIGN' ? 'CAMPAIGN' : 'QUICK');
     gameStore.setCurrentCampaignChapter(config.campaignChapter);
     gameStore.setGameRules(config.rules);
     gameStore.setGameSettings(config.settings);
-    dbSaveGameSettings(config.settings).catch(() => {});
     gameStore.setBotPersonaIds(config.botPersonaIds);
     gameStore.setCustomBotConfigs(config.customBotConfigs);
     gameStore.setPlayerCount(config.playerCount);
 
-    // 6. Đóng modal và chuyển màn hình sang bàn đấu
+    // 11. Đóng modal và chuyển màn hình sang bàn đấu
     useViewStore.getState().closeAllModals();
     gameStore.setCurrentScreen('GAME_TABLE');
     useViewStore.getState().setScreen('GAME_TABLE');
 
-    // 7. Bắt đầu ván 1
-    driver.startRound(1);
+    // 12. Host bắt đầu ván 1
+    host.startMatch(1);
   }
 
   /**
@@ -482,8 +616,19 @@ export class AppFlowCoordinator {
       return;
     }
 
+    if (this.activeHost) {
+      this.activeHost.startMatch(gameNumber, options?.preserveWinnerId);
+      if (this.driver) {
+        this.driver.gameNumber = gameNumber;
+      }
+      useGameStore.getState().setGameNumber(gameNumber);
+      return;
+    }
+
     // Nếu ván > 1 trong bàn hiện tại, trực tiếp chạy startRound
-    this.driver.startRound(gameNumber, options?.preserveWinnerId);
+    if (this.driver?.startRound) {
+      this.driver.startRound(gameNumber, options?.preserveWinnerId);
+    }
   }
 
   // =========================================================================
@@ -495,11 +640,18 @@ export class AppFlowCoordinator {
    */
   public returnToLobby(reason?: string): void {
     void reason;
-    // 1. Dọn dẹp Driver và Timers
-    if (this.activeDriver) {
-      this.activeDriver.cleanup();
-      this.setActiveDriver(null);
-    } else if (this.driver) {
+    // 1. Dọn dẹp Driver, Session, Host, Bots và Timers
+    if (this.activeHost) {
+      this.activeHost.dispose();
+      this.activeHost = null;
+    }
+    if (this.activeBots.length > 0) {
+      this.activeBots.forEach(b => b.dispose());
+      this.activeBots = [];
+    }
+    this.setActiveSession(null);
+    this.currentTableConfig = null;
+    if (this.driver) {
       this.driver.cleanup();
       this.driver = null;
     }
@@ -529,17 +681,24 @@ export class AppFlowCoordinator {
    * Bỏ cuộc giữa trận (Forfeit)
    */
   public forfeitMatch(): void {
+    if (this.activeHost) {
+      this.activeHost.dispose();
+      this.activeHost = null;
+    }
+    if (this.activeBots.length > 0) {
+      this.activeBots.forEach(b => b.dispose());
+      this.activeBots = [];
+    }
+    this.setActiveSession(null);
+    this.currentTableConfig = null;
+    if (this.driver) {
+      this.driver.cleanup();
+      this.driver = null;
+    }
+
     if (useGameStore.getState().activeGameType === 'ONLINE') {
       useOnlineStore.getState().leaveRoom();
       return;
-    }
-
-    if (this.activeDriver) {
-      this.activeDriver.cleanup();
-      this.setActiveDriver(null);
-    } else if (this.driver) {
-      this.driver.cleanup();
-      this.driver = null;
     }
 
     const session = getActiveMatchSession();
@@ -585,12 +744,12 @@ export class AppFlowCoordinator {
       return true;
     }
 
-    const driver = this.driver;
-    if (!driver || !driver.tableConfig) {
+    const tableConfig = this.currentTableConfig;
+    if (!tableConfig) {
       throw new Error('[AppFlowCoordinator] Không thể sang ván tiếp theo vì không có bàn chơi nào đang mở!');
     }
 
-    const betAmount = driver.tableConfig.settings.betAmount;
+    const betAmount = tableConfig.settings.betAmount;
     if (liveProfile.coins < betAmount && currentGameType !== 'CAMPAIGN') {
       useViewStore.getState().openModal('BANK');
       return false;
@@ -599,11 +758,11 @@ export class AppFlowCoordinator {
     useViewStore.getState().closeModal('VICTORY');
 
     // Trừ cọc cho ván mới
-    const multiplier = driver.tableConfig.rules.chopping.multiplier || 1;
+    const multiplier = tableConfig.rules.chopping.multiplier || 1;
     const targetDeposit = calculateRequiredDeposit(
       betAmount,
-      driver.tableConfig.rules.cong.multiplier ?? 1,
-      driver.tableConfig.rules.cong.enabled ?? true
+      tableConfig.rules.cong.multiplier ?? 1,
+      tableConfig.rules.cong.enabled ?? true
     );
     let actualDeposit = 0;
     if (betAmount > 0) {
@@ -616,27 +775,34 @@ export class AppFlowCoordinator {
       savePlayerProfile(updatedProfile);
     }
 
-    const nextGameNumber = driver.gameNumber + 1;
+    const nextGameNumber = (useGameStore.getState().gameNumber || 1) + 1;
     saveActiveMatchSession({
       gameId: `match_${Date.now()}`,
-      gameType: driver.tableConfig.gameType,
-      mode: driver.tableConfig.settings.mode,
+      gameType: tableConfig.gameType,
+      mode: tableConfig.settings.mode,
       gameNumber: nextGameNumber,
       depositAmount: actualDeposit,
       betAmount,
       penaltyMultiplier: multiplier,
-      activeGameType: driver.tableConfig.gameType === 'CAMPAIGN' ? 'CAMPAIGN' : 'QUICK',
-      playerCount: driver.tableConfig.playerCount,
-      isRanked: driver.tableConfig.gameType === 'QUICK',
+      activeGameType: tableConfig.gameType === 'CAMPAIGN' ? 'CAMPAIGN' : 'QUICK',
+      playerCount: tableConfig.playerCount,
+      isRanked: tableConfig.gameType === 'QUICK',
       startedAt: Date.now(),
       timestamp: Date.now()
     });
 
     const lastWinnerId = useGameStore.getState().winners[0]?.id || null;
     useGameStore.getState().setInstantWinType(undefined);
+    useGameStore.getState().setGameNumber(nextGameNumber);
 
-    // Chạy ván tiếp theo trực tiếp trong driver
-    driver.startRound(nextGameNumber, lastWinnerId);
+    if (this.activeHost) {
+      this.activeHost.startMatch(nextGameNumber, lastWinnerId || undefined);
+      if (this.driver) {
+        this.driver.gameNumber = nextGameNumber;
+      }
+      return true;
+    }
+
     return true;
   }
 
@@ -649,21 +815,11 @@ export class AppFlowCoordinator {
     const selectedIds = gameStore.selectedCardIds;
     if (selectedIds.size === 0) return false;
 
-    const driver = this.activeDriver ?? this.driver;
-    if (driver) {
-      const myPlayerId = gameStore.myPlayerId;
-      const player = gameStore.players.find(p => p.id === myPlayerId);
-      if (!player) return false;
-
-      const cardsToPlay = player.hand.filter(c => selectedIds.has(c.id));
-      if (cardsToPlay.length === 0) return false;
-
-      const res = driver.playCards(player.id, cardsToPlay);
-      if (res.success) {
-        gameStore.clearCardSelection();
-        return true;
-      }
-      return false;
+    if (this.activeSession) {
+      this.activeSession.sendIntent({ type: 'SET_SELECTED_CARDS', cardIds: Array.from(selectedIds) });
+      this.activeSession.sendIntent({ type: 'SUBMIT_PLAY' });
+      gameStore.clearCardSelection();
+      return true;
     }
 
     if (gameStore.activeGameType === 'ONLINE') {
@@ -677,15 +833,10 @@ export class AppFlowCoordinator {
 
   public passTurn(): boolean {
     const gameStore = useGameStore.getState();
-    const driver = this.activeDriver ?? this.driver;
-    if (driver) {
-      const myPlayerId = gameStore.myPlayerId;
-      const res = driver.passTurn(myPlayerId);
-      if (res.success) {
-        gameStore.clearCardSelection();
-        return true;
-      }
-      return false;
+    if (this.activeSession) {
+      this.activeSession.sendIntent({ type: 'SUBMIT_PASS' });
+      gameStore.clearCardSelection();
+      return true;
     }
 
     if (gameStore.activeGameType === 'ONLINE') {
@@ -697,47 +848,75 @@ export class AppFlowCoordinator {
     return false;
   }
 
+  public quickSelect(): boolean {
+    if (this.activeSession) {
+      this.activeSession.sendIntent({ type: 'TRIGGER_QUICK_SELECT' });
+      return true;
+    }
+    return false;
+  }
+
   public autoSortHand(): void {
-    if (this.driver) {
-      const myPlayerId = useGameStore.getState().myPlayerId || this.driver.localPlayerId;
-      this.driver.autoSort(myPlayerId);
+    if (this.activeSession) {
+      this.activeSession.sendIntent({ type: 'SORT_HAND' });
+      return;
     }
   }
 
   public finishDealing(): void {
-    if (this.driver) {
-      this.driver.finishDealing();
+    if (this.activeHost) {
+      this.activeHost.finishDealing();
+    }
+    if (this.activeSession && typeof this.activeSession.finishDealing === 'function') {
+      this.activeSession.finishDealing();
     }
   }
 
   public dealCardStep(playerIndex: number, currentCardCount: number): void {
-    if (this.driver) {
-      this.driver.dealCardStep(playerIndex, currentCardCount);
+    if (this.activeHost) {
+      this.activeHost.dealCardStep(playerIndex, currentCardCount);
+    }
+    if (this.activeSession && typeof this.activeSession.dealCardStep === 'function') {
+      this.activeSession.dealCardStep(playerIndex, currentCardCount);
     }
   }
 
   public getAiHint(playerId: string) {
-    const driver = this.activeDriver ?? this.driver;
-    return driver ? driver.getAiHint(playerId) : null;
+    if (this.activeHost) {
+      return this.activeHost.getAiHint(playerId);
+    }
+    return null;
   }
 
   public getPlayerTracker(playerId: string): CardTracker | null {
-    const driver = this.activeDriver ?? this.driver;
-    return driver !== null ? driver.getTracker(playerId) : null;
+    if (this.activeHost) {
+      return this.activeHost.getTracker(playerId);
+    }
+    return null;
   }
 
   public getValidMoves(playerId: string) {
-    return this.driver ? this.driver.getValidMoves(playerId) : [];
+    if (this.activeHost) {
+      return this.activeHost.getValidMoves(playerId);
+    }
+    return [];
   }
 
   public reorderPlayerHand(playerId: string, newHand: Card[]): boolean {
-    const driver = this.activeDriver ?? this.driver;
-    return driver ? driver.reorderPlayerHand(playerId, newHand) : false;
+    if (this.activeSession) {
+      this.activeSession.sendIntent({ type: 'REORDER_HAND', newHand });
+      return true;
+    }
+    return false;
   }
 
   public hasActiveMatch(): boolean {
-    return this.activeDriver !== null || (this.driver !== null && this.driver.engine !== null);
+    return (
+      this.activeHost !== null ||
+      this.activeSession !== null
+    );
   }
 }
 
 export const appFlowCoordinator = AppFlowCoordinator.getInstance();
+

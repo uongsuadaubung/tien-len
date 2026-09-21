@@ -1,9 +1,9 @@
-import type { Player } from './types';
+import type { MatchPlayer } from './types';
 
 export interface Solo1v1TableSeats {
   readonly isSolo1v1: true;
   readonly playerCount: 2;
-  readonly topPlayer: Player;
+  readonly topPlayer: MatchPlayer;
   readonly leftPlayer: null;
   readonly rightPlayer: null;
 }
@@ -11,17 +11,17 @@ export interface Solo1v1TableSeats {
 export interface ThreePlayerTableSeats {
   readonly isSolo1v1: false;
   readonly playerCount: 3;
-  readonly topPlayer: Player;
-  readonly leftPlayer: Player;
+  readonly topPlayer: MatchPlayer;
+  readonly leftPlayer: MatchPlayer;
   readonly rightPlayer: null;
 }
 
 export interface FourPlayerTableSeats {
   readonly isSolo1v1: false;
   readonly playerCount: 4;
-  readonly topPlayer: Player;
-  readonly leftPlayer: Player;
-  readonly rightPlayer: Player;
+  readonly topPlayer: MatchPlayer;
+  readonly leftPlayer: MatchPlayer;
+  readonly rightPlayer: MatchPlayer;
 }
 
 export type RelativeTableSeats = Solo1v1TableSeats | ThreePlayerTableSeats | FourPlayerTableSeats;
@@ -29,11 +29,11 @@ export type RelativeTableSeats = Solo1v1TableSeats | ThreePlayerTableSeats | Fou
 /**
  * Tính toán vị trí ghế tương đối theo chiều kim đồng hồ quanh bàn chơi
  * dựa trên góc nhìn (perspective) của localPlayerId.
- * Áp dụng Discriminated Union: Bàn 4 người bảo đảm 100% cả 3 vị trí (Top, Left, Right) là Player non-nullable.
+ * Áp dụng Discriminated Union: Bàn 4 người bảo đảm 100% cả 3 vị trí (Top, Left, Right) là MatchPlayer non-nullable.
  */
 export function computeRelativeTableSeats(
   localPlayerId: string,
-  players: readonly Player[]
+  players: readonly MatchPlayer[]
 ): RelativeTableSeats {
   const numPlayers = players.length;
   if (numPlayers !== 2 && numPlayers !== 3 && numPlayers !== 4) {

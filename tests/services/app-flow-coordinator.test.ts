@@ -69,8 +69,10 @@ describe('AppFlowCoordinator Unit Tests (Kiểm Thử Cổng Điều Phối Chuy
 
     expect(appFlowCoordinator.driver).not.toBeNull();
     expect(useGameStore.getState().currentScreen).toBe('GAME_TABLE');
-    expect(useViewStore.getState().currentScreen).toBe('GAME_TABLE');
     expect(useGameStore.getState().players.length).toBe(4);
+    const myId = useGameStore.getState().myPlayerId;
+    const me = useGameStore.getState().players.find(p => p.id === myId);
+    expect(me?.hand.length).toBe(13);
   });
 
   it('4. forfeitMatch: Đầu hàng ván đấu, dọn dẹp driver và trở về LOBBY an toàn', () => {

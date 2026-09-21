@@ -1,71 +1,84 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { OfflineMatchDriver } from '../../src/engine/offline-match-driver';
+import { AuthoritativeMatchHost } from '../../src/engine/server/match-host';
 import { createDefaultGameRules } from '../../src/engine/types';
 import { loadPlayerProfile } from '../../src/engine/storage';
+import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 
 describe('Dealing & Card Play Animation Integration Tests', () => {
-  describe('1. OfflineMatchDriver dealCardStep Mapping', () => {
-    let driver: OfflineMatchDriver;
-
-    beforeEach(() => {
-      driver = new OfflineMatchDriver();
-    });
-
+  describe('1. AuthoritativeMatchHost dealCardStep Mapping', () => {
     it('Cập nhật chính xác dealtCounts theo player id cho 4 người chơi', () => {
       const profile = loadPlayerProfile();
-      driver.startMatch(1, {
-        profile,
-        customRules: createDefaultGameRules({
+      const human = createPlayer(profile);
+      const bots = [
+        createBotPlayer('p1', 'BOT_ELO_850'),
+        createBotPlayer('p2', 'BOT_ELO_1150'),
+        createBotPlayer('p3', 'BOT_ELO_1450')
+      ];
+      const host = new AuthoritativeMatchHost({
+        rules: createDefaultGameRules({
           instantWin: {
             enabled: false,
             payoutMultiplier: 26
           }
         }),
-        playerCount: 4
+        players: [human, ...bots],
+        hostPlayerId: profile.id,
+        enableDealingAnimation: true
       });
 
-      expect(driver.isDealing).toBe(true);
+      host.startMatch(1);
+
+      expect(host.isDealing).toBe(true);
 
       // Mô phỏng chia từng bước cho 4 người chơi
-      driver.dealCardStep(0, 1);
-      driver.dealCardStep(1, 1);
-      driver.dealCardStep(2, 1);
-      driver.dealCardStep(3, 1);
+      host.dealCardStep(0, 1);
+      host.dealCardStep(1, 1);
+      host.dealCardStep(2, 1);
+      host.dealCardStep(3, 1);
 
-      expect(driver.dealtCounts[profile.id]).toBe(1);
-      expect(driver.dealtCounts['p1']).toBe(1);
-      expect(driver.dealtCounts['p2']).toBe(1);
-      expect(driver.dealtCounts['p3']).toBe(1);
+      expect(host.dealtCounts[profile.id]).toBe(1);
+      expect(host.dealtCounts['p1']).toBe(1);
+      expect(host.dealtCounts['p2']).toBe(1);
+      expect(host.dealtCounts['p3']).toBe(1);
 
       // Chia đến lá cuối cùng
-      driver.dealCardStep(0, 13);
-      driver.dealCardStep(1, 13);
-      driver.dealCardStep(2, 13);
-      driver.dealCardStep(3, 13);
+      host.dealCardStep(0, 13);
+      host.dealCardStep(1, 13);
+      host.dealCardStep(2, 13);
+      host.dealCardStep(3, 13);
 
-      expect(driver.dealtCounts[profile.id]).toBe(13);
-      expect(driver.dealtCounts['p1']).toBe(13);
-      expect(driver.dealtCounts['p2']).toBe(13);
-      expect(driver.dealtCounts['p3']).toBe(13);
+      expect(host.dealtCounts[profile.id]).toBe(13);
+      expect(host.dealtCounts['p1']).toBe(13);
+      expect(host.dealtCounts['p2']).toBe(13);
+      expect(host.dealtCounts['p3']).toBe(13);
+
+      host.dispose();
     });
 
     it('Cập nhật chính xác dealtCounts trong trận 1v1 (2 người chơi)', () => {
       const profile = loadPlayerProfile();
-      driver.startMatch(1, {
-        profile,
-        customRules: createDefaultGameRules(),
-        playerCount: 2
+      const human = createPlayer(profile);
+      const bot = createBotPlayer('p1', 'BOT_ELO_850');
+      const host = new AuthoritativeMatchHost({
+        rules: createDefaultGameRules(),
+        players: [human, bot],
+        hostPlayerId: profile.id,
+        enableDealingAnimation: true
       });
 
-      expect(driver.engine?.players.length).toBe(2);
+      host.startMatch(1);
 
-      driver.dealCardStep(0, 5);
-      driver.dealCardStep(1, 5);
+      expect(host.engine?.players.length).toBe(2);
 
-      expect(driver.dealtCounts[profile.id]).toBe(5);
-      expect(driver.dealtCounts['p1']).toBe(5);
+      host.dealCardStep(0, 5);
+      host.dealCardStep(1, 5);
+
+      expect(host.dealtCounts[profile.id]).toBe(5);
+      expect(host.dealtCounts['p1']).toBe(5);
+
+      host.dispose();
     });
   });
 

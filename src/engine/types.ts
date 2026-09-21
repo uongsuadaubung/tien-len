@@ -91,28 +91,81 @@ export function isGameRules(obj: unknown): obj is GameRules {
   return StrictGameRulesSchema.safeParse(obj).success;
 }
 
-export interface BasePlayer {
-  id: string;
+/**
+ * State Pattern cho Bài trên tay: Phân định rạch ròi trạng thái bài đã biết vs bài ẩn
+ */
+export interface KnownHandState {
+  readonly status: 'KNOWN';
+  readonly cards: readonly Card[];
+  readonly count: number;
+}
+
+export interface HiddenHandState {
+  readonly status: 'HIDDEN';
+  readonly count: number;
+}
+
+export type HandState = KnownHandState | HiddenHandState;
+
+export function createKnownHandState(cards: readonly Card[]): KnownHandState {
+  return {
+    status: 'KNOWN',
+    cards,
+    count: cards.length
+  };
+}
+
+export function createHiddenHandState(count: number): HiddenHandState {
+  return {
+    status: 'HIDDEN',
+    count: Math.max(0, count)
+  };
+}
+
+export function isKnownHandState(hand: HandState): hand is KnownHandState {
+  return hand.status === 'KNOWN';
+}
+
+export function isHiddenHandState(hand: HandState): hand is HiddenHandState {
+  return hand.status === 'HIDDEN';
+}
+
+export type { PlayerProfile } from './schemas/profile.schema';
+
+/**
+ * 1. MatchPlayer (Dùng khi tham gia ván bài / bàn đấu)
+ * Quản lý trạng thái động trong trận: bài trên tay, số bài, bài đã đánh, bỏ lượt, số chip bàn.
+ */
+export interface BaseMatchPlayer {
+  readonly id: string;
   name: string;
   avatar: string;
   hand: Card[];
+  cardCount: number; // ✅ Zero-Optional / Zero-Fallback: Luôn bắt buộc xác định số lượng lá bài
   playedCards: Card[];
-  score: number;
+  score: number;     // Số chip cược / số tiền hiện có trên bàn đấu
   isPassedCurrentRound: boolean;
   hasPlayedFirstCard: boolean; // Dùng để kiểm tra Cóng (cháy bài)
 }
 
-export interface HumanPlayer extends BasePlayer {
-  isBot: false;
-  botPersonaId?: undefined;
+export interface HumanMatchPlayer extends BaseMatchPlayer {
+  readonly isBot: false;
+  readonly botPersonaId?: undefined;
 }
 
-export interface BotPlayer extends BasePlayer {
-  isBot: true;
-  botPersonaId: string;
+export interface BotMatchPlayer extends BaseMatchPlayer {
+  readonly isBot: true;
+  readonly botPersonaId: string;
 }
 
-export type Player = HumanPlayer | BotPlayer;
+export type MatchPlayer = HumanMatchPlayer | BotMatchPlayer;
+
+/**
+ * Trích xuất số lượng lá bài trên tay chuẩn hóa, tuyệt đối không cần toán tử fallback (Zero-Fallback)
+ */
+export function getPlayerCardCount(player: { cardCount: number }): number {
+  return player.cardCount;
+}
 
 export interface BasePlayedMove {
   playerId: string;

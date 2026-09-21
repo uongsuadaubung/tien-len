@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand';
 import type {
-  Player,
+  MatchPlayer,
   PlayedMove,
   InstantWinType,
   GameRules,
@@ -161,11 +161,11 @@ export interface MatchStateSlice {
 
   // Board State (State Pattern & Discriminated Unions)
   matchState: MatchState;
-  players: Player[];
+  players: MatchPlayer[];
   currentTurnPlayerId: string | null;
   leadPlayerId: string | null;
   currentMove: PlayedMove | null;
-  winners: Player[];
+  winners: MatchPlayer[];
   isGameOver: boolean;
   instantWinType: InstantWinType | null;
   isThreeSpadesWin: boolean;
@@ -197,11 +197,11 @@ export interface MatchStateSlice {
   setChopNotification: (notif: ChopNotificationData | null) => void;
   setQuestToast: (toast: { title: string; rewardCoins: number; icon: string } | null) => void;
 
-  setPlayers: (players: Player[]) => void;
+  setPlayers: (players: MatchPlayer[] | ((prev: MatchPlayer[]) => MatchPlayer[])) => void;
   setCurrentTurnPlayerId: (id: string | null) => void;
   setLeadPlayerId: (id: string | null) => void;
   setCurrentMove: (move: PlayedMove | null) => void;
-  setWinners: (winners: Player[]) => void;
+  setWinners: (winners: MatchPlayer[]) => void;
   setIsGameOver: (gameOver: boolean) => void;
   setInstantWinType: (type?: InstantWinType) => void;
   setIsThreeSpadesWin: (win: boolean) => void;
@@ -219,24 +219,6 @@ export interface MatchStateSlice {
   setMatchState: (state: MatchState) => void;
   applyMatchState: (state: MatchState) => void;
   applyAuthoritativeTableSync: (sync: TableStateSyncPacket) => void;
-  applyMatchSnapshot: (snapshot: Partial<{
-    gameNumber: number;
-    players: Player[];
-    currentTurnPlayerId: string | null;
-    leadPlayerId: string | null;
-    currentMove: PlayedMove | null;
-    winners: Player[];
-    isGameOver: boolean;
-    instantWinType: InstantWinType | null;
-    isDealing: boolean;
-    dealtCounts: Record<string, number>;
-    dealBanner: string | null;
-    chopNotification: ChopNotificationData | null;
-    botThinkingThought: { botId: string; text: string } | null;
-    isFirstMoveOfGame: boolean | null;
-    firstMoveRequiredCard: Card | null;
-    isLeadMove: boolean | null;
-  }>) => void;
   resetMatchState: () => void;
 }
 

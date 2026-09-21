@@ -4,13 +4,13 @@ import { computeRelativeTableSeats } from '../../src/engine/seating';
 import { createCard } from '../../src/engine/card';
 import { CAMPAIGN_CHAPTERS } from '../../src/engine/campaign';
 import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
-import { type Player, createDefaultGameRules } from '../../src/engine/types';
+import { type MatchPlayer, createDefaultGameRules } from '../../src/engine/types';
 
 describe('Perspective Match Settlement Engine Tests', () => {
-  const p0: Player = createPlayer({ id: 'human_1', name: 'Người Chơi', avatar: '😎', score: 10000 });
-  const b1: Player = createBotPlayer('bot_1', 'BOT_ELO_850', { name: 'Bot 1', avatar: '🤖', score: 10000 });
-  const b2: Player = createBotPlayer('bot_2', 'BOT_ELO_1150', { name: 'Bot 2', avatar: '🤠', score: 10000 });
-  const b3: Player = createBotPlayer('bot_3', 'BOT_ELO_1450', { name: 'Bot 3', avatar: '👴', score: 10000 });
+  const p0: MatchPlayer = createPlayer({ id: 'human_1', name: 'Người Chơi', avatar: '😎', score: 10000 });
+  const b1: MatchPlayer = createBotPlayer('bot_1', 'BOT_ELO_850', { name: 'Bot 1', avatar: '🤖', score: 10000 });
+  const b2: MatchPlayer = createBotPlayer('bot_2', 'BOT_ELO_1150', { name: 'Bot 2', avatar: '🤠', score: 10000 });
+  const b3: MatchPlayer = createBotPlayer('bot_3', 'BOT_ELO_1450', { name: 'Bot 3', avatar: '👴', score: 10000 });
 
   it('1. Thắng trận thông thường (Standard Victory): Xếp hạng 1, tiền dương, nhãn chiến thắng chuẩn', () => {
     const players = [

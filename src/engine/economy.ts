@@ -1,4 +1,4 @@
-import { Card, Combination, Player } from './types';
+import { Card, Combination, MatchPlayer } from './types';
 import { isRedCard, isTwo } from './card';
 
 export interface EconomySettings {
@@ -155,7 +155,7 @@ export function calculateCongPenalty(betAmount: number, congMultiplier: number =
  * - Người về Nhất ăn trọn số tiền phạt này.
  */
 export function calculateCountCardsSettlement(
-  players: readonly Player[],
+  players: readonly MatchPlayer[],
   winnerId: string,
   betAmount: number,
   penaltyMultiplier: number = 1,
@@ -213,7 +213,7 @@ export function calculateCountCardsSettlement(
  * - Người về Nhất ăn trọn.
  */
 export function calculateWinnerTakesAllSettlement(
-  players: readonly Player[],
+  players: readonly MatchPlayer[],
   winnerId: string,
   betAmount: number,
   penaltyMultiplier: number = 1,
@@ -265,8 +265,8 @@ export function calculateWinnerTakesAllSettlement(
  * Tính toán kết quả cho chế độ Truyền Thống (Rank-Based: Nhất Nhì Ba Bét)
  */
 export function calculateTraditionalSettlement(
-  players: readonly Player[],
-  winners: readonly Player[],
+  players: readonly MatchPlayer[],
+  winners: readonly MatchPlayer[],
   betAmount: number,
   penaltyMultiplier: number = 1,
   isThreeSpadesWin: boolean = false,

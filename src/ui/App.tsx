@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { WebApp } from './web/WebApp';
-import { MobileApp } from './mobile/MobileApp';
+import React, { useEffect, useState, Suspense } from 'react';
+
+const WebApp = React.lazy(() => import('./web/WebApp').then(m => ({ default: m.WebApp })));
+const MobileApp = React.lazy(() => import('./mobile/MobileApp').then(m => ({ default: m.MobileApp })));
 import { SplashScreen } from './components/SplashScreen';
 import type { AppScreenProps } from './types';
 import { CustomGameModalConfig } from './web/modals/CustomGameModal';
@@ -11,7 +12,9 @@ import { useIsMobile } from './hooks/useIsMobile';
 import { 
   clearActiveMatchSession, 
   savePlayerProfile,
-  hydrateStorageFromIndexedDB
+  hydrateStorageFromIndexedDB,
+  getActiveOnlineSession,
+  clearActiveOnlineSession
 } from '../engine/storage';
 import { dbGetGameSettings, dbGetQuickTableConfig } from '../engine/db/indexed-db';
 import { ECONOMY_CONSTANTS } from '../engine/constants/economy';
@@ -129,12 +132,15 @@ export const App: React.FC = () => {
     }
   }, [isHydrated, profile.name, openModal]);
 
-  // Tự động nhận diện và gia nhập phòng khi người chơi mở Link mời (#room=TL-xxxx)
+  // Tự động nhận diện và gia nhập phòng khi người chơi mở Link mời (#room=TL-xxxx hoặc #room=xxxx)
   useEffect(() => {
     if (!isHydrated) return;
     const hash = window.location.hash;
     if (hash.startsWith('#room=')) {
-      const code = hash.replace('#room=', '').toUpperCase().trim();
+      let code = hash.replace('#room=', '').toUpperCase().trim();
+      if (!code.startsWith('TL-') && /^[A-Z0-9]{4}$/.test(code)) {
+        code = `TL-${code}`;
+      }
       if (code) {
         useSettingsStore.getState().setOnlineMultiplayerBetaEnabled(true);
         useOnlineStore.getState().joinRoom(profile, code);
@@ -142,6 +148,23 @@ export const App: React.FC = () => {
       }
     }
   }, [isHydrated, profile, openModal]);
+
+  // Tự động khôi phục vào phòng Online (Grace Period Auto-Reconnect) khi người dùng lỡ F5 hoặc mở lại trình duyệt trong vòng 25s
+  useEffect(() => {
+    if (!isHydrated) return;
+    if (window.location.hash.startsWith('#room=')) return;
+
+    const activeOnlineSession = getActiveOnlineSession();
+    if (!activeOnlineSession) return;
+
+    const elapsedMs = Date.now() - activeOnlineSession.savedAt;
+    if (elapsedMs < 25000 && activeOnlineSession.roomCode) {
+      useSettingsStore.getState().setOnlineMultiplayerBetaEnabled(true);
+      useOnlineStore.getState().joinRoom(profile, activeOnlineSession.roomCode);
+    } else {
+      clearActiveOnlineSession();
+    }
+  }, [isHydrated, profile]);
 
   // Nếu ở màn hình GAME_TABLE mà không có bàn đấu nào đang hoạt động -> Quay về Sảnh
   useEffect(() => {
@@ -203,9 +226,9 @@ export const App: React.FC = () => {
   };
 
   // ĐIỀU PHỐI GIAO DIỆN CHÍNH: MOBILE NATIVE-STYLE HOẶC WEB DESKTOP
-  if (isMobile) {
-    return <MobileApp {...appProps} />;
-  }
-
-  return <WebApp {...appProps} />;
+  return (
+    <Suspense fallback={<div className="fixed inset-0 bg-slate-950" />}>
+      {isMobile ? <MobileApp {...appProps} /> : <WebApp {...appProps} />}
+    </Suspense>
+  );
 };

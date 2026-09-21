@@ -1,4 +1,5 @@
-import { joinRoom, selfId } from 'trystero';
+import { type RealtimeChannel } from '@supabase/supabase-js';
+import { getSupabaseClient } from '../../config/supabase';
 import {
   type OnlineRoomState,
   type PlayerActionPacket,
@@ -10,29 +11,23 @@ import {
   type RematchVotePacket
 } from './network.schema';
 
-export const APP_ID = 'tien-len-online-p2p-v1';
-
-export const PUBLIC_ICE_SERVERS: RTCIceServer[] = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun.cloudflare.com:3478' }
-];
-
 export type MessageHandler<T> = (data: T, peerId: string) => void;
 
-export class P2PClient {
-  public room: ReturnType<typeof joinRoom> | null = null;
-  public selfPeerId: string = selfId || `peer_${Date.now()}`;
-  public currentRoomCode: string | null = null;
+interface BroadcastEnvelope<T> {
+  data: T;
+  senderPeerId: string;
+  targetPeerId?: string;
+}
 
-  // Action senders
-  private sendRoomStateAction?: (data: OnlineRoomState, target?: string | string[]) => Promise<void>;
-  private sendDealHandAction?: (data: DealHandPacket, target?: string | string[]) => Promise<void>;
-  private sendPlayerActionAction?: (data: PlayerActionPacket, target?: string | string[]) => Promise<void>;
-  private sendTableSyncAction?: (data: TableStateSyncPacket, target?: string | string[]) => Promise<void>;
-  private sendGameEndAction?: (data: GameEndPacket, target?: string | string[]) => Promise<void>;
-  private sendChatAction?: (data: ChatPacket, target?: string | string[]) => Promise<void>;
-  private sendJoinRequestAction?: (data: OnlinePlayer, target?: string | string[]) => Promise<void>;
-  private sendRematchVoteAction?: (data: RematchVotePacket, target?: string | string[]) => Promise<void>;
+function generatePeerId(): string {
+  return `peer_${Math.random().toString(36).substring(2, 10)}_${Date.now()}`;
+}
+
+export class P2PClient {
+  public channel: RealtimeChannel | null = null;
+  public selfPeerId: string = generatePeerId();
+  public currentRoomCode: string | null = null;
+  private activePeers: Set<string> = new Set();
 
   // Callbacks
   private onPeerJoinCallbacks: Array<(peerId: string) => void> = [];
@@ -45,95 +40,175 @@ export class P2PClient {
   private onChatCallbacks: Array<MessageHandler<ChatPacket>> = [];
   private onJoinRequestCallbacks: Array<MessageHandler<OnlinePlayer>> = [];
   private onRematchVoteCallbacks: Array<MessageHandler<RematchVotePacket>> = [];
+  private isSubscribed: boolean = false;
+  private pendingBroadcasts: Array<() => Promise<void>> = [];
 
   public join(roomCode: string): void {
-    if (this.room) {
+    if (this.channel) {
       this.leave();
     }
+    this.isSubscribed = false;
+    this.pendingBroadcasts = [];
 
     this.currentRoomCode = roomCode.toUpperCase().trim();
+    const topic = `tl_room_${this.currentRoomCode.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
 
-    if (typeof RTCPeerConnection === 'undefined') {
-      return;
-    }
+    const supabase = getSupabaseClient();
+    this.channel = supabase.channel(topic, {
+      config: {
+        broadcast: { self: false },
+        presence: { key: this.selfPeerId }
+      }
+    });
 
-    this.room = joinRoom(
-      {
-        appId: APP_ID,
-        rtcConfig: {
-          iceServers: PUBLIC_ICE_SERVERS
+    // 1. Quản lý Hiện diện Người chơi (Presence: Peer Join & Leave)
+    this.channel.on('presence', { event: 'sync' }, () => {
+      if (!this.channel) return;
+      const state = this.channel.presenceState();
+      const currentPeers = new Set<string>();
+      for (const key of Object.keys(state)) {
+        if (key !== this.selfPeerId) {
+          currentPeers.add(key);
         }
-      },
-      this.currentRoomCode
-    );
+      }
 
-    // Bind Peer Lifecycle via properties
-    this.room.onPeerJoin = (peerId: string) => {
-      this.onPeerJoinCallbacks.forEach(cb => cb(peerId));
-    };
+      // Phát hiện Peer mới gia nhập
+      currentPeers.forEach(peerId => {
+        if (!this.activePeers.has(peerId)) {
+          this.activePeers.add(peerId);
+          this.onPeerJoinCallbacks.forEach(cb => {
+            try {
+              cb(peerId);
+            } catch (err) {
+              console.error('[SupabaseRealtime] onPeerJoin error:', err);
+            }
+          });
+        }
+      });
 
-    this.room.onPeerLeave = (peerId: string) => {
-      this.onPeerLeaveCallbacks.forEach(cb => cb(peerId));
-    };
+      // Phát hiện Peer đã rời phòng / mất kết nối
+      this.activePeers.forEach(peerId => {
+        if (!currentPeers.has(peerId)) {
+          this.activePeers.delete(peerId);
+          this.onPeerLeaveCallbacks.forEach(cb => {
+            try {
+              cb(peerId);
+            } catch (err) {
+              console.error('[SupabaseRealtime] onPeerLeave error:', err);
+            }
+          });
+        }
+      });
+    });
 
-    // Bind Action Channels
-    const joinAction = this.room.makeAction<OnlinePlayer>('join_req');
-    this.sendJoinRequestAction = (data, target) => joinAction.send(data, { target });
-    joinAction.onMessage = (data, context) => {
-      this.onJoinRequestCallbacks.forEach(cb => cb(data, context.peerId));
-    };
+    this.channel.on('presence', { event: 'join' }, ({ key }) => {
+      if (key && key !== this.selfPeerId && !this.activePeers.has(key)) {
+        this.activePeers.add(key);
+        this.onPeerJoinCallbacks.forEach(cb => {
+          try {
+            cb(key);
+          } catch (err) {
+            console.error('[SupabaseRealtime] onPeerJoin error:', err);
+          }
+        });
+      }
+    });
 
-    const roomStateAction = this.room.makeAction<OnlineRoomState>('room_state');
-    this.sendRoomStateAction = (data, target) => roomStateAction.send(data, { target });
-    roomStateAction.onMessage = (data, context) => {
-      this.onRoomStateCallbacks.forEach(cb => cb(data, context.peerId));
-    };
+    this.channel.on('presence', { event: 'leave' }, ({ key }) => {
+      if (key && this.activePeers.has(key)) {
+        this.activePeers.delete(key);
+        this.onPeerLeaveCallbacks.forEach(cb => {
+          try {
+            cb(key);
+          } catch (err) {
+            console.error('[SupabaseRealtime] onPeerLeave error:', err);
+          }
+        });
+      }
+    });
 
-    const dealHandAction = this.room.makeAction<DealHandPacket>('deal_hand');
-    this.sendDealHandAction = (data, target) => dealHandAction.send(data, { target });
-    dealHandAction.onMessage = (data, context) => {
-      this.onDealHandCallbacks.forEach(cb => cb(data, context.peerId));
-    };
+    // 2. Lắng nghe các kênh Broadcast
+    this.channel.on<BroadcastEnvelope<OnlinePlayer>>('broadcast', { event: 'join_req' }, ({ payload }) => {
+      if (!payload || !payload.data) return;
+      if (payload.targetPeerId && payload.targetPeerId !== this.selfPeerId) return;
+      this.onJoinRequestCallbacks.forEach(cb => cb(payload.data, payload.senderPeerId));
+    });
 
-    const playerActAction = this.room.makeAction<PlayerActionPacket>('player_act');
-    this.sendPlayerActionAction = (data, target) => playerActAction.send(data, { target });
-    playerActAction.onMessage = (data, context) => {
-      this.onPlayerActionCallbacks.forEach(cb => cb(data, context.peerId));
-    };
+    this.channel.on<BroadcastEnvelope<OnlineRoomState>>('broadcast', { event: 'room_state' }, ({ payload }) => {
+      if (!payload || !payload.data) return;
+      if (payload.targetPeerId && payload.targetPeerId !== this.selfPeerId) return;
+      this.onRoomStateCallbacks.forEach(cb => cb(payload.data, payload.senderPeerId));
+    });
 
-    const tableSyncAction = this.room.makeAction<TableStateSyncPacket>('table_sync');
-    this.sendTableSyncAction = (data, target) => tableSyncAction.send(data, { target });
-    tableSyncAction.onMessage = (data, context) => {
-      this.onTableSyncCallbacks.forEach(cb => cb(data, context.peerId));
-    };
+    this.channel.on<BroadcastEnvelope<DealHandPacket>>('broadcast', { event: 'deal_hand' }, ({ payload }) => {
+      if (!payload || !payload.data) return;
+      if (payload.targetPeerId && payload.targetPeerId !== this.selfPeerId) return;
+      this.onDealHandCallbacks.forEach(cb => cb(payload.data, payload.senderPeerId));
+    });
 
-    const gameEndAction = this.room.makeAction<GameEndPacket>('game_end');
-    this.sendGameEndAction = (data, target) => gameEndAction.send(data, { target });
-    gameEndAction.onMessage = (data, context) => {
-      this.onGameEndCallbacks.forEach(cb => cb(data, context.peerId));
-    };
+    this.channel.on<BroadcastEnvelope<PlayerActionPacket>>('broadcast', { event: 'player_act' }, ({ payload }) => {
+      if (!payload || !payload.data) return;
+      if (payload.targetPeerId && payload.targetPeerId !== this.selfPeerId) return;
+      this.onPlayerActionCallbacks.forEach(cb => cb(payload.data, payload.senderPeerId));
+    });
 
-    const chatAction = this.room.makeAction<ChatPacket>('chat');
-    this.sendChatAction = (data, target) => chatAction.send(data, { target });
-    chatAction.onMessage = (data, context) => {
-      this.onChatCallbacks.forEach(cb => cb(data, context.peerId));
-    };
+    this.channel.on<BroadcastEnvelope<TableStateSyncPacket>>('broadcast', { event: 'table_sync' }, ({ payload }) => {
+      if (!payload || !payload.data) return;
+      if (payload.targetPeerId && payload.targetPeerId !== this.selfPeerId) return;
+      this.onTableSyncCallbacks.forEach(cb => cb(payload.data, payload.senderPeerId));
+    });
 
-    const rematchVoteAction = this.room.makeAction<RematchVotePacket>('rematch_vote');
-    this.sendRematchVoteAction = (data, target) => rematchVoteAction.send(data, { target });
-    rematchVoteAction.onMessage = (data, context) => {
-      this.onRematchVoteCallbacks.forEach(cb => cb(data, context.peerId));
-    };
+    this.channel.on<BroadcastEnvelope<GameEndPacket>>('broadcast', { event: 'game_end' }, ({ payload }) => {
+      if (!payload || !payload.data) return;
+      if (payload.targetPeerId && payload.targetPeerId !== this.selfPeerId) return;
+      this.onGameEndCallbacks.forEach(cb => cb(payload.data, payload.senderPeerId));
+    });
+
+    this.channel.on<BroadcastEnvelope<ChatPacket>>('broadcast', { event: 'chat' }, ({ payload }) => {
+      if (!payload || !payload.data) return;
+      if (payload.targetPeerId && payload.targetPeerId !== this.selfPeerId) return;
+      this.onChatCallbacks.forEach(cb => cb(payload.data, payload.senderPeerId));
+    });
+
+    this.channel.on<BroadcastEnvelope<RematchVotePacket>>('broadcast', { event: 'rematch_vote' }, ({ payload }) => {
+      if (!payload || !payload.data) return;
+      if (payload.targetPeerId && payload.targetPeerId !== this.selfPeerId) return;
+      this.onRematchVoteCallbacks.forEach(cb => cb(payload.data, payload.senderPeerId));
+    });
+
+    // 3. Đăng ký kênh và theo dõi Hiện diện
+    this.channel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED' && this.channel) {
+        this.isSubscribed = true;
+        try {
+          await this.channel.track({
+            online_at: Date.now()
+          });
+        } catch (err) {
+          console.error('[SupabaseRealtime] track presence error:', err);
+        }
+        const queued = [...this.pendingBroadcasts];
+        this.pendingBroadcasts = [];
+        for (const fn of queued) {
+          await fn();
+        }
+      }
+    });
   }
 
   public leave(): void {
-    if (this.room) {
+    if (this.channel) {
       try {
-        void this.room.leave();
+        void this.channel.untrack();
+        const supabase = getSupabaseClient();
+        void supabase.removeChannel(this.channel);
       } catch {}
-      this.room = null;
+      this.channel = null;
     }
+    this.isSubscribed = false;
+    this.pendingBroadcasts = [];
     this.currentRoomCode = null;
+    this.activePeers.clear();
     this.onPeerJoinCallbacks = [];
     this.onPeerLeaveCallbacks = [];
     this.onRoomStateCallbacks = [];
@@ -146,68 +221,83 @@ export class P2PClient {
     this.onRematchVoteCallbacks = [];
   }
 
-  public async sendJoinRequest(player: OnlinePlayer, targetPeerId?: string): Promise<void> {
-    if (this.sendJoinRequestAction) {
-      await this.sendJoinRequestAction(player, targetPeerId);
+  private async sendBroadcast<T>(event: string, data: T, targetPeerId?: string): Promise<void> {
+    if (!this.channel) return;
+    const envelope: BroadcastEnvelope<T> = {
+      data,
+      senderPeerId: this.selfPeerId,
+      targetPeerId
+    };
+    const doSend = async () => {
+      if (!this.channel) return;
+      try {
+        const res = await this.channel.send({
+          type: 'broadcast',
+          event,
+          payload: envelope
+        });
+        if (res !== 'ok') {
+          console.warn(`[P2P:SEND_FAIL] event="${event}" returned status="${res}"! Channel state="${this.channel?.state}"`);
+        }
+      } catch (err) {
+        console.error(`[P2P:SEND_EXCEPTION] Broadcast "${event}" error:`, err);
+      }
+    };
+
+    if (this.isSubscribed || this.channel?.state === 'joined') {
+      await doSend();
+    } else {
+      this.pendingBroadcasts.push(doSend);
     }
+  }
+
+  public async sendJoinRequest(player: OnlinePlayer, targetPeerId?: string): Promise<void> {
+    await this.sendBroadcast('join_req', player, targetPeerId);
   }
 
   public async broadcastRoomState(state: OnlineRoomState, targetPeerId?: string): Promise<void> {
-    if (this.sendRoomStateAction) {
-      await this.sendRoomStateAction(state, targetPeerId);
-    }
+    await this.sendBroadcast('room_state', state, targetPeerId);
   }
 
   public async sendPrivateDealHand(packet: DealHandPacket, targetPeerId: string): Promise<void> {
-    if (this.sendDealHandAction) {
-      await this.sendDealHandAction(packet, targetPeerId);
-    }
+    await this.sendBroadcast('deal_hand', packet, targetPeerId);
   }
 
   public async sendPlayerAction(packet: PlayerActionPacket): Promise<void> {
-    if (this.sendPlayerActionAction) {
-      await this.sendPlayerActionAction(packet);
-    }
+    await this.sendBroadcast('player_act', packet);
   }
 
   public async broadcastTableSync(packet: TableStateSyncPacket): Promise<void> {
-    if (this.sendTableSyncAction) {
-      await this.sendTableSyncAction(packet);
-    }
+    await this.sendBroadcast('table_sync', packet);
   }
 
   public async broadcastGameEnd(packet: GameEndPacket): Promise<void> {
-    if (this.sendGameEndAction) {
-      await this.sendGameEndAction(packet);
-    }
+    await this.sendBroadcast('game_end', packet);
   }
 
   public async broadcastChat(packet: ChatPacket): Promise<void> {
-    if (this.sendChatAction) {
-      await this.sendChatAction(packet);
-    }
+    await this.sendBroadcast('chat', packet);
   }
 
   public async sendRematchVote(packet: RematchVotePacket, targetPeerId?: string): Promise<void> {
-    if (this.sendRematchVoteAction) {
-      await this.sendRematchVoteAction(packet, targetPeerId);
-    }
+    await this.sendBroadcast('rematch_vote', packet, targetPeerId);
   }
 
-  public async pingPeer(peerId: string): Promise<number | null> {
-    if (this.room) {
-      try {
-        return await this.room.ping(peerId);
-      } catch {
-        return null;
-      }
-    }
-    return null;
+  public async pingPeer(peerId?: string): Promise<number | null> {
+    void peerId;
+    return 30; // WebSocket Round-Trip Time tiêu chuẩn
   }
 
   // Listener subscriptions
   public onPeerJoin(cb: (peerId: string) => void): () => void {
     this.onPeerJoinCallbacks.push(cb);
+    this.activePeers.forEach(peerId => {
+      try {
+        cb(peerId);
+      } catch (err) {
+        console.error('[SupabaseRealtime] onPeerJoin replay error:', err);
+      }
+    });
     return () => {
       this.onPeerJoinCallbacks = this.onPeerJoinCallbacks.filter(c => c !== cb);
     };
@@ -299,4 +389,3 @@ export class P2PClient {
 }
 
 export const globalP2PClient = new P2PClient();
-

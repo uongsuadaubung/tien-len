@@ -93,7 +93,7 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
               {isHost ? t('online.disbandBtn') : t('online.leaveBtn')}
             </Button>
 
-            {isHost && (
+            {isHost ? (
               <Button
                 variant="gold"
                 size="md"
@@ -104,6 +104,11 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
               >
                 {t('online.startGameBtn')}
               </Button>
+            ) : (
+              <div className="flex-1 py-2 px-3 rounded-xl bg-[var(--bg-card)] border border-amber-500/20 text-center text-xs font-bold text-amber-200/80 flex items-center justify-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                {roomState === null ? t('online.connectingP2P') : t('online.waitingHost')}
+              </div>
             )}
           </div>
         ) : (
@@ -317,6 +322,14 @@ export const MobileOnlineRoomView: React.FC<MobileOnlineRoomViewProps> = ({
                 </Badge>
               )}
             </div>
+
+            {/* Thông báo trạng thái đang kết nối P2P cho Khách */}
+            {!isHost && roomState === null && (
+              <div className="flex items-center justify-center gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold animate-pulse">
+                <Radio className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+                <span>{t('online.connectingToHost', { roomCode: roomCode || '' })}</span>
+              </div>
+            )}
 
             {/* Lưới Ghế Ngồi (Player Seats Grid) */}
             <div className="space-y-2">

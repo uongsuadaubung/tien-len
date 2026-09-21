@@ -1,5 +1,5 @@
 import React from 'react';
-import { Player } from '../../../engine/types';
+import { MatchPlayer } from '../../../engine/types';
 import { getBotConfig } from '../../../ai/bot-factory';
 import { Trophy, X } from 'lucide-react';
 import { Badge } from '../../primitives';
@@ -12,7 +12,7 @@ import { useI18n } from '../../../locales';
 export interface MobileMatchHUDDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  players: Player[];
+  players: MatchPlayer[];
   currentTurnPlayerId: string | null;
   leadPlayerId: string | null;
   gameNumber: number;
@@ -88,7 +88,7 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
                 const isMe = p.id === myPlayerId;
                 const cardCount = isDealing 
                   ? (dealtCounts[p.id] ?? 0) 
-                  : (p.hand?.length ?? 0);
+                  : p.cardCount;
                 const rankIndex = winners.findIndex(w => w.id === p.id);
                 const rankPosition = rankIndex >= 0 ? rankIndex + 1 : 0;
                 const isOneCardLeft = !isDealing && cardCount === 1 && rankPosition === 0;

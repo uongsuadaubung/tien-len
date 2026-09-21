@@ -224,4 +224,107 @@ describe('WebRTC P2P Public Lobby Discovery & Room Browser Tests', () => {
       expect(pin).not.toBe('TL-1234');
     }
   });
+
+  it('8. Supabase Realtime Presence: LobbyDiscoveryClient quản lý vòng đời phát thanh phòng', () => {
+    const { LobbyDiscoveryClient, SUPABASE_LOBBY_CHANNEL_NAME } = require('../../src/engine/network/lobby-discovery');
+    const client = new LobbyDiscoveryClient();
+
+    const summary: PublicRoomSummary = {
+      roomCode: 'TL-5555',
+      hostName: 'Supabase Host',
+      hostAvatar: '😎',
+      hostElo: 1600,
+      playerCount: 1,
+      maxPlayers: 4,
+      betAmount: 1000,
+      settlementRule: 'COUNT_CARDS',
+      choppingMultiplier: 1,
+      congMultiplier: 1,
+      congEnabled: true,
+      prohibitEndingWithTwo: true,
+      allowFourPairsCutAnytime: true,
+      threeSpadesEndingBonus: true,
+      cascadeChopEnabled: true,
+      status: 'WAITING',
+      isPublic: true,
+      updatedAt: Date.now()
+    };
+
+    expect(SUPABASE_LOBBY_CHANNEL_NAME).toBe('tl_global_lobby_v1');
+
+    // Bắt đầu broadcast
+    client.startBroadcasting(summary);
+    expect(client['isBroadcasting']).toBe(true);
+    expect(client['currentSummary']?.roomCode).toBe('TL-5555');
+    expect(client['lobbyChannel']).toBeDefined();
+
+    // Cập nhật broadcast (ví dụ có người chơi mới vào)
+    client.updateBroadcast({
+      ...summary,
+      playerCount: 2
+    });
+    expect(client['currentSummary']?.playerCount).toBe(2);
+
+    // Dừng broadcast (hoặc đổi trạng thái sang PLAYING)
+    client.stopBroadcasting();
+    expect(client['isBroadcasting']).toBe(false);
+    expect(client['currentSummary']).toBeNull();
+
+    client.cleanup();
+  });
+
+  it('9. Supabase Realtime Presence: Khách duyệt sảnh và nhận đồng bộ phòng tức thì', () => {
+    const { LobbyDiscoveryClient } = require('../../src/engine/network/lobby-discovery');
+    const client = new LobbyDiscoveryClient();
+
+    let receivedRooms: PublicRoomSummary[] = [];
+    client.startListening((rooms: PublicRoomSummary[]) => {
+      receivedRooms = rooms;
+    });
+
+    expect(client['isListening']).toBe(true);
+    expect(client['lobbyChannel']).toBeDefined();
+
+    // Giả lập nhận thông tin phòng
+    const mockRoom: PublicRoomSummary = {
+      roomCode: 'TL-7777',
+      hostName: 'Chủ Phòng Supabase',
+      hostAvatar: '👑',
+      hostElo: 2000,
+      playerCount: 3,
+      maxPlayers: 4,
+      betAmount: 5000,
+      settlementRule: 'COUNT_CARDS',
+      choppingMultiplier: 2,
+      congMultiplier: 1,
+      congEnabled: true,
+      prohibitEndingWithTwo: true,
+      allowFourPairsCutAnytime: true,
+      threeSpadesEndingBonus: true,
+      cascadeChopEnabled: true,
+      status: 'WAITING',
+      isPublic: true,
+      updatedAt: Date.now()
+    };
+
+    client['handleIncomingAnnouncement'](mockRoom);
+    expect(receivedRooms.length).toBeGreaterThanOrEqual(1);
+    const found = receivedRooms.find(r => r.roomCode === 'TL-7777');
+    expect(found).toBeDefined();
+    expect(found?.hostName).toBe('Chủ Phòng Supabase');
+    expect(found?.betAmount).toBe(5000);
+
+    // Giả lập phòng đóng
+    client['handleIncomingRoomClose']({ roomCode: 'TL-7777' });
+    const afterClose = receivedRooms.find(r => r.roomCode === 'TL-7777');
+    expect(afterClose).toBeUndefined();
+
+    // Dừng duyệt
+    client.stopListening();
+    expect(client['isListening']).toBe(false);
+
+    client.cleanup();
+    expect(client['lobbyChannel']).toBeNull();
+  });
 });
+

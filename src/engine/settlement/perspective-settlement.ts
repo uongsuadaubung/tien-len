@@ -1,4 +1,4 @@
-import type { Player, Card, InstantWinType, PlayedMove, GameRules } from '../types';
+import type { MatchPlayer, Card, InstantWinType, PlayedMove, GameRules } from '../types';
 import type { EloDeltaResult } from '../elo';
 import type { CampaignChapter } from '../campaign';
 import type { I18nKeyPath } from '../../locales';
@@ -62,7 +62,7 @@ export interface CampaignPerspectiveSettlement extends BasePerspectiveSettlement
 }
 
 export interface StandardPerspectiveSettlement extends BasePerspectiveSettlement {
-  readonly activeGameType: 'QUICK' | 'ONLINE' | 'CUSTOM';
+  readonly activeGameType: 'QUICK' | 'ONLINE';
   readonly scenario:
     | 'ONLINE'
     | 'TABLE_DISMISSED_HUMAN_BANKRUPT'
@@ -78,8 +78,8 @@ export type PerspectiveSettlement = PerspectiveMatchSettlement;
 
 interface BasePerspectiveParams {
   readonly subjectPlayerId: string;
-  readonly allPlayers: readonly Player[];
-  readonly winners: readonly Player[];
+  readonly allPlayers: readonly MatchPlayer[];
+  readonly winners: readonly MatchPlayer[];
   readonly payouts: Readonly<Record<string, number>>;
   readonly eloDeltas: Readonly<Record<string, number>>;
   readonly subjectEloDelta: number;
@@ -98,7 +98,7 @@ export interface CampaignPerspectiveParams extends BasePerspectiveParams {
 }
 
 export interface NonCampaignPerspectiveParams extends BasePerspectiveParams {
-  readonly activeGameType: 'QUICK' | 'ONLINE' | 'CUSTOM';
+  readonly activeGameType: 'QUICK' | 'ONLINE';
 }
 
 export type CreatePerspectiveSettlementParams = CampaignPerspectiveParams | NonCampaignPerspectiveParams;
@@ -162,7 +162,9 @@ export function createPerspectiveSettlement(
   const playerCardViews: SettledPlayerCardView[] = sortedPlayers.map((player, idx) => {
     const isLocal = player.id === effectiveSubjectId;
     const isWinner = idx === 0;
-    const remainingCards = [...player.hand].sort((a, b) => a.weight - b.weight);
+    const remainingCards = [...(player.hand || [])]
+      .filter((c): c is Card => c != null && typeof c.weight === 'number')
+      .sort((a, b) => a.weight - b.weight);
     const isCong = !isWinner && instantWinType === null && remainingCards.length === 13;
     const hasRottenTwo = !isWinner && instantWinType === null && remainingCards.some(c => c.rank === 15);
     if (payouts[player.id] === undefined) {
@@ -304,8 +306,8 @@ export function createPerspectiveSettlement(
 
 export interface ProvisionalOnlineGameOverStateParams {
   readonly gameNumber: number;
-  readonly players: readonly Player[];
-  readonly winners: readonly Player[];
+  readonly players: readonly MatchPlayer[];
+  readonly winners: readonly MatchPlayer[];
   readonly winningMove: PlayedMove | null;
   readonly isThreeSpadesWin: boolean;
   readonly instantWinType: InstantWinType | null;

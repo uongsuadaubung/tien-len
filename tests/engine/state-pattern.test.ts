@@ -11,17 +11,16 @@ import type {
   RoundEndedMatchState,
   GameOverMatchState
 } from '../../src/engine/state-machine/types';
-import { createDefaultGameRules, Player, PlayedMove } from '../../src/engine/types';
+import { createDefaultGameRules, MatchPlayer, PlayedMove } from '../../src/engine/types';
 import { createCard } from '../../src/engine/card';
 import { identifyCombination } from '../../src/engine/combinations';
 import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 import { createPlayingTurnMatchState } from '../../src/engine/state-machine/types';
-import { OfflineMatchDriver } from '../../src/engine/offline-match-driver';
 import { createPerspectiveSettlement } from '../../src/engine/settlement/perspective-settlement';
 
 describe('Kiến Trúc State Pattern & Discriminated Unions (Game Engine State Machine)', () => {
   const defaultRules = createDefaultGameRules();
-  const testPlayers: Player[] = [
+  const testPlayers: MatchPlayer[] = [
     createPlayer({ id: 'p0', name: 'User', score: 10000 }),
     createBotPlayer('p1', 'BOT_ELO_850', { name: 'Bot 1', score: 5000 }),
     createBotPlayer('p2', 'BOT_ELO_1150', { name: 'Bot 2', score: 8000 }),
@@ -263,29 +262,37 @@ describe('Kiến Trúc State Pattern & Discriminated Unions (Game Engine State M
     });
   });
 
-  describe('3. Tích Hợp OfflineMatchDriver Với MatchState', () => {
-    it('driver.getMatchState() trả về WAITING trước khi setup ván bài', () => {
-      const driver = new OfflineMatchDriver();
-      const state = driver.getMatchState();
+  describe('3. Tích Hợp MatchStateMapper', () => {
+    it('mapMatchStateToSnapshot tạo snapshot WAITING chuẩn mực', () => {
+      const waitingState: WaitingMatchState = {
+        status: 'WAITING',
+        gameNumber: 1,
+        players: [],
+        rules: defaultRules,
+        lastWinnerId: null
+      };
+      const snapshot = mapMatchStateToSnapshot(waitingState);
 
-      expect(state.status).toBe('WAITING');
-      if (state.status === 'WAITING') {
-        expect(state.players.length).toBe(0);
-        expect(state.rules).toBeDefined();
-      }
+      expect(snapshot.players.length).toBe(0);
+      expect(snapshot.isDealing).toBe(false);
+      expect(snapshot.isGameOver).toBe(false);
     });
 
-    it('driver.subscribeMatchState phát sự kiện MatchState chuẩn mực', () => {
-      const driver = new OfflineMatchDriver();
-      let lastReceivedState: MatchState | null = null;
+    it('mapMatchStateToSnapshot tạo snapshot DEALING chuẩn mực', () => {
+      const dealingState: DealingMatchState = {
+        status: 'DEALING',
+        gameNumber: 1,
+        players: testPlayers,
+        dealtCounts: { p0: 5 },
+        dealBanner: 'Chia bài',
+        totalCardsDealt: 5,
+        rules: defaultRules
+      };
+      const snapshot = mapMatchStateToSnapshot(dealingState);
 
-      const unsub = driver.subscribeMatchState((state) => {
-        lastReceivedState = state;
-      });
-
-      expect(lastReceivedState).not.toBeNull();
-      expect(lastReceivedState!.status).toBe('WAITING');
-      unsub();
+      expect(snapshot.isDealing).toBe(true);
+      expect(snapshot.dealtCounts['p0']).toBe(5);
+      expect(snapshot.dealBanner).toBe('Chia bài');
     });
   });
 });

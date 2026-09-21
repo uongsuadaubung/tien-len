@@ -1,4 +1,4 @@
-import { Card, Combination, Player } from '../types';
+import { Card, Combination, MatchPlayer } from '../types';
 
 /**
  * Các loại sự kiện chính trong vòng đời ván đấu
@@ -52,8 +52,8 @@ export interface MatchCompletedEvent {
   activeGameType: string;
   winnerPlayerId: string;
   isHumanWinner: boolean;
-  winners: Player[];
-  allPlayers: Player[];
+  winners: MatchPlayer[];
+  allPlayers: MatchPlayer[];
   payouts: Record<string, number>;
   humanNetCoins: number;
   totalHumanCoins: number;

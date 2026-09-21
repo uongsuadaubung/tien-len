@@ -807,6 +807,7 @@ export const en: LocaleDictionary = {
     breakeven: 'Coins (Even)'
   },
   online: {
+    reconnectWaitingBanner: '{name} disconnected. Waiting ({seconds}s)...',
     modalTitle: 'Online P2P Match Rooms',
     modalSubtitle: 'Create or join friend rooms via 4-digit PIN',
     createRoomBtn: 'Create Room',
@@ -838,6 +839,8 @@ export const en: LocaleDictionary = {
     leaveBtn: 'Leave Room',
     startGameBtn: 'Start Match',
     waitingHost: 'Waiting for Host to start match...',
+    connectingToHost: 'Connecting to room host {roomCode}...',
+    connectingP2P: 'Connecting P2P...',
     cantAffordRoom: 'Not Enough Coins to Create Room',
     createCustomPrompt: 'Want to create a table with custom rules?',
     roomPrivacyTitle: 'Room Privacy',

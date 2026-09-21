@@ -11,42 +11,42 @@ Hệ thống được thiết kế theo mô hình kiến trúc phân lớp sạc
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
 │                               1. PRESENTATION LAYER (UI / UX)                            │
 │  - React 19 Components (WebApp, MobileApp, LobbyHub, GameTable, HandView, BotSeat)       │
-│  - Dumb Components: Chỉ nhận Props hiển thị và phát Intent hành động người dùng          │
+│  - Dumb Components: Chỉ nhận TableRenderFrame từ ClientSession, phát UserIntent          │
 │  - Web Audio API Sound Manager, CSS GPU Compositor Layering                              │
 └───────────────────────────────────────────┬──────────────────────────────────────────────┘
-                                            │ User Intents (Chơi nhanh, Đánh bài, Bỏ lượt)
+                                            │ User Intents (Chọn bài, Đánh, Bỏ lượt, Xếp bài)
                                             ▼
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│                  2. FLOW COORDINATION & VIEW STATE LAYER (Unidirectional Flow)           │
+│                  2. FLOW COORDINATION & PRESENTATION SESSION LAYER                       │
 │  - AppFlowCoordinator: Cổng tập trung duy nhất điều phối vào trận, về sảnh, đầu hàng      │
+│  - ClientSession (Dumb View Controller): Lắng nghe TABLE_SYNC, chiếu khung hình          │
+│    TableRenderFrame qua TableFrameProjector (che bài bằng Fog of War)                    │
 │  - useViewStore: Modal State Machine (Discriminated Union) - Bảo đảm 1 popup active      │
-│  - Chống Race Conditions, ngăn ngừa văng màn hình và dọn dẹp bộ nhớ RAM 100%            │
 └─────────────────────────────────────┬───────────────────┬────────────────────────────────┘
-                                      │                   │ Starts / Controls Driver
-         Emits Single Atomic Snapshot │                   ▼
+                                      │                   │
+               Transmits UserIntents  │                   ▼
                                       │ ┌──────────────────────────────────────────────────┐
-                                      │ │    3. ENGINE DRIVER LAYER (IMatchDriver Contract)│
-                                      │ │  - IMatchDriver: Hợp đồng điều khiển thống nhất   │
-                                      │ │  - OfflineMatchDriver: Vòng lặp ván đấu ngoài DOM│
-                                      │ │  - HostEngineDriver: Vòng lặp Host P2P WebRTC    │
-                                      │ │  - Đồng bộ MatchState (State Pattern) nguyên tử  │
-                                      │ │  - cleanup() ngắt 100% ghost timers khi rời bàn  │
+                                      │ │    3. UNIFIED TRANSPORT LAYER (Duplex Transport) │
+                                      │ │  - Offline Mode: InMemoryTransport (Trực tiếp RAM│
+                                      │ │    độ trễ 0ms, không phụ thuộc mạng, an toàn)    │
+                                      │ │  - Online Mode: Supabase Realtime Channels       │
+                                      │ │    (WebSocket Broadcast & Presence không rớt NAT)│
                                       │ └─────────────────┬────────────────────────────────┘
                                       ▼                   │
 ┌─────────────────────────────────────────────────────────┼────────────────────────────────┐
 │                           4. STATE & PERSISTENCE LAYER  ▼                                │
-│  - useGameStore: applyMatchSnapshot() đồng bộ nguyên tử trạng thái bàn đấu                │
+│  - useGameStore: Đồng bộ nguyên tử khung hình từ ClientSession                           │
 │  - useUserStore: Quản lý Profile, Xu, Elo Rating, Nhiệm vụ ngày & Thành tựu              │
-│  - useOnlineStore: RoomSlice, MatchSlice, ChatSlice cho Multiplayer P2P                   │
+│  - useOnlineStore: RoomSlice, MatchSlice, ChatSlice cho Multiplayer Supabase             │
 │  - 100% Dexie IndexedDB: Lưu trữ vĩnh viễn, chống phạt F5 qua active_session             │
 └─────────────────────────────────────────────────────────┬────────────────────────────────┘
                                                           │ Executes Rules & Game Loop
                                                           ▼
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│                           5. GAME ENGINE CORE & AI LAYER (Domain Logic)                  │
+│              5. AUTHORITATIVE LISTEN SERVER & AI LAYER (Single Source of Truth)          │
+│  - AuthoritativeMatchHost: Máy chủ luật duy nhất quản lý ván bài cho cả Offline & Online  │
 │  - GameEngine (State Machine): Bộ luật TLMN, chia bài, tính chặt heo, cóng, thối 2       │
-│  - Validator & Combinations: Nhận diện và thẩm định tính hợp lệ của mọi tổ hợp bài       │
-│  - Strategy Engine: 4 chế độ chơi độc lập (Đếm Lá, Nhất Ăn Tất, Truyền Thống, Chiến Dịch)│
+│  - BotAgent: Máy chơi độc lập, kết nối với Host qua InMemoryTransport như người chơi thật │
 │  - AI Layer: Composite Rule-First Strategy, Chain of Responsibility, MCTS Solver         │
 └──────────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -108,24 +108,28 @@ Triển khai tại [`src/engine/evaluators/progress-evaluators.ts`](../src/engin
 
 ---
 
-### 2.6. App Flow Coordinator, IMatchDriver & State Pattern (Unified Zero-Fragmentation Architecture)
-Triển khai tại [`src/services/app-flow-coordinator.ts`](../src/services/app-flow-coordinator.ts), [`src/engine/match-driver.interface.ts`](../src/engine/match-driver.interface.ts), [`src/engine/offline-match-driver.ts`](../src/engine/offline-match-driver.ts), [`src/engine/network/host-engine-driver.ts`](../src/engine/network/host-engine-driver.ts) và [`src/stores/useViewStore.ts`](../src/stores/useViewStore.ts):
-1. **Cổng Điều Phối Chuyển Cảnh & Hành Động Duy Nhất (`AppFlowCoordinator`)**:
-   - Loại bỏ hoàn toàn sự phân mảnh giữa Online và Offline: `playSelectedCards()`, `passTurn()`, `forfeitMatch()`, `returnToLobby()` được xử lý tập trung, tự động dispatch đúng kênh (Online P2P actions vs Offline driver calls).
-   - Quản lý toàn bộ vòng đời ván đấu qua đường ống tuần tự: Kiểm tra số dư Xu $\to$ Khóa cọc $\to$ Tạo Driver $\to$ Đóng Popups $\to$ Chuyển `GAME_TABLE` $\to$ Chia bài.
-   - Quản lý an toàn cổng về sảnh (`returnToLobby`): Hủy Driver, ngắt 100% timers, ngắt kết nối P2P (nếu online), dọn dẹp active session (chống phạt F5 oan) và đưa màn hình về `LOBBY`.
-2. **Hợp Đồng Điều Khiển Bàn Đấu Thống Nhất (`IMatchDriver`)**:
-   - Giao diện chuẩn mực đóng gói thao tác chơi bài: `playCards(playerId, cards)`, `passTurn(playerId)`, `cleanup()`, `gameNumber`.
-   - Cả `OfflineMatchDriver` (chơi đơn với Bot) và `HostEngineDriver` (chơi mạng P2P) đều tuân thủ chặt chẽ `IMatchDriver`, tách rời 100% logic ván đấu ra khỏi chu kỳ render của React DOM $\to$ triệt tiêu hoàn toàn Stale Closures và Race Conditions.
-   - Cơ chế `cleanup()` hủy tức thì 100% `setTimeout` trong RAM khi người chơi rời bàn hoặc đầu hàng.
-3. **State Pattern Thống Nhất Không Phân Mảnh (`MatchState`)**:
-   - Toàn bộ ván đấu (cả Offline lẫn Online) đều vận hành qua Discriminated Union `MatchState`: `WAITING`, `DEALING`, `PLAYING`, `INSTANT_WIN`, `ROUND_ENDED`, `GAME_OVER`.
-   - Các màn hình UI (`WebGameTableScreen.tsx`, `MobileGameTableScreen.tsx`, `useGameTableScreenLogic.ts`) hoàn toàn không cần phân nhánh `if (isOnlineMatch)` hay toán tử ba ngôi `isOnline ? ... : ...`. Toàn bộ thông tin lượt đánh, người dẫn đầu, nước bài hiện tại, cờ 3 Bích mở màn đều được trích xuất an toàn từ `MatchState`.
-4. **Modal State Machine (`useViewStore`)**:
+### 2.6. App Flow Coordinator, Unified Listen Server & Client Session (Single Source of Truth Architecture)
+Triển khai tại [`src/services/app-flow-coordinator.ts`](../src/services/app-flow-coordinator.ts), [`src/engine/server/match-host.ts`](../src/engine/server/match-host.ts), [`src/engine/presentation/client-session.ts`](../src/engine/presentation/client-session.ts), [`src/engine/transport/memory-transport.ts`](../src/engine/transport/memory-transport.ts) và [`src/engine/transport/p2p-transport.ts`](../src/engine/transport/p2p-transport.ts):
+1. **Loại Bỏ Hoàn Toàn Hệ Thống Legacy Driver Phân Mảnh**:
+   - Toàn bộ 5 driver cũ (`IMatchDriver`, `OfflineMatchDriver`, `HostEngineDriver`, `GuestEngineDriver`, `BaseMatchDriver`) đã bị **xóa vĩnh viễn khỏi repository**.
+   - Không còn tình trạng "chế độ offline chạy một driver, online chạy một driver khác" gây phân mảnh mã nguồn và lệch luật.
+2. **Máy Chủ Luật Duy Nhất (`AuthoritativeMatchHost`) - Single Source of Truth**:
+   - Là bộ não duy nhất điều khiển toàn bộ ván đấu cho cả **Offline** lẫn **Online Host**.
+   - Chịu trách nhiệm: Chia bài ngẫu nhiên, xác thực nước đi, đếm ngược lượt đánh, phát hiện chặt Heo/Hàng, xử lý Tới Trắng và kết toán tiền cược/Elo.
+   - Khi sửa đổi bất kỳ luật chơi nào tại `AuthoritativeMatchHost`, cả Offline và Online đều nhận luật mới cùng lúc.
+3. **Phiên Trình Diễn Khách (`ClientSession` & `TableFrameProjector`)**:
+   - Đóng vai trò Dumb View Controller duy nhất cho giao diện người dùng.
+   - Nhận gói tin đồng bộ `TABLE_SYNC` và phát ra `TableRenderFrame` đã che bài đối thủ qua giao thức chống soi bài (Fog of War).
+   - Tiếp nhận `UserIntent` (`SUBMIT_PLAY`, `SUBMIT_PASS`, `SORT_HAND`, `REORDER_HAND`, `APPLY_HINT`) từ Web & Mobile UI để truyền về Host.
+4. **Tầng Truyền Tin Song Công (Duplex Transport Layer)**:
+   - **Offline Mode**: `createMemoryDuplexTransport` kết nối Host, ClientSession và các `BotAgent` trực tiếp trong RAM (độ trễ 0ms, không phụ thuộc mạng, 0% rò rỉ bộ nhớ).
+   - **Online Mode**: `P2PHostPeerTransport` và `P2PClientTransport` kết nối Host với các máy khách từ xa thông qua **Supabase Realtime Channels (WebSocket Broadcast & Presence)**, triệt tiêu hoàn toàn sự cố rớt mạng NAT/STUN của WebRTC cũ.
+5. **Cổng Điều Phối Chuyển Cảnh & Hành Động Duy Nhất (`AppFlowCoordinator`)**:
+   - Quản lý tập trung toàn bộ vòng đời ván đấu: Kiểm tra số dư Xu $\to$ Khóa cọc $\to$ Khởi tạo Host/Session $\to$ Đóng Popups $\to$ Chuyển `GAME_TABLE` $\to$ Chia bài $\to$ Kết toán ván $\to$ Về sảnh an toàn.
+   - Hủy tức thì 100% `setTimeout` trong RAM khi người chơi rời bàn hoặc đầu hàng.
+6. **Modal State Machine (`useViewStore`)**:
    - Quản lý `currentScreen` và `activeModal` dưới dạng **Discriminated Union**.
    - Đảm bảo tính loại trừ lẫn nhau (Mutually Exclusive): Tối đa duy nhất 1 popup được mở tại một thời điểm, loại bỏ triệt để lỗi kẹt giao diện và xung đột z-index.
-5. **Atomic Snapshotting (`useGameStore.applyMatchSnapshot`)**:
-   - Driver phát ra 1 gói dữ liệu duy nhất (`MatchSnapshot`) mỗi khi trạng thái bàn thay đổi, thay thế hơn 15 setters vụn vặt trước đây $\to$ tối ưu hóa vượt trội hiệu năng render.
 
 ---
 

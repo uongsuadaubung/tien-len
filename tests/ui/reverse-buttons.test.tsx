@@ -7,7 +7,7 @@ import { getLocalSaveData } from '../../src/engine/sync/sync-service';
 import { vi } from '../../src/locales/vi';
 import { en } from '../../src/locales/en';
 import { PlayerHandView } from '../../src/ui/components/PlayerHandView';
-import { Player } from '../../src/engine/types';
+import { MatchPlayer } from '../../src/engine/types';
 import { createPlayer } from '../../src/engine/player-factory';
 import { createCard } from '../../src/engine/card';
 
@@ -62,10 +62,11 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
   });
 
   it('5. PlayerHandView: Render flex-row khi tắt đảo nút và flex-row-reverse khi bật đảo nút', () => {
-    const mockPlayer: Player = {
+    const mockPlayer: MatchPlayer = {
       id: 'p0',
       name: 'Người Chơi',
       hand: [createCard(3, 'SPADES'), createCard(4, 'HEARTS')],
+      cardCount: 2,
       playedCards: [],
       score: 10000,
       avatar: '🤠',

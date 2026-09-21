@@ -4,7 +4,7 @@ import { getTierFromElo } from '../../src/engine/ecosystem/ecosystem-types';
 import { CardTracker } from '../../src/ai/card-tracker';
 import { makeBotDecision } from '../../src/ai/decision-maker';
 import { GameEngine } from '../../src/engine/game';
-import { Player, createDefaultGameRules } from '../../src/engine/types';
+import { MatchPlayer, createDefaultGameRules } from '../../src/engine/types';
 import { createBotPlayer } from '../../src/engine/player-factory';
 import { parseCards } from '../../src/engine/card';
 
@@ -18,11 +18,12 @@ describe('AI Bot Benchmark Simulation & Latency Across 9 Tiers', () => {
     ];
 
     const winCounts: Record<string, number> = { b1: 0, b2: 0, b3: 0, b4: 0 };
-    const NUM_GAMES = 80;
+    const NUM_GAMES = 100;
 
-    for (let g = 1; g <= NUM_GAMES; g++) {
+    for (let i = 0; i < NUM_GAMES; i++) {
+      const g = i + 1;
       // Luân chuyển vị trí ghế ngồi theo chu kỳ để đảm bảo công bằng 100% về lợi thế đi trước
-      const seatOffset = (g - 1) % 4;
+      const seatOffset = i % 4;
       const rotatedBots = [
         rawBots[seatOffset],
         rawBots[(seatOffset + 1) % 4],
@@ -30,7 +31,7 @@ describe('AI Bot Benchmark Simulation & Latency Across 9 Tiers', () => {
         rawBots[(seatOffset + 3) % 4]
       ];
 
-      const players: Player[] = rotatedBots.map(b =>
+      const players: MatchPlayer[] = rotatedBots.map(b =>
         createBotPlayer(b.id, b.config.id || null, {
           name: b.name,
           avatar: b.config.avatar || '🤖',

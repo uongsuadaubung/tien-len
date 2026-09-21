@@ -581,10 +581,10 @@ export const ACHIEVEMENT_EVALUATORS: Record<string, ProgressEvaluator> = {
  */
 export function evaluateDailyQuests(
   events: GameEvent[],
-  quests: Quest[],
+  quests: Quest[] = [],
   profile: PlayerProfile
 ): Quest[] {
-  return quests.map(quest => {
+  return (quests || []).map(quest => {
     if (quest.isCompleted) return quest;
 
     const evaluator = QUEST_EVALUATORS[quest.id];
@@ -609,10 +609,10 @@ export function evaluateDailyQuests(
  */
 export function evaluateAchievements(
   events: GameEvent[],
-  achievements: Achievement[],
+  achievements: Achievement[] = [],
   profile: PlayerProfile
 ): Achievement[] {
-  return achievements.map(ach => {
+  return (achievements || []).map(ach => {
     if (ach.isCompleted) return ach;
 
     const evaluator = ACHIEVEMENT_EVALUATORS[ach.id];

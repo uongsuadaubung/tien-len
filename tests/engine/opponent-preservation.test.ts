@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { GameEngine } from '../../src/engine/game';
-import { GameRulesBuilder } from '../../src/engine/types';
-import { Player } from '../../src/engine/types';
+import { GameRulesBuilder, MatchPlayer } from '../../src/engine/types';
 import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 
 describe('Bảo Toàn Danh Tính Đối Thủ & Cơ Chế Giải Tán Khi Cháy Túi (Table Preservation & Bankruptcy Dismissal)', () => {
@@ -14,7 +13,7 @@ describe('Bảo Toàn Danh Tính Đối Thủ & Cơ Chế Giải Tán Khi Cháy 
     const bot1 = createBotPlayer('p1', 'BOT_ELO_1750', { name: 'Hải Đồ Tể', avatar: '🔪', score: 10000 });
     const bot2 = createBotPlayer('p2', 'BOT_ELO_850', { name: 'Bé Bông', avatar: '🌸', score: 8000 });
     const bot3 = createBotPlayer('p3', 'BOT_ELO_1450', { name: 'Chú Bảy', avatar: '☕', score: 15000 });
-    const human: Player = createPlayer({ id: 'p0', name: 'Người Chơi', avatar: '🤠', score: 50000 });
+    const human: MatchPlayer = createPlayer({ id: 'p0', name: 'Người Chơi', avatar: '🤠', score: 50000 });
 
     const engineRound1 = new GameEngine([human, bot1, bot2, bot3], rules);
     engineRound1.startNewGame(1, undefined, 99999);
@@ -30,7 +29,7 @@ describe('Bảo Toàn Danh Tính Đối Thủ & Cơ Chế Giải Tán Khi Cháy 
     // Chuẩn bị ván 2: Khởi tạo danh sách người chơi cho ván 2 từ ván 1
     const nextGameNumber = 2;
 
-    const round2Players: Player[] = [human, p1, p2, p3].map((p) => {
+    const round2Players: MatchPlayer[] = [human, p1, p2, p3].map((p) => {
       const prevPlayer = engineRound1.getPlayer(p.id);
       const prevScore = prevPlayer ? prevPlayer.score : p.score;
       const resolvedPlayer = prevPlayer || p;
@@ -67,7 +66,7 @@ describe('Bảo Toàn Danh Tính Đối Thủ & Cơ Chế Giải Tán Khi Cháy 
 
   it('2. Khi có đối thủ cháy túi (< tiền cược), hệ thống kích hoạt điều kiện giải tán bàn (isTableDismissed = true)', () => {
     const betAmount = 500;
-    const allPlayers: Player[] = [
+    const allPlayers: MatchPlayer[] = [
       createPlayer({ id: 'p0', name: 'Người Chơi', avatar: '🤠', score: 50000 }),
       createBotPlayer('p1', 'BOT_ELO_1750', { name: 'Hải Đồ Tể', avatar: '🔪', score: 12000 }),
       createBotPlayer('p2', 'BOT_ELO_850', { name: 'Bé Bông', avatar: '🌸', score: 150 }), // Cháy túi!
@@ -89,7 +88,7 @@ describe('Bảo Toàn Danh Tính Đối Thủ & Cơ Chế Giải Tán Khi Cháy 
 
   it('3. Khi người chơi cháy túi (< tiền cược), kích hoạt giải tán và cảnh báo người chơi', () => {
     const betAmount = 500;
-    const allPlayers: Player[] = [
+    const allPlayers: MatchPlayer[] = [
       createPlayer({ id: 'p0', name: 'Người Chơi', avatar: '🤠', score: 100 }),
       createBotPlayer('p1', 'BOT_ELO_1750', { name: 'Hải Đồ Tể', avatar: '🔪', score: 12000 }),
       createBotPlayer('p2', 'BOT_ELO_850', { name: 'Bé Bông', avatar: '🌸', score: 8000 }),
@@ -110,7 +109,7 @@ describe('Bảo Toàn Danh Tính Đối Thủ & Cơ Chế Giải Tán Khi Cháy 
 
   it('4. Khi giải tán bàn do người chơi hoặc bot cháy túi, nút điều hướng là Quay Về Sảnh (onReturnToLobby) thay vì mở Ngân Hàng', () => {
     const betAmount = 1000;
-    const allPlayers: Player[] = [
+    const allPlayers: MatchPlayer[] = [
       createPlayer({ id: 'p0', name: 'Người Chơi', avatar: '🤠', score: 500 }),
       createBotPlayer('p1', 'BOT_ELO_1750', { name: 'Hải Đồ Tể', avatar: '🔪', score: 12000 }),
       createBotPlayer('p2', 'BOT_ELO_850', { name: 'Bé Bông', avatar: '🌸', score: 8000 }),

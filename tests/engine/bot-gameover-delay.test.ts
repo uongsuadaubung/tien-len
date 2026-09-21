@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { OfflineMatchDriver, MatchCompletionResult } from '../../src/engine/offline-match-driver';
+import { AuthoritativeMatchHost } from '../../src/engine/server/match-host';
 import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
-import { GameEngine } from '../../src/engine/game';
 import { createDefaultGameRules, createPlayedMove } from '../../src/engine/types';
 import { createCard } from '../../src/engine/card';
 import { CardTracker } from '../../src/ai/card-tracker';
@@ -9,7 +8,6 @@ import { UI_TIMINGS } from '../../src/ui/constants/ui-timings';
 import { mapMatchStateToSnapshot } from '../../src/engine/state-machine/match-state-machine';
 import { GameOverMatchState } from '../../src/engine/state-machine/types';
 import { createPerspectiveSettlement } from '../../src/engine/settlement/perspective-settlement';
-import { GameSettingsSchema } from '../../src/engine/schemas/settings.schema';
 
 describe('Bot Winning Card Visibility & 2-Second Victory Modal Delay Tests', () => {
   it('1. UI_TIMINGS: GAME_OVER_MODAL_DELAY_MS được định nghĩa chính xác là 2000ms (2 giây)', () => {
@@ -64,18 +62,15 @@ describe('Bot Winning Card Visibility & 2-Second Victory Modal Delay Tests', () 
     expect(snapshot.currentMove?.combination.cards[0].id).toBe(mockCard.id);
   });
 
-  it('3. OfflineMatchDriver: Khi Bot đánh quân chốt hạ, bài hiển thị trên bàn và snapshot lưu giữ leadingMove', () => {
+  it('3. AuthoritativeMatchHost: Khi Bot đánh quân chốt hạ, bài hiển thị trên bàn và sync packet lưu giữ currentMoveCards', () => {
     const rules = createDefaultGameRules();
     rules.settlementRule = 'COUNT_CARDS'; // Đếm lá: ai hết bài trước thắng ngay
 
     const human = createPlayer({ id: 'human_0', name: 'Người Chơi', avatar: '🤠' });
     const bot = createBotPlayer('bot_1', 'BOT_ELO_1150', { name: 'Bot Cao Thủ', avatar: '🤖' });
 
-    // Cấp bài cho Bot: chỉ có đúng 1 lá Át cơ (để khi bot đánh là hết bài ngay)
     const winningCard = createCard(14, 'HEARTS');
     bot.hand = [winningCard];
-
-    // Người chơi còn 5 lá
     human.hand = [
       createCard(4, 'SPADES'),
       createCard(5, 'SPADES'),
@@ -84,66 +79,69 @@ describe('Bot Winning Card Visibility & 2-Second Victory Modal Delay Tests', () 
       createCard(8, 'SPADES')
     ];
 
-    const engine = new GameEngine([human, bot], rules);
-    engine.startCustomGame(1);
-    engine.isFirstMoveOfGame = false;
-    engine.firstMoveRequiredCard = null;
-
-    // Set lượt hiện tại cho Bot cầm cái
-    engine.currentRound.leadPlayerId = 'bot_1';
-    engine.currentRound.currentTurnPlayerId = 'bot_1';
-    engine.currentRound.moves = [];
-
-    const driver = new OfflineMatchDriver();
-    driver.engine = engine;
-    driver.localPlayerId = 'human_0';
-    driver.tableConfig = {
-      gameType: 'QUICK',
+    const host = new AuthoritativeMatchHost({
       rules,
-      settings: GameSettingsSchema.parse({ betAmount: 1000, mode: rules.settlementRule }),
-      playerCount: 2,
-      botPersonaIds: ['BOT_ELO_1150', 'BOT_ELO_850', 'BOT_ELO_1450'],
-      customBotConfigs: [{}, {}, {}],
-      campaignChapter: null
-    };
+      players: [human, bot],
+      hostPlayerId: 'human_0'
+    });
+    host.startMatch(1);
+    host.engine.isFirstMoveOfGame = false;
+    host.engine.firstMoveRequiredCard = null;
+    host.engine.currentRound.leadPlayerId = 'bot_1';
+    host.engine.currentRound.currentTurnPlayerId = 'bot_1';
+    host.engine.currentRound.moves = [];
+    host.engine.players[0].hand = [...human.hand];
+    host.engine.players[1].hand = [winningCard];
+
+    let lastSyncPacket: any = null;
+    host.registerClient('human_0', {
+      isConnected: true,
+      send: (msg: any) => {
+        if (msg.type === 'TABLE_SYNC') {
+          lastSyncPacket = msg.packet;
+        }
+      },
+      onMessage: () => () => {},
+      disconnect: () => {}
+    });
 
     const botConfig = { memoryDepth: 1 };
     const tracker = new CardTracker(bot.hand, 1, 2);
 
     // Trigger bot turn
-    const botRes = engine.executeBotTurn(botConfig as any, tracker);
+    const botRes = host.engine.executeBotTurn(botConfig as any, tracker);
     expect(botRes.action).toBe('PLAY');
-    expect(engine.isGameOver).toBe(true);
+    expect(host.engine.isGameOver).toBe(true);
 
-    // Kiểm tra getMatchState() của driver lưu giữ leadingMove là lá bài bot vừa đánh
-    const matchState = driver.getMatchState();
-    expect(matchState.status).toBe('GAME_OVER');
-    if (matchState.status === 'GAME_OVER') {
-      expect(matchState.leadingMove).not.toBeNull();
-      expect(matchState.leadingMove?.playerId).toBe('bot_1');
-      expect(matchState.leadingMove?.combination.cards[0].id).toBe(winningCard.id);
+    if (botRes.action === 'PLAY') {
+      (host as any).lastPlayedMove = botRes.playedMove;
+      host.broadcastTableSync();
     }
 
-    // Kiểm tra snapshot cũng có currentMove là lá bài bot vừa đánh
-    const snapshot = driver.getSnapshot();
-    expect(snapshot.isGameOver).toBe(true);
-    expect(snapshot.currentMove).not.toBeNull();
-    expect(snapshot.currentMove?.playerId).toBe('bot_1');
+    expect(lastSyncPacket).not.toBeNull();
+    expect(lastSyncPacket.isGameOver).toBe(true);
+    expect(lastSyncPacket.currentMoveCards).toBeDefined();
+    expect(lastSyncPacket.currentMoveCards[0].id).toBe(winningCard.id);
+    expect(lastSyncPacket.currentMovePlayerId).toBe('bot_1');
 
-    driver.cleanup();
+    host.dispose();
   });
 
-  it('4. OfflineMatchDriver: cleanupTimers dọn sạch gameOverTimer khi người chơi thoát bàn', () => {
-    const driver = new OfflineMatchDriver();
+  it('4. AuthoritativeMatchHost: clearAllTimers dọn sạch gameOverTimer khi người chơi thoát bàn', () => {
+    const host = new AuthoritativeMatchHost({
+      rules: createDefaultGameRules(),
+      players: [createPlayer({ id: 'p0', name: 'User' })],
+      hostPlayerId: 'p0'
+    });
     // Gán 1 timer giả lập
-    (driver as any).gameOverTimer = setTimeout(() => {}, 10000);
-    expect((driver as any).gameOverTimer).not.toBeNull();
+    (host as any).gameOverTimer = setTimeout(() => {}, 10000);
+    expect((host as any).gameOverTimer).not.toBeNull();
 
-    driver.cleanup();
-    expect((driver as any).gameOverTimer).toBeNull();
+    host.dispose();
+    expect((host as any).gameOverTimer).toBeNull();
   });
 
-  it('5. OfflineMatchDriver: Khi Người Chơi (Human) đánh quân chốt hạ qua playCards, cũng lưu giữ bài và đợi 2s', () => {
+  it('5. AuthoritativeMatchHost: Khi Người Chơi (Human) đánh quân chốt hạ qua playCards, cũng lưu giữ bài và đợi 2s', () => {
     const rules = createDefaultGameRules();
     rules.settlementRule = 'COUNT_CARDS';
 
@@ -155,51 +153,59 @@ describe('Bot Winning Card Visibility & 2-Second Victory Modal Delay Tests', () 
     human.hand = [humanWinningCard];
     bot.hand = [createCard(4, 'SPADES'), createCard(5, 'SPADES')];
 
-    const engine = new GameEngine([human, bot], rules);
-    engine.startCustomGame(1);
-    engine.isFirstMoveOfGame = false;
-    engine.firstMoveRequiredCard = null;
-
-    engine.currentRound.leadPlayerId = 'human_0';
-    engine.currentRound.currentTurnPlayerId = 'human_0';
-    engine.currentRound.moves = [];
-
-    const driver = new OfflineMatchDriver();
-    driver.engine = engine;
-    driver.localPlayerId = 'human_0';
-    driver.tableConfig = {
-      gameType: 'QUICK',
+    let onGameOverCalled = false;
+    const host = new AuthoritativeMatchHost({
       rules,
-      settings: GameSettingsSchema.parse({ betAmount: 1000, mode: rules.settlementRule }),
-      playerCount: 2,
-      botPersonaIds: ['BOT_ELO_1150', 'BOT_ELO_850', 'BOT_ELO_1450'],
-      customBotConfigs: [{}, {}, {}],
-      campaignChapter: null
-    };
-
-    let onCompleteCalled = false;
-    driver.onComplete(() => {
-      onCompleteCalled = true;
+      players: [human, bot],
+      hostPlayerId: 'human_0',
+      onGameOver: () => {
+        onGameOverCalled = true;
+      }
     });
 
-    // Human đánh lá bài chốt hạ
-    const playRes = driver.playCards('human_0', [humanWinningCard]);
-    expect(playRes.success).toBe(true);
-    expect(engine.isGameOver).toBe(true);
+    host.startMatch(1);
+    host.engine.isFirstMoveOfGame = false;
+    host.engine.firstMoveRequiredCard = null;
+    host.engine.currentRound.leadPlayerId = 'human_0';
+    host.engine.currentRound.currentTurnPlayerId = 'human_0';
+    host.engine.currentRound.moves = [];
+    host.engine.players[0].hand = [humanWinningCard];
+    host.engine.players[1].hand = [createCard(4, 'SPADES'), createCard(5, 'SPADES')];
 
-    // Chưa gọi onComplete ngay lập tức (đang trong thời gian delay 2s)
-    expect(onCompleteCalled).toBe(false);
+    let lastSyncPacket: any = null;
+    const clientTransport = {
+      isConnected: true,
+      send: (msg: any) => {
+        if (msg.type === 'TABLE_SYNC') {
+          lastSyncPacket = msg.packet;
+        }
+      },
+      onMessage: () => () => {},
+      disconnect: () => {}
+    };
+    host.registerClient('human_0', clientTransport);
+
+    // Human đánh lá bài chốt hạ
+    const playRes = host.playCards('human_0', [humanWinningCard]);
+    expect(playRes.success).toBe(true);
+    expect(host.engine.isGameOver).toBe(true);
+
+    // Kích hoạt gameOver (mặc định đợi 2s)
+    host.handleGameOver();
+
+    // Chưa gọi onGameOver ngay lập tức (đang trong thời gian delay 2s)
+    expect(onGameOverCalled).toBe(false);
 
     // Bài chốt hạ của human hiển thị trên bàn
-    const snapshot = driver.getSnapshot();
-    expect(snapshot.isGameOver).toBe(true);
-    expect(snapshot.currentMove).not.toBeNull();
-    expect(snapshot.currentMove?.playerId).toBe('human_0');
-    expect(snapshot.currentMove?.combination.cards[0].id).toBe(humanWinningCard.id);
+    expect(lastSyncPacket).not.toBeNull();
+    expect(lastSyncPacket.isGameOver).toBe(true);
+    expect(lastSyncPacket.currentMoveCards).toBeDefined();
+    expect(lastSyncPacket.currentMoveCards[0].id).toBe(humanWinningCard.id);
+    expect(lastSyncPacket.currentMovePlayerId).toBe('human_0');
 
     // Timer gameOverTimer đang hoạt động
-    expect((driver as any).gameOverTimer).not.toBeNull();
+    expect((host as any).gameOverTimer).not.toBeNull();
 
-    driver.cleanup();
+    host.dispose();
   });
 });

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useCallback } from 'react';
 import confetti from 'canvas-confetti';
-import { Player, InstantWinType } from '../../engine/types';
+import { MatchPlayer, InstantWinType } from '../../engine/types';
 import { clearActiveMatchSession } from '../../engine/storage';
 import { MatchLogger } from '../../engine/match-logger';
 import { ActiveGameType, useGameStore, CampaignResultMeta } from '../../stores/useGameStore';
@@ -44,8 +44,8 @@ export interface VictoryLogicResult {
   isOnline: boolean;
   isTableDismissed: boolean;
   isHumanBankrupt: boolean;
-  bankruptBots: Player[];
-  displayPlayers: Player[];
+  bankruptBots: MatchPlayer[];
+  displayPlayers: MatchPlayer[];
   humanPayout: number;
   modalTitle: string;
   modalSubtitle: string;
@@ -74,8 +74,8 @@ export interface VictoryLogicResult {
   settlement: PerspectiveMatchSettlement;
 
   // Bảng kết quả từ Store (giữ tương thích)
-  winners: Player[];
-  allPlayers: Player[];
+  winners: MatchPlayer[];
+  allPlayers: MatchPlayer[];
   instantWinType: InstantWinType | null;
   getInstantWinTitle: (type: InstantWinType | null) => string;
   isThreeSpadesWin: boolean;
@@ -221,10 +221,10 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
   }, []);
 
   // Danh sách hiển thị lấy theo thứ tự Engine đã sort sẵn
-  const displayPlayers: Player[] = useMemo(() => {
+  const displayPlayers: MatchPlayer[] = useMemo(() => {
     return settlement.players
       .map(sp => allPlayers.find(p => p.id === sp.id))
-      .filter((p): p is Player => p !== undefined);
+      .filter((p): p is MatchPlayer => p !== undefined);
   }, [settlement.players, allPlayers]);
 
   const bankruptBots = useMemo(() => {

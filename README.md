@@ -11,12 +11,14 @@
   1. ⚡ **Chơi Nhanh & Đấu Hạng (Quick Play & Ranked Elo)**: Tự động ghép trận với các đối thủ cùng trình độ Elo, tùy chọn luật (Đếm Lá, Nhất Ăn Tất, Truyền Thống, Solo 1v1), tính biến động điểm Elo chuẩn FIDE và tích lũy Xu thưởng.
   2. 🗺️ **Hành Trình Sự Nghiệp (Campaign Story)**: Chinh phục 5 chương cốt truyện độc đáo, mở khóa danh hiệu và phần thưởng đặc biệt.
   3. 🛠️ **Tùy Biến Bàn Chơi (Custom Sandbox)**: Tự do tinh chỉnh số người (2-4), mức cược, phạt chặt, cóng, về 3 bích cuối và chiến thuật đối thủ.
-* 🔄 **Unidirectional Flow, IMatchDriver & App Flow Coordinator**:
-  - **Cổng Tập Trung Duy Nhất (`AppFlowCoordinator`)**: Quản lý tập trung toàn bộ luồng vào trận, cọc tiền, đánh bài, bỏ lượt, về sảnh, đầu hàng cho cả chế độ Offline và Online P2P.
-  - **Hợp Đồng Điều Khiển Bàn Đấu Thống Nhất (`IMatchDriver`)**: `OfflineMatchDriver` và `HostEngineDriver` đều implement chung `IMatchDriver`, tách rời 100% logic ván đấu ra khỏi React DOM $\to$ triệt tiêu hoàn toàn race conditions, ghost timers và stale closures.
-  - **State Pattern Thống Nhất (`MatchState`)**: Giao diện UI hoàn toàn thuần khiết, nhận dữ liệu trực tiếp từ `matchState` (Discriminated Union: `WAITING`, `DEALING`, `PLAYING`, `ROUND_ENDED`, `GAME_OVER`), loại bỏ hoàn toàn mã phân mảnh `isOnline`.
+* 🔄 **Unified Listen Server & Client Session Architecture**:
+  - **Single Source of Truth (`AuthoritativeMatchHost`)**: Một máy chủ luật duy nhất quản lý toàn bộ ván bài, chia bài ngẫu nhiên, xác thực nước đi, đếm ngược và kết toán cho cả **Offline** lẫn **Online Host**. Sửa luật một nơi, cả hai chế độ đều đồng bộ 100%.
+  - **Dumb View Controller (`ClientSession`)**: Tiếp nhận `TABLE_SYNC` và chiếu khung hình `TableRenderFrame` qua giao thức chống soi bài (Fog of War) cho Web & Mobile UI render.
+  - **Tầng Truyền Tin Đa Dạng (Transport Layer)**:
+    - *Offline*: Kết nối trực tiếp qua RAM (`createMemoryDuplexTransport`) với độ trễ 0ms, không phụ thuộc mạng, 0% rò rỉ bộ nhớ.
+    - *Online*: Kết nối qua **Supabase Realtime Channels** (WebSocket Broadcast & Presence), triệt tiêu hoàn toàn sự cố rớt mạng NAT/STUN của WebRTC cũ.
+  - **Cổng Tập Trung Duy Nhất (`AppFlowCoordinator`)**: Quản lý tập trung toàn bộ luồng vào trận, cọc tiền, đánh bài, bỏ lượt, về sảnh, đầu hàng cho cả chế độ Offline và Online.
   - **Modal State Machine (`useViewStore`)**: Discriminated Union đảm bảo chỉ có tối đa 1 Popup hiển thị, loại bỏ 100% nguy cơ kẹt giao diện.
-  - **Atomic Snapshotting**: Đồng bộ dữ liệu bàn đấu nguyên tử qua `applyMatchSnapshot()`, giảm thiểu tối đa số lần re-render.
 * 🤖 **Hệ Sinh Thái 200 Đối Thủ Sống Động & AI Engine**:
   - **200 Đối Thủ Tự Tranh Tài Ngầm**: Vận hành ngầm song song qua Web Worker không gây lag giao diện (0% CPU main thread blockage).
   - **Cơ Chế Đào Thải Vỡ Nợ & Tuyển Mộ Tân Binh**: Bot vỡ nợ bị đào thải, tự động tuyển mộ Tân Binh với 50.000 Xu & 1.000 Elo (kế thừa DNA kỹ năng).
@@ -44,42 +46,42 @@
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
 │                               1. PRESENTATION LAYER (UI / UX)                            │
 │  - React 19 Components (WebApp, MobileApp, LobbyHub, GameTable, HandView, BotSeat)       │
-│  - Dumb Components: Nhận MatchState thuần khiết, không phân biệt Online/Offline          │
+│  - Dumb Components: Nhận TableRenderFrame thuần khiết từ ClientSession                   │
 │  - Hardware-Accelerated CSS, Web Audio API Sound Manager                                 │
 └───────────────────────────────────────────┬──────────────────────────────────────────────┘
-                                            │ User Intents (Chơi nhanh, Đánh bài, Bỏ lượt)
+                                            │ User Intents (Chọn bài, Đánh, Bỏ lượt, Xếp bài)
                                             ▼
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│                  2. FLOW COORDINATION & VIEW STATE LAYER (Unidirectional Flow)           │
+│                  2. FLOW COORDINATION & PRESENTATION SESSION LAYER                       │
 │  - AppFlowCoordinator: Cổng tập trung duy nhất điều phối vào trận, về sảnh, đầu hàng      │
+│  - ClientSession (Dumb View Controller): Nhận TABLE_SYNC, chiếu khung hình               │
+│    TableRenderFrame qua TableFrameProjector (che bài bằng Fog of War)                    │
 │  - useViewStore: Modal State Machine (Discriminated Union) - Bảo đảm 1 popup active      │
-│  - Chống Race Conditions, ngăn ngừa văng màn hình và dọn dẹp bộ nhớ RAM 100%            │
 └─────────────────────────────────────┬───────────────────┬────────────────────────────────┘
-                                      │                   │ Starts / Controls Driver
-         Emits Single Atomic Snapshot │                   ▼
+                                      │                   │
+               Transmits UserIntents  │                   ▼
                                       │ ┌──────────────────────────────────────────────────┐
-                                      │ │    3. ENGINE DRIVER LAYER (IMatchDriver Contract)│
-                                      │ │  - IMatchDriver: Hợp đồng điều khiển thống nhất   │
-                                      │ │  - OfflineMatchDriver: Vòng lặp ván đấu ngoài DOM│
-                                      │ │  - HostEngineDriver: Vòng lặp Host P2P WebRTC    │
-                                      │ │  - Đồng bộ MatchState (State Pattern) nguyên tử  │
-                                      │ │  - cleanup() ngắt 100% ghost timers khi rời bàn  │
+                                      │ │    3. UNIFIED TRANSPORT LAYER (Duplex Transport) │
+                                      │ │  - Offline Mode: InMemoryTransport (Trực tiếp RAM│
+                                      │ │    độ trễ 0ms, không phụ thuộc mạng, an toàn)    │
+                                      │ │  - Online Mode: Supabase Realtime Channels       │
+                                      │ │    (WebSocket Broadcast & Presence không rớt NAT)│
                                       │ └─────────────────┬────────────────────────────────┘
                                       ▼                   │
 ┌─────────────────────────────────────────────────────────┼────────────────────────────────┐
 │                           4. STATE & PERSISTENCE LAYER  ▼                                │
-│  - useGameStore: applyMatchSnapshot() đồng bộ nguyên tử trạng thái bàn đấu                │
+│  - useGameStore: Đồng bộ nguyên tử khung hình từ ClientSession                           │
 │  - useUserStore: Quản lý Profile, Xu, Elo Rating, Nhiệm vụ ngày & Thành tựu              │
-│  - useOnlineStore: RoomSlice, MatchSlice, ChatSlice cho Multiplayer P2P                   │
+│  - useOnlineStore: RoomSlice, MatchSlice, ChatSlice cho Multiplayer Supabase             │
 │  - 100% Dexie IndexedDB: Lưu trữ vĩnh viễn, chống phạt F5 qua active_session             │
 └─────────────────────────────────────────────────────────┬────────────────────────────────┘
                                                           │ Executes Rules & Game Loop
                                                           ▼
 ┌──────────────────────────────────────────────────────────────────────────────────────────┐
-│                           5. GAME ENGINE CORE & AI LAYER (Domain Logic)                  │
+│              5. AUTHORITATIVE LISTEN SERVER & AI LAYER (Single Source of Truth)          │
+│  - AuthoritativeMatchHost: Máy chủ luật duy nhất quản lý ván bài cho cả Offline & Online  │
 │  - GameEngine (State Machine): Bộ luật TLMN, chia bài, tính chặt heo, cóng, thối 2       │
-│  - Validator & Combinations: Nhận diện và thẩm định tính hợp lệ của mọi tổ hợp bài       │
-│  - Strategy Engine: 4 chế độ chơi độc lập (Đếm Lá, Nhất Ăn Tất, Truyền Thống, Chiến Dịch)│
+│  - BotAgent: Máy chơi độc lập, kết nối với Host qua InMemoryTransport như người chơi thật │
 │  - AI Layer: Composite Rule-First Strategy, Chain of Responsibility, MCTS Solver         │
 └──────────────────────────────────────────────────────────────────────────────────────────┘
 ```

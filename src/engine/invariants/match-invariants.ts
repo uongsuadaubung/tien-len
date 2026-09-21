@@ -1,4 +1,4 @@
-import type { MatchSnapshot } from '../offline-match-driver';
+import type { MatchSnapshot } from '../session-types';
 import type { GameRules, GameSettings } from '../types';
 
 export class InvariantViolationError extends Error {
@@ -147,10 +147,13 @@ export function assertValidSnapshot(snapshot: MatchSnapshot): void {
 
   // 4. Kiểm tra số lá bài trên tay mỗi người chơi
   for (const p of snapshot.players) {
-    if (p.hand && p.hand.length > 13) {
-      reportInvariantViolation(`Người chơi ${p.name} (${p.id}) có ${p.hand.length} lá bài (> 13 lá)!`, {
+    const cardCountVal = p.cardCount ?? 0;
+    const handCountVal = p.hand ? p.hand.length : 0;
+    const count = Math.max(cardCountVal, handCountVal);
+    if (count > 13) {
+      reportInvariantViolation(`Người chơi ${p.name} (${p.id}) có ${count} lá bài (> 13 lá)!`, {
         playerId: p.id,
-        handLength: p.hand.length
+        cardCount: count
       });
     }
   }

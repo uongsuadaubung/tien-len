@@ -7,6 +7,29 @@ import { SavedSettingsSchema, type GithubUser, type SavedSettings } from '../eng
 export type { SavedSettings };
 
 export const DEFAULT_SETTINGS: SavedSettings = SavedSettingsSchema.parse({});
+export const SETTINGS_STORAGE_KEY = 'tienlen_saved_settings';
+
+let memorySettingsCache: SavedSettings | null = null;
+
+export function loadInitialSettings(): SavedSettings {
+  if (memorySettingsCache) {
+    return memorySettingsCache;
+  }
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const validated = SavedSettingsSchema.safeParse(parsed);
+        if (validated.success) {
+          memorySettingsCache = validated.data;
+          return validated.data;
+        }
+      }
+    } catch {}
+  }
+  return DEFAULT_SETTINGS;
+}
 
 function persistSettings(state: SettingsState): void {
   const data: SavedSettings = {
@@ -28,6 +51,14 @@ function persistSettings(state: SettingsState): void {
     autoBackupInterval: state.autoBackupInterval,
     autoSyncOnStartup: state.autoSyncOnStartup
   };
+
+  memorySettingsCache = data;
+
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(data));
+    } catch {}
+  }
 
   dbSaveGameSettings(data).catch(() => {});
 }
@@ -82,7 +113,7 @@ interface SettingsState {
   hydrateSettings: (settings: Partial<SavedSettings>) => void;
 }
 
-const initial = DEFAULT_SETTINGS;
+const initial = loadInitialSettings();
 
 export const useSettingsStore = create<SettingsState>((set) => ({
   soundEnabled: initial.soundEnabled,
@@ -103,7 +134,35 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   autoBackupInterval: initial.autoBackupInterval || 5,
   autoSyncOnStartup: initial.autoSyncOnStartup,
 
-  hydrateSettings: (settings) => set((state) => ({ ...state, ...settings })),
+  hydrateSettings: (settings) => set((state) => {
+    const next = { ...state, ...settings };
+    const data: SavedSettings = {
+      soundEnabled: next.soundEnabled,
+      autoSortEnabled: next.autoSortEnabled,
+      aiHintEnabled: next.aiHintEnabled,
+      quickResponseAssistEnabled: next.quickResponseAssistEnabled,
+      reverseButtonsEnabled: next.reverseButtonsEnabled,
+      xrayEnabled: next.xrayEnabled,
+      botReasoningLogEnabled: next.botReasoningLogEnabled,
+      onlineMultiplayerBetaEnabled: next.onlineMultiplayerBetaEnabled,
+      gameSpeed: next.gameSpeed,
+      githubToken: next.githubToken,
+      gistId: next.gistId,
+      lastSync: next.lastSync,
+      lastSyncedHash: next.lastSyncedHash,
+      cachedGithubUser: next.cachedGithubUser,
+      autoBackupOnMatchEnd: next.autoBackupOnMatchEnd,
+      autoBackupInterval: next.autoBackupInterval,
+      autoSyncOnStartup: next.autoSyncOnStartup
+    };
+    memorySettingsCache = data;
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(data));
+      } catch {}
+    }
+    return next;
+  }),
 
   toggleSound: () => set((state) => {
     const next = { ...state, soundEnabled: !state.soundEnabled };

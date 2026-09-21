@@ -1,12 +1,12 @@
 import { describe, test, expect } from 'bun:test';
 import { GameEngine } from '../../src/engine/game';
-import { Player, Card, createDefaultGameRules } from '../../src/engine/types';
+import { MatchPlayer, Card, createDefaultGameRules } from '../../src/engine/types';
 import { CountCardsModeStrategy } from '../../src/engine/strategies/game-mode-strategy';
 import { PlayerProfile } from '../../src/engine/storage';
 import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 
 describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu Hạng', () => {
-  const p0: Player = createPlayer({
+  const p0: MatchPlayer = createPlayer({
     id: 'p0',
     name: 'Bạn',
     avatar: '🤠',
@@ -17,7 +17,7 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
     ]
   });
 
-  const p1: Player = createBotPlayer('p1', null, {
+  const p1: MatchPlayer = createBotPlayer('p1', null, {
     name: 'Alex',
     avatar: '🧒',
     score: 1000,
@@ -27,7 +27,7 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
     ]
   });
 
-  const p2: Player = createBotPlayer('p2', null, {
+  const p2: MatchPlayer = createBotPlayer('p2', null, {
     name: 'Kai',
     avatar: '🤠',
     score: 1000,
@@ -36,7 +36,7 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
     ]
   });
 
-  const p3: Player = createBotPlayer('p3', null, {
+  const p3: MatchPlayer = createBotPlayer('p3', null, {
     name: 'Marcus',
     avatar: '👴',
     score: 1000,

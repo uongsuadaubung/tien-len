@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'bun:test';
 import { createCard } from '../../src/engine/card';
 import { GameEngine } from '../../src/engine/game';
-import { Player, PlayedMove, createDefaultGameRules, GameRulesBuilder } from '../../src/engine/types';
+import { MatchPlayer, PlayedMove, createDefaultGameRules, GameRulesBuilder } from '../../src/engine/types';
 import { ChoppingRuleStrategyBuilder } from '../../src/ai/rule-strategies';
 import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 
@@ -33,7 +33,7 @@ describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạ
     createCard(10, 'SPADES'), createCard(10, 'HEARTS')
   ];
 
-  function createTestPlayers(): Player[] {
+  function createTestPlayers(): MatchPlayer[] {
     return [
       createPlayer({ id: 'p0', name: 'Người Chơi A', score: 10000, hasPlayedFirstCard: true }),
       createBotPlayer('p1', null, { name: 'Bot B', score: 10000, hasPlayedFirstCard: true }),

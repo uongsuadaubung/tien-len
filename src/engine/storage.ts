@@ -305,3 +305,72 @@ export function getHumanBehaviorProfile(): unknown | null {
   return loadHumanBehaviorProfile();
 }
 
+// ============================================================================
+// LƯU VẾT PHIÊN PHÒNG ONLINE ĐANG CHƠI (ONLINE MATCH RECONNECT SESSION)
+// ============================================================================
+
+export interface ActiveOnlineRoomSession {
+  roomCode: string;
+  playerId: string;
+  savedAt: number;
+}
+
+const ACTIVE_ONLINE_ROOM_KEY = 'active_online_room_session';
+let cachedActiveOnlineSession: ActiveOnlineRoomSession | null = null;
+
+export function saveActiveOnlineSession(session: ActiveOnlineRoomSession): void {
+  cachedActiveOnlineSession = session;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(ACTIVE_ONLINE_ROOM_KEY, JSON.stringify(session));
+    }
+  } catch (err) {
+    console.warn('[Storage] Failed to save active online session:', err);
+  }
+}
+
+function isActiveOnlineRoomSession(obj: unknown): obj is ActiveOnlineRoomSession {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'roomCode' in obj &&
+    typeof obj.roomCode === 'string' &&
+    'playerId' in obj &&
+    typeof obj.playerId === 'string' &&
+    'savedAt' in obj &&
+    typeof obj.savedAt === 'number'
+  );
+}
+
+export function getActiveOnlineSession(): ActiveOnlineRoomSession | null {
+  if (cachedActiveOnlineSession) {
+    return cachedActiveOnlineSession;
+  }
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem(ACTIVE_ONLINE_ROOM_KEY);
+      if (!raw) return null;
+      const parsed: unknown = JSON.parse(raw);
+      if (isActiveOnlineRoomSession(parsed)) {
+        cachedActiveOnlineSession = parsed;
+        return cachedActiveOnlineSession;
+      }
+      return null;
+    }
+  } catch (err) {
+    console.warn('[Storage] Failed to parse active online session:', err);
+  }
+  return null;
+}
+
+export function clearActiveOnlineSession(): void {
+  cachedActiveOnlineSession = null;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(ACTIVE_ONLINE_ROOM_KEY);
+    }
+  } catch (err) {
+    console.warn('[Storage] Failed to clear active online session:', err);
+  }
+}
+

@@ -4,10 +4,10 @@ import {
   type TableStateSyncPacket, 
   type GameEndPacket, 
   type ChatPacket,
-  type PublicRoomSummary 
+  type PublicRoomSummary,
+  type ReconnectNotice
 } from '../../engine/network/network.schema';
-import { HostEngineDriver } from '../../engine/network/host-engine-driver';
-import { GuestEngineDriver } from '../../engine/network/guest-engine-driver';
+import type { AuthoritativeMatchHost } from '../../engine/server/match-host';
 import { type GameSettlementRule } from '../../engine/types';
 import { type PlayerProfile } from '../../engine/storage';
 
@@ -67,7 +67,8 @@ export interface InRoomPlayingOnlineState {
   readonly roomState: OnlineRoomState;   // ✅ Bảo đảm luôn tồn tại
   readonly isHost: boolean;
   readonly myPlayerId: string;
-  readonly hostDriver: HostEngineDriver | null;
+  readonly hostInstance?: AuthoritativeMatchHost | null;
+  readonly hostDriver?: AuthoritativeMatchHost | null;
 }
 
 export interface DisbandedOnlineState {
@@ -99,6 +100,7 @@ export interface RoomSliceState {
   readonly myPlayerId: string;
   readonly connectionStatus: 'IDLE' | 'CONNECTING' | 'CONNECTED' | 'DISCONNECTED';
   readonly disbandNotice: OnlineDisbandNotice | null;
+  readonly reconnectNotice: ReconnectNotice | null;
   readonly publicRooms: readonly PublicRoomSummary[];
   readonly isBrowsingLobby: boolean;
   readonly isLobbyLoading: boolean;
@@ -111,6 +113,7 @@ export interface RoomSliceActions {
   joinPublicRoom: (profile: PlayerProfile, room: PublicRoomSummary) => void;
   removeSlot: (slotIdx: number) => void;
   clearDisbandNotice: () => void;
+  clearReconnectNotice: () => void;
   leaveRoom: () => void;
   startBrowsingLobby: () => void;
   stopBrowsingLobby: () => void;
@@ -118,8 +121,9 @@ export interface RoomSliceActions {
 }
 
 export interface MatchSliceState {
-  hostDriver: HostEngineDriver | null;
-  guestDriver: GuestEngineDriver | null;
+  hostInstance: AuthoritativeMatchHost | null;
+  hostDriver?: AuthoritativeMatchHost | null;
+  guestDriver?: unknown;
   lastTableSync: TableStateSyncPacket | null;
   gameEndSummary: GameEndPacket | null;
 }

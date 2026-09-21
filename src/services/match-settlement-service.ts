@@ -13,15 +13,14 @@ import { useEcosystemStore } from '../stores/useEcosystemStore';
 import { useSettingsStore } from '../stores/useSettingsStore';
 import { useOnlineStore } from '../stores/useOnlineStore';
 import { forceUploadToCloud } from '../engine/sync/sync-service';
-import { CustomBotConfigTuple, type Player, type InstantWinType } from '../engine/types';
+import { CustomBotConfigTuple, type MatchPlayer, type InstantWinType } from '../engine/types';
 import { assertEconomicBalance } from '../engine/invariants/match-invariants';
 import { calculateMatchLoanSettlement, type MatchLoanSettlementResult } from '../engine/constants/economy';
 import type { BotConfig } from '../ai/types';
 import { getBotConfig } from '../ai/bot-factory';
 import { dbUpdatePlayerMatchResult } from '../engine/db/indexed-db';
-import type { OfflineMatchDriver } from '../engine/offline-match-driver';
 import type { GameOverMatchState } from '../engine/state-machine/types';
-import { createPerspectiveSettlement, type CreatePerspectiveSettlementParams } from '../engine/settlement/perspective-settlement';
+import { createPerspectiveSettlement, type CreatePerspectiveSettlementParams, type PerspectiveSettlement } from '../engine/settlement/perspective-settlement';
 
 export type { CampaignResultMeta };
 
@@ -52,8 +51,8 @@ interface BaseSettlementInput {
   readonly eloDeltas: Readonly<Record<string, number>>;
   readonly eloDelta: number;
   readonly isVictoryModalRanked: boolean;
-  readonly winners: readonly Player[];
-  readonly allPlayers: readonly Player[];
+  readonly winners: readonly MatchPlayer[];
+  readonly allPlayers: readonly MatchPlayer[];
   readonly betAmount: number;
   readonly isThreeSpadesWin: boolean;
   readonly instantWinType: InstantWinType | null;
@@ -67,11 +66,11 @@ export interface CampaignSettlementInput extends BaseSettlementInput {
   readonly campaignChapter: CampaignChapter;
 }
 
-export interface StandardSettlementInput extends BaseSettlementInput {
-  readonly activeGameType: 'QUICK' | 'ONLINE' | 'CUSTOM';
+export interface NonCampaignSettlementInput extends BaseSettlementInput {
+  readonly activeGameType: 'QUICK' | 'ONLINE';
 }
 
-export type AuthoritativeSettlementInput = CampaignSettlementInput | StandardSettlementInput;
+export type AuthoritativeSettlementInput = CampaignSettlementInput | NonCampaignSettlementInput;
 
 export interface AuthoritativeSettlementResult {
   readonly updatedProfile: PlayerProfile;
@@ -243,12 +242,18 @@ export function applyAuthoritativeSettlementToProfile(
     loanSettlement: result.loanSettlement
   };
 }
+export interface MatchSettlementExecutionResult {
+  payouts: Record<string, number>;
+  eloDeltas: Record<string, number>;
+  loanDeduction: number;
+  perspectiveSettlement: PerspectiveSettlement;
+  updatedProfile: PlayerProfile;
+}
 
-/**
- * Service kết toán trận đấu trực tiếp (Direct Domain Service)
- * Hoàn toàn không qua Event Bus hay React Hook lifecycle
- */
-export function settleCompletedMatch(engine: GameEngine, driver?: OfflineMatchDriver): void {
+export function settleCompletedMatch(
+  engine: GameEngine, 
+  driver?: { setSettlementResult?: (payouts: Record<string, number>, eloDeltas: Record<string, number>) => void }
+): MatchSettlementExecutionResult {
   const gameStore = useGameStore.getState();
   const userStore = useUserStore.getState();
   const viewStore = useViewStore.getState();
@@ -340,7 +345,7 @@ export function settleCompletedMatch(engine: GameEngine, driver?: OfflineMatchDr
   gameStore.setLastEloBreakdown(settlement.eloBreakdown ?? null);
   gameStore.setAllEloDeltas(settlement.allEloDeltas ?? {});
 
-  if (driver) {
+  if (driver?.setSettlementResult) {
     driver.setSettlementResult(settlement.payouts, settlement.allEloDeltas ?? {});
   }
 
@@ -409,13 +414,15 @@ export function settleCompletedMatch(engine: GameEngine, driver?: OfflineMatchDr
   gameStore.setPerspectiveSettlement(perspectiveSettlement);
 
   const lastMove = engine.currentRound.moves[engine.currentRound.moves.length - 1] ?? null;
-  const winningMove = lastMove ?? engine.getLeadingMove() ?? null;
+  const existingWinningMove = (gameStore.matchState.status === 'GAME_OVER' ? gameStore.matchState.winningMove : null) ?? gameStore.currentMove;
+  const winningMove = lastMove ?? engine.getLeadingMove() ?? existingWinningMove ?? null;
   const gameOverState: GameOverMatchState = {
     status: 'GAME_OVER',
     gameNumber: engine.gameNumber,
     players: engine.players.map(p => ({ ...p })),
     winners: [...engine.winners],
     winningMove,
+    leadingMove: winningMove,
     isThreeSpadesWin: engine.isThreeSpadesWin,
     matchPayouts: settlement.payouts,
     eloDeltas: settlement.allEloDeltas ?? {},
@@ -543,4 +550,11 @@ export function settleCompletedMatch(engine: GameEngine, driver?: OfflineMatchDr
   }
 
   viewStore.openModal('VICTORY');
+  return {
+    payouts: settlement.payouts,
+    eloDeltas: settlement.allEloDeltas ?? {},
+    loanDeduction: loanSettlement.loanDeduction,
+    perspectiveSettlement,
+    updatedProfile
+  };
 }

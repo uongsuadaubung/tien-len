@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { GameEngine } from '../../src/engine/game';
-import { GameRulesBuilder, GameSettlementRule, Player, PlayerCount, Card } from '../../src/engine/types';
+import { GameRulesBuilder, GameSettlementRule, MatchPlayer, PlayerCount, Card } from '../../src/engine/types';
 import { getBotConfig } from '../../src/ai/bot-factory';
 import { CardTracker } from '../../src/ai/card-tracker';
 import { createBotPlayer, createBotPlayers } from '../../src/engine/player-factory';
@@ -25,7 +25,7 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
         .withGameFlow(g => g.prohibitEndingWithTwo(i % 2 === 0).threeSpadesEndingBonus(i % 3 === 0))
         .build();
 
-      const players: Player[] = Array.from({ length: playerCount }, (_, idx) =>
+      const players: MatchPlayer[] = Array.from({ length: playerCount }, (_, idx) =>
         createBotPlayer(`p${idx}`, `BOT_ELO_${1150 + idx * 200}`, {
           name: `Player ${idx}`,
           score: 10000
@@ -56,7 +56,7 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
         .withGameFlow(g => g.prohibitEndingWithTwo(false).threeSpadesEndingBonus(false))
         .build();
 
-      const players: Player[] = Array.from({ length: 4 }, (_, idx) =>
+      const players: MatchPlayer[] = Array.from({ length: 4 }, (_, idx) =>
         createBotPlayer(`p${idx}`, null, {
           name: `Bot ${idx}`,
           score: 0
@@ -92,7 +92,7 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
         .withGameFlow(g => g.prohibitEndingWithTwo(true).threeSpadesEndingBonus(true))
         .build();
 
-      const players: Player[] = Array.from({ length: playerCount }, (_, idx) =>
+      const players: MatchPlayer[] = Array.from({ length: playerCount }, (_, idx) =>
         createBotPlayer(`p${idx}`, 'BOT_ELO_1750', {
           name: `Bot ${idx}`,
           score: 1000

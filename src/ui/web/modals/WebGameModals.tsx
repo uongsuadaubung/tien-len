@@ -1,6 +1,14 @@
 import React from 'react';
 import { useViewStore } from '../../../stores/useViewStore';
 import { useGameStore } from '../../../stores/useGameStore';
+import { ConfirmForfeitModal } from './ConfirmForfeitModal';
+import { F5PenaltyNoticeModal } from './F5PenaltyNoticeModal';
+import { NameSetupModal } from './NameSetupModal';
+import { OnlineDisbandModal } from '../../components/OnlineDisbandModal';
+import { useGameSetupConfigs } from '../../hooks/useGameSetupConfigs';
+import { useMatchmakingStore } from '../../../stores/useMatchmakingStore';
+import type { WebGameModalsProps } from '../../types';
+
 import { QuestsModal } from './QuestsModal';
 import { LuckyWheelModal } from './LuckyWheelModal';
 import { BankruptcyModal } from './BankruptcyModal';
@@ -10,19 +18,12 @@ import { QuickSetupModal } from './QuickSetupModal';
 import { SettingsModal } from './SettingsModal';
 import { XRayInspector } from './XRayInspector';
 import { VictoryModal } from './VictoryModal';
-import { ConfirmForfeitModal } from './ConfirmForfeitModal';
-import { F5PenaltyNoticeModal } from './F5PenaltyNoticeModal';
-import { NameSetupModal } from './NameSetupModal';
 import { RulesModal } from './RulesModal';
 import { EcosystemModal } from './EcosystemModal';
 import { BotProfileModal } from './BotProfileModal';
 import { MatchmakingModal } from './MatchmakingModal';
 import { SyncConflictModal } from './SyncConflictModal';
 import { OnlineRoomModal } from './OnlineRoomModal';
-import { OnlineDisbandModal } from '../../components/OnlineDisbandModal';
-import { useGameSetupConfigs } from '../../hooks/useGameSetupConfigs';
-import { useMatchmakingStore } from '../../../stores/useMatchmakingStore';
-import type { WebGameModalsProps } from '../../types';
 
 export type { WebGameModalsProps };
 
@@ -50,6 +51,8 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
     isCampaignModalOpen,
     isNameSetupOpen,
     isRulesOpen,
+    isEcosystemOpen,
+    isOnlineRoomOpen,
     openModal,
     closeModal
   } = useViewStore();
@@ -60,37 +63,47 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
   return (
     <>
       {/* 1. Quests & Achievements Modal */}
-      <QuestsModal
-        isOpen={isQuestModalOpen}
-        onClose={() => closeModal('QUEST')}
-      />
+      {isQuestModalOpen && (
+        <QuestsModal
+          isOpen={isQuestModalOpen}
+          onClose={() => closeModal('QUEST')}
+        />
+      )}
 
       {/* 2. Lucky Wheel Modal */}
-      <LuckyWheelModal
-        isOpen={isLuckyWheelOpen}
-        onClose={() => closeModal('WHEEL')}
-      />
+      {isLuckyWheelOpen && (
+        <LuckyWheelModal
+          isOpen={isLuckyWheelOpen}
+          onClose={() => closeModal('WHEEL')}
+        />
+      )}
 
       {/* 3. Bank Loan / Relief Modal */}
-      <BankruptcyModal
-        isOpen={isBankLoanModalOpen}
-        onClose={() => closeModal('BANK')}
-      />
+      {isBankLoanModalOpen && (
+        <BankruptcyModal
+          isOpen={isBankLoanModalOpen}
+          onClose={() => closeModal('BANK')}
+        />
+      )}
 
       {/* 4. Campaign Map Modal */}
-      <CampaignMapModal
-        isOpen={isCampaignModalOpen}
-        onClose={() => closeModal('CAMPAIGN')}
-        onSelectChapter={onSelectCampaignChapter}
-      />
+      {isCampaignModalOpen && (
+        <CampaignMapModal
+          isOpen={isCampaignModalOpen}
+          onClose={() => closeModal('CAMPAIGN')}
+          onSelectChapter={onSelectCampaignChapter}
+        />
+      )}
 
       {/* 5. Quick Setup Modal (Chơi Nhanh) */}
-      <QuickSetupModal
-        isOpen={isQuickSetupOpen}
-        onClose={() => closeModal('QUICK_SETUP')}
-        initialConfig={quickSetupInitialConfig}
-        onStartGame={onStartQuickGame}
-      />
+      {isQuickSetupOpen && (
+        <QuickSetupModal
+          isOpen={isQuickSetupOpen}
+          onClose={() => closeModal('QUICK_SETUP')}
+          initialConfig={quickSetupInitialConfig}
+          onStartGame={onStartQuickGame}
+        />
+      )}
 
       {/* 5.1. Matchmaking Modal (Giả Lập Ghép Trận Online) */}
       {activeModal?.type === 'MATCHMAKING' && (
@@ -102,18 +115,22 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
       )}
 
       {/* 6. Custom Game Config Modal */}
-      <CustomGameModal
-        isOpen={isCustomGameModalOpen}
-        onClose={() => closeModal('CUSTOM_GAME')}
-        initialConfig={customGameInitialConfig}
-        onStartCustomGame={onStartCustomGame}
-      />
+      {isCustomGameModalOpen && (
+        <CustomGameModal
+          isOpen={isCustomGameModalOpen}
+          onClose={() => closeModal('CUSTOM_GAME')}
+          initialConfig={customGameInitialConfig}
+          onStartCustomGame={onStartCustomGame}
+        />
+      )}
 
       {/* 7. Settings Modal */}
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => closeModal('SETTINGS')}
-      />
+      {isSettingsOpen && (
+        <SettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => closeModal('SETTINGS')}
+        />
+      )}
 
       {/* 8. X-Ray Inspector */}
       {activeModal?.type === 'XRAY' && (
@@ -155,19 +172,23 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
       )}
 
       {/* 12. Name Setup Modal */}
-      <NameSetupModal
-        isOpen={isNameSetupOpen}
-        onClose={() => closeModal('NAME_SETUP')}
-      />
+      {isNameSetupOpen && (
+        <NameSetupModal
+          isOpen={isNameSetupOpen}
+          onClose={() => closeModal('NAME_SETUP')}
+        />
+      )}
 
       {/* 13. Rules & Counter Matrix Modal */}
-      <RulesModal
-        isOpen={isRulesOpen}
-        onClose={() => closeModal('RULES')}
-      />
+      {isRulesOpen && (
+        <RulesModal
+          isOpen={isRulesOpen}
+          onClose={() => closeModal('RULES')}
+        />
+      )}
 
       {/* 14. Ecosystem & Leaderboard 200 Bot Modal */}
-      <EcosystemModal />
+      {isEcosystemOpen && <EcosystemModal />}
 
       {/* 15. Bot Profile Card Modal */}
       {activeModal?.type === 'BOT_PROFILE' && (
@@ -187,7 +208,7 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
       )}
 
       {/* 17. Online P2P Multiplayer Room Modal */}
-      <OnlineRoomModal />
+      {isOnlineRoomOpen && <OnlineRoomModal />}
 
       {/* 18. Online Disband & Kick Notice Modal */}
       <OnlineDisbandModal />

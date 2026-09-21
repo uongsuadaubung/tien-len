@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 import { GameEngine } from '../../src/engine/game';
-import { Player, createDefaultGameRules } from '../../src/engine/types';
+import { MatchPlayer, createDefaultGameRules } from '../../src/engine/types';
 import { getRandomBotConfigsForTable, generateRealisticBotBankroll } from '../../src/ai/bot-factory';
 import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 import { PlayerProfile } from '../../src/engine/storage';
@@ -140,13 +140,13 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
       table: { playerCount: 4, betAmount: 500, soundEnabled: true }
     });
 
-    const p0: Player = createPlayer({ id: 'p0', name: 'Bạn', avatar: '🤠', score: 50000 });
-    const p1: Player = createBotPlayer('p1', null, { name: 'Bot 1', avatar: '🤖', score: 35000 });
-    const p2: Player = createBotPlayer('p2', null, { name: 'Bot 2', avatar: '🤖', score: 40000 });
-    const p3: Player = createBotPlayer('p3', null, { name: 'Bot 3', avatar: '🤖', score: 65000 });
+    const p0: MatchPlayer = createPlayer({ id: 'p0', name: 'Bạn', avatar: '🤠', score: 50000 });
+    const p1: MatchPlayer = createBotPlayer('p1', null, { name: 'Bot 1', avatar: '🤖', score: 35000 });
+    const p2: MatchPlayer = createBotPlayer('p2', null, { name: 'Bot 2', avatar: '🤖', score: 40000 });
+    const p3: MatchPlayer = createBotPlayer('p3', null, { name: 'Bot 3', avatar: '🤖', score: 65000 });
 
     const engine = new GameEngine([p0, p1, p2, p3], rules);
-    engine.startNewGame(1);
+    engine.startNewGame(1, null, 1);
 
     expect(engine.players.length).toBe(4);
     expect(engine.rules.settlementRule).toBe('COUNT_CARDS');
@@ -175,7 +175,7 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
     expect(chopX3.amount).toBe(600);
 
     // 3. Kết toán đếm lá ở x4
-    const loser: Player = createBotPlayer('p1', null, {
+    const loser: MatchPlayer = createBotPlayer('p1', null, {
       name: 'Bot',
       avatar: '🤖',
       hand: [
@@ -185,7 +185,7 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
       score: 5000,
       hasPlayedFirstCard: true
     });
-    const winner: Player = createPlayer({
+    const winner: MatchPlayer = createPlayer({
       id: 'p0',
       name: 'Bạn',
       avatar: '🤠',

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { MatchLogger, BotDecisionTelemetry } from '../../src/engine/match-logger';
 import { GameEngine } from '../../src/engine/game';
-import { createDefaultGameRules, Player } from '../../src/engine/types';
+import { createDefaultGameRules, MatchPlayer } from '../../src/engine/types';
 import { getBotConfig } from '../../src/ai/bot-factory';
 import { CardTracker } from '../../src/ai/card-tracker';
 import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
@@ -13,7 +13,7 @@ describe('MatchLogger & Bot Reasoning Telemetry', () => {
 
   it('should initialize a new match log and capture initial hands for all players', () => {
     const logger = MatchLogger.getInstance();
-    const mockPlayers: Player[] = [
+    const mockPlayers: MatchPlayer[] = [
       createPlayer({
         id: 'p0',
         name: 'Người Chơi',
@@ -112,7 +112,7 @@ describe('MatchLogger & Bot Reasoning Telemetry', () => {
   });
 
   it('should seamlessly log whole simulated match in GameEngine with bot telemetry', () => {
-    const players: Player[] = [
+    const players: MatchPlayer[] = [
       createBotPlayer('p0', null, { name: 'User', avatar: '🤠', score: 50000 }),
       createBotPlayer('bot1', null, { name: 'Bot 1', avatar: '🤖', score: 50000 }),
       createBotPlayer('bot2', null, { name: 'Bot 2', avatar: '🤖', score: 50000 }),

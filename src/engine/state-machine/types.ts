@@ -1,4 +1,4 @@
-import type { Player, PlayedMove, InstantWinType, GameRules, Card } from '../types';
+import type { MatchPlayer, PlayedMove, InstantWinType, GameRules, Card } from '../types';
 import type { MatchLogReport } from '../match-logger';
 import type { PerspectiveMatchSettlement } from '../settlement/perspective-settlement';
 
@@ -31,7 +31,7 @@ export interface BotThinkingInfo {
 export interface WaitingMatchState {
   readonly status: 'WAITING';
   readonly gameNumber: number;
-  readonly players: readonly Player[];
+  readonly players: readonly MatchPlayer[];
   readonly rules: GameRules;
   readonly lastWinnerId: string | null;
 }
@@ -43,7 +43,7 @@ export interface WaitingMatchState {
 export interface DealingMatchState {
   readonly status: 'DEALING';
   readonly gameNumber: number;
-  readonly players: readonly Player[];
+  readonly players: readonly MatchPlayer[];
   readonly dealtCounts: Readonly<Record<string, number>>;
   readonly dealBanner: string | null;
   readonly totalCardsDealt: number;
@@ -58,7 +58,7 @@ export interface BasePlayingTurnMatchState {
   readonly status: 'PLAYING';
   readonly gameNumber: number;
   readonly roundNumber: number;
-  readonly players: readonly Player[];
+  readonly players: readonly MatchPlayer[];
   readonly currentTurnPlayerId: string; // ✅ Chắc chắn tồn tại
   readonly leadPlayerId: string;        // ✅ Chắc chắn tồn tại
   readonly roundMoves: readonly PlayedMove[];
@@ -102,15 +102,22 @@ export function createPlayingTurnMatchState(params: BasePlayingTurnMatchState & 
   firstMoveRequiredCard?: Card | null;
 }): PlayingTurnMatchState {
   if (params.isFirstMoveOfGame && (params.isLeadMove || !params.leadingMove)) {
-    if (!params.firstMoveRequiredCard) {
-      throw new Error('[createPlayingTurnMatchState] Invariant Violated: Opening first move must provide a non-nullable firstMoveRequiredCard');
+    const requiredCard = params.firstMoveRequiredCard ?? (params.players.find(p => p.id === params.currentTurnPlayerId)?.hand[0] ?? null);
+    if (requiredCard) {
+      return {
+        ...params,
+        isLeadMove: true,
+        leadingMove: null,
+        isFirstMoveOfGame: true,
+        firstMoveRequiredCard: requiredCard
+      };
     }
     return {
       ...params,
       isLeadMove: true,
       leadingMove: null,
-      isFirstMoveOfGame: true,
-      firstMoveRequiredCard: params.firstMoveRequiredCard
+      isFirstMoveOfGame: false,
+      firstMoveRequiredCard: null
     };
   }
 
@@ -140,8 +147,8 @@ export function createPlayingTurnMatchState(params: BasePlayingTurnMatchState & 
 export interface InstantWinMatchState {
   readonly status: 'INSTANT_WIN';
   readonly gameNumber: number;
-  readonly players: readonly Player[];
-  readonly instantWinner: Player;             // ✅ Chắc chắn có người thắng tới trắng
+  readonly players: readonly MatchPlayer[];
+  readonly instantWinner: MatchPlayer;             // ✅ Chắc chắn có người thắng tới trắng
   readonly instantWinType: InstantWinType;    // ✅ Chắc chắn có loại tới trắng
   readonly matchPayouts: Readonly<Record<string, number>>; // ✅ Bảng tiền đã kết toán
   readonly eloDeltas: Readonly<Record<string, number>>;
@@ -157,7 +164,7 @@ export interface RoundEndedMatchState {
   readonly status: 'ROUND_ENDED';
   readonly gameNumber: number;
   readonly roundNumber: number;
-  readonly players: readonly Player[];
+  readonly players: readonly MatchPlayer[];
   readonly roundWinnerId: string;             // ✅ Người thắng vòng bài này
   readonly nextLeadPlayerId: string;          // ✅ Người sẽ dẫn đầu vòng tiếp theo
   readonly lastRoundMoves: readonly PlayedMove[];
@@ -172,8 +179,8 @@ export interface RoundEndedMatchState {
 export interface GameOverMatchState {
   readonly status: 'GAME_OVER';
   readonly gameNumber: number;
-  readonly players: readonly Player[];
-  readonly winners: readonly Player[];        // ✅ Danh sách xếp hạng Nhất, Nhì, Ba, Bét
+  readonly players: readonly MatchPlayer[];
+  readonly winners: readonly MatchPlayer[];        // ✅ Danh sách xếp hạng Nhất, Nhì, Ba, Bét
   readonly winningMove: PlayedMove | null;    // ✅ Nước bài dứt điểm chiến thắng ván đấu (giữ trên bàn 2s)
   readonly isThreeSpadesWin: boolean;
   readonly matchPayouts: Readonly<Record<string, number>>; // ✅ Bảng kết toán tiền
@@ -203,3 +210,136 @@ export type MatchState =
 export function assertNever(x: never, message: string = 'Unhandled MatchState status'): never {
   throw new Error(`${message}: ${JSON.stringify(x)}`);
 }
+
+/* =================================================================================
+ * BỘ STATE TYPE GUARDS (Zero-Any, Zero-Shortcut, Strict State Pattern)
+ * ================================================================================= */
+
+export function isWaitingMatchState(state: MatchState): state is WaitingMatchState {
+  return state.status === 'WAITING';
+}
+
+export function isDealingMatchState(state: MatchState): state is DealingMatchState {
+  return state.status === 'DEALING';
+}
+
+export function isPlayingMatchState(state: MatchState): state is PlayingTurnMatchState {
+  return state.status === 'PLAYING';
+}
+
+export function isLeadPlayingTurnMatchState(state: MatchState): state is LeadPlayingTurnMatchState {
+  return isPlayingMatchState(state) && state.isLeadMove;
+}
+
+export function isOpeningFirstMovePlayingState(state: MatchState): state is OpeningFirstMovePlayingState {
+  return isPlayingMatchState(state) && state.isLeadMove && state.isFirstMoveOfGame;
+}
+
+export function isNormalLeadPlayingTurnMatchState(state: MatchState): state is NormalLeadPlayingTurnMatchState {
+  return isPlayingMatchState(state) && state.isLeadMove && !state.isFirstMoveOfGame;
+}
+
+export function isFollowPlayingTurnMatchState(state: MatchState): state is FollowPlayingTurnMatchState {
+  return isPlayingMatchState(state) && !state.isLeadMove;
+}
+
+export function isInstantWinMatchState(state: MatchState): state is InstantWinMatchState {
+  return state.status === 'INSTANT_WIN';
+}
+
+export function isRoundEndedMatchState(state: MatchState): state is RoundEndedMatchState {
+  return state.status === 'ROUND_ENDED';
+}
+
+export function isGameOverMatchState(state: MatchState): state is GameOverMatchState {
+  return state.status === 'GAME_OVER';
+}
+
+export function isTerminalMatchState(state: MatchState): state is GameOverMatchState | InstantWinMatchState {
+  return state.status === 'GAME_OVER' || state.status === 'INSTANT_WIN';
+}
+
+/* =================================================================================
+ * STATE BEHAVIOR QUERIES (Truy vấn nghiệp vụ cốt lõi không dùng Fallback)
+ * ================================================================================= */
+
+/**
+ * Kiểm tra xem một người chơi có quyền đánh bài trong trạng thái hiện tại hay không
+ */
+export function canPlayerPlayInMatchState(state: MatchState, playerId: string): boolean {
+  if (!isPlayingMatchState(state)) return false;
+  if (state.currentTurnPlayerId !== playerId) return false;
+  return !state.passedPlayerIds.includes(playerId);
+}
+
+/**
+ * Kiểm tra xem một người chơi có quyền bỏ lượt trong trạng thái hiện tại hay không
+ * (Cấm bỏ lượt khi là nước đi mở màn đầu tiên của ván hoặc lượt mở vòng mới)
+ */
+export function canPlayerPassInMatchState(state: MatchState, playerId: string): boolean {
+  if (!isPlayingMatchState(state)) return false;
+  if (state.currentTurnPlayerId !== playerId) return false;
+  if (state.isFirstMoveOfGame) return false;
+  if (state.isLeadMove) return false;
+  return !state.passedPlayerIds.includes(playerId);
+}
+
+/**
+ * Lấy ID người chơi đang có lượt đánh
+ */
+export function getCurrentTurnPlayerIdFromMatchState(state: MatchState): string | null {
+  if (isPlayingMatchState(state)) {
+    return state.currentTurnPlayerId;
+  }
+  return null;
+}
+
+/**
+ * Lấy ID người chơi dẫn đầu vòng hiện tại
+ */
+export function getLeadPlayerIdFromMatchState(state: MatchState): string | null {
+  if (isPlayingMatchState(state)) {
+    return state.leadPlayerId;
+  }
+  if (isRoundEndedMatchState(state)) {
+    return state.nextLeadPlayerId;
+  }
+  return null;
+}
+
+/**
+ * Lấy nước bài dẫn đầu đang có hiệu lực trên bàn đấu
+ */
+export function getActiveLeadingMoveFromMatchState(state: MatchState): PlayedMove | null {
+  if (isFollowPlayingTurnMatchState(state)) {
+    return state.leadingMove;
+  }
+  if (isGameOverMatchState(state)) {
+    return state.winningMove ?? state.leadingMove ?? null;
+  }
+  if (isRoundEndedMatchState(state) && state.lastRoundMoves.length > 0) {
+    return state.lastRoundMoves[state.lastRoundMoves.length - 1];
+  }
+  return null;
+}
+
+/**
+ * Lấy danh sách người chiến thắng theo thứ hạng
+ */
+export function getWinnersFromMatchState(state: MatchState): readonly MatchPlayer[] {
+  if (isGameOverMatchState(state)) {
+    return state.winners;
+  }
+  if (isInstantWinMatchState(state)) {
+    return [state.instantWinner];
+  }
+  return [];
+}
+
+/**
+ * Kiểm tra xem ván đấu đã kết thúc hay chưa (GAME_OVER hoặc INSTANT_WIN)
+ */
+export function isGameOverFromMatchState(state: MatchState): boolean {
+  return isTerminalMatchState(state);
+}
+

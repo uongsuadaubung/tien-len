@@ -1,5 +1,5 @@
 import React from 'react';
-import { Player, Card } from '../../engine/types';
+import { MatchPlayer, Card } from '../../engine/types';
 import { formatCardVietnamese } from '../../engine/card';
 import { HandSortMode } from '../../stores/useGameStore';
 import { useUserStore } from '../../stores/useUserStore';
@@ -14,7 +14,7 @@ interface HandCardStyle extends React.CSSProperties {
 }
 
 export interface PlayerHandViewProps {
-  readonly player: Player;
+  readonly player: MatchPlayer;
   readonly selectedCardIds: ReadonlySet<string>;
   readonly onToggleCardSelect: (cardId: string) => void;
   readonly onClearCardSelection: () => void;

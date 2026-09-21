@@ -1,5 +1,5 @@
 import { GameEngine } from '../game';
-import { Player } from '../types';
+import { MatchPlayer } from '../types';
 import { createBotPlayer } from '../player-factory';
 import { CardTracker } from '../../ai/card-tracker';
 import { BotEntity, TableGroup, SimulatedTableResult, BotMatchResult, EcosystemNewsItem } from './ecosystem-types';
@@ -35,7 +35,7 @@ export function simulateSingleTableMatch(
   }
 
   // 1. Khởi tạo danh sách 4 người chơi ảo
-  const players: Player[] = tableBots.map((bot) =>
+  const players: MatchPlayer[] = tableBots.map((bot) =>
     createBotPlayer(bot.id, bot.id, {
       name: bot.name,
       avatar: bot.avatar,

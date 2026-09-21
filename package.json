@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "bun run scripts/build.ts",
     "preview": "vite preview",
     "lint": "eslint src/",
     "test": "bun test --timeout 15000",
@@ -19,6 +19,7 @@
     "benchmark:balance:4p": "bun run scripts/balance/benchmark-4p-stage.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.116.0",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
     "dexie": "^4.4.5",
@@ -26,7 +27,6 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.5.0",
-    "trystero": "^0.25.3",
     "zod": "^4.4.3",
     "zustand": "^5.0.15"
   },

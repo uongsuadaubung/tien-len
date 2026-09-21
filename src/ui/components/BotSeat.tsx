@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { Player } from '../../engine/types';
+import { MatchPlayer } from '../../engine/types';
 import { BotConfig } from '../../ai/types';
 import { createCampaignBotEntity } from '../../engine/campaign';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
@@ -8,7 +8,7 @@ import { useGameStore } from '../../stores/useGameStore';
 import { useI18n } from '../../locales';
 
 interface BotSeatProps {
-  player: Player;
+  player: MatchPlayer;
   botConfig: BotConfig;
   isCurrentTurn: boolean;
   position: 'left' | 'top' | 'right';
@@ -50,7 +50,7 @@ const BotSeatComponent: React.FC<BotSeatProps> = ({
 
   const cardCount = isDealing 
     ? (displayCardCount ?? 0) 
-    : (player.hand.length > 0 ? player.hand.length : (displayCardCount ?? 0));
+    : player.cardCount;
   const visibleCards = Math.min(13, cardCount);
 
   if (isCompact) {

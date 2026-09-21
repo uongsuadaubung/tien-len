@@ -1,4 +1,4 @@
-import { Card, Combination, CombinationType, GameRules, PlayedMove, Player, createDefaultGameRules } from './types';
+import { Card, Combination, CombinationType, GameRules, PlayedMove, MatchPlayer, createDefaultGameRules } from './types';
 import { dbSaveMatchLog } from './db/indexed-db';
 
 /**
@@ -113,8 +113,8 @@ export interface MatchLogReport {
 }
 
 export interface FinalizeMatchParams {
-  players: Player[];
-  winners: Player[];
+  players: MatchPlayer[];
+  winners: MatchPlayer[];
   payouts: Record<string, number>;
   isThreeSpadesWin: boolean;
   instantWinType: string | null;
@@ -173,7 +173,7 @@ export class MatchLogger {
     gameNumber: number;
     gameMode: string;
     rules: GameRules;
-    players: Player[];
+    players: MatchPlayer[];
   }): void {
     this.currentMatchId = `match_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     this.gameNumber = params.gameNumber;

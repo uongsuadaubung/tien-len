@@ -11,7 +11,7 @@ export type { CampaignResultMeta };
 
 /**
  * useGameMatchLoop (Adapter Hook)
- * Cầu nối tinh gọn kết nối UI với AppFlowCoordinator và OfflineMatchDriver
+ * Cầu nối tinh gọn kết nối UI với AppFlowCoordinator và AuthoritativeMatchHost / ClientSession
  */
 export function useGameMatchLoop() {
   const { campaignResultMeta } = useGameStore();

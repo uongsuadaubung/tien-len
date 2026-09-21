@@ -7,7 +7,7 @@ import {
   calculateWinnerTakesAllSettlement,
   calculateTraditionalSettlement
 } from '../../src/engine/economy';
-import { Combination, Player } from '../../src/engine/types';
+import { Combination, MatchPlayer } from '../../src/engine/types';
 import { parseCard, parseCards } from '../../src/engine/card';
 import { createPlayer } from '../../src/engine/player-factory';
 import { 
