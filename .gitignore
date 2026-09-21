@@ -31,3 +31,7 @@ Thumbs.db
 # Agent & AI artifacts
 .agents/
 scratch/
+
+# Rust build artifacts
+target/
+crates/**/target/

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:wasm": "bunx wasm-pack build crates/tien_len_core --target web --out-dir ../../src/engine/wasm/pkg",
     "preview": "vite preview",
     "lint": "eslint src/",
     "test": "bun test --timeout 15000",
