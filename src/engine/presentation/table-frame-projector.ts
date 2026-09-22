@@ -151,6 +151,7 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
 
   // 3. Tính toán Quick Select Candidates
   let canQuickSelect = false;
+  let quickSelectCandidatesCount = 0;
   if (isMyTurn && localHand.length > 0) {
     const quickCandidates = getSortedQuickSelectCandidates({
       hand: [...localHand],
@@ -161,6 +162,7 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
       allowFourPairsCutAnytime: gameRules.chopping.allowFourPairsCutAnytime,
       prohibitEndingWithTwo: gameRules.gameFlow.prohibitEndingWithTwo
     });
+    quickSelectCandidatesCount = quickCandidates.length;
     canQuickSelect = quickCandidates.length > 0;
   }
 
@@ -169,6 +171,7 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
     canPlay,
     canPass,
     canQuickSelect,
+    quickSelectCandidatesCount,
     playButtonLabel
   };
 

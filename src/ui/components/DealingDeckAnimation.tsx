@@ -96,57 +96,57 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
       const totalCards = actualPlayerCount * 13;
       const delayPerCard = UI_TIMINGS.DEAL_CARD_INTERVAL_MS;
 
+      // Đo đạc tọa độ thực tế giữa tâm cỗ bài và các ghế người nhận 1 LẦN DUY NHẤT trước vòng lặp
+      // Triệt tiêu hoàn toàn Layout Thrashing (chặn 52 lần gọi getBoundingClientRect làm khựng trình duyệt)
+      const fallbackMap = actualPlayerCount === 2
+        ? [
+            { dx: 0, dy: 240, rot: 0 },
+            { dx: 0, dy: -220, rot: 180 }
+          ]
+        : actualPlayerCount === 3
+        ? [
+            { dx: 0, dy: 240, rot: 0 },
+            { dx: -280, dy: 0, rot: -90 },
+            { dx: 0, dy: -220, rot: 180 }
+          ]
+        : [
+            { dx: 0, dy: 240, rot: 0 },
+            { dx: -280, dy: 0, rot: -90 },
+            { dx: 0, dy: -220, rot: 180 },
+            { dx: 280, dy: 0, rot: 90 }
+          ];
+
+      const deckEl = deckRef.current || document.getElementById('dealing-center-deck');
+      const dR = deckEl ? deckEl.getBoundingClientRect() : null;
+      const deckCenterX = dR ? dR.left + dR.width / 2 : 0;
+      const deckCenterY = dR ? dR.top + dR.height / 2 : 0;
+
+      const seatVectors: Array<{ dx: number; dy: number; rot: number }> = [];
+      for (let p = 0; p < actualPlayerCount; p++) {
+        const targetSeatId = seatIds[p];
+        const targetEl = document.getElementById(targetSeatId)
+          || (currentPlayers?.[p] ? document.getElementById(`seat-${currentPlayers[p].id}`) : null);
+
+        if (dR && targetEl) {
+          const tR = targetEl.getBoundingClientRect();
+          const targetCenterX = tR.left + tR.width / 2;
+          const targetCenterY = tR.top + tR.height / 2;
+          const dx = targetCenterX - deckCenterX;
+          const dy = targetCenterY - deckCenterY;
+          const rot = Math.round(Math.atan2(dy, dx) * (180 / Math.PI) + 90);
+          seatVectors.push({ dx, dy, rot });
+        } else {
+          seatVectors.push(fallbackMap[p] ?? { dx: 0, dy: 0, rot: 0 });
+        }
+      }
+
       for (let i = 0; i < totalCards; i++) {
         const t = setTimeout(() => {
           if (isFinishedRef.current) return;
 
           const playerIndex = i % actualPlayerCount;
-          const targetSeatId = seatIds[playerIndex];
           const targetCount = Math.floor(i / actualPlayerCount) + 1;
-
-          let dx = 0;
-          let dy = 0;
-          let rot = 0;
-
-          // Đo đạc tọa độ thực tế giữa tâm cỗ bài và ghế người nhận
-          const deckEl = deckRef.current || document.getElementById('dealing-center-deck');
-          const targetEl = document.getElementById(targetSeatId) 
-            || (currentPlayers?.[playerIndex] ? document.getElementById(`seat-${currentPlayers[playerIndex].id}`) : null);
-
-          if (deckEl && targetEl) {
-            const dR = deckEl.getBoundingClientRect();
-            const tR = targetEl.getBoundingClientRect();
-            const deckCenterX = dR.left + dR.width / 2;
-            const deckCenterY = dR.top + dR.height / 2;
-            const targetCenterX = tR.left + tR.width / 2;
-            const targetCenterY = tR.top + tR.height / 2;
-
-            dx = targetCenterX - deckCenterX;
-            dy = targetCenterY - deckCenterY;
-            rot = Math.round(Math.atan2(dy, dx) * (180 / Math.PI) + 90);
-          } else {
-            // Tọa độ dự phòng nếu chưa kịp render DOM
-            const fallbackMap = actualPlayerCount === 2
-              ? [
-                  { dx: 0, dy: 240, rot: 0 },
-                  { dx: 0, dy: -220, rot: 180 }
-                ]
-              : actualPlayerCount === 3
-              ? [
-                  { dx: 0, dy: 240, rot: 0 },
-                  { dx: -280, dy: 0, rot: -90 },
-                  { dx: 0, dy: -220, rot: 180 }
-                ]
-              : [
-                  { dx: 0, dy: 240, rot: 0 },
-                  { dx: -280, dy: 0, rot: -90 },
-                  { dx: 0, dy: -220, rot: 180 },
-                  { dx: 280, dy: 0, rot: 90 }
-                ];
-            dx = fallbackMap[playerIndex].dx;
-            dy = fallbackMap[playerIndex].dy;
-            rot = fallbackMap[playerIndex].rot;
-          }
+          const { dx, dy, rot } = seatVectors[playerIndex] ?? { dx: 0, dy: 0, rot: 0 };
 
           // Âm thanh vút bài
           soundManager.playCardDeal(playerIndex * 0.4);

@@ -70,7 +70,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     rightBot,
     topBotPersonaId,
     topBotCustomConfig,
-    quickSelectCandidates,
+    quickSelectCandidatesCount,
     canQuickSelect,
     activeAiHint,
     handleQuickSelect,
@@ -246,7 +246,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
             onAutoSort={onAutoSort}
             onQuickSelect={handleQuickSelect}
             canQuickSelect={canQuickSelect}
-            quickSelectCandidatesCount={quickSelectCandidates.length}
+            quickSelectCandidatesCount={quickSelectCandidatesCount}
             isCurrentTurn={isMyTurn}
             canPlay={isValidPlaySelection}
             canPass={canPassTurn}

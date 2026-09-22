@@ -82,7 +82,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
     rightBot,
     topBotPersonaId,
     topBotCustomConfig,
-    quickSelectCandidates,
+    quickSelectCandidatesCount,
     canQuickSelect,
     handleQuickSelect,
     handlePlayCards,
@@ -317,7 +317,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
             onAutoSort={onAutoSort}
             onQuickSelect={handleQuickSelect}
             canQuickSelect={canQuickSelect}
-            quickSelectCandidatesCount={quickSelectCandidates.length}
+            quickSelectCandidatesCount={quickSelectCandidatesCount}
             isCurrentTurn={isMyTurn}
             canPlay={isValidPlaySelection}
             canPass={canPassTurn}

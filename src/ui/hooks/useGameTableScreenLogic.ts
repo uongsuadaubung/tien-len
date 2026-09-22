@@ -8,7 +8,7 @@ import { projectTableFrame } from '../../engine/presentation/table-frame-project
 import type { TableRenderFrame } from '../../engine/presentation/frame-types';
 import type { MoveHint } from '../../ai/hint-engine';
 import { CardTracker } from '../../ai/card-tracker';
-import { getSortedQuickSelectCandidates, type QuickSelectCandidate } from '../../engine/quick-response-finder';
+import type { QuickSelectCandidate } from '../../engine/quick-response-finder';
 import type { OpeningReason, ReconnectNotice } from '../../engine/network/network.schema';
 
 // Stores
@@ -40,6 +40,7 @@ export interface GameTableScreenLogicResult {
   topBotPersonaId: string;
   topBotCustomConfig: Partial<BotConfig> | null;
   quickSelectCandidates: QuickSelectCandidate[];
+  quickSelectCandidatesCount: number;
   canQuickSelect: boolean;
   currentHint: MoveHint | null;
   activeAiHint: MoveHint | null;
@@ -190,18 +191,8 @@ export function useGameTableScreenLogic({
   const botThinkingThought = (activeTurn && activeTurn.botThinkingThought) || storeBotThinkingThought || null;
 
   const selectedCards = localPlayer.hand.filter(c => c && selectedCardIds.has(c.id));
-  const quickSelectCandidates = useMemo(() => {
-    if (!canQuickSelect || !isMyTurn || localPlayer.hand.length === 0) return [];
-    return getSortedQuickSelectCandidates({
-      hand: [...localPlayer.hand],
-      leadingMove: activeTurn?.leadingMove ?? null,
-      isLeadMove,
-      isFirstMoveOfGame,
-      firstMoveRequiredCard: firstMoveRequiredCard ?? undefined,
-      allowFourPairsCutAnytime: gameRules.chopping.allowFourPairsCutAnytime,
-      prohibitEndingWithTwo: gameRules.gameFlow.prohibitEndingWithTwo
-    });
-  }, [canQuickSelect, isMyTurn, localPlayer.hand, activeTurn, isLeadMove, isFirstMoveOfGame, firstMoveRequiredCard, gameRules]);
+  const quickSelectCandidatesCount = frame.controls.quickSelectCandidatesCount ?? (canQuickSelect ? 1 : 0);
+  const quickSelectCandidates: QuickSelectCandidate[] = [];
 
   const activeAiHint = aiHintEnabled ? frame.aiHint : null;
 
@@ -276,6 +267,7 @@ export function useGameTableScreenLogic({
     topBotPersonaId,
     topBotCustomConfig,
     quickSelectCandidates,
+    quickSelectCandidatesCount,
     canQuickSelect,
     currentHint,
     activeAiHint,

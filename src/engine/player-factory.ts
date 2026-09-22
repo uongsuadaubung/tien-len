@@ -98,6 +98,11 @@ export function syncStorePlayersFromFrame(
     const score = seat?.score !== undefined ? seat.score : p.score;
 
     if (isMe) {
+      const isHandEqual = p.hand.length === myCards.length &&
+        p.hand.every((c, idx) => c.id === myCards[idx]?.id);
+      if (isHandEqual && p.cardCount === myCards.length && p.isPassedCurrentRound === isPassed && p.score === score) {
+        return p;
+      }
       return {
         ...p,
         hand: myCards,
@@ -110,20 +115,31 @@ export function syncStorePlayersFromFrame(
     if (isGameOver) {
       const revealed = matchState.players.find(mp => mp.id === p.id);
       if (revealed && revealed.hand && revealed.hand.length > 0 && revealed.hand.every(c => c !== null)) {
+        const targetCount = seat?.cardCount ?? revealed.hand.length;
+        const isHandEqual = p.hand.length === revealed.hand.length &&
+          p.hand.every((c, idx) => c.id === revealed.hand[idx]?.id);
+        if (isHandEqual && p.cardCount === targetCount && p.isPassedCurrentRound === isPassed && p.score === score) {
+          return p;
+        }
         return {
           ...p,
           hand: [...revealed.hand],
-          cardCount: seat?.cardCount ?? revealed.hand.length,
+          cardCount: targetCount,
           isPassedCurrentRound: isPassed,
           score
         };
       }
     }
 
+    const targetCount = seat?.cardCount ?? p.cardCount;
+    if (p.cardCount === targetCount && p.isPassedCurrentRound === isPassed && p.score === score && p.hand.length === 0) {
+      return p;
+    }
+
     return {
       ...p,
       hand: [],
-      cardCount: seat?.cardCount ?? p.cardCount,
+      cardCount: targetCount,
       isPassedCurrentRound: isPassed,
       score
     };

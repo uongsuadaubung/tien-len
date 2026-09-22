@@ -2,22 +2,24 @@ import React from 'react';
 import { Card } from '../../engine/types';
 import { RANK_NAMES, SUIT_SYMBOLS, isRedCard } from '../../engine/card';
 
-interface CardViewProps {
+export interface CardViewProps {
   card: Card;
   isSelected?: boolean;
   isPlayable?: boolean;
   onClick?: () => void;
+  onCardClick?: (cardId: string) => void;
   disabled?: boolean;
   style?: React.CSSProperties;
   className?: string;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'mobile' | 'table';
 }
 
-export const CardView: React.FC<CardViewProps> = ({
+const CardViewComponent: React.FC<CardViewProps> = ({
   card,
   isSelected = false,
   isPlayable = true,
   onClick,
+  onCardClick,
   disabled = false,
   style,
   className = '',
@@ -65,9 +67,18 @@ export const CardView: React.FC<CardViewProps> = ({
 
   const colorClass = isRed ? 'text-red-600' : 'text-slate-900';
 
+  const handleClick = React.useCallback(() => {
+    if (disabled || !isPlayable) return;
+    if (onCardClick) {
+      onCardClick(card.id);
+    } else if (onClick) {
+      onClick();
+    }
+  }, [disabled, isPlayable, onCardClick, onClick, card.id]);
+
   return (
     <div
-      onClick={!disabled ? onClick : undefined}
+      onClick={handleClick}
       style={style}
       className={`
         playing-card ${sizeClasses} select-none relative overflow-hidden
@@ -104,10 +115,12 @@ export const CardView: React.FC<CardViewProps> = ({
   );
 };
 
+export const CardView = React.memo(CardViewComponent);
+
 /**
  * Thẻ bài thu nhỏ (Miniature Playing Card) dùng cho màn hình kết thúc trận và xem bài tàn cuộc
  */
-export const MiniCardView: React.FC<{ card: Card; className?: string }> = ({ card, className = '' }) => {
+const MiniCardViewComponent: React.FC<{ card: Card; className?: string }> = ({ card, className = '' }) => {
   const isRed = isRedCard(card);
   const rankStr = RANK_NAMES[card.rank];
   const suitSym = SUIT_SYMBOLS[card.suit];
@@ -142,3 +155,5 @@ export const MiniCardView: React.FC<{ card: Card; className?: string }> = ({ car
     </div>
   );
 };
+
+export const MiniCardView = React.memo(MiniCardViewComponent);

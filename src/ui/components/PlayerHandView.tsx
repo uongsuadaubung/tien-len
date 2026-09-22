@@ -386,7 +386,7 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
                         card={card}
                         isSelected={isSelected}
                         isPlayable={!isDealing}
-                        onClick={() => onToggleCardSelect(card.id)}
+                        onCardClick={onToggleCardSelect}
                         size={isMobileSize ? 'mobile' : 'md'}
                         style={{
                           transform: `rotate(${rot}deg)`
@@ -420,7 +420,7 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
                   card={card}
                   isSelected={isSelected}
                   isPlayable={!isDealing}
-                  onClick={() => onToggleCardSelect(card.id)}
+                  onCardClick={onToggleCardSelect}
                   size={isMobileSize ? 'mobile' : 'md'}
                   style={{
                     transform: `rotate(${rot}deg)`
