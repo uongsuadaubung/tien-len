@@ -23,10 +23,12 @@ fn test_elo_delta_basic() {
 
 #[test]
 fn test_elo_delta_with_metrics() {
-    let mut metrics = EloPerformanceMetrics::default();
-    metrics.chops_count = Some(2);
-    metrics.current_streak = Some(3);
-    metrics.is_three_spades_win = Some(true);
+    let metrics = EloPerformanceMetrics {
+        chops_count: Some(2),
+        current_streak: Some(3),
+        is_three_spades_win: Some(true),
+        ..Default::default()
+    };
 
     let res = calculate_elo_delta(1, 1200, 1400, 4, Some(&metrics));
     // Base is 40, opponents scaling > 1, chops (+6), streak (+3), three spades (+8)

@@ -182,11 +182,10 @@ pub fn simulate_match_series(
             let mut hand = deck[start..end].to_vec();
             sort_cards(&mut hand);
 
-            if let Some(_win_type) = check_instant_win(&hand, game_num == 1) {
-                if instant_winner.is_none() {
+            if let Some(_win_type) = check_instant_win(&hand, game_num == 1)
+                && instant_winner.is_none() {
                     instant_winner = Some(bot.id.clone());
                 }
-            }
             hands.insert(bot.id.clone(), hand);
         }
 
@@ -425,7 +424,7 @@ fn format_number_commas(n: i64) -> String {
     let mut result = String::new();
     let len = s.len();
     for (i, c) in s.chars().enumerate() {
-        if i > 0 && (len - i) % 3 == 0 {
+        if i > 0 && (len - i).is_multiple_of(3) {
             result.push(',');
         }
         result.push(c);
@@ -447,11 +446,10 @@ fn get_next_active_player_id(
     for offset in 1..=num_players {
         let next_idx = (cur_idx + offset) % num_players;
         let p = &players[next_idx];
-        if let Some(h) = hands.get(&p.id) {
-            if !h.is_empty() {
+        if let Some(h) = hands.get(&p.id)
+            && !h.is_empty() {
                 return p.id.clone();
             }
-        }
     }
     from_player_id.to_string()
 }
@@ -467,13 +465,11 @@ fn get_next_eligible_player_id(
     for offset in 1..=num_players {
         let next_idx = (cur_idx + offset) % num_players;
         let p = &players[next_idx];
-        if !passed_ids.contains(&p.id) {
-            if let Some(h) = hands.get(&p.id) {
-                if !h.is_empty() {
+        if !passed_ids.contains(&p.id)
+            && let Some(h) = hands.get(&p.id)
+                && !h.is_empty() {
                     return Some(p.id.clone());
                 }
-            }
-        }
     }
     None
 }

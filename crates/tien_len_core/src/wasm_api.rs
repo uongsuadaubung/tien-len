@@ -8,7 +8,7 @@ use crate::engine::{
     calculate_winner_takes_all_settlement, check_instant_win, pass_turn, play_move,
     start_new_game, validate_move,
 };
-use crate::hand_sorter::cycle_hand_groupings;
+use crate::hand_sorter::{cycle_hand_groupings, get_available_smart_variants};
 use crate::player::MatchPlayer;
 use crate::rules::GameRules;
 use crate::state::MatchState;
@@ -141,6 +141,14 @@ pub fn wasm_sort_smart_groups(cards_json: &str, variant_index: usize) -> Result<
         .map_err(|e| JsValue::from_str(&format!("Invalid cards JSON: {}", e)))?;
     let groups = cycle_hand_groupings(&cards, variant_index);
     serde_json::to_string(&groups).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
+#[wasm_bindgen]
+pub fn wasm_get_available_smart_variants(cards_json: &str) -> Result<String, JsValue> {
+    let cards: Vec<Card> = serde_json::from_str(cards_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid cards JSON: {}", e)))?;
+    let variants = get_available_smart_variants(&cards);
+    serde_json::to_string(&variants).map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
 #[wasm_bindgen]

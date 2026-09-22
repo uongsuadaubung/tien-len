@@ -31,6 +31,8 @@ export function wasm_decide_bot_move(hand_json: string, state_json: string, bot_
 
 export function wasm_evaluate_candidate_moves_mcts(bot_id: string, bot_hand_json: string, candidate_moves_json: string, played_card_ids_json: string, remaining_cards_json: string, simulations_count: number, seed: number): string;
 
+export function wasm_get_available_smart_variants(cards_json: string): string;
+
 export function wasm_get_optimal_move_hint(hand_json: string, leading_combo_json: string | null | undefined, is_lead_move: boolean, is_first_move_of_game: boolean, first_move_required_card_id: string | null | undefined, prohibit_ending_with_two: boolean): string;
 
 export function wasm_get_sorted_quick_select_candidates(hand_json: string, target_json: string | null | undefined, is_lead_move: boolean, is_first_move_of_game: boolean, first_move_required_card_id: string | null | undefined, prohibit_ending_with_two: boolean): string;
@@ -57,40 +59,38 @@ export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembl
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
-    readonly wasm_calculate_chop_penalty: (a: number, b: number, c: number, d: number, e: bigint, f: number) => [bigint, number, number];
+    readonly wasm_calculate_chop_penalty: (a: number, b: number, c: number, d: number, e: number, f: bigint, g: number) => void;
     readonly wasm_calculate_cong_penalty: (a: bigint, b: number) => bigint;
-    readonly wasm_calculate_count_cards_settlement: (a: number, b: number, c: number, d: number, e: bigint, f: number, g: number, h: number) => [number, number, number, number];
-    readonly wasm_calculate_elo_delta: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
-    readonly wasm_calculate_rotten_penalty: (a: number, b: number, c: bigint, d: number) => [bigint, number, number];
-    readonly wasm_calculate_traditional_settlement: (a: number, b: number, c: number, d: number, e: bigint, f: number, g: number, h: number) => [number, number, number, number];
-    readonly wasm_calculate_winner_takes_all_settlement: (a: number, b: number, c: number, d: number, e: bigint, f: number, g: number, h: number) => [number, number, number, number];
-    readonly wasm_can_beat: (a: number, b: number, c: number, d: number) => [number, number, number];
-    readonly wasm_can_chop: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number];
-    readonly wasm_check_instant_win: (a: number, b: number, c: number) => [number, number, number, number];
-    readonly wasm_compute_table_elo_settlement: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number) => [number, number, number, number];
-    readonly wasm_create_deck: () => [number, number, number, number];
-    readonly wasm_deal_cards: (a: number, b: number, c: number) => [number, number, number, number];
-    readonly wasm_decide_bot_move: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
-    readonly wasm_evaluate_candidate_moves_mcts: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number) => [number, number, number, number];
-    readonly wasm_get_optimal_move_hint: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number, number, number];
-    readonly wasm_get_sorted_quick_select_candidates: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number, number, number];
-    readonly wasm_identify_combination: (a: number, b: number) => [number, number, number, number];
-    readonly wasm_pass_turn: (a: number, b: number, c: number, d: number) => [number, number, number, number];
-    readonly wasm_play_move: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
-    readonly wasm_simulate_match_series: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
-    readonly wasm_simulate_single_table: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
-    readonly wasm_simulate_tables_batch: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
-    readonly wasm_sort_smart_groups: (a: number, b: number, c: number) => [number, number, number, number];
-    readonly wasm_start_new_game: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
-    readonly wasm_validate_move: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
-    readonly __wbindgen_exn_store: (a: number) => void;
-    readonly __externref_table_alloc: () => number;
-    readonly __wbindgen_externrefs: WebAssembly.Table;
-    readonly __wbindgen_malloc: (a: number, b: number) => number;
-    readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
-    readonly __externref_table_dealloc: (a: number) => void;
-    readonly __wbindgen_free: (a: number, b: number, c: number) => void;
-    readonly __wbindgen_start: () => void;
+    readonly wasm_calculate_count_cards_settlement: (a: number, b: number, c: number, d: number, e: number, f: bigint, g: number, h: number, i: number) => void;
+    readonly wasm_calculate_elo_delta: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
+    readonly wasm_calculate_rotten_penalty: (a: number, b: number, c: number, d: bigint, e: number) => void;
+    readonly wasm_calculate_traditional_settlement: (a: number, b: number, c: number, d: number, e: number, f: bigint, g: number, h: number, i: number) => void;
+    readonly wasm_calculate_winner_takes_all_settlement: (a: number, b: number, c: number, d: number, e: number, f: bigint, g: number, h: number, i: number) => void;
+    readonly wasm_can_beat: (a: number, b: number, c: number, d: number, e: number) => void;
+    readonly wasm_can_chop: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
+    readonly wasm_check_instant_win: (a: number, b: number, c: number, d: number) => void;
+    readonly wasm_compute_table_elo_settlement: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number, n: number, o: number) => void;
+    readonly wasm_create_deck: (a: number) => void;
+    readonly wasm_deal_cards: (a: number, b: number, c: number, d: number) => void;
+    readonly wasm_decide_bot_move: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
+    readonly wasm_evaluate_candidate_moves_mcts: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number, k: number, l: number, m: number) => void;
+    readonly wasm_get_available_smart_variants: (a: number, b: number, c: number) => void;
+    readonly wasm_get_optimal_move_hint: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => void;
+    readonly wasm_get_sorted_quick_select_candidates: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => void;
+    readonly wasm_identify_combination: (a: number, b: number, c: number) => void;
+    readonly wasm_pass_turn: (a: number, b: number, c: number, d: number, e: number) => void;
+    readonly wasm_play_move: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;
+    readonly wasm_simulate_match_series: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;
+    readonly wasm_simulate_single_table: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
+    readonly wasm_simulate_tables_batch: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
+    readonly wasm_sort_smart_groups: (a: number, b: number, c: number, d: number) => void;
+    readonly wasm_start_new_game: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;
+    readonly wasm_validate_move: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => void;
+    readonly __wbindgen_export: (a: number) => void;
+    readonly __wbindgen_add_to_stack_pointer: (a: number) => number;
+    readonly __wbindgen_export2: (a: number, b: number) => number;
+    readonly __wbindgen_export3: (a: number, b: number, c: number, d: number) => number;
+    readonly __wbindgen_export4: (a: number, b: number, c: number) => void;
 }
 
 export type SyncInitInput = BufferSource | WebAssembly.Module;

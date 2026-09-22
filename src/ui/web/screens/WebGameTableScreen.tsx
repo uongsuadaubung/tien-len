@@ -15,6 +15,7 @@ import { useViewStore } from '../../../stores/useViewStore';
 import { useUserStore } from '../../../stores/useUserStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useGameStore } from '../../../stores/useGameStore';
+import { useShallow } from 'zustand/react/shallow';
 
 export interface WebGameTableScreenProps {
   onPlaySelectedCards: () => void;
@@ -45,7 +46,15 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     botReasoningLogEnabled,
     reverseButtonsEnabled,
     toggleSound
-  } = useSettingsStore();
+  } = useSettingsStore(useShallow(s => ({
+    soundEnabled: s.soundEnabled,
+    aiHintEnabled: s.aiHintEnabled,
+    quickResponseAssistEnabled: s.quickResponseAssistEnabled,
+    xrayEnabled: s.xrayEnabled,
+    botReasoningLogEnabled: s.botReasoningLogEnabled,
+    reverseButtonsEnabled: s.reverseButtonsEnabled,
+    toggleSound: s.toggleSound
+  })));
 
   const {
     players,
@@ -55,7 +64,15 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     selectedCardIds,
     handSortMode,
     smartVariantIndex
-  } = useGameStore();
+  } = useGameStore(useShallow(s => ({
+    players: s.players,
+    gameNumber: s.gameNumber,
+    gameSettings: s.gameSettings,
+    activeGameType: s.activeGameType,
+    selectedCardIds: s.selectedCardIds,
+    handSortMode: s.handSortMode,
+    smartVariantIndex: s.smartVariantIndex
+  })));
 
   const {
     localPlayer,

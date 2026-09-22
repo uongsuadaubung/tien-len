@@ -111,7 +111,14 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
 
   const isMobileSize = cardSize === 'mobile';
   const visibleCardCount = isDealing ? dealtCardsCount : player.hand.length;
-  const hand = player.hand.slice(0, visibleCardCount);
+  const hand = React.useMemo(() => {
+    return player.hand.slice(0, visibleCardCount);
+  }, [player.hand, visibleCardCount]);
+
+  const handCardFingerprint = React.useMemo(() => {
+    return hand.map(c => c.id).join(',');
+  }, [hand]);
+
   const requiredCard = firstMoveRequiredCard ?? (isFirstMoveOfGame ? hand[0] ?? null : null);
   const hasRequiredCard = requiredCard !== null && hand.some(c => c.id === requiredCard.id);
   const isSelectedWithRequired = requiredCard !== null && Array.from(selectedCardIds).some(id => id === requiredCard.id);
@@ -119,7 +126,7 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
   const isSmartMode = sortMode === 'SMART_GROUP';
   const availableVariants = React.useMemo(() => {
     return getAvailableSmartVariants(hand);
-  }, [hand]);
+  }, [handCardFingerprint, hand]);
 
   const totalVariants = availableVariants.length;
   const smartGroups = React.useMemo(() => {
@@ -132,7 +139,7 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
   const sortedHand = React.useMemo(() => {
     const strategy = resolveHandSortStrategy(sortMode);
     return strategy.sort(hand);
-  }, [hand, sortMode]);
+  }, [handCardFingerprint, sortMode]);
 
   const currentStrategy = resolveHandSortStrategy(sortMode);
   // Xác định nhãn và tooltip của nút Xếp Bài khi xoay vòng:

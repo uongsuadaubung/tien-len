@@ -298,16 +298,16 @@ pub fn calculate_traditional_settlement(
 
     if winners.len() >= 4 {
         payouts.insert(winners[0].id.clone(), bet_amount * 3 * three_spades_multiplier);
-        payouts.insert(winners[1].id.clone(), bet_amount * 1);
-        payouts.insert(winners[2].id.clone(), -bet_amount * 1);
+        payouts.insert(winners[1].id.clone(), bet_amount);
+        payouts.insert(winners[2].id.clone(), -bet_amount);
         payouts.insert(winners[3].id.clone(), -bet_amount * 3 * three_spades_multiplier);
     } else if winners.len() == 3 {
         payouts.insert(winners[0].id.clone(), bet_amount * 2 * three_spades_multiplier);
         payouts.insert(winners[1].id.clone(), 0);
         payouts.insert(winners[2].id.clone(), -bet_amount * 2 * three_spades_multiplier);
     } else if winners.len() == 2 {
-        payouts.insert(winners[0].id.clone(), bet_amount * 1 * three_spades_multiplier);
-        payouts.insert(winners[1].id.clone(), -bet_amount * 1 * three_spades_multiplier);
+        payouts.insert(winners[0].id.clone(), bet_amount * three_spades_multiplier);
+        payouts.insert(winners[1].id.clone(), -bet_amount * three_spades_multiplier);
     } else if winners.len() == 1 {
         let remaining_players: Vec<&MatchPlayer> = players.iter().filter(|p| p.id != winners[0].id).collect();
         payouts.insert(winners[0].id.clone(), bet_amount * remaining_players.len() as i64 * three_spades_multiplier);
@@ -365,12 +365,12 @@ pub fn start_new_game(
     deck.shuffle(&mut rng);
 
     // Deal 13 cards per player
-    for i in 0..player_count {
+    for player in clean_players.iter_mut().take(player_count) {
         let hand_cards: Vec<Card> = deck.drain(0..13).collect();
         let mut sorted_hand = hand_cards;
         sort_cards(&mut sorted_hand);
-        clean_players[i].hand = sorted_hand;
-        clean_players[i].card_count = 13;
+        player.hand = sorted_hand;
+        player.card_count = 13;
     }
 
     // Check instant win
@@ -412,12 +412,11 @@ pub fn start_new_game(
         // Player holding lowest card leads
         let mut lowest_card_weight = u8::MAX;
         for (idx, p) in clean_players.iter().enumerate() {
-            if let Some(first_card) = p.hand.first() {
-                if first_card.weight() < lowest_card_weight {
+            if let Some(first_card) = p.hand.first()
+                && first_card.weight() < lowest_card_weight {
                     lowest_card_weight = first_card.weight();
                     lead_player_idx = idx;
                 }
-            }
         }
     }
 
@@ -545,8 +544,8 @@ pub fn play_move(
     let mut chopped_player_id = None;
     let mut penalty_amount = 0;
 
-    if let PlayingTurnState::Follow { leading_move, .. } = play_state {
-        if can_chop(
+    if let PlayingTurnState::Follow { leading_move, .. } = play_state
+        && can_chop(
             &combo,
             &leading_move.combination,
             rules.chopping.allow_three_pairs_cut_two,
@@ -600,7 +599,6 @@ pub fn play_move(
                 }
             }
         }
-    }
 
     let played_move = if is_chop {
         PlayedMove::chop(
@@ -675,7 +673,7 @@ pub fn pass_turn(state: &MatchState, player_id: &str) -> Result<MatchState, Stri
 
     match play_state {
         PlayingTurnState::OpeningFirstMove { .. } | PlayingTurnState::NormalLead { .. } => {
-            return Err("Leader cannot pass, must play a card".into());
+            Err("Leader cannot pass, must play a card".into())
         }
         PlayingTurnState::Follow { leading_move, .. } => {
             let mut next_passed = common.passed_player_ids.clone();

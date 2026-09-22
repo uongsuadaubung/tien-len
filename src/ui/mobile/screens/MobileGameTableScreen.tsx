@@ -14,6 +14,7 @@ import { useGameTableScreenLogic } from '../../hooks/useGameTableScreenLogic';
 import { useViewStore } from '../../../stores/useViewStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useGameStore } from '../../../stores/useGameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useI18n } from '../../../locales';
 
 // Icons
@@ -58,7 +59,13 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
     botReasoningLogEnabled,
     reverseButtonsEnabled,
     toggleSound
-  } = useSettingsStore();
+  } = useSettingsStore(useShallow(s => ({
+    soundEnabled: s.soundEnabled,
+    quickResponseAssistEnabled: s.quickResponseAssistEnabled,
+    botReasoningLogEnabled: s.botReasoningLogEnabled,
+    reverseButtonsEnabled: s.reverseButtonsEnabled,
+    toggleSound: s.toggleSound
+  })));
 
   const {
     players,
@@ -67,7 +74,14 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
     selectedCardIds,
     handSortMode,
     smartVariantIndex
-  } = useGameStore();
+  } = useGameStore(useShallow(s => ({
+    players: s.players,
+    gameNumber: s.gameNumber,
+    gameSettings: s.gameSettings,
+    selectedCardIds: s.selectedCardIds,
+    handSortMode: s.handSortMode,
+    smartVariantIndex: s.smartVariantIndex
+  })));
 
   const {
     localPlayer,

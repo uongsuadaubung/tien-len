@@ -61,11 +61,11 @@ fn test_quick_response_chop_precedence() {
     );
 
     // candidates[0] should be 2H (regular beat, is_chop: false)
-    assert_eq!(candidates[0].is_chop, false);
+    assert!(!candidates[0].is_chop);
     assert_eq!(candidates[0].cards[0].code, "2H");
 
     // candidates[1] should be 3-pair sequence (chop, is_chop: true)
-    assert_eq!(candidates[1].is_chop, true);
+    assert!(candidates[1].is_chop);
     assert_eq!(candidates[1].combination.combo_type, CombinationType::ThreePairsSequential);
 }
 

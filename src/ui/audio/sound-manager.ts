@@ -9,18 +9,27 @@ declare global {
  */
 class SoundManager {
   private ctx: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
   public enabled: boolean = true;
 
-  private initCtx() {
+  private initCtx(): AudioContext | null {
     if (!this.ctx && typeof window !== 'undefined') {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (AudioCtx) {
         this.ctx = new AudioCtx();
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.setValueAtTime(1.0, this.ctx.currentTime);
+        this.masterGain.connect(this.ctx.destination);
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      this.ctx.resume().catch(() => {});
     }
+    return this.ctx;
+  }
+
+  private getMasterNode(): AudioNode | null {
+    return this.masterGain ?? this.ctx?.destination ?? null;
   }
 
   // Âm thanh đánh bài xuống chiếu "Chát"

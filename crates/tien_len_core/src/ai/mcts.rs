@@ -93,7 +93,7 @@ pub fn evaluate_candidate_moves_mcts(
 
     let opponent_ids: Vec<String> = remaining_player_cards
         .iter()
-        .filter(|(id, &count)| id.as_str() != bot_id && count > 0)
+        .filter(|(id, count)| id.as_str() != bot_id && **count > 0)
         .map(|(id, _)| id.clone())
         .collect();
 
@@ -193,11 +193,11 @@ fn simulate_fast_game(
     }
 
     let mut current_combo: Option<Combination> = Some(initial_lead_combo.clone());
-    let mut turn_idx: usize = 1;
     let mut consecutive_passes: usize = 0;
     let max_steps: usize = 25;
 
-    for _ in 0..max_steps {
+    for step in 0..max_steps {
+        let turn_idx = 1 + step;
         let active_player_id = &all_players[turn_idx % all_players.len()];
         let player_hand = match hands.get_mut(active_player_id) {
             Some(h) => h,
@@ -222,39 +222,36 @@ fn simulate_fast_game(
             if target.length == 1 {
                 for c in player_hand.iter() {
                     let single_candidate = vec![c.clone()];
-                    if let Some(combo) = identify_combination(&single_candidate) {
-                        if can_beat(&combo, target) {
+                    if let Some(combo) = identify_combination(&single_candidate)
+                        && can_beat(&combo, target) {
                             chosen_cards = Some(single_candidate);
                             new_combo = Some(combo);
                             break;
                         }
-                    }
                 }
             } else if target.length == 2 {
                 // 2. Pair
                 for i in 0..player_hand.len().saturating_sub(1) {
                     if player_hand[i].rank == player_hand[i + 1].rank {
                         let pair_cand = vec![player_hand[i].clone(), player_hand[i + 1].clone()];
-                        if let Some(combo) = identify_combination(&pair_cand) {
-                            if can_beat(&combo, target) {
+                        if let Some(combo) = identify_combination(&pair_cand)
+                            && can_beat(&combo, target) {
                                 chosen_cards = Some(pair_cand);
                                 new_combo = Some(combo);
                                 break;
                             }
-                        }
                     }
                 }
             } else {
                 // 3. Higher combinations / straights
                 let raw_subsets = crate::quick_response::generate_candidate_moves(player_hand);
                 for sub in raw_subsets {
-                    if let Some(combo) = identify_combination(&sub) {
-                        if can_beat(&combo, target) || can_chop_standard(&combo, target) {
+                    if let Some(combo) = identify_combination(&sub)
+                        && (can_beat(&combo, target) || can_chop_standard(&combo, target)) {
                             chosen_cards = Some(sub);
                             new_combo = Some(combo);
                             break;
                         }
-                    }
                 }
             }
         } else {
@@ -293,8 +290,6 @@ fn simulate_fast_game(
         } else {
             consecutive_passes += 1;
         }
-
-        turn_idx += 1;
     }
 
     // Tie-break: player with fewest remaining cards wins
@@ -302,12 +297,11 @@ fn simulate_fast_game(
     let mut best_player = bot_id;
 
     for opp_id in opponent_ids {
-        if let Some(h) = hands.get(opp_id) {
-            if h.len() < min_cards {
+        if let Some(h) = hands.get(opp_id)
+            && h.len() < min_cards {
                 min_cards = h.len();
                 best_player = opp_id;
             }
-        }
     }
 
     best_player == bot_id

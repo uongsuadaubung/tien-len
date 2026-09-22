@@ -142,8 +142,8 @@ pub fn calculate_elo_delta(
         }
 
         // 2. Chặt Heo / Chặt Hàng thành công
-        if let Some(chops) = m.chops_count {
-            if chops > 0 {
+        if let Some(chops) = m.chops_count
+            && chops > 0 {
                 let chop_bonus = 6.min(chops as i32 * 3);
                 performance_delta += chop_bonus;
                 items.push(EloBreakdownItem {
@@ -152,11 +152,10 @@ pub fn calculate_elo_delta(
                     value: chop_bonus,
                 });
             }
-        }
 
         // 3. Bị Chặt Heo / Chặt Hàng
-        if let Some(got_chopped) = m.got_chopped_count {
-            if got_chopped > 0 {
+        if let Some(got_chopped) = m.got_chopped_count
+            && got_chopped > 0 {
                 let chop_penalty = -6.min(got_chopped as i32 * 2);
                 performance_delta += chop_penalty;
                 items.push(EloBreakdownItem {
@@ -165,11 +164,10 @@ pub fn calculate_elo_delta(
                     value: chop_penalty,
                 });
             }
-        }
 
         // 4. Thối Heo / Thối Hàng cuối ván
-        if let Some(rotten) = m.rotten_count {
-            if rotten > 0 {
+        if let Some(rotten) = m.rotten_count
+            && rotten > 0 {
                 let rotten_penalty = -6.min(rotten as i32 * 2);
                 performance_delta += rotten_penalty;
                 items.push(EloBreakdownItem {
@@ -178,12 +176,11 @@ pub fn calculate_elo_delta(
                     value: rotten_penalty,
                 });
             }
-        }
 
         // 5. Ép đối thủ Cóng (chỉ dành cho người về Nhất)
-        if rank_position == 1 {
-            if let Some(caused_burnt) = m.caused_burnt_count {
-                if caused_burnt > 0 {
+        if rank_position == 1
+            && let Some(caused_burnt) = m.caused_burnt_count
+                && caused_burnt > 0 {
                     let burn_bonus = 10.min(caused_burnt as i32 * 5);
                     performance_delta += burn_bonus;
                     items.push(EloBreakdownItem {
@@ -192,8 +189,6 @@ pub fn calculate_elo_delta(
                         value: burn_bonus,
                     });
                 }
-            }
-        }
 
         // 6. Dứt điểm 3 Bích cuối cùng
         if rank_position == 1 && m.is_three_spades_win.unwrap_or(false) {
@@ -218,9 +213,9 @@ pub fn calculate_elo_delta(
 
     // 4. Thưởng Chuỗi Thắng (dành cho người về Nhất)
     let mut streak_delta: i32 = 0;
-    if rank_position == 1 {
-        if let Some(m) = metrics {
-            if let Some(streak) = m.current_streak {
+    if rank_position == 1
+        && let Some(m) = metrics
+            && let Some(streak) = m.current_streak {
                 if streak >= 5 {
                     streak_delta = 6;
                     items.push(EloBreakdownItem {
@@ -237,8 +232,6 @@ pub fn calculate_elo_delta(
                     });
                 }
             }
-        }
-    }
 
     let total_delta = scaled_base + performance_delta + streak_delta;
     let new_elo = 100.max(player_elo + total_delta);

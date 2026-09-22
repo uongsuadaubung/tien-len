@@ -9,7 +9,7 @@ fn test_single_and_pair() {
     let c3h = Card::new(3, Suit::Hearts);
     let c4s = Card::new(4, Suit::Spades);
 
-    let single = identify_combination(&[c3s.clone()]).unwrap();
+    let single = identify_combination(std::slice::from_ref(&c3s)).unwrap();
     assert_eq!(single.combo_type, CombinationType::Single);
 
     let pair = identify_combination(&[c3s.clone(), c3h.clone()]).unwrap();

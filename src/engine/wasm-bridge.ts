@@ -10,6 +10,7 @@ import __wbg_init, {
   wasm_play_move,
   wasm_pass_turn,
   wasm_sort_smart_groups,
+  wasm_get_available_smart_variants,
   wasm_decide_bot_move,
   wasm_calculate_chop_penalty,
   wasm_calculate_rotten_penalty,
@@ -227,6 +228,12 @@ export function wasmPassTurn(state: MatchState, playerId: string): MatchState {
 export function wasmSortSmartGroups(cards: readonly Card[], variantIndex: number = 0): SmartCardGroup[] {
   ensureWasmReady();
   const json = wasm_sort_smart_groups(JSON.stringify(cards), variantIndex);
+  return JSON.parse(json);
+}
+
+export function wasmGetAvailableSmartVariants(cards: readonly Card[]): SmartCardGroup[][] {
+  ensureWasmReady();
+  const json = wasm_get_available_smart_variants(JSON.stringify(cards));
   return JSON.parse(json);
 }
 

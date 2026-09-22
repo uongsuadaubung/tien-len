@@ -2,17 +2,14 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[derive(Default)]
 pub enum GameSettlementRule {
     Traditional,
+    #[default]
     CountCards,
     WinnerTakesAll,
 }
 
-impl Default for GameSettlementRule {
-    fn default() -> Self {
-        GameSettlementRule::CountCards
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

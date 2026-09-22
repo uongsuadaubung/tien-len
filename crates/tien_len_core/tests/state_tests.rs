@@ -24,7 +24,7 @@ fn test_match_state_non_nullable_variants() {
     }
 
     let card3s = Card::new(3, Suit::Spades);
-    let combo = identify_combination(&[card3s.clone()]).expect("Valid combo");
+    let combo = identify_combination(std::slice::from_ref(&card3s)).expect("Valid combo");
     let played_move = PlayedMove::standard("p1", combo, 123456);
 
     assert_eq!(played_move.player_id, "p1");

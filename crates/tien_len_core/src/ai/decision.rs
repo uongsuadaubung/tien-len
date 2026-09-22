@@ -16,7 +16,7 @@ pub fn find_valid_moves(
     // Also include every single card as a valid combination
     let mut all_possibilities = candidates;
     for card in hand {
-        if let Some(single) = identify_combination(&[card.clone()]) {
+        if let Some(single) = identify_combination(std::slice::from_ref(card)) {
             all_possibilities.push(single);
         }
     }
@@ -32,15 +32,14 @@ pub fn find_valid_moves(
         PlayingTurnState::NormalLead { common } => {
             let prohibit_two_end = common.rules.game_flow.prohibit_ending_with_two;
             for combo in all_possibilities {
-                if prohibit_two_end && hand.len() == combo.cards.len() {
-                    if combo.highest_card.is_two()
+                if prohibit_two_end && hand.len() == combo.cards.len()
+                    && (combo.highest_card.is_two()
                         || combo.combo_type == CombinationType::FourOfAKind
                         || combo.combo_type == CombinationType::ThreePairsSequential
-                        || combo.combo_type == CombinationType::FourPairsSequential
+                        || combo.combo_type == CombinationType::FourPairsSequential)
                     {
                         continue; // Cannot finish with Two/Chop combo
                     }
-                }
                 valid_moves.push(combo);
             }
         }
@@ -136,14 +135,13 @@ pub fn decide_bot_move(
                         .flat_map(|g| &g.cards)
                         .collect();
 
-                    if let Some(trash) = trash_singles.first() {
-                        if let Some(matched) = valid_moves
+                    if let Some(trash) = trash_singles.first()
+                        && let Some(matched) = valid_moves
                             .iter()
                             .find(|c| c.combo_type == CombinationType::Single && c.cards[0].id == trash.id)
                         {
                             return Some(matched.cards.clone());
                         }
-                    }
 
                     // Otherwise play smallest valid move
                     let mut sorted_moves = valid_moves;

@@ -49,7 +49,8 @@ export const TableCenter: React.FC<TableCenterProps> = ({
   cardSize = 'md'
 }) => {
   const { t } = useI18n();
-  const { myPlayerId, players } = useGameStore();
+  const myPlayerId = useGameStore(s => s.myPlayerId);
+  const players = useGameStore(s => s.players);
 
   const getSlideAnimationClass = (playerId?: string) => {
     if (!playerId) return 'card-slide-bottom';

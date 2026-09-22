@@ -3,3 +3,11 @@ resolver = "2"
 members = [
     "crates/*",
 ]
+
+[profile.release]
+opt-level = "z"       # Optimize for smallest binary size (ideal for web/mobile WASM transfer)
+lto = true            # Link-Time Optimization across crates to strip dead code
+codegen-units = 1     # Reduce compilation units to 1 for maximum LLVM whole-program optimization
+panic = "abort"       # Strip stack unwinding tables
+strip = true          # Strip all debug symbols and symbols table
+

@@ -92,9 +92,9 @@ pub fn generate_candidate_moves(hand: &[Card]) -> Vec<Vec<Card>> {
     let non_two_ranks: Vec<u8> = rank_map.keys().copied().filter(|&r| r <= 14).collect();
     for i in 0..non_two_ranks.len() {
         let mut consecutive_ranks = vec![non_two_ranks[i]];
-        for j in (i + 1)..non_two_ranks.len() {
-            if non_two_ranks[j] == *consecutive_ranks.last().unwrap() + 1 {
-                consecutive_ranks.push(non_two_ranks[j]);
+        for &next_rank in non_two_ranks.iter().skip(i + 1) {
+            if next_rank == *consecutive_ranks.last().unwrap() + 1 {
+                consecutive_ranks.push(next_rank);
                 if consecutive_ranks.len() >= 3 {
                     let rank_card_lists: Vec<Vec<Card>> = consecutive_ranks
                         .iter()
@@ -112,15 +112,15 @@ pub fn generate_candidate_moves(hand: &[Card]) -> Vec<Vec<Card>> {
     // 4. Đôi Thông (Từ 3 đôi thông trở lên, rank <= 14)
     let pair_ranks: Vec<u8> = rank_map
         .iter()
-        .filter(|(&r, cards)| r <= 14 && cards.len() >= 2)
+        .filter(|(r, cards)| **r <= 14 && cards.len() >= 2)
         .map(|(&r, _)| r)
         .collect();
 
     for i in 0..pair_ranks.len() {
         let mut consecutive_pair_ranks = vec![pair_ranks[i]];
-        for j in (i + 1)..pair_ranks.len() {
-            if pair_ranks[j] == *consecutive_pair_ranks.last().unwrap() + 1 {
-                consecutive_pair_ranks.push(pair_ranks[j]);
+        for &next_pair_rank in pair_ranks.iter().skip(i + 1) {
+            if next_pair_rank == *consecutive_pair_ranks.last().unwrap() + 1 {
+                consecutive_pair_ranks.push(next_pair_rank);
                 if consecutive_pair_ranks.len() >= 3 {
                     let pair_choices: Vec<Vec<Vec<Card>>> = consecutive_pair_ranks
                         .iter()
@@ -167,8 +167,8 @@ pub fn get_sorted_quick_select_candidates(
         }
 
         // 2. Ràng buộc ván đầu tiên phải chứa lá mở màn
-        if is_first_move_of_game {
-            if let Some(req_id) = first_move_required_card_id {
+        if is_first_move_of_game
+            && let Some(req_id) = first_move_required_card_id {
                 let norm_req = req_id.replace('_', "-");
                 if !cards.iter().any(|c| {
                     c.id.eq_ignore_ascii_case(req_id)
@@ -177,7 +177,6 @@ pub fn get_sorted_quick_select_candidates(
                     continue;
                 }
             }
-        }
 
         // 3. Nhận diện tổ hợp
         let combo = match identify_combination(&cards) {
@@ -192,8 +191,7 @@ pub fn get_sorted_quick_select_candidates(
                 combination: combo,
                 is_chop: false,
             });
-        } else {
-            let target_combo = target.unwrap();
+        } else if let Some(target_combo) = target {
             let beats = can_beat(&combo, target_combo);
             let chops = can_chop(&combo, target_combo, true, true);
 

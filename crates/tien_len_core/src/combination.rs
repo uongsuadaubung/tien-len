@@ -94,7 +94,7 @@ pub fn identify_combination(cards: &[Card]) -> Option<Combination> {
     }
 
     // Sảnh từ 5 đến 12 lá
-    if n >= 5 && n <= 12 && is_valid_straight(&sorted) {
+    if (5..=12).contains(&n) && is_valid_straight(&sorted) {
         return Some(Combination::new(CombinationType::Straight, sorted));
     }
 
