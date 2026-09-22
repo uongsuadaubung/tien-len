@@ -24,6 +24,7 @@ import {
 import { 
   runEcosystemSimulation 
 } from './simulation-worker-client';
+import { initWasmCore } from '../wasm-bridge';
 
 /**
  * ============================================================================
@@ -65,6 +66,7 @@ class EcosystemManager {
    */
   public async initialize(): Promise<BotEntity[]> {
     try {
+      await initWasmCore();
       const storedBots = await dbGetAllBots();
 
       if (storedBots && storedBots.length > 0) {

@@ -19,6 +19,7 @@ import {
 import { dbGetGameSettings, dbGetQuickTableConfig } from '../engine/db/indexed-db';
 import { ECONOMY_CONSTANTS } from '../engine/constants/economy';
 import { smartSync } from '../engine/sync/sync-service';
+import { initWasmCore } from '../engine/wasm-bridge';
 
 // Stores
 import { useViewStore } from '../stores/useViewStore';
@@ -55,11 +56,12 @@ export const App: React.FC = () => {
     const minDelay = new Promise(resolve => setTimeout(resolve, 2000));
 
     Promise.all([
+      initWasmCore().catch(err => console.warn('[App] Wasm init warning:', err)),
       hydrateStorageFromIndexedDB(),
       dbGetGameSettings(),
       dbGetQuickTableConfig(),
       minDelay
-    ]).then(async ([hydrated, savedSettings, savedTableConfig]) => {
+    ]).then(async ([_wasm, hydrated, savedSettings, savedTableConfig]) => {
       if (hydrated.profile) {
         hydrateProfile(hydrated.profile);
         useGameStore.getState().setMyPlayerId(hydrated.profile.id);

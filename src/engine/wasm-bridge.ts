@@ -76,6 +76,13 @@ export async function initWasmCore(): Promise<void> {
   await initPromise;
 }
 
+// Tự động kích hoạt nạp WASM ngầm ngay khi file module được import trong Browser hoặc Web Worker
+if (typeof window !== 'undefined' || typeof self !== 'undefined') {
+  void initWasmCore().catch(err => {
+    console.warn('[WasmBridge] Auto-init background warning:', err);
+  });
+}
+
 /**
  * Synchronous initialization when bytes are already provided or loaded
  */

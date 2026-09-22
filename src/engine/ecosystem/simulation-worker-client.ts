@@ -1,6 +1,7 @@
 import { TableGroup, BotEntity } from './ecosystem-types';
 import { simulateAllTablesBatch } from './headless-sim';
 import { WorkerInputMessage, WorkerOutputMessage } from './simulation-worker';
+import { initWasmCore } from '../wasm-bridge';
 
 /**
  * ============================================================================
@@ -56,7 +57,10 @@ export async function runEcosystemSimulation(
   tables: TableGroup[],
   bots: BotEntity[]
 ): Promise<WorkerOutputMessage> {
-  if (typeof window === 'undefined' || typeof process !== 'undefined') {
+  await initWasmCore();
+
+  const isTest = typeof process !== 'undefined' && (process.env?.NODE_ENV === 'test' || 'Bun' in globalThis);
+  if (typeof window === 'undefined' || isTest) {
     return runInlineFallback(tables, bots);
   }
 

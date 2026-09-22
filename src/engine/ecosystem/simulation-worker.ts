@@ -1,5 +1,6 @@
 import { TableGroup, BotEntity, SimulatedTableResult, EcosystemNewsItem } from './ecosystem-types';
 import { simulateAllTablesBatch } from './headless-sim';
+import { initWasmCore } from '../wasm-bridge';
 
 /**
  * ============================================================================
@@ -21,11 +22,19 @@ export interface WorkerOutputMessage {
   executionTimeMs: number;
 }
 
+// Preload WASM ngay khi worker thread được khởi tạo
+void initWasmCore().catch(err => {
+  console.warn('[SimulationWorker] Preload WASM warning:', err);
+});
+
 // Lắng nghe sự kiện từ Main Thread
-self.onmessage = (event: MessageEvent<WorkerInputMessage>) => {
+self.onmessage = async (event: MessageEvent<WorkerInputMessage>) => {
   const { type, tables, bots } = event.data;
 
   if (type === 'RUN_SIMULATION') {
+    // Đảm bảo WASM đã sẵn sàng 100% trước khi chạy mô phỏng
+    await initWasmCore();
+
     const startTime = performance.now();
 
     const botsMap = new Map<string, BotEntity>();
