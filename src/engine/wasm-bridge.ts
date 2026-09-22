@@ -23,11 +23,14 @@ import __wbg_init, {
   wasm_evaluate_candidate_moves_mcts,
   wasm_get_optimal_move_hint,
   wasm_simulate_match_series,
-  wasm_check_instant_win
+  wasm_check_instant_win,
+  wasm_simulate_single_table,
+  wasm_simulate_tables_batch
 } from './wasm/pkg/tien_len_core.js';
 import type { Card, Combination, MatchPlayer, GameRules, InstantWinType } from './types';
 import type { MatchState } from './state-machine/types';
 import type { SmartCardGroup } from './hand-sorter';
+import type { TableGroup, SimulatedTableResult, BotEntity, EcosystemNewsItem } from './ecosystem/ecosystem-types';
 
 let isInitialized = false;
 let initPromise: Promise<void> | null = null;
@@ -506,5 +509,77 @@ export function wasmSimulateMatchSeries(
   );
   return JSON.parse(json);
 }
+
+function convertBotsToMapObject(
+  botsInput: Map<string, BotEntity> | Record<string, BotEntity> | BotEntity[]
+): Record<string, any> {
+  if (botsInput instanceof Map) {
+    const obj: Record<string, any> = {};
+    for (const [k, v] of botsInput.entries()) {
+      obj[k] = {
+        id: v.id,
+        name: v.name,
+        avatar: v.avatar,
+        elo: v.elo,
+        memoryDepth: v.memoryDepth
+      };
+    }
+    return obj;
+  }
+  if (Array.isArray(botsInput)) {
+    const obj: Record<string, any> = {};
+    for (const b of botsInput) {
+      if (b && b.id) {
+        obj[b.id] = {
+          id: b.id,
+          name: b.name,
+          avatar: b.avatar,
+          elo: b.elo,
+          memoryDepth: b.memoryDepth
+        };
+      }
+    }
+    return obj;
+  }
+  return botsInput;
+}
+
+export function wasmSimulateSingleTable(
+  table: TableGroup,
+  botsInput: Map<string, BotEntity> | Record<string, BotEntity> | BotEntity[],
+  seed: number = Math.floor(Math.random() * 1_000_000_000),
+  timestamp: number = Date.now()
+): SimulatedTableResult {
+  ensureWasmReady();
+  const botsObj = convertBotsToMapObject(botsInput);
+  const json = wasm_simulate_single_table(
+    JSON.stringify(table),
+    JSON.stringify(botsObj),
+    seed,
+    timestamp
+  );
+  return JSON.parse(json);
+}
+
+export function wasmSimulateTablesBatch(
+  tables: TableGroup[],
+  botsInput: Map<string, BotEntity> | Record<string, BotEntity> | BotEntity[],
+  baseSeed: number = Math.floor(Math.random() * 1_000_000_000),
+  timestamp: number = Date.now()
+): {
+  tableResults: SimulatedTableResult[];
+  allNews: EcosystemNewsItem[];
+} {
+  ensureWasmReady();
+  const botsObj = convertBotsToMapObject(botsInput);
+  const json = wasm_simulate_tables_batch(
+    JSON.stringify(tables),
+    JSON.stringify(botsObj),
+    baseSeed,
+    timestamp
+  );
+  return JSON.parse(json);
+}
+
 
 

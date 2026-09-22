@@ -459,4 +459,48 @@ pub fn wasm_simulate_match_series(
     serde_json::to_string(&res).map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
+#[wasm_bindgen]
+pub fn wasm_simulate_single_table(
+    table_json: &str,
+    bots_json: &str,
+    seed: f64,
+    timestamp: f64,
+) -> Result<String, JsValue> {
+    let table: crate::simulation::TableGroupInput = serde_json::from_str(table_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid table JSON: {}", e)))?;
+    let bots: std::collections::HashMap<String, crate::simulation::SimulatedBotConfig> = serde_json::from_str(bots_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid bots JSON: {}", e)))?;
+
+    let res = crate::simulation::simulate_single_table(
+        &table,
+        &bots,
+        seed as u64,
+        timestamp as u64,
+    );
+
+    serde_json::to_string(&res).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
+#[wasm_bindgen]
+pub fn wasm_simulate_tables_batch(
+    tables_json: &str,
+    bots_json: &str,
+    base_seed: f64,
+    timestamp: f64,
+) -> Result<String, JsValue> {
+    let tables: Vec<crate::simulation::TableGroupInput> = serde_json::from_str(tables_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid tables JSON: {}", e)))?;
+    let bots: std::collections::HashMap<String, crate::simulation::SimulatedBotConfig> = serde_json::from_str(bots_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid bots JSON: {}", e)))?;
+
+    let res = crate::simulation::simulate_tables_batch(
+        &tables,
+        &bots,
+        base_seed as u64,
+        timestamp as u64,
+    );
+
+    serde_json::to_string(&res).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
 

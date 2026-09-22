@@ -43,6 +43,10 @@ export function wasm_play_move(state_json: string, player_id: string, card_ids_j
 
 export function wasm_simulate_match_series(num_games: number, base_seed: number, rules_json: string | null | undefined, bots_json: string, rotate_seats: boolean): string;
 
+export function wasm_simulate_single_table(table_json: string, bots_json: string, seed: number, timestamp: number): string;
+
+export function wasm_simulate_tables_batch(tables_json: string, bots_json: string, base_seed: number, timestamp: number): string;
+
 export function wasm_sort_smart_groups(cards_json: string, variant_index: number): string;
 
 export function wasm_start_new_game(players_json: string, rules_json: string, game_number: number, last_winner_id?: string | null): string;
@@ -74,6 +78,8 @@ export interface InitOutput {
     readonly wasm_pass_turn: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly wasm_play_move: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
     readonly wasm_simulate_match_series: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
+    readonly wasm_simulate_single_table: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
+    readonly wasm_simulate_tables_batch: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
     readonly wasm_sort_smart_groups: (a: number, b: number, c: number) => [number, number, number, number];
     readonly wasm_start_new_game: (a: number, b: number, c: number, d: number, e: number, f: number, g: number) => [number, number, number, number];
     readonly wasm_validate_move: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];

@@ -577,6 +577,66 @@ export function wasm_simulate_match_series(num_games, base_seed, rules_json, bot
 }
 
 /**
+ * @param {string} table_json
+ * @param {string} bots_json
+ * @param {number} seed
+ * @param {number} timestamp
+ * @returns {string}
+ */
+export function wasm_simulate_single_table(table_json, bots_json, seed, timestamp) {
+    let deferred4_0;
+    let deferred4_1;
+    try {
+        const ptr0 = passStringToWasm0(table_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(bots_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.wasm_simulate_single_table(ptr0, len0, ptr1, len1, seed, timestamp);
+        var ptr3 = ret[0];
+        var len3 = ret[1];
+        if (ret[3]) {
+            ptr3 = 0; len3 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred4_0 = ptr3;
+        deferred4_1 = len3;
+        return getStringFromWasm0(ptr3, len3);
+    } finally {
+        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
+    }
+}
+
+/**
+ * @param {string} tables_json
+ * @param {string} bots_json
+ * @param {number} base_seed
+ * @param {number} timestamp
+ * @returns {string}
+ */
+export function wasm_simulate_tables_batch(tables_json, bots_json, base_seed, timestamp) {
+    let deferred4_0;
+    let deferred4_1;
+    try {
+        const ptr0 = passStringToWasm0(tables_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len0 = WASM_VECTOR_LEN;
+        const ptr1 = passStringToWasm0(bots_json, wasm.__wbindgen_malloc, wasm.__wbindgen_realloc);
+        const len1 = WASM_VECTOR_LEN;
+        const ret = wasm.wasm_simulate_tables_batch(ptr0, len0, ptr1, len1, base_seed, timestamp);
+        var ptr3 = ret[0];
+        var len3 = ret[1];
+        if (ret[3]) {
+            ptr3 = 0; len3 = 0;
+            throw takeFromExternrefTable0(ret[2]);
+        }
+        deferred4_0 = ptr3;
+        deferred4_1 = len3;
+        return getStringFromWasm0(ptr3, len3);
+    } finally {
+        wasm.__wbindgen_free(deferred4_0, deferred4_1, 1);
+    }
+}
+
+/**
  * @param {string} cards_json
  * @param {number} variant_index
  * @returns {string}
