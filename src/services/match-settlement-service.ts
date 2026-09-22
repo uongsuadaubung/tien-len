@@ -335,8 +335,10 @@ export function settleCompletedMatch(
     isInstantWin: !!engine.instantWinner
   });
 
-  // Chốt chặn bất biến kinh tế: Tổng tiền thắng + thua = 0
-  assertEconomicBalance(settlement.payouts);
+  // Chốt chặn bất biến kinh tế: Tổng tiền thắng + thua = 0 (trừ chế độ Campaign được hệ thống thưởng Xu)
+  if (strategy.id !== 'CAMPAIGN') {
+    assertEconomicBalance(settlement.payouts);
+  }
 
   gameStore.setIsThreeSpadesWin(engine.isThreeSpadesWin);
   gameStore.setMatchPayouts(settlement.payouts);

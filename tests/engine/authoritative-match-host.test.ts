@@ -135,6 +135,7 @@ describe('AuthoritativeMatchHost Unit Tests (Kiểm Thử Listen Server Vòng L�
       players: [human, ...bots],
       hostPlayerId: human.id,
       enableDealingAnimation: true,
+      revealDelayMs: 20,
       onGameOver: () => {
         completed = true;
       }
@@ -147,16 +148,16 @@ describe('AuthoritativeMatchHost Unit Tests (Kiểm Thử Listen Server Vòng L�
     host.engine.isGameOver = true;
     host.engine.winners = [host.engine.players[0]];
 
-    // Gọi handleGameOver mà không skipDelay (mặc định)
+    // Gọi handleGameOver mà không skipDelay (mặc định chờ revealDelayMs)
     host.handleGameOver();
 
-    // Ngay lập tức: onGameOver chưa được gọi (chờ 2s)
+    // Ngay lập tức: onGameOver chưa được gọi
     expect(completed).toBe(false);
 
-    // Chờ 2050ms
-    await new Promise(resolve => setTimeout(resolve, 2050));
+    // Chờ 30ms
+    await new Promise(resolve => setTimeout(resolve, 30));
 
-    // Sau 2s: onGameOver đã được gọi
+    // Sau khi hết delay: onGameOver đã được gọi
     expect(completed).toBe(true);
 
     host.dispose();

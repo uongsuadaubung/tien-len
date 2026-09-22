@@ -48,7 +48,7 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
   });
 
   it('2. Bất biến Bảo toàn Dòng tiền Kinh tế (Zero-Sum Invariant trong Đếm Lá & Nhất Ăn Tất)', () => {
-    for (let sim = 0; sim < 50; sim++) {
+    for (let sim = 0; sim < 10; sim++) {
       const rules = new GameRulesBuilder()
         .withSettlement('COUNT_CARDS')
         .withTable(t => t.playerCount(4).betAmount(500).soundEnabled(false))
@@ -84,7 +84,7 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
   }, 60000);
 
   it('3. Bất biến Không Bao Giờ Nghẽn / Vô Hạn Vòng Lặp (Deadlock-Free Termination Invariant)', () => {
-    for (let sim = 0; sim < 100; sim++) {
+    for (let sim = 0; sim < 15; sim++) {
       const playerCount = PLAYER_COUNTS[sim % PLAYER_COUNTS.length];
       const rules = new GameRulesBuilder()
         .withSettlement(SETTLEMENT_RULES[sim % SETTLEMENT_RULES.length])

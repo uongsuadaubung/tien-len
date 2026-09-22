@@ -404,16 +404,19 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
     hostInstance.engine.winners = [p0];
     hostInstance.engine.isGameOver = true;
 
-    // Gọi handleGameOver mà KHÔNG truyền skipDelay (mặc định chờ 2s)
+    // Đặt revealDelayMs ngắn (20ms) để kiểm thử bộ đệm kết toán mà không đóng băng test suite 2s
+    hostInstance.options.revealDelayMs = 20;
+
+    // Gọi handleGameOver mà KHÔNG truyền skipDelay (mặc định chờ revealDelayMs)
     hostInstance.handleGameOver();
 
-    // Ngay lúc vừa gọi: Chưa mở VictoryModal (chờ 2s)
+    // Ngay lúc vừa gọi: Chưa mở VictoryModal
     expect(useViewStore.getState().isVictoryOpen).toBe(false);
 
-    // Chờ 2050ms
-    await new Promise(resolve => setTimeout(resolve, 2050));
+    // Chờ 30ms
+    await new Promise(resolve => setTimeout(resolve, 30));
 
-    // Sau 2s: VictoryModal đã được mở và kết toán đã hoàn tất
+    // Sau delay: VictoryModal đã được mở và kết toán đã hoàn tất
     expect(useViewStore.getState().isVictoryOpen).toBe(true);
     expect(useGameStore.getState().matchPayouts[profile.id]).toBeGreaterThan(0);
   });

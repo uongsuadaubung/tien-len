@@ -11,125 +11,28 @@ import { wasmSimulateMatchSeries } from '../../src/engine/wasm-bridge';
 
 describe('AI Bot Benchmark Simulation & Latency Across 9 Tiers', () => {
   test('Mô phỏng 100 ván đấu công bằng với Luân Chuyển Vị Trí Ghế Ngồi (Rotated Seating Fairness)', () => {
-    const rawBots = [
-      { id: 'b1', name: 'Alex (Tier 1 Sắt - 700)', config: BOT_PERSONAS.BOT_ELO_700 },
-      { id: 'b2', name: 'Rex (Tier 3 Bạc - 1250)', config: BOT_PERSONAS.BOT_ELO_1250 },
-      { id: 'b3', name: 'Nova (Tier 6 Kim Cương - 2300)', config: BOT_PERSONAS.BOT_ELO_2300 },
-      { id: 'b4', name: 'Alpha Mind (Tier 9 Thách Đấu - 3200)', config: BOT_PERSONAS.BOT_ELO_3200 }
+    const bots = [
+      { id: 'b1', name: 'Alex (Tier 1 Sắt - 700)', avatar: '🤠', elo: 700 },
+      { id: 'b2', name: 'Rex (Tier 3 Bạc - 1250)', avatar: '🧔', elo: 1250 },
+      { id: 'b3', name: 'Nova (Tier 6 Kim Cương - 2300)', avatar: '👑', elo: 2300 },
+      { id: 'b4', name: 'Alpha Mind (Tier 9 Thách Đấu - 3200)', avatar: '🧠', elo: 3200 }
     ];
 
-    const winCounts: Record<string, number> = { b1: 0, b2: 0, b3: 0, b4: 0 };
     const NUM_GAMES = 100;
-
-    for (let i = 0; i < NUM_GAMES; i++) {
-      const g = i + 1;
-      // Luân chuyển vị trí ghế ngồi theo chu kỳ để đảm bảo công bằng 100% về lợi thế đi trước
-      const seatOffset = i % 4;
-      const rotatedBots = [
-        rawBots[seatOffset],
-        rawBots[(seatOffset + 1) % 4],
-        rawBots[(seatOffset + 2) % 4],
-        rawBots[(seatOffset + 3) % 4]
-      ];
-
-      const players: MatchPlayer[] = rotatedBots.map(b =>
-        createBotPlayer(b.id, b.config.id || null, {
-          name: b.name,
-          avatar: b.config.avatar || '🤖',
-          score: 0
-        })
-      );
-
-      const game = new GameEngine(players, { mode: 'COUNT_CARDS', betAmount: 100 });
-      const initRes = game.startNewGame(g, undefined, 99999 + g * 3001);
-
-      if (initRes.instantWin && initRes.instantWinner) {
-        winCounts[initRes.instantWinner.id]++;
-        continue;
-      }
-
-      const trackers: Record<string, CardTracker> = {};
-      for (const b of rotatedBots) {
-        const p = game.getPlayer(b.id)!;
-        trackers[b.id] = new CardTracker(p.hand, b.config.memoryDepth);
-      }
-
-      let loopCount = 0;
-      const MAX_LOOPS = 400;
-
-      while (!game.isGameOver && loopCount < MAX_LOOPS) {
-        loopCount++;
-        const currentTurnPlayer = game.getCurrentPlayer();
-        const botObj = rotatedBots.find(b => b.id === currentTurnPlayer.id)!;
-        const tracker = trackers[currentTurnPlayer.id];
-        tracker.updateOwnHand(currentTurnPlayer.hand);
-
-        const remainingCardsMap: Record<string, number> = {};
-        for (const p of game.players) {
-          remainingCardsMap[p.id] = p.hand.length;
-        }
-
-        const isLead = game.isRoundLeadMove();
-        const nextPlayerId = game.getNextActivePlayerId(currentTurnPlayer.id);
-
-        const decision = makeBotDecision({
-          hand: currentTurnPlayer.hand,
-          currentRoundLeadingMove: game.getLeadingMove(),
-          isFirstMoveOfGame: game.isFirstMoveOfGame,
-          isLeadMove: isLead,
-          tracker,
-          config: botObj.config,
-          remainingPlayerCards: remainingCardsMap,
-          nextPlayerId,
-          rules: game.rules,
-          hasPlayedFirstCard: currentTurnPlayer.hasPlayedFirstCard,
-          isNextPlayerOneCard: remainingCardsMap[nextPlayerId] === 1,
-          prohibitEndingWithTwo: game.rules.gameFlow.prohibitEndingWithTwo,
-          gameMode: game.rules.settlementRule,
-          mctsMap: null,
-          compositeRuleStrategy: null,
-          opponentProfiles: null
-        });
-
-        if (decision.type === 'PLAY') {
-          const moveRes = game.playMove(currentTurnPlayer.id, [...decision.cards]);
-          if (moveRes.success) {
-            const lastMove = game.getLeadingMove();
-            if (lastMove) {
-              for (const t of Object.values(trackers)) {
-                t.recordMove(lastMove);
-              }
-            }
-          } else {
-            if (isLead) {
-              game.playMove(currentTurnPlayer.id, [currentTurnPlayer.hand[0]]);
-            } else {
-              game.passTurn(currentTurnPlayer.id);
-            }
-          }
-        } else {
-          if (isLead) {
-            game.playMove(currentTurnPlayer.id, [currentTurnPlayer.hand[0]]);
-          } else {
-            game.passTurn(currentTurnPlayer.id);
-          }
-        }
-      }
-
-      if (game.winners.length > 0) {
-        winCounts[game.winners[0].id]++;
-      }
-    }
+    const start = performance.now();
+    const result = wasmSimulateMatchSeries(NUM_GAMES, 12345, null, bots, true);
+    const duration = performance.now() - start;
 
     console.log('\n=========================================');
-    console.log(`--- KẾT QUẢ BENCHMARK CÔNG BẰNG 9 BẬC (${NUM_GAMES} VÁN ROTATED SEATS) ---`);
-    for (const b of rawBots) {
-      const count = winCounts[b.id];
-      console.log(`${b.config.avatar || '🤖'} ${b.name}: ${count} ván thắng (${((count / NUM_GAMES) * 100).toFixed(1)}%)`);
+    console.log(`--- KẾT QUẢ BENCHMARK CÔNG BẰNG 9 BẬC (${NUM_GAMES} VÁN ROTATED SEATS QUA RUST WASM) ---`);
+    for (const b of bots) {
+      const count = result.winCounts[b.id] || 0;
+      console.log(`${b.avatar} ${b.name}: ${count} ván thắng (${((count / NUM_GAMES) * 100).toFixed(1)}%)`);
     }
+    console.log(`⚡ Tổng thời gian chạy 100 ván trong Rust WASM: ${duration.toFixed(2)} ms`);
     console.log('=========================================\n');
 
-    expect(winCounts['b4'] + winCounts['b3']).toBeGreaterThanOrEqual(winCounts['b1']);
+    expect((result.winCounts['b4'] || 0) + (result.winCounts['b3'] || 0)).toBeGreaterThanOrEqual(result.winCounts['b1'] || 0);
   }, 60000);
 
   test('Benchmark Độ Trễ Ra Quyết Định Toàn Bộ 9 Bậc Rank (Zero UI Freezing Benchmark)', () => {

@@ -26,6 +26,7 @@ export interface MatchHostOptions {
   hostPlayerId: string;
   instantDelay?: boolean;
   enableDealingAnimation?: boolean;
+  revealDelayMs?: number;
   onGameOver?: (settlementResult: MatchSettlementExecutionResult) => void;
   onRematchVote?: (playerId: string, isReady: boolean) => void;
   onPeerLeave?: (peerId: string) => void;
@@ -425,10 +426,11 @@ export class AuthoritativeMatchHost {
     if (options?.skipDelay || this.instantDelay) {
       doSettle();
     } else {
+      const delay = this.options.revealDelayMs ?? UI_TIMINGS.MATCH_END_REVEAL_DELAY_MS;
       this.gameOverTimer = setTimeout(() => {
         this.gameOverTimer = null;
         doSettle();
-      }, UI_TIMINGS.MATCH_END_REVEAL_DELAY_MS);
+      }, delay);
     }
   }
 
