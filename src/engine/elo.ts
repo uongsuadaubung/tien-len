@@ -8,6 +8,7 @@ import {
   getTierFromElo 
 } from './constants/ranks';
 import type { I18nKeyPath } from '../locales/types';
+import { wasmCalculateEloDelta, wasmComputeTableEloSettlement } from './wasm-bridge';
 
 export { RANK_TIERS, type RankTierInfo, getRankTierByElo, getTierFromElo };
 
@@ -49,6 +50,20 @@ export interface EloDeltaResult {
  * 4. Điểm thưởng chuỗi thắng (Streak Bonus)
  */
 export function calculateEloDelta(
+  rankPosition: number,
+  playerElo: number,
+  opponentsAvgElo: number,
+  totalPlayers: number = 4,
+  metrics?: EloPerformanceMetrics
+): EloDeltaResult {
+  try {
+    return wasmCalculateEloDelta(rankPosition, playerElo, opponentsAvgElo, totalPlayers, metrics);
+  } catch {
+    return calculateEloDeltaTsFallback(rankPosition, playerElo, opponentsAvgElo, totalPlayers, metrics);
+  }
+}
+
+function calculateEloDeltaTsFallback(
   rankPosition: number,
   playerElo: number,
   opponentsAvgElo: number,
@@ -205,6 +220,14 @@ export interface TableEloSettlementResult {
  * Tuyệt đối không fallback ngầm; toàn bộ dữ liệu là non-nullable tại thời điểm kết toán.
  */
 export function computeTableEloSettlement(params: TableEloSettlementParams): TableEloSettlementResult {
+  try {
+    return wasmComputeTableEloSettlement(params);
+  } catch {
+    return computeTableEloSettlementTsFallback(params);
+  }
+}
+
+function computeTableEloSettlementTsFallback(params: TableEloSettlementParams): TableEloSettlementResult {
   const {
     players,
     winners,

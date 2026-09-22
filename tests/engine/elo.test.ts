@@ -67,4 +67,29 @@ describe('Elo & Ranked Matchmaking System', () => {
       expect(b.elo).toBeGreaterThanOrEqual(1800);
     });
   });
+
+  test('Direct Rust WASM wasmCalculateEloDelta and wasmComputeTableEloSettlement', async () => {
+    const { wasmCalculateEloDelta, wasmComputeTableEloSettlement } = await import('../../src/engine/wasm-bridge');
+    const res = wasmCalculateEloDelta(1, 1500, 1500, 4);
+    expect(res.delta).toBeGreaterThan(30);
+    expect(res.newElo).toBe(1500 + res.delta);
+
+    const dummyPlayer = (id: string) => ({
+      id, name: id, avatar: '', hand: [], cardCount: 0,
+      playedCards: [], score: 0, isPassedCurrentRound: false, hasPlayedFirstCard: true, isBot: true as const, botPersonaId: 'BOT_ELO_1250'
+    });
+    const settlement = wasmComputeTableEloSettlement({
+      players: [dummyPlayer('p1'), dummyPlayer('p2'), dummyPlayer('p3'), dummyPlayer('p4')],
+      winners: [dummyPlayer('p1')],
+      playerElos: { p1: 1200, p2: 1200, p3: 1200, p4: 1200 },
+      chopsByPlayer: {},
+      gotChoppedByPlayer: {},
+      streaksByPlayer: {},
+      isThreeSpadesWin: false,
+      isInstantWin: false
+    });
+    expect(settlement.allEloDeltas['p1']).toBeGreaterThan(0);
+    expect(settlement.allEloDeltas['p4']).toBeLessThan(0);
+  });
 });
+

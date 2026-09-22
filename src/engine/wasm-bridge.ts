@@ -18,6 +18,10 @@ import __wbg_init, {
   wasm_calculate_winner_takes_all_settlement,
   wasm_calculate_traditional_settlement,
   wasm_get_sorted_quick_select_candidates,
+  wasm_calculate_elo_delta,
+  wasm_compute_table_elo_settlement,
+  wasm_evaluate_candidate_moves_mcts,
+  wasm_get_optimal_move_hint,
   wasm_check_instant_win
 } from './wasm/pkg/tien_len_core.js';
 import type { Card, Combination, MatchPlayer, GameRules, InstantWinType } from './types';
@@ -354,3 +358,104 @@ export function wasmGetSortedQuickSelectCandidates(
   );
   return JSON.parse(json);
 }
+
+export function wasmCalculateEloDelta(
+  rankPosition: number,
+  playerElo: number,
+  opponentsAvgElo: number,
+  totalPlayers: number = 4,
+  metrics?: any
+): any {
+  ensureWasmReady();
+  const json = wasm_calculate_elo_delta(
+    rankPosition,
+    playerElo,
+    opponentsAvgElo,
+    totalPlayers,
+    metrics ? JSON.stringify(metrics) : null
+  );
+  return JSON.parse(json);
+}
+
+export function wasmComputeTableEloSettlement(params: {
+  players: readonly MatchPlayer[];
+  winners: readonly MatchPlayer[];
+  playerElos: Readonly<Record<string, number>>;
+  chopsByPlayer: Readonly<Record<string, number>>;
+  gotChoppedByPlayer: Readonly<Record<string, number>>;
+  streaksByPlayer: Readonly<Record<string, number>>;
+  isThreeSpadesWin: boolean;
+  isInstantWin: boolean;
+}): {
+  allEloDeltas: Record<string, number>;
+  allEloBreakdowns: Record<string, any>;
+} {
+  ensureWasmReady();
+  const json = wasm_compute_table_elo_settlement(
+    JSON.stringify(params.players),
+    JSON.stringify(params.winners),
+    JSON.stringify(params.playerElos),
+    JSON.stringify(params.chopsByPlayer),
+    JSON.stringify(params.gotChoppedByPlayer),
+    JSON.stringify(params.streaksByPlayer),
+    params.isThreeSpadesWin,
+    params.isInstantWin
+  );
+  return JSON.parse(json);
+}
+
+export function wasmEvaluateCandidateMovesMcts(
+  botId: string,
+  botHand: readonly Card[],
+  candidateMoves: readonly { cards: Card[]; combination: Combination; isChop: boolean }[],
+  playedCardIds: readonly string[],
+  remainingCards: Record<string, number>,
+  simulationsCount: number = 30,
+  seed: number = Date.now()
+): Array<{
+  moveCards: Card[];
+  combination: Combination;
+  winRate: number;
+  simulationsCount: number;
+}> {
+  ensureWasmReady();
+  const json = wasm_evaluate_candidate_moves_mcts(
+    botId,
+    JSON.stringify(botHand),
+    JSON.stringify(candidateMoves),
+    JSON.stringify(playedCardIds),
+    JSON.stringify(remainingCards),
+    simulationsCount,
+    seed
+  );
+  return JSON.parse(json);
+}
+
+export function wasmGetOptimalMoveHint(
+  hand: readonly Card[],
+  leadingCombo: Combination | null,
+  isLeadMove: boolean,
+  isFirstMoveOfGame: boolean = false,
+  firstMoveRequiredCardId: string | null = null,
+  prohibitEndingWithTwo: boolean = true
+): {
+  action: 'PLAY' | 'PASS';
+  cards: Card[];
+  hintType: string;
+  title: string;
+  message: string;
+  explanation: string;
+  details: string | null;
+} {
+  ensureWasmReady();
+  const json = wasm_get_optimal_move_hint(
+    JSON.stringify(hand),
+    leadingCombo ? JSON.stringify(leadingCombo) : null,
+    isLeadMove,
+    isFirstMoveOfGame,
+    firstMoveRequiredCardId,
+    prohibitEndingWithTwo
+  );
+  return JSON.parse(json);
+}
+

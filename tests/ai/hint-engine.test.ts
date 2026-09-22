@@ -3,6 +3,7 @@ import { getOptimalMoveHint, evaluateSelectionFeedback } from '../../src/ai/hint
 import { createCard, formatCard, formatCards, formatCardVietnamese } from '../../src/engine/card';
 import { CardTracker } from '../../src/ai/card-tracker';
 import { PlayedMove, Combination, CombinationType, Card } from '../../src/engine/types';
+import { wasmGetOptimalMoveHint } from '../../src/engine/wasm-bridge';
 
 describe('Quân Sư Thần Bài AI (Hint Engine)', () => {
   const createPlayedMove = (playerId: string, combination: Combination): PlayedMove => ({
@@ -414,4 +415,52 @@ describe('Quân Sư Thần Bài AI (Hint Engine)', () => {
       expect(formatCardVietnamese(createCard(15, 'DIAMONDS'))).toBe('2 Rô');
     });
   });
+
+  describe('Rust/WASM Hint Engine Integration (wasmGetOptimalMoveHint)', () => {
+    it('trả về FORCED_PASS khi không có quân nào đè được', () => {
+      const hand = [createCard(3, 'SPADES'), createCard(4, 'CLUBS')];
+      const leadingCombo = createTestCombination(
+        'PAIR',
+        [createCard(14, 'HEARTS'), createCard(14, 'DIAMONDS')],
+        createCard(14, 'DIAMONDS'),
+        2
+      );
+
+      const hint = wasmGetOptimalMoveHint(hand, leadingCombo, false, false, null, true);
+      expect(hint.action).toBe('PASS');
+      expect(hint.hintType).toBe('FORCED_PASS');
+      expect(hint.title).toContain('Nhường Lượt');
+    });
+
+    it('trả về WIN_OPPORTUNITY khi có thể xả toàn bộ bài trên tay', () => {
+      const hand = [createCard(10, 'HEARTS')];
+      const leadingCombo = createTestCombination(
+        'SINGLE',
+        [createCard(9, 'SPADES')],
+        createCard(9, 'SPADES'),
+        1
+      );
+
+      const hint = wasmGetOptimalMoveHint(hand, leadingCombo, false, false, null, true);
+      expect(hint.action).toBe('PLAY');
+      expect(hint.hintType).toBe('WIN_OPPORTUNITY');
+      expect(hint.cards.length).toBe(1);
+    });
+
+    it('trả về LEAD_OPENING khi mở màn vòng đấu', () => {
+      const hand = [
+        createCard(3, 'SPADES'),
+        createCard(4, 'SPADES'),
+        createCard(5, 'SPADES'),
+        createCard(10, 'HEARTS'),
+        createCard(12, 'DIAMONDS')
+      ];
+
+      const hint = wasmGetOptimalMoveHint(hand, null, true, false, null, true);
+      expect(hint.action).toBe('PLAY');
+      expect(hint.hintType).toBe('LEAD_OPENING');
+      expect(hint.cards.length).toBeGreaterThan(0);
+    });
+  });
 });
+

@@ -4,6 +4,7 @@ import { identifyCombination } from '../engine/combinations';
 import { CardTracker } from './card-tracker';
 import { MctsEvaluation } from './types';
 import { BayesianCardInferenceEngine } from './solvers/bayesian-card-tracker';
+import { wasmEvaluateCandidateMovesMcts } from '../engine/wasm-bridge';
 
 /**
  * Information Set Monte Carlo Rollout Engine (ISMCTS)
@@ -24,6 +25,21 @@ export class MctsSolver {
   ): MctsEvaluation[] {
     if (candidateMoves.length === 0 || simulationsCount <= 0) {
       return [];
+    }
+
+    try {
+      const playedCardIds = tracker.getPlayedCardIds();
+      return wasmEvaluateCandidateMovesMcts(
+        botId,
+        botHand,
+        candidateMoves,
+        playedCardIds,
+        remainingPlayerCards,
+        simulationsCount,
+        Date.now()
+      );
+    } catch {
+      // Fallback to TS rollout
     }
 
     // 1. Thu thập tất cả các lá bài chưa xuất hiện trong tầm nhìn của Bot

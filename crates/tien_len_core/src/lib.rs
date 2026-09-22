@@ -6,6 +6,7 @@ pub mod state;
 pub mod engine;
 pub mod hand_sorter;
 pub mod quick_response;
+pub mod elo;
 pub mod ai;
 pub mod wasm_api;
 

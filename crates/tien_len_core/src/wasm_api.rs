@@ -308,3 +308,125 @@ pub fn wasm_get_sorted_quick_select_candidates(
     );
     serde_json::to_string(&candidates).map_err(|e| JsValue::from_str(&e.to_string()))
 }
+
+#[wasm_bindgen]
+pub fn wasm_calculate_elo_delta(
+    rank_position: usize,
+    player_elo: i32,
+    opponents_avg_elo: i32,
+    total_players: usize,
+    metrics_json: Option<String>,
+) -> Result<String, JsValue> {
+    let metrics: Option<crate::elo::EloPerformanceMetrics> = match metrics_json {
+        Some(s) if !s.is_empty() && s != "null" => {
+            Some(serde_json::from_str(&s).map_err(|e| JsValue::from_str(&format!("Invalid metrics JSON: {}", e)))?)
+        }
+        _ => None,
+    };
+    let res = crate::elo::calculate_elo_delta(
+        rank_position,
+        player_elo,
+        opponents_avg_elo,
+        total_players,
+        metrics.as_ref(),
+    );
+    serde_json::to_string(&res).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
+#[wasm_bindgen]
+pub fn wasm_compute_table_elo_settlement(
+    players_json: &str,
+    winners_json: &str,
+    player_elos_json: &str,
+    chops_by_player_json: &str,
+    got_chopped_by_player_json: &str,
+    streaks_by_player_json: &str,
+    is_three_spades_win: bool,
+    is_instant_win: bool,
+) -> Result<String, JsValue> {
+    let players: Vec<MatchPlayer> = serde_json::from_str(players_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid players JSON: {}", e)))?;
+    let winners: Vec<MatchPlayer> = serde_json::from_str(winners_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid winners JSON: {}", e)))?;
+    let player_elos: std::collections::HashMap<String, i32> = serde_json::from_str(player_elos_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid player_elos JSON: {}", e)))?;
+    let chops: std::collections::HashMap<String, u32> = serde_json::from_str(chops_by_player_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid chops JSON: {}", e)))?;
+    let got_chopped: std::collections::HashMap<String, u32> = serde_json::from_str(got_chopped_by_player_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid got_chopped JSON: {}", e)))?;
+    let streaks: std::collections::HashMap<String, u32> = serde_json::from_str(streaks_by_player_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid streaks JSON: {}", e)))?;
+
+    let settlement = crate::elo::compute_table_elo_settlement(
+        &players,
+        &winners,
+        &player_elos,
+        &chops,
+        &got_chopped,
+        &streaks,
+        is_three_spades_win,
+        is_instant_win,
+    );
+    serde_json::to_string(&settlement).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
+#[wasm_bindgen]
+pub fn wasm_evaluate_candidate_moves_mcts(
+    bot_id: &str,
+    bot_hand_json: &str,
+    candidate_moves_json: &str,
+    played_card_ids_json: &str,
+    remaining_cards_json: &str,
+    simulations_count: usize,
+    seed: f64,
+) -> Result<String, JsValue> {
+    let bot_hand: Vec<Card> = serde_json::from_str(bot_hand_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid bot_hand JSON: {}", e)))?;
+    let candidates: Vec<crate::ai::MctsCandidateInput> = serde_json::from_str(candidate_moves_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid candidates JSON: {}", e)))?;
+    let played_card_ids: std::collections::HashSet<String> = serde_json::from_str(played_card_ids_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid played_card_ids JSON: {}", e)))?;
+    let remaining_cards: std::collections::HashMap<String, usize> = serde_json::from_str(remaining_cards_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid remaining_cards JSON: {}", e)))?;
+
+    let evals = crate::ai::evaluate_candidate_moves_mcts(
+        bot_id,
+        &bot_hand,
+        &candidates,
+        &played_card_ids,
+        &remaining_cards,
+        simulations_count,
+        seed as u64,
+    );
+    serde_json::to_string(&evals).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
+#[wasm_bindgen]
+pub fn wasm_get_optimal_move_hint(
+    hand_json: &str,
+    leading_combo_json: Option<String>,
+    is_lead_move: bool,
+    is_first_move_of_game: bool,
+    first_move_required_card_id: Option<String>,
+    prohibit_ending_with_two: bool,
+) -> Result<String, JsValue> {
+    let hand: Vec<Card> = serde_json::from_str(hand_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid hand JSON: {}", e)))?;
+    let leading_combo: Option<Combination> = match leading_combo_json {
+        Some(s) if !s.is_empty() && s != "null" => {
+            Some(serde_json::from_str(&s).map_err(|e| JsValue::from_str(&format!("Invalid leading_combo JSON: {}", e)))?)
+        }
+        _ => None,
+    };
+
+    let hint = crate::ai::compute_optimal_move_hint(
+        &hand,
+        leading_combo.as_ref(),
+        is_lead_move,
+        is_first_move_of_game,
+        first_move_required_card_id.as_deref(),
+        prohibit_ending_with_two,
+    );
+    serde_json::to_string(&hint).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
