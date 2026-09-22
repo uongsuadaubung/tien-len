@@ -280,3 +280,31 @@ pub fn wasm_calculate_traditional_settlement(
     .map_err(|e| JsValue::from_str(&e))?;
     serde_json::to_string(&payouts).map_err(|e| JsValue::from_str(&e.to_string()))
 }
+
+#[wasm_bindgen]
+pub fn wasm_get_sorted_quick_select_candidates(
+    hand_json: &str,
+    target_json: Option<String>,
+    is_lead_move: bool,
+    is_first_move_of_game: bool,
+    first_move_required_card_id: Option<String>,
+    prohibit_ending_with_two: bool,
+) -> Result<String, JsValue> {
+    let hand: Vec<Card> = serde_json::from_str(hand_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid hand JSON: {}", e)))?;
+    let target: Option<Combination> = match target_json {
+        Some(s) if !s.is_empty() && s != "null" => {
+            Some(serde_json::from_str(&s).map_err(|e| JsValue::from_str(&format!("Invalid target JSON: {}", e)))?)
+        }
+        _ => None,
+    };
+    let candidates = crate::quick_response::get_sorted_quick_select_candidates(
+        &hand,
+        target.as_ref(),
+        is_lead_move,
+        is_first_move_of_game,
+        first_move_required_card_id.as_deref(),
+        prohibit_ending_with_two,
+    );
+    serde_json::to_string(&candidates).map_err(|e| JsValue::from_str(&e.to_string()))
+}

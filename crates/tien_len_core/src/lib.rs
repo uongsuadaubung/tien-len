@@ -5,6 +5,7 @@ pub mod player;
 pub mod state;
 pub mod engine;
 pub mod hand_sorter;
+pub mod quick_response;
 pub mod ai;
 pub mod wasm_api;
 

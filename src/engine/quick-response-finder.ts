@@ -2,6 +2,7 @@ import { Card, Combination, PlayedMove } from './types';
 import { isValidMove } from './validator';
 import { compareCards } from './card';
 import { generateCandidateMoves } from '../ai/decision-maker';
+import { wasmGetSortedQuickSelectCandidates } from './wasm-bridge';
 
 export interface QuickSelectCandidate {
   cards: Card[];
@@ -24,6 +25,30 @@ export interface QuickSelectContext {
  * và sắp xếp theo thứ tự "Vừa khít nhất" (Tối ưu từ nhỏ đến lớn)
  */
 export function getSortedQuickSelectCandidates(context: QuickSelectContext): QuickSelectCandidate[] {
+  const hand = context.hand;
+  const leadingMove = context.leadingMove;
+  const isLeadMove = context.isLeadMove;
+  const isFirstMoveOfGame = context.isFirstMoveOfGame ?? false;
+  const prohibitEndingWithTwo = context.prohibitEndingWithTwo ?? true;
+  const firstMoveRequiredCard = context.firstMoveRequiredCard ?? null;
+
+  if (!hand || hand.length === 0) return [];
+
+  try {
+    return wasmGetSortedQuickSelectCandidates(
+      hand,
+      leadingMove?.combination ?? null,
+      isLeadMove,
+      isFirstMoveOfGame,
+      firstMoveRequiredCard?.id ?? null,
+      prohibitEndingWithTwo
+    );
+  } catch {
+    return getSortedQuickSelectCandidatesTs(context);
+  }
+}
+
+function getSortedQuickSelectCandidatesTs(context: QuickSelectContext): QuickSelectCandidate[] {
   const hand = context.hand;
   const leadingMove = context.leadingMove;
   const isLeadMove = context.isLeadMove;

@@ -39,6 +39,44 @@ function getMultiplier(val: number = 1): number {
   return Math.max(1, val);
 }
 
+function getChopDescription(target: Combination, amount: number): string {
+  if (target.type === 'SINGLE' && isTwo(target.highestCard)) {
+    const isRed = isRedCard(target.highestCard);
+    return isRed
+      ? `Chặt Heo Đỏ (+${amount.toLocaleString()} xu)`
+      : `Chặt Heo Đen (+${amount.toLocaleString()} xu)`;
+  }
+  if (target.type === 'PAIR' && isTwo(target.highestCard)) {
+    return `Chặt Đôi Heo (+${amount.toLocaleString()} xu)`;
+  }
+  if (target.type === 'THREE_PAIRS_SEQUENTIAL') {
+    return `Chặt Đè 3 Đôi Thông (+${amount.toLocaleString()} xu)`;
+  }
+  if (target.type === 'FOUR_OF_A_KIND') {
+    return `Chặt Đè Tứ Quý (+${amount.toLocaleString()} xu)`;
+  }
+  if (target.type === 'FOUR_PAIRS_SEQUENTIAL') {
+    return `Chặt Đè 4 Đôi Thông (+${amount.toLocaleString()} xu)`;
+  }
+  return `Chặt Hàng (+${amount.toLocaleString()} xu)`;
+}
+
+function calculateChopPenaltyTsFallback(target: Combination, betAmount: number, penaltyMultiplier: number): number {
+  const mult = getMultiplier(penaltyMultiplier);
+  if (target.type === 'SINGLE' && isTwo(target.highestCard)) {
+    return betAmount * (isRedCard(target.highestCard) ? 2 : 1) * mult;
+  }
+  if (target.type === 'PAIR' && isTwo(target.highestCard)) {
+    const redCount = target.cards.filter(isRedCard).length;
+    const baseMult = redCount === 2 ? 4 : redCount === 1 ? 3 : 2;
+    return betAmount * baseMult * mult;
+  }
+  if (target.type === 'THREE_PAIRS_SEQUENTIAL') return betAmount * 3 * mult;
+  if (target.type === 'FOUR_OF_A_KIND') return betAmount * 4 * mult;
+  if (target.type === 'FOUR_PAIRS_SEQUENTIAL') return betAmount * 6 * mult;
+  return betAmount * mult;
+}
+
 /**
  * Tính toán tiền phạt chặt tức thì (Instant Chop Penalty)
  */
@@ -51,68 +89,40 @@ export function calculateChopPenalty(
   if (betAmount < 0) {
     throw new Error(`[calculateChopPenalty] Invariant violated: betAmount cannot be negative (got ${betAmount})`);
   }
-  let calculatedAmount: number | null = null;
+  let amount: number;
   try {
-    calculatedAmount = wasmCalculateChopPenalty(target, candidate, betAmount, penaltyMultiplier);
+    amount = wasmCalculateChopPenalty(target, candidate, betAmount, penaltyMultiplier);
   } catch {
-    // Fallback to TS
+    amount = calculateChopPenaltyTsFallback(target, betAmount, penaltyMultiplier);
   }
+  return {
+    amount,
+    description: getChopDescription(target, amount)
+  };
+}
+
+function calculateRottenPenaltyTsFallback(hand: readonly Card[], betAmount: number, penaltyMultiplier: number): number {
+  let penalty = 0;
   const mult = getMultiplier(penaltyMultiplier);
-  const bet = betAmount;
 
-  // 1. Chặt 1 Heo
-  if (target.type === 'SINGLE' && isTwo(target.highestCard)) {
-    const isRed = isRedCard(target.highestCard);
-    const baseMult = isRed ? 2 : 1;
-    const finalAmount = calculatedAmount ?? (bet * baseMult * mult);
-    return {
-      amount: finalAmount,
-      description: isRed ? `Chặt Heo Đỏ (+${finalAmount.toLocaleString()} xu)` : `Chặt Heo Đen (+${finalAmount.toLocaleString()} xu)`
-    };
+  for (const card of hand) {
+    if (isTwo(card)) {
+      penalty += (isRedCard(card) ? betAmount * 2 : betAmount * 1) * mult;
+    }
   }
 
-  // 2. Chặt Đôi Heo
-  if (target.type === 'PAIR' && isTwo(target.highestCard)) {
-    const redCount = target.cards.filter(isRedCard).length;
-    let baseMult = 2; // 2 đen
-    if (redCount === 2) baseMult = 4; // 2 đỏ
-    else if (redCount === 1) baseMult = 3; // 1 đỏ 1 đen
-    const finalAmount = calculatedAmount ?? (bet * baseMult * mult);
-    return {
-      amount: finalAmount,
-      description: `Chặt Đôi Heo (+${finalAmount.toLocaleString()} xu)`
-    };
+  const rankCounts: Record<number, number> = {};
+  for (const card of hand) {
+    rankCounts[card.rank] = (rankCounts[card.rank] || 0) + 1;
   }
 
-  // 3. Chặt 3 Đôi Thông
-  if (target.type === 'THREE_PAIRS_SEQUENTIAL') {
-    const finalAmount = calculatedAmount ?? (bet * 3 * mult);
-    return {
-      amount: finalAmount,
-      description: `Chặt Đè 3 Đôi Thông (+${finalAmount.toLocaleString()} xu)`
-    };
+  for (const rank in rankCounts) {
+    if (rankCounts[rank] === 4 && Number(rank) < 15) {
+      penalty += betAmount * 4 * mult;
+    }
   }
 
-  // 4. Chặt Tứ Quý
-  if (target.type === 'FOUR_OF_A_KIND') {
-    const finalAmount = calculatedAmount ?? (bet * 4 * mult);
-    return {
-      amount: finalAmount,
-      description: `Chặt Đè Tứ Quý (+${finalAmount.toLocaleString()} xu)`
-    };
-  }
-
-  // 5. Chặt 4 Đôi Thông
-  if (target.type === 'FOUR_PAIRS_SEQUENTIAL') {
-    const finalAmount = calculatedAmount ?? (bet * 6 * mult);
-    return {
-      amount: finalAmount,
-      description: `Chặt Đè 4 Đôi Thông (+${finalAmount.toLocaleString()} xu)`
-    };
-  }
-
-  const fallback = calculatedAmount ?? (bet * mult);
-  return { amount: fallback, description: `Chặt Hàng (+${fallback.toLocaleString()} xu)` };
+  return penalty;
 }
 
 /**
@@ -125,32 +135,8 @@ export function calculateRottenPenalty(hand: readonly Card[], betAmount: number,
   try {
     return wasmCalculateRottenPenalty(hand, betAmount, penaltyMultiplier);
   } catch {
-    // Fallback to TS
+    return calculateRottenPenaltyTsFallback(hand, betAmount, penaltyMultiplier);
   }
-  let penalty = 0;
-  const mult = getMultiplier(penaltyMultiplier);
-  const bet = betAmount;
-
-  // 1. Thối Heo
-  for (const card of hand) {
-    if (isTwo(card)) {
-      penalty += (isRedCard(card) ? bet * 2 : bet * 1) * mult;
-    }
-  }
-
-  // 2. Thối Tứ Quý
-  const rankCounts: Record<number, number> = {};
-  for (const card of hand) {
-    rankCounts[card.rank] = (rankCounts[card.rank] || 0) + 1;
-  }
-
-  for (const rank in rankCounts) {
-    if (rankCounts[rank] === 4 && Number(rank) < 15) {
-      penalty += bet * 4 * mult;
-    }
-  }
-
-  return penalty;
 }
 
 /**
@@ -165,10 +151,8 @@ export function calculateCongPenalty(betAmount: number, congMultiplier: number =
   try {
     return wasmCalculateCongPenalty(betAmount, congMultiplier);
   } catch {
-    // Fallback to TS
+    return 26 * betAmount * getMultiplier(congMultiplier);
   }
-  const mult = getMultiplier(congMultiplier);
-  return 26 * betAmount * mult;
 }
 
 /**
@@ -199,48 +183,12 @@ export function calculateCountCardsSettlement(
   try {
     return wasmCalculateCountCardsSettlement(players, winnerId, betAmount, penaltyMultiplier, isThreeSpadesWin, congMultiplier);
   } catch {
-    // Fallback to TS
+    return calculateCountCardsSettlementTsFallback(players, winnerId, betAmount, penaltyMultiplier, isThreeSpadesWin, congMultiplier);
   }
-
-  const payouts: Record<string, number> = {};
-  players.forEach(p => { payouts[p.id] = 0; });
-
-  const mult = getMultiplier(penaltyMultiplier);
-  const threeSpadesMultiplier = isThreeSpadesWin ? 2 : 1;
-  let totalWinnerEarn = 0;
-
-  for (const player of players) {
-    if (player.id !== winnerId) {
-      let lossAmount = 0;
-      // Kiểm tra Cóng (13 lá và chưa đánh ra được lá nào)
-      if (player.hand.length === 13 && !player.hasPlayedFirstCard) {
-        lossAmount += calculateCongPenalty(betAmount, congMultiplier);
-      } else {
-        // Tiền đếm lá rác bình thường: Số lá x Mức cược (KHÔNG nhân multiplier!)
-        lossAmount += player.hand.length * betAmount;
-      }
-
-      // Thối heo / thối hàng (áp dụng penaltyMultiplier)
-      const rotten = calculateRottenPenalty(player.hand, betAmount, mult);
-      lossAmount += rotten;
-
-      // Áp dụng nhân đôi nếu người về Nhất về bằng lá 3 Bích
-      lossAmount *= threeSpadesMultiplier;
-
-      payouts[player.id] = -lossAmount;
-      totalWinnerEarn += lossAmount;
-    }
-  }
-
-  payouts[winnerId] = totalWinnerEarn;
-  return payouts;
 }
 
 /**
  * Tính toán kết quả cho chế độ Nhất Ăn Tất (Winner-Takes-All)
- * - Mỗi người thua mất 1 mức cược cơ bản + Thối heo/hàng (nhân penaltyMultiplier) + Cóng (nhân congMultiplier).
- * - Nếu Về 3 Bích (isThreeSpadesWin), toàn bộ tiền phạt từ người thua được nhân 2.
- * - Người về Nhất ăn trọn.
  */
 export function calculateWinnerTakesAllSettlement(
   players: readonly MatchPlayer[],
@@ -263,38 +211,8 @@ export function calculateWinnerTakesAllSettlement(
   try {
     return wasmCalculateWinnerTakesAllSettlement(players, winnerId, betAmount, penaltyMultiplier, isThreeSpadesWin, congMultiplier);
   } catch {
-    // Fallback to TS
+    return calculateWinnerTakesAllSettlementTsFallback(players, winnerId, betAmount, penaltyMultiplier, isThreeSpadesWin, congMultiplier);
   }
-
-  const payouts: Record<string, number> = {};
-  players.forEach(p => { payouts[p.id] = 0; });
-
-  const mult = getMultiplier(penaltyMultiplier);
-  const threeSpadesMultiplier = isThreeSpadesWin ? 2 : 1;
-  let totalWinnerEarn = 0;
-
-  for (const player of players) {
-    if (player.id !== winnerId) {
-      // Mỗi người thua mất 1 mức cược cơ bản (KHÔNG nhân multiplier)
-      let lossAmount = betAmount;
-
-      if (player.hand.length === 13 && !player.hasPlayedFirstCard) {
-        lossAmount += calculateCongPenalty(betAmount, congMultiplier);
-      }
-
-      const rotten = calculateRottenPenalty(player.hand, betAmount, mult);
-      lossAmount += rotten;
-
-      // Áp dụng nhân đôi nếu người về Nhất về bằng lá 3 Bích
-      lossAmount *= threeSpadesMultiplier;
-
-      payouts[player.id] = -lossAmount;
-      totalWinnerEarn += lossAmount;
-    }
-  }
-
-  payouts[winnerId] = totalWinnerEarn;
-  return payouts;
 }
 
 /**
@@ -324,9 +242,95 @@ export function calculateTraditionalSettlement(
   try {
     return wasmCalculateTraditionalSettlement(players, winners, betAmount, penaltyMultiplier, isThreeSpadesWin, congMultiplier);
   } catch {
-    // Fallback to TS
+    return calculateTraditionalSettlementTsFallback(players, winners, betAmount, penaltyMultiplier, isThreeSpadesWin, congMultiplier);
+  }
+}
+
+// ==========================================
+// Fallback TypeScript Implementations
+// ==========================================
+
+function calculateCountCardsSettlementTsFallback(
+  players: readonly MatchPlayer[],
+  winnerId: string,
+  betAmount: number,
+  penaltyMultiplier: number,
+  isThreeSpadesWin: boolean,
+  congMultiplier: number
+): Record<string, number> {
+  const payouts: Record<string, number> = {};
+  players.forEach(p => { payouts[p.id] = 0; });
+
+  const mult = getMultiplier(penaltyMultiplier);
+  const threeSpadesMultiplier = isThreeSpadesWin ? 2 : 1;
+  let totalWinnerEarn = 0;
+
+  for (const player of players) {
+    if (player.id !== winnerId) {
+      let lossAmount = 0;
+      if (player.hand.length === 13 && !player.hasPlayedFirstCard) {
+        lossAmount += calculateCongPenalty(betAmount, congMultiplier);
+      } else {
+        lossAmount += player.hand.length * betAmount;
+      }
+
+      const rotten = calculateRottenPenalty(player.hand, betAmount, mult);
+      lossAmount += rotten;
+      lossAmount *= threeSpadesMultiplier;
+
+      payouts[player.id] = -lossAmount;
+      totalWinnerEarn += lossAmount;
+    }
   }
 
+  payouts[winnerId] = totalWinnerEarn;
+  return payouts;
+}
+
+function calculateWinnerTakesAllSettlementTsFallback(
+  players: readonly MatchPlayer[],
+  winnerId: string,
+  betAmount: number,
+  penaltyMultiplier: number,
+  isThreeSpadesWin: boolean,
+  congMultiplier: number
+): Record<string, number> {
+  const payouts: Record<string, number> = {};
+  players.forEach(p => { payouts[p.id] = 0; });
+
+  const mult = getMultiplier(penaltyMultiplier);
+  const threeSpadesMultiplier = isThreeSpadesWin ? 2 : 1;
+  let totalWinnerEarn = 0;
+
+  for (const player of players) {
+    if (player.id !== winnerId) {
+      let lossAmount = betAmount;
+
+      if (player.hand.length === 13 && !player.hasPlayedFirstCard) {
+        lossAmount += calculateCongPenalty(betAmount, congMultiplier);
+      }
+
+      const rotten = calculateRottenPenalty(player.hand, betAmount, mult);
+      lossAmount += rotten;
+      lossAmount *= threeSpadesMultiplier;
+
+      payouts[player.id] = -lossAmount;
+      totalWinnerEarn += lossAmount;
+    }
+  }
+
+  payouts[winnerId] = totalWinnerEarn;
+  return payouts;
+}
+
+function calculateTraditionalSettlementTsFallback(
+  players: readonly MatchPlayer[],
+  winners: readonly MatchPlayer[],
+  betAmount: number,
+  penaltyMultiplier: number,
+  isThreeSpadesWin: boolean,
+  congMultiplier: number
+): Record<string, number> {
   const payouts: Record<string, number> = {};
   players.forEach(p => { payouts[p.id] = 0; });
   const mult = getMultiplier(penaltyMultiplier);
@@ -345,7 +349,6 @@ export function calculateTraditionalSettlement(
     payouts[winners[0].id] = betAmount * 1 * threeSpadesMultiplier;
     payouts[winners[1].id] = -betAmount * 1 * threeSpadesMultiplier;
   } else if (winners.length === 1) {
-    // Trường hợp ván dừng sớm khi mới có 1 người về Nhất: người về Nhất ăn các người còn lại
     const remainingPlayers = players.filter(p => p.id !== winners[0].id);
     payouts[winners[0].id] = betAmount * remainingPlayers.length * threeSpadesMultiplier;
     remainingPlayers.forEach(p => {
@@ -353,7 +356,6 @@ export function calculateTraditionalSettlement(
     });
   }
 
-  // Thối heo / thối hàng cho những người không về Nhất
   const winnerFirst = winners[0];
   for (const player of players) {
     if (player.id !== winnerFirst.id && player.hand.length > 0) {

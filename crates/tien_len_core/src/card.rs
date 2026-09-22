@@ -151,6 +151,44 @@ pub fn sort_cards(cards: &mut [Card]) {
     cards.sort();
 }
 
+pub fn parse_card(s: &str) -> Option<Card> {
+    let s = s.trim();
+    if s.len() < 2 {
+        return None;
+    }
+    let (rank_str, suit_char) = s.split_at(s.len() - 1);
+    let suit = match suit_char.to_uppercase().as_str() {
+        "S" => Suit::Spades,
+        "C" => Suit::Clubs,
+        "D" => Suit::Diamonds,
+        "H" => Suit::Hearts,
+        _ => return None,
+    };
+    let rank = match rank_str.to_uppercase().as_str() {
+        "3" => 3,
+        "4" => 4,
+        "5" => 5,
+        "6" => 6,
+        "7" => 7,
+        "8" => 8,
+        "9" => 9,
+        "10" => 10,
+        "J" => 11,
+        "Q" => 12,
+        "K" => 13,
+        "A" => 14,
+        "2" => 15,
+        _ => return None,
+    };
+    Some(Card::new(rank, suit))
+}
+
+pub fn parse_cards(s: &str) -> Vec<Card> {
+    s.split_whitespace()
+        .filter_map(parse_card)
+        .collect()
+}
+
 pub fn deal_cards(deck: &[Card], player_count: usize) -> Vec<Vec<Card>> {
     let count = player_count.clamp(2, 4);
     let mut hands = vec![Vec::new(); count];
@@ -163,3 +201,4 @@ pub fn deal_cards(deck: &[Card], player_count: usize) -> Vec<Vec<Card>> {
     }
     hands
 }
+

@@ -17,6 +17,7 @@ import __wbg_init, {
   wasm_calculate_count_cards_settlement,
   wasm_calculate_winner_takes_all_settlement,
   wasm_calculate_traditional_settlement,
+  wasm_get_sorted_quick_select_candidates,
   wasm_check_instant_win
 } from './wasm/pkg/tien_len_core.js';
 import type { Card, Combination, MatchPlayer, GameRules, InstantWinType } from './types';
@@ -324,6 +325,32 @@ export function wasmCalculateTraditionalSettlement(
     penaltyMultiplier,
     isThreeSpadesWin,
     congMultiplier
+  );
+  return JSON.parse(json);
+}
+
+export interface WasmQuickSelectCandidate {
+  cards: Card[];
+  combination: Combination;
+  isChop: boolean;
+}
+
+export function wasmGetSortedQuickSelectCandidates(
+  hand: readonly Card[],
+  target: Combination | null,
+  isLeadMove: boolean,
+  isFirstMoveOfGame: boolean = false,
+  firstMoveRequiredCardId: string | null = null,
+  prohibitEndingWithTwo: boolean = true
+): WasmQuickSelectCandidate[] {
+  ensureWasmReady();
+  const json = wasm_get_sorted_quick_select_candidates(
+    JSON.stringify(hand),
+    target ? JSON.stringify(target) : null,
+    isLeadMove,
+    isFirstMoveOfGame,
+    firstMoveRequiredCardId,
+    prohibitEndingWithTwo
   );
   return JSON.parse(json);
 }

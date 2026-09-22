@@ -261,7 +261,8 @@ describe('WasmBridge Rust Core Integration', () => {
     };
     const p2: MatchPlayer = {
       id: 'bot', name: 'Bot', avatar: '', hand: [], cardCount: 0,
-      playedCards: [], score: 0, isPassedCurrentRound: false, hasPlayedFirstCard: false, isBot: true
+      playedCards: [], score: 0, isPassedCurrentRound: false, hasPlayedFirstCard: false, isBot: true,
+      botPersonaId: 'BOT_ELO_1250'
     };
     const rules = createDefaultGameRules();
     rules.gameFlow.firstGameRequireThreeOfSpades = false;

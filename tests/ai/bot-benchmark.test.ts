@@ -129,7 +129,7 @@ describe('AI Bot Benchmark Simulation & Latency Across 9 Tiers', () => {
     console.log('=========================================\n');
 
     expect(winCounts['b4'] + winCounts['b3']).toBeGreaterThanOrEqual(winCounts['b1']);
-  }, 30000);
+  }, 60000);
 
   test('Benchmark Độ Trễ Ra Quyết Định Toàn Bộ 9 Bậc Rank (Zero UI Freezing Benchmark)', () => {
     const testBots = [

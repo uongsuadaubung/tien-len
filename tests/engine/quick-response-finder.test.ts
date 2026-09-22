@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { getSortedQuickSelectCandidates, getNextQuickSelectCards } from '../../src/engine/quick-response-finder';
 import { parseCard, parseCards } from '../../src/engine/card';
 import { PlayedMove } from '../../src/engine/types';
+import { wasmGetSortedQuickSelectCandidates } from '../../src/engine/wasm-bridge';
 
 describe('Quick Response Finder & Selection Cycle (Chọn Nhanh Bài Vừa Khít & Xoay Vòng)', () => {
   const createMove = (cardCodes: string, type: any): PlayedMove => {
@@ -177,4 +178,23 @@ describe('Quick Response Finder & Selection Cycle (Chọn Nhanh Bài Vừa Khít
     );
     expect(nextSelect).toBeNull();
   });
+
+  test('7. Direct Rust WASM wasmGetSortedQuickSelectCandidates produces identical results', () => {
+    const hand = parseCards('9S 10D AS 2H');
+    const leadingMove = createMove('8S', 'SINGLE');
+    const wasmRes = wasmGetSortedQuickSelectCandidates(
+      hand,
+      leadingMove.combination,
+      false,
+      false,
+      null,
+      true
+    );
+    expect(wasmRes.length).toBe(4);
+    expect(wasmRes[0].cards.map(c => c.code)).toEqual(['9S']);
+    expect(wasmRes[1].cards.map(c => c.code)).toEqual(['10D']);
+    expect(wasmRes[2].cards.map(c => c.code)).toEqual(['AS']);
+    expect(wasmRes[3].cards.map(c => c.code)).toEqual(['2H']);
+  });
 });
+
