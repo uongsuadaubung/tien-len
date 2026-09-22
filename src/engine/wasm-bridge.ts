@@ -121,6 +121,21 @@ function ensureWasmReady(): void {
   throw new Error('[WasmBridge] Rust WebAssembly engine is not initialized. Call await initWasmCore() before executing engine commands.');
 }
 
+/**
+ * Chuyển đổi đối tượng sang chuỗi JSON an toàn tuyệt đối trước khi truyền qua FFI vào Rust WebAssembly.
+ * Tự động quét và loại bỏ / thay thế bất kỳ Lone Surrogate Escape sequence nào (\uD800..\uDFFF đơn lẻ không ghép cặp)
+ * thành ký tự thay thế an toàn Unicode \uFFFD.
+ * Ngăn chặn triệt để lỗi "lone leading surrogate in hex escape" từ serde_json của Rust.
+ */
+export function safeWasmJsonStringify(data: unknown): string {
+  const json = JSON.stringify(data);
+  if (!json) return 'null';
+  return json.replace(
+    /\\u[dD][89a-bA-B][0-9a-fA-F]{2}(?!\\u[dD][c-fC-F][0-9a-fA-F]{2})|(?<!\\u[dD][89a-bA-B][0-9a-fA-F]{2})\\u[dD][c-fC-F][0-9a-fA-F]{2}/g,
+    '\\uFFFD'
+  );
+}
+
 // ============================================================================
 // TYPED WASM BRIDGE APIS
 // ============================================================================
@@ -133,7 +148,7 @@ export function wasmCreateDeck(): Card[] {
 
 export function wasmIdentifyCombination(cards: readonly Card[]): Combination | null {
   ensureWasmReady();
-  const json = wasm_identify_combination(JSON.stringify(cards));
+  const json = wasm_identify_combination(safeWasmJsonStringify(cards));
   return JSON.parse(json);
 }
 
@@ -141,7 +156,7 @@ function serializeCombination(c: Combination): string {
   const cards = c.cards ?? [];
   const highestCard = c.highestCard ?? (cards.length > 0 ? cards[cards.length - 1] : undefined);
   const length = c.length ?? cards.length;
-  return JSON.stringify({
+  return safeWasmJsonStringify({
     type: c.type,
     length,
     cards,
@@ -177,8 +192,8 @@ export function wasmStartNewGame(
 ): MatchState {
   ensureWasmReady();
   const json = wasm_start_new_game(
-    JSON.stringify(players),
-    JSON.stringify(rules),
+    safeWasmJsonStringify(players),
+    safeWasmJsonStringify(rules),
     gameNumber,
     lastWinnerId ?? null
   );
@@ -196,9 +211,9 @@ export function wasmValidateMove(
 ): WasmValidationResult {
   ensureWasmReady();
   const json = wasm_validate_move(
-    JSON.stringify(state),
+    safeWasmJsonStringify(state),
     playerId,
-    JSON.stringify(cardIds)
+    safeWasmJsonStringify(cardIds)
   );
   return JSON.parse(json);
 }
@@ -211,9 +226,9 @@ export function wasmPlayMove(
 ): MatchState {
   ensureWasmReady();
   const json = wasm_play_move(
-    JSON.stringify(state),
+    safeWasmJsonStringify(state),
     playerId,
-    JSON.stringify(cardIds),
+    safeWasmJsonStringify(cardIds),
     timestamp
   );
   return JSON.parse(json);
@@ -221,19 +236,19 @@ export function wasmPlayMove(
 
 export function wasmPassTurn(state: MatchState, playerId: string): MatchState {
   ensureWasmReady();
-  const json = wasm_pass_turn(JSON.stringify(state), playerId);
+  const json = wasm_pass_turn(safeWasmJsonStringify(state), playerId);
   return JSON.parse(json);
 }
 
 export function wasmSortSmartGroups(cards: readonly Card[], variantIndex: number = 0): SmartCardGroup[] {
   ensureWasmReady();
-  const json = wasm_sort_smart_groups(JSON.stringify(cards), variantIndex);
+  const json = wasm_sort_smart_groups(safeWasmJsonStringify(cards), variantIndex);
   return JSON.parse(json);
 }
 
 export function wasmGetAvailableSmartVariants(cards: readonly Card[]): SmartCardGroup[][] {
   ensureWasmReady();
-  const json = wasm_get_available_smart_variants(JSON.stringify(cards));
+  const json = wasm_get_available_smart_variants(safeWasmJsonStringify(cards));
   return JSON.parse(json);
 }
 
@@ -244,8 +259,8 @@ export function wasmDecideBotMove(
 ): Card[] | null {
   ensureWasmReady();
   const json = wasm_decide_bot_move(
-    JSON.stringify(hand),
-    JSON.stringify(state),
+    safeWasmJsonStringify(hand),
+    safeWasmJsonStringify(state),
     botId
   );
   return JSON.parse(json);
@@ -274,7 +289,7 @@ export function wasmCalculateRottenPenalty(
 ): number {
   ensureWasmReady();
   const res = wasm_calculate_rotten_penalty(
-    JSON.stringify(hand),
+    safeWasmJsonStringify(hand),
     BigInt(betAmount),
     multiplier
   );
@@ -286,13 +301,13 @@ export function wasmCheckInstantWin(
   isFirstGame: boolean = false
 ): InstantWinType | null {
   ensureWasmReady();
-  const json = wasm_check_instant_win(JSON.stringify(hand), isFirstGame);
+  const json = wasm_check_instant_win(safeWasmJsonStringify(hand), isFirstGame);
   return JSON.parse(json);
 }
 
 export function wasmDealCards(deck: readonly Card[], playerCount: number = 4): Card[][] {
   ensureWasmReady();
-  const json = wasm_deal_cards(JSON.stringify(deck), playerCount);
+  const json = wasm_deal_cards(safeWasmJsonStringify(deck), playerCount);
   return JSON.parse(json);
 }
 
@@ -312,7 +327,7 @@ export function wasmCalculateCountCardsSettlement(
 ): Record<string, number> {
   ensureWasmReady();
   const json = wasm_calculate_count_cards_settlement(
-    JSON.stringify(players),
+    safeWasmJsonStringify(players),
     winnerId,
     BigInt(betAmount),
     penaltyMultiplier,
@@ -332,7 +347,7 @@ export function wasmCalculateWinnerTakesAllSettlement(
 ): Record<string, number> {
   ensureWasmReady();
   const json = wasm_calculate_winner_takes_all_settlement(
-    JSON.stringify(players),
+    safeWasmJsonStringify(players),
     winnerId,
     BigInt(betAmount),
     penaltyMultiplier,
@@ -352,8 +367,8 @@ export function wasmCalculateTraditionalSettlement(
 ): Record<string, number> {
   ensureWasmReady();
   const json = wasm_calculate_traditional_settlement(
-    JSON.stringify(players),
-    JSON.stringify(winners),
+    safeWasmJsonStringify(players),
+    safeWasmJsonStringify(winners),
     BigInt(betAmount),
     penaltyMultiplier,
     isThreeSpadesWin,
@@ -378,8 +393,8 @@ export function wasmGetSortedQuickSelectCandidates(
 ): WasmQuickSelectCandidate[] {
   ensureWasmReady();
   const json = wasm_get_sorted_quick_select_candidates(
-    JSON.stringify(hand),
-    target ? JSON.stringify(target) : null,
+    safeWasmJsonStringify(hand),
+    target ? safeWasmJsonStringify(target) : null,
     isLeadMove,
     isFirstMoveOfGame,
     firstMoveRequiredCardId,
@@ -401,7 +416,7 @@ export function wasmCalculateEloDelta(
     playerElo,
     opponentsAvgElo,
     totalPlayers,
-    metrics ? JSON.stringify(metrics) : null
+    metrics ? safeWasmJsonStringify(metrics) : null
   );
   return JSON.parse(json);
 }
@@ -421,12 +436,12 @@ export function wasmComputeTableEloSettlement(params: {
 } {
   ensureWasmReady();
   const json = wasm_compute_table_elo_settlement(
-    JSON.stringify(params.players),
-    JSON.stringify(params.winners),
-    JSON.stringify(params.playerElos),
-    JSON.stringify(params.chopsByPlayer),
-    JSON.stringify(params.gotChoppedByPlayer),
-    JSON.stringify(params.streaksByPlayer),
+    safeWasmJsonStringify(params.players),
+    safeWasmJsonStringify(params.winners),
+    safeWasmJsonStringify(params.playerElos),
+    safeWasmJsonStringify(params.chopsByPlayer),
+    safeWasmJsonStringify(params.gotChoppedByPlayer),
+    safeWasmJsonStringify(params.streaksByPlayer),
     params.isThreeSpadesWin,
     params.isInstantWin
   );
@@ -450,10 +465,10 @@ export function wasmEvaluateCandidateMovesMcts(
   ensureWasmReady();
   const json = wasm_evaluate_candidate_moves_mcts(
     botId,
-    JSON.stringify(botHand),
-    JSON.stringify(candidateMoves),
-    JSON.stringify(playedCardIds),
-    JSON.stringify(remainingCards),
+    safeWasmJsonStringify(botHand),
+    safeWasmJsonStringify(candidateMoves),
+    safeWasmJsonStringify(playedCardIds),
+    safeWasmJsonStringify(remainingCards),
     simulationsCount,
     seed
   );
@@ -478,8 +493,8 @@ export function wasmGetOptimalMoveHint(
 } {
   ensureWasmReady();
   const json = wasm_get_optimal_move_hint(
-    JSON.stringify(hand),
-    leadingCombo ? JSON.stringify(leadingCombo) : null,
+    safeWasmJsonStringify(hand),
+    leadingCombo ? safeWasmJsonStringify(leadingCombo) : null,
     isLeadMove,
     isFirstMoveOfGame,
     firstMoveRequiredCardId,
@@ -516,8 +531,8 @@ export function wasmSimulateMatchSeries(
   const json = wasm_simulate_match_series(
     numGames,
     baseSeed,
-    rules ? JSON.stringify(rules) : null,
-    JSON.stringify(bots),
+    rules ? safeWasmJsonStringify(rules) : null,
+    safeWasmJsonStringify(bots),
     rotateSeats
   );
   return JSON.parse(json);
@@ -566,8 +581,8 @@ export function wasmSimulateSingleTable(
   ensureWasmReady();
   const botsObj = convertBotsToMapObject(botsInput);
   const json = wasm_simulate_single_table(
-    JSON.stringify(table),
-    JSON.stringify(botsObj),
+    safeWasmJsonStringify(table),
+    safeWasmJsonStringify(botsObj),
     seed,
     timestamp
   );
@@ -586,8 +601,8 @@ export function wasmSimulateTablesBatch(
   ensureWasmReady();
   const botsObj = convertBotsToMapObject(botsInput);
   const json = wasm_simulate_tables_batch(
-    JSON.stringify(tables),
-    JSON.stringify(botsObj),
+    safeWasmJsonStringify(tables),
+    safeWasmJsonStringify(botsObj),
     baseSeed,
     timestamp
   );

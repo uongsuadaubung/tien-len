@@ -480,39 +480,43 @@ export class AuthoritativeMatchHost {
     }
     const doSettle = () => {
       if (this.isDisposed) return;
-      const settlementResult = settleCompletedMatch(this.engine, this.hostPlayerId);
+      try {
+        const settlementResult = settleCompletedMatch(this.engine, this.hostPlayerId);
 
-      const allPlayerHands: Record<string, Card[]> = {};
-      const playerScores: Record<string, number> = {};
-      for (const p of this.engine.players) {
-        allPlayerHands[p.id] = [...p.hand];
-        playerScores[p.id] = p.score;
-      }
-
-      const endPacket: GameEndPacket = {
-        winners: this.engine.winners.map(w => w.id),
-        payouts: settlementResult?.payouts ?? {},
-        eloDeltas: settlementResult?.eloDeltas ?? {},
-        playerScores,
-        allPlayerHands,
-        isThreeSpadesWin: this.engine.isThreeSpadesWin ?? false,
-        instantWinType: this.instantWinType ?? null,
-        loanDeduction: settlementResult?.loanDeduction ?? 0
-      };
-
-      const hostEndMsg: HostToClientPacket = {
-        type: 'GAME_END',
-        packet: endPacket
-      };
-
-      for (const transport of this.transports.values()) {
-        if (transport.isConnected) {
-          transport.send(hostEndMsg);
+        const allPlayerHands: Record<string, Card[]> = {};
+        const playerScores: Record<string, number> = {};
+        for (const p of this.engine.players) {
+          allPlayerHands[p.id] = [...p.hand];
+          playerScores[p.id] = p.score;
         }
-      }
 
-      if (this.options.onGameOver) {
-        this.options.onGameOver(settlementResult);
+        const endPacket: GameEndPacket = {
+          winners: this.engine.winners.map(w => w.id),
+          payouts: settlementResult?.payouts ?? {},
+          eloDeltas: settlementResult?.eloDeltas ?? {},
+          playerScores,
+          allPlayerHands,
+          isThreeSpadesWin: this.engine.isThreeSpadesWin ?? false,
+          instantWinType: this.instantWinType ?? null,
+          loanDeduction: settlementResult?.loanDeduction ?? 0
+        };
+
+        const hostEndMsg: HostToClientPacket = {
+          type: 'GAME_END',
+          packet: endPacket
+        };
+
+        for (const transport of this.transports.values()) {
+          if (transport.isConnected) {
+            transport.send(hostEndMsg);
+          }
+        }
+
+        if (this.options.onGameOver) {
+          this.options.onGameOver(settlementResult);
+        }
+      } catch (err) {
+        console.error('[MatchHost:handleGameOver] Settlement failed with error:', err);
       }
     };
 
