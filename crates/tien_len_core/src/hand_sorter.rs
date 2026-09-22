@@ -219,7 +219,8 @@ pub fn sort_smart_groups(cards: &[Card], strategy: PartitionStrategy) -> Vec<Sma
     let mut ranks: Vec<u8> = rank_map.keys().copied().collect();
     ranks.sort_unstable();
 
-    for r in ranks {
+    // 1. Tứ quý (Quads)
+    for &r in &ranks {
         let group = &rank_map[&r];
         if group.len() == 4 {
             extract_cards(&mut remaining_cards, group);
@@ -230,7 +231,13 @@ pub fn sort_smart_groups(cards: &[Card], strategy: PartitionStrategy) -> Vec<Sma
                 name: "Tứ Quý".into(),
                 cards: group.clone(),
             });
-        } else if group.len() == 3 {
+        }
+    }
+
+    // 2. Sám cô (Triples)
+    for &r in &ranks {
+        let group = &rank_map[&r];
+        if group.len() == 3 {
             extract_cards(&mut remaining_cards, group);
             group_id_counter += 1;
             groups.push(SmartCardGroup {
@@ -239,7 +246,13 @@ pub fn sort_smart_groups(cards: &[Card], strategy: PartitionStrategy) -> Vec<Sma
                 name: "Sám Cô".into(),
                 cards: group.clone(),
             });
-        } else if group.len() == 2 {
+        }
+    }
+
+    // 3. Đôi (Pairs)
+    for &r in &ranks {
+        let group = &rank_map[&r];
+        if group.len() == 2 {
             extract_cards(&mut remaining_cards, group);
             group_id_counter += 1;
             let name = if r == 15 {
@@ -257,18 +270,14 @@ pub fn sort_smart_groups(cards: &[Card], strategy: PartitionStrategy) -> Vec<Sma
     }
 
     // Remaining cards are singles (rác)
-    for c in remaining_cards {
+    if !remaining_cards.is_empty() {
         group_id_counter += 1;
-        let name = if c.is_two() {
-            "Heo".into()
-        } else {
-            "Rác".into()
-        };
+        sort_cards(&mut remaining_cards);
         groups.push(SmartCardGroup {
-            id: format!("group-{}", group_id_counter),
+            id: format!("group-{}-trash", group_id_counter),
             group_type: "SINGLE".into(),
-            name,
-            cards: vec![c],
+            name: "Rác".into(),
+            cards: remaining_cards,
         });
     }
 

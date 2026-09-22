@@ -11,6 +11,7 @@ pub enum CombinationType {
     Straight,
     ThreePairsSequential,
     FourPairsSequential,
+    FivePairsSequential,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -107,6 +108,14 @@ pub fn identify_combination(cards: &[Card]) -> Option<Combination> {
     if n == 8 && is_valid_sequential_pairs(&sorted, 4) {
         return Some(Combination::new(
             CombinationType::FourPairsSequential,
+            sorted,
+        ));
+    }
+
+    // 10 lá: Có thể là 5 đôi thông
+    if n == 10 && is_valid_sequential_pairs(&sorted, 5) {
+        return Some(Combination::new(
+            CombinationType::FivePairsSequential,
             sorted,
         ));
     }

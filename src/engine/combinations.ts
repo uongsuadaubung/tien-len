@@ -1,5 +1,6 @@
 import { Card, Combination, Rank } from './types';
 import { compareCards, sortCards } from './card';
+import { wasmIdentifyCombination, wasmCanBeat } from './wasm-bridge';
 
 /**
  * Lớp trừu tượng định nghĩa Bộ Nhận Diện Tổ Hợp (Chain of Responsibility Pattern)
@@ -214,6 +215,12 @@ const DEFAULT_RECOGNITION_CHAIN = buildCombinationRecognitionChain();
  */
 export function identifyCombination(cards: Card[]): Combination | null {
   if (!cards || cards.length === 0) return null;
+  try {
+    const wasmResult = wasmIdentifyCombination(cards);
+    if (wasmResult) return wasmResult;
+  } catch {
+    // Fallback to TS recognition chain if WASM is unavailable
+  }
   const sorted = sortCards(cards);
   return DEFAULT_RECOGNITION_CHAIN.recognize(sorted);
 }
@@ -222,6 +229,11 @@ export function identifyCombination(cards: Card[]): Combination | null {
  * So sánh 2 lá bài bất kỳ theo luật Tiến Lên Miền Nam
  */
 export function isBeating(candidate: Combination, target: Combination): boolean {
+  try {
+    return wasmCanBeat(candidate, target);
+  } catch {
+    // Fallback to TS rules
+  }
   // 1. Cùng kiểu tổ hợp thông thường
   if (candidate.type === target.type) {
     if (candidate.type === 'STRAIGHT') {

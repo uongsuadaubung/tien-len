@@ -65,6 +65,7 @@ pub enum InstantWinType {
     FourTwos,
     FivePairsSequential,
     SixPairs,
+    #[serde(rename = "SAME_COLOR_13")]
     SameColor13,
     FirstRoundFourThrees,
 }

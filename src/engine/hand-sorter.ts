@@ -2,6 +2,7 @@ import { Card, Combination, CombinationType, Rank } from './types';
 import { isTwo, sortCards } from './card';
 import { identifyCombination } from './combinations';
 import { HandPartition } from '../ai/types';
+import { wasmSortSmartGroups } from './wasm-bridge';
 
 export interface SmartCardGroup {
   id: string;
@@ -393,6 +394,13 @@ export function getAvailableSmartVariants(hand: Card[]): SmartCardGroup[][] {
  * Lấy danh sách các nhóm bài thông minh theo chỉ số phương án (variantIndex)
  */
 export function getSmartHandGroups(hand: Card[], variantIndex: number = 0): SmartCardGroup[] {
+  if (!hand || hand.length === 0) return [];
+  try {
+    const wasmGroups = wasmSortSmartGroups(hand, variantIndex);
+    if (wasmGroups && wasmGroups.length > 0) return wasmGroups;
+  } catch {
+    // Fallback to TS partitioning
+  }
   const variants = getAvailableSmartVariants(hand);
   if (variants.length === 0) return [];
   const safeIdx = Math.max(0, Math.min(variantIndex, variants.length - 1));

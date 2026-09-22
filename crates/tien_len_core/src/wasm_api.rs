@@ -1,10 +1,12 @@
 use wasm_bindgen::prelude::*;
 use crate::ai::{decide_bot_move, CardTracker};
-use crate::card::{create_deck, Card};
+use crate::card::{create_deck, deal_cards, Card};
 use crate::combination::{can_beat, can_chop, identify_combination, Combination};
 use crate::engine::{
-    calculate_chop_penalty, calculate_rotten_penalty, pass_turn, play_move, start_new_game,
-    validate_move,
+    calculate_chop_penalty, calculate_cong_penalty, calculate_count_cards_settlement,
+    calculate_rotten_penalty, calculate_traditional_settlement,
+    calculate_winner_takes_all_settlement, check_instant_win, pass_turn, play_move,
+    start_new_game, validate_move,
 };
 use crate::hand_sorter::cycle_hand_groupings;
 use crate::player::MatchPlayer;
@@ -185,4 +187,96 @@ pub fn wasm_calculate_rotten_penalty(
     let hand: Vec<Card> = serde_json::from_str(hand_json)
         .map_err(|e| JsValue::from_str(&format!("Invalid hand JSON: {}", e)))?;
     Ok(calculate_rotten_penalty(&hand, bet_amount, multiplier))
+}
+
+#[wasm_bindgen]
+pub fn wasm_check_instant_win(hand_json: &str, is_first_game: bool) -> Result<String, JsValue> {
+    let hand: Vec<Card> = serde_json::from_str(hand_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid hand JSON: {}", e)))?;
+    let res = check_instant_win(&hand, is_first_game);
+    serde_json::to_string(&res).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
+#[wasm_bindgen]
+pub fn wasm_deal_cards(deck_json: &str, player_count: usize) -> Result<String, JsValue> {
+    let deck: Vec<Card> = serde_json::from_str(deck_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid deck JSON: {}", e)))?;
+    let hands = deal_cards(&deck, player_count);
+    serde_json::to_string(&hands).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
+#[wasm_bindgen]
+pub fn wasm_calculate_cong_penalty(bet_amount: i64, cong_multiplier: f64) -> i64 {
+    calculate_cong_penalty(bet_amount, cong_multiplier)
+}
+
+#[wasm_bindgen]
+pub fn wasm_calculate_count_cards_settlement(
+    players_json: &str,
+    winner_id: &str,
+    bet_amount: i64,
+    penalty_multiplier: f64,
+    is_three_spades_win: bool,
+    cong_multiplier: f64,
+) -> Result<String, JsValue> {
+    let players: Vec<MatchPlayer> = serde_json::from_str(players_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid players JSON: {}", e)))?;
+    let payouts = calculate_count_cards_settlement(
+        &players,
+        winner_id,
+        bet_amount,
+        penalty_multiplier,
+        is_three_spades_win,
+        cong_multiplier,
+    )
+    .map_err(|e| JsValue::from_str(&e))?;
+    serde_json::to_string(&payouts).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
+#[wasm_bindgen]
+pub fn wasm_calculate_winner_takes_all_settlement(
+    players_json: &str,
+    winner_id: &str,
+    bet_amount: i64,
+    penalty_multiplier: f64,
+    is_three_spades_win: bool,
+    cong_multiplier: f64,
+) -> Result<String, JsValue> {
+    let players: Vec<MatchPlayer> = serde_json::from_str(players_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid players JSON: {}", e)))?;
+    let payouts = calculate_winner_takes_all_settlement(
+        &players,
+        winner_id,
+        bet_amount,
+        penalty_multiplier,
+        is_three_spades_win,
+        cong_multiplier,
+    )
+    .map_err(|e| JsValue::from_str(&e))?;
+    serde_json::to_string(&payouts).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
+#[wasm_bindgen]
+pub fn wasm_calculate_traditional_settlement(
+    players_json: &str,
+    winners_json: &str,
+    bet_amount: i64,
+    penalty_multiplier: f64,
+    is_three_spades_win: bool,
+    cong_multiplier: f64,
+) -> Result<String, JsValue> {
+    let players: Vec<MatchPlayer> = serde_json::from_str(players_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid players JSON: {}", e)))?;
+    let winners: Vec<MatchPlayer> = serde_json::from_str(winners_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid winners JSON: {}", e)))?;
+    let payouts = calculate_traditional_settlement(
+        &players,
+        &winners,
+        bet_amount,
+        penalty_multiplier,
+        is_three_spades_win,
+        cong_multiplier,
+    )
+    .map_err(|e| JsValue::from_str(&e))?;
+    serde_json::to_string(&payouts).map_err(|e| JsValue::from_str(&e.to_string()))
 }

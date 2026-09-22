@@ -1,5 +1,13 @@
 import { Card, Combination, MatchPlayer } from './types';
 import { isRedCard, isTwo } from './card';
+import {
+  wasmCalculateChopPenalty,
+  wasmCalculateRottenPenalty,
+  wasmCalculateCongPenalty,
+  wasmCalculateCountCardsSettlement,
+  wasmCalculateWinnerTakesAllSettlement,
+  wasmCalculateTraditionalSettlement
+} from './wasm-bridge';
 
 export interface EconomySettings {
   readonly betAmount: number;
@@ -36,12 +44,18 @@ function getMultiplier(val: number = 1): number {
  */
 export function calculateChopPenalty(
   target: Combination,
-  _candidate: Combination,
+  candidate: Combination,
   betAmount: number,
   penaltyMultiplier: number = 1
 ): { amount: number; description: string } {
   if (betAmount < 0) {
     throw new Error(`[calculateChopPenalty] Invariant violated: betAmount cannot be negative (got ${betAmount})`);
+  }
+  let calculatedAmount: number | null = null;
+  try {
+    calculatedAmount = wasmCalculateChopPenalty(target, candidate, betAmount, penaltyMultiplier);
+  } catch {
+    // Fallback to TS
   }
   const mult = getMultiplier(penaltyMultiplier);
   const bet = betAmount;
@@ -50,7 +64,7 @@ export function calculateChopPenalty(
   if (target.type === 'SINGLE' && isTwo(target.highestCard)) {
     const isRed = isRedCard(target.highestCard);
     const baseMult = isRed ? 2 : 1;
-    const finalAmount = bet * baseMult * mult;
+    const finalAmount = calculatedAmount ?? (bet * baseMult * mult);
     return {
       amount: finalAmount,
       description: isRed ? `Chặt Heo Đỏ (+${finalAmount.toLocaleString()} xu)` : `Chặt Heo Đen (+${finalAmount.toLocaleString()} xu)`
@@ -63,7 +77,7 @@ export function calculateChopPenalty(
     let baseMult = 2; // 2 đen
     if (redCount === 2) baseMult = 4; // 2 đỏ
     else if (redCount === 1) baseMult = 3; // 1 đỏ 1 đen
-    const finalAmount = bet * baseMult * mult;
+    const finalAmount = calculatedAmount ?? (bet * baseMult * mult);
     return {
       amount: finalAmount,
       description: `Chặt Đôi Heo (+${finalAmount.toLocaleString()} xu)`
@@ -72,7 +86,7 @@ export function calculateChopPenalty(
 
   // 3. Chặt 3 Đôi Thông
   if (target.type === 'THREE_PAIRS_SEQUENTIAL') {
-    const finalAmount = bet * 3 * mult;
+    const finalAmount = calculatedAmount ?? (bet * 3 * mult);
     return {
       amount: finalAmount,
       description: `Chặt Đè 3 Đôi Thông (+${finalAmount.toLocaleString()} xu)`
@@ -81,7 +95,7 @@ export function calculateChopPenalty(
 
   // 4. Chặt Tứ Quý
   if (target.type === 'FOUR_OF_A_KIND') {
-    const finalAmount = bet * 4 * mult;
+    const finalAmount = calculatedAmount ?? (bet * 4 * mult);
     return {
       amount: finalAmount,
       description: `Chặt Đè Tứ Quý (+${finalAmount.toLocaleString()} xu)`
@@ -90,14 +104,14 @@ export function calculateChopPenalty(
 
   // 5. Chặt 4 Đôi Thông
   if (target.type === 'FOUR_PAIRS_SEQUENTIAL') {
-    const finalAmount = bet * 6 * mult;
+    const finalAmount = calculatedAmount ?? (bet * 6 * mult);
     return {
       amount: finalAmount,
       description: `Chặt Đè 4 Đôi Thông (+${finalAmount.toLocaleString()} xu)`
     };
   }
 
-  const fallback = bet * mult;
+  const fallback = calculatedAmount ?? (bet * mult);
   return { amount: fallback, description: `Chặt Hàng (+${fallback.toLocaleString()} xu)` };
 }
 
@@ -107,6 +121,11 @@ export function calculateChopPenalty(
 export function calculateRottenPenalty(hand: readonly Card[], betAmount: number, penaltyMultiplier: number = 1): number {
   if (betAmount < 0) {
     throw new Error(`[calculateRottenPenalty] Invariant violated: betAmount cannot be negative (got ${betAmount})`);
+  }
+  try {
+    return wasmCalculateRottenPenalty(hand, betAmount, penaltyMultiplier);
+  } catch {
+    // Fallback to TS
   }
   let penalty = 0;
   const mult = getMultiplier(penaltyMultiplier);
@@ -143,6 +162,11 @@ export function calculateCongPenalty(betAmount: number, congMultiplier: number =
   if (betAmount < 0) {
     throw new Error(`[calculateCongPenalty] Invariant violated: betAmount cannot be negative (got ${betAmount})`);
   }
+  try {
+    return wasmCalculateCongPenalty(betAmount, congMultiplier);
+  } catch {
+    // Fallback to TS
+  }
   const mult = getMultiplier(congMultiplier);
   return 26 * betAmount * mult;
 }
@@ -170,6 +194,12 @@ export function calculateCountCardsSettlement(
   }
   if (betAmount < 0) {
     throw new Error(`[calculateCountCardsSettlement] Invariant violated: betAmount cannot be negative (got ${betAmount})`);
+  }
+
+  try {
+    return wasmCalculateCountCardsSettlement(players, winnerId, betAmount, penaltyMultiplier, isThreeSpadesWin, congMultiplier);
+  } catch {
+    // Fallback to TS
   }
 
   const payouts: Record<string, number> = {};
@@ -230,6 +260,12 @@ export function calculateWinnerTakesAllSettlement(
     throw new Error(`[calculateWinnerTakesAllSettlement] Invariant violated: betAmount cannot be negative (got ${betAmount})`);
   }
 
+  try {
+    return wasmCalculateWinnerTakesAllSettlement(players, winnerId, betAmount, penaltyMultiplier, isThreeSpadesWin, congMultiplier);
+  } catch {
+    // Fallback to TS
+  }
+
   const payouts: Record<string, number> = {};
   players.forEach(p => { payouts[p.id] = 0; });
 
@@ -283,6 +319,12 @@ export function calculateTraditionalSettlement(
   }
   if (betAmount < 0) {
     throw new Error(`[calculateTraditionalSettlement] Invariant violated: betAmount cannot be negative (got ${betAmount})`);
+  }
+
+  try {
+    return wasmCalculateTraditionalSettlement(players, winners, betAmount, penaltyMultiplier, isThreeSpadesWin, congMultiplier);
+  } catch {
+    // Fallback to TS
   }
 
   const payouts: Record<string, number> = {};

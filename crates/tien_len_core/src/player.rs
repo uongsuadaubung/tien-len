@@ -7,13 +7,21 @@ use crate::card::Card;
 pub struct MatchPlayer {
     pub id: String,
     pub name: String,
+    #[serde(default)]
     pub avatar: String,
+    #[serde(default)]
     pub hand: Vec<Card>,
+    #[serde(default)]
     pub card_count: usize,
+    #[serde(default)]
     pub played_cards: Vec<Card>,
+    #[serde(default)]
     pub score: i64,
+    #[serde(default)]
     pub is_passed_current_round: bool,
+    #[serde(default)]
     pub has_played_first_card: bool,
+    #[serde(default)]
     pub is_bot: bool,
     #[serde(default)]
     pub bot_persona_id: Option<String>,

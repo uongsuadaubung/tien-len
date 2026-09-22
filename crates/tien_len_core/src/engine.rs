@@ -148,7 +148,202 @@ pub fn calculate_rotten_penalty(hand: &[Card], bet_amount: i64, multiplier: f64)
         }
     }
 
+    // 2. Thối Tứ Quý (rank < 15)
+    let mut rank_counts = std::collections::HashMap::new();
+    for card in hand {
+        *rank_counts.entry(card.rank).or_insert(0) += 1;
+    }
+    for (&rank, &count) in &rank_counts {
+        if count == 4 && rank < 15 {
+            penalty += bet * 4.0;
+        }
+    }
+
     (penalty * mult).round() as i64
+}
+
+/// Tính toán tiền phạt Cóng (Cháy bài): 26 x bet x cong_multiplier
+pub fn calculate_cong_penalty(bet_amount: i64, cong_multiplier: f64) -> i64 {
+    let mult = cong_multiplier.max(1.0);
+    ((26.0 * bet_amount as f64) * mult).round() as i64
+}
+
+/// Tính toán kết quả cho chế độ Đếm Lá (Card-Count / Sát Phạt)
+pub fn calculate_count_cards_settlement(
+    players: &[MatchPlayer],
+    winner_id: &str,
+    bet_amount: i64,
+    penalty_multiplier: f64,
+    is_three_spades_win: bool,
+    cong_multiplier: f64,
+) -> Result<std::collections::HashMap<String, i64>, String> {
+    if players.is_empty() {
+        return Err("players list cannot be empty".to_string());
+    }
+    if !players.iter().any(|p| p.id == winner_id) {
+        return Err(format!("winnerId \"{}\" must exist in players", winner_id));
+    }
+    if bet_amount < 0 {
+        return Err("betAmount cannot be negative".to_string());
+    }
+
+    let mut payouts = std::collections::HashMap::new();
+    for p in players {
+        payouts.insert(p.id.clone(), 0i64);
+    }
+
+    let mult = penalty_multiplier.max(1.0);
+    let three_spades_multiplier = if is_three_spades_win { 2 } else { 1 };
+    let mut total_winner_earn = 0i64;
+
+    for player in players {
+        if player.id != winner_id {
+            let mut loss_amount = 0i64;
+            if player.hand.len() == 13 && !player.has_played_first_card {
+                loss_amount += calculate_cong_penalty(bet_amount, cong_multiplier);
+            } else {
+                loss_amount += player.hand.len() as i64 * bet_amount;
+            }
+
+            let rotten = calculate_rotten_penalty(&player.hand, bet_amount, mult);
+            loss_amount += rotten;
+            loss_amount *= three_spades_multiplier;
+
+            payouts.insert(player.id.clone(), -loss_amount);
+            total_winner_earn += loss_amount;
+        }
+    }
+
+    payouts.insert(winner_id.to_string(), total_winner_earn);
+    Ok(payouts)
+}
+
+/// Tính toán kết quả cho chế độ Nhất Ăn Tất (Winner-Takes-All)
+pub fn calculate_winner_takes_all_settlement(
+    players: &[MatchPlayer],
+    winner_id: &str,
+    bet_amount: i64,
+    penalty_multiplier: f64,
+    is_three_spades_win: bool,
+    cong_multiplier: f64,
+) -> Result<std::collections::HashMap<String, i64>, String> {
+    if players.is_empty() {
+        return Err("players list cannot be empty".to_string());
+    }
+    if !players.iter().any(|p| p.id == winner_id) {
+        return Err(format!("winnerId \"{}\" must exist in players", winner_id));
+    }
+    if bet_amount < 0 {
+        return Err("betAmount cannot be negative".to_string());
+    }
+
+    let mut payouts = std::collections::HashMap::new();
+    for p in players {
+        payouts.insert(p.id.clone(), 0i64);
+    }
+
+    let mult = penalty_multiplier.max(1.0);
+    let three_spades_multiplier = if is_three_spades_win { 2 } else { 1 };
+    let mut total_winner_earn = 0i64;
+
+    for player in players {
+        if player.id != winner_id {
+            let mut loss_amount = bet_amount;
+            if player.hand.len() == 13 && !player.has_played_first_card {
+                loss_amount += calculate_cong_penalty(bet_amount, cong_multiplier);
+            }
+
+            let rotten = calculate_rotten_penalty(&player.hand, bet_amount, mult);
+            loss_amount += rotten;
+            loss_amount *= three_spades_multiplier;
+
+            payouts.insert(player.id.clone(), -loss_amount);
+            total_winner_earn += loss_amount;
+        }
+    }
+
+    payouts.insert(winner_id.to_string(), total_winner_earn);
+    Ok(payouts)
+}
+
+/// Tính toán kết quả cho chế độ Truyền Thống (Rank-Based)
+pub fn calculate_traditional_settlement(
+    players: &[MatchPlayer],
+    winners: &[MatchPlayer],
+    bet_amount: i64,
+    penalty_multiplier: f64,
+    is_three_spades_win: bool,
+    cong_multiplier: f64,
+) -> Result<std::collections::HashMap<String, i64>, String> {
+    if players.is_empty() {
+        return Err("players list cannot be empty".to_string());
+    }
+    if winners.is_empty() {
+        return Err("winners list cannot be empty".to_string());
+    }
+    if !winners.iter().all(|w| players.iter().any(|p| p.id == w.id)) {
+        return Err("all winners must exist in players".to_string());
+    }
+    if bet_amount < 0 {
+        return Err("betAmount cannot be negative".to_string());
+    }
+
+    let mut payouts = std::collections::HashMap::new();
+    for p in players {
+        payouts.insert(p.id.clone(), 0i64);
+    }
+
+    let mult = penalty_multiplier.max(1.0);
+    let three_spades_multiplier = if is_three_spades_win { 2 } else { 1 };
+
+    if winners.len() >= 4 {
+        payouts.insert(winners[0].id.clone(), bet_amount * 3 * three_spades_multiplier);
+        payouts.insert(winners[1].id.clone(), bet_amount * 1);
+        payouts.insert(winners[2].id.clone(), -bet_amount * 1);
+        payouts.insert(winners[3].id.clone(), -bet_amount * 3 * three_spades_multiplier);
+    } else if winners.len() == 3 {
+        payouts.insert(winners[0].id.clone(), bet_amount * 2 * three_spades_multiplier);
+        payouts.insert(winners[1].id.clone(), 0);
+        payouts.insert(winners[2].id.clone(), -bet_amount * 2 * three_spades_multiplier);
+    } else if winners.len() == 2 {
+        payouts.insert(winners[0].id.clone(), bet_amount * 1 * three_spades_multiplier);
+        payouts.insert(winners[1].id.clone(), -bet_amount * 1 * three_spades_multiplier);
+    } else if winners.len() == 1 {
+        let remaining_players: Vec<&MatchPlayer> = players.iter().filter(|p| p.id != winners[0].id).collect();
+        payouts.insert(winners[0].id.clone(), bet_amount * remaining_players.len() as i64 * three_spades_multiplier);
+        for p in remaining_players {
+            payouts.insert(p.id.clone(), -bet_amount * three_spades_multiplier);
+        }
+    }
+
+    let winner_first_id = winners[0].id.clone();
+    for player in players {
+        if player.id != winner_first_id && !player.hand.is_empty() {
+            let mut rotten = calculate_rotten_penalty(&player.hand, bet_amount, mult);
+            if rotten > 0 {
+                rotten *= three_spades_multiplier;
+                if let Some(val) = payouts.get_mut(&player.id) {
+                    *val -= rotten;
+                }
+                if let Some(val) = payouts.get_mut(&winner_first_id) {
+                    *val += rotten;
+                }
+            }
+
+            if player.hand.len() == 13 && !player.has_played_first_card {
+                let mut cong = calculate_cong_penalty(bet_amount, cong_multiplier);
+                cong *= three_spades_multiplier;
+                if let Some(val) = payouts.get_mut(&player.id) {
+                    *val -= cong;
+                }
+                if let Some(val) = payouts.get_mut(&winner_first_id) {
+                    *val += cong;
+                }
+            }
+        }
+    }
+
+    Ok(payouts)
 }
 
 /// Starts a new game: resets players, shuffles deck, deals cards, checks instant win, and finds starting player.
@@ -281,7 +476,7 @@ pub fn validate_move(
         let card = player
             .hand
             .iter()
-            .find(|c| c.id == cid)
+            .find(|c| c.id == cid || c.id.replace('_', "-") == cid.replace('_', "-"))
             .ok_or_else(|| format!("Card {} not found in hand", cid))?;
         played_cards.push(card.clone());
     }
@@ -344,6 +539,9 @@ pub fn play_move(
 
     // Detect chop and compute penalty
     let mut is_chop = false;
+    let mut is_cascade_chop = false;
+    let mut chop_chain_count = 0;
+    let mut chop_chain_total_amount = 0;
     let mut chopped_player_id = None;
     let mut penalty_amount = 0;
 
@@ -356,12 +554,40 @@ pub fn play_move(
         ) {
             is_chop = true;
             chopped_player_id = Some(leading_move.player_id.clone());
-            penalty_amount = calculate_chop_penalty(
+            let base_penalty = calculate_chop_penalty(
                 &leading_move.combination,
                 &combo,
                 rules.table.bet_amount,
                 rules.chopping.multiplier,
             );
+
+            let prev_chop_moves: Vec<&PlayedMove> =
+                common.round_moves.iter().filter(|m| m.is_chop).collect();
+            if rules.chopping.cascade_multiplier && !prev_chop_moves.is_empty() {
+                is_cascade_chop = true;
+                chop_chain_count = prev_chop_moves.len() as u32 + 1;
+                let last_chop = prev_chop_moves.last().unwrap();
+                let prev_amount = last_chop.penalty_amount;
+                penalty_amount = prev_amount + base_penalty;
+                chop_chain_total_amount = penalty_amount;
+
+                // Refund the previous victim from the previous chopper
+                if let Some(prev_victim_id) = &last_chop.chopped_player_id {
+                    let prev_chopper_id = &last_chop.player_id;
+                    for p in &mut updated_players {
+                        if p.id == *prev_victim_id {
+                            p.score += prev_amount;
+                        }
+                        if p.id == *prev_chopper_id {
+                            p.score -= prev_amount;
+                        }
+                    }
+                }
+            } else {
+                penalty_amount = base_penalty;
+                chop_chain_count = 1;
+                chop_chain_total_amount = base_penalty;
+            }
 
             // Transfer penalty
             let victim_id = &leading_move.player_id;
@@ -382,9 +608,9 @@ pub fn play_move(
             combo,
             chopped_player_id.unwrap(),
             penalty_amount,
-            false,
-            1,
-            penalty_amount,
+            is_cascade_chop,
+            chop_chain_count,
+            chop_chain_total_amount,
             timestamp,
         )
     } else {
@@ -562,58 +788,68 @@ fn settle_game_round(
 ) -> Result<MatchState, String> {
     let bet = rules.table.bet_amount;
     let mut settled_players = players.to_vec();
-    let mut rankings = Vec::new();
 
-    let mut total_won = 0;
-    for p in &mut settled_players {
-        if p.id == winner_id {
-            continue;
+    let payouts = match rules.settlement_rule {
+        GameSettlementRule::CountCards => calculate_count_cards_settlement(
+            players,
+            winner_id,
+            bet,
+            rules.chopping.multiplier,
+            false,
+            rules.cong.multiplier,
+        )?,
+        GameSettlementRule::WinnerTakesAll => calculate_winner_takes_all_settlement(
+            players,
+            winner_id,
+            bet,
+            rules.chopping.multiplier,
+            false,
+            rules.cong.multiplier,
+        )?,
+        GameSettlementRule::Traditional => {
+            let winners: Vec<MatchPlayer> = players
+                .iter()
+                .filter(|p| p.id == winner_id)
+                .cloned()
+                .collect();
+            calculate_traditional_settlement(
+                players,
+                &winners,
+                bet,
+                rules.chopping.multiplier,
+                false,
+                rules.cong.multiplier,
+            )?
         }
+    };
 
-        let penalty = match rules.settlement_rule {
-            GameSettlementRule::CountCards => {
-                let card_loss = p.card_count as i64 * bet;
-                let rotten = calculate_rotten_penalty(&p.hand, bet, 1.0);
-                card_loss + rotten
-            }
-            GameSettlementRule::WinnerTakesAll => {
-                let base_loss = 13 * bet;
-                let rotten = calculate_rotten_penalty(&p.hand, bet, 1.0);
-                base_loss + rotten
-            }
-            GameSettlementRule::Traditional => {
-                let base_loss = 10 * bet;
-                base_loss
-            }
-        };
-
-        p.score -= penalty;
-        total_won += penalty;
-
-        rankings.push(PlayerRanking {
-            player_id: p.id.clone(),
-            name: p.name.clone(),
-            rank_position: 2,
-            remaining_cards: p.card_count,
-            score_change: -penalty,
-        });
+    let mut rankings = Vec::new();
+    for p in &mut settled_players {
+        let change = *payouts.get(&p.id).unwrap_or(&0);
+        p.score += change;
+        if p.id != winner_id {
+            rankings.push(PlayerRanking {
+                player_id: p.id.clone(),
+                name: p.name.clone(),
+                rank_position: 2,
+                remaining_cards: p.card_count,
+                score_change: change,
+            });
+        }
     }
 
-    for p in &mut settled_players {
-        if p.id == winner_id {
-            p.score += total_won;
-            rankings.insert(
-                0,
-                PlayerRanking {
-                    player_id: p.id.clone(),
-                    name: p.name.clone(),
-                    rank_position: 1,
-                    remaining_cards: 0,
-                    score_change: total_won,
-                },
-            );
-            break;
-        }
+    if let Some(winner) = settled_players.iter().find(|p| p.id == winner_id) {
+        let win_change = *payouts.get(winner_id).unwrap_or(&0);
+        rankings.insert(
+            0,
+            PlayerRanking {
+                player_id: winner.id.clone(),
+                name: winner.name.clone(),
+                rank_position: 1,
+                remaining_cards: 0,
+                score_change: win_change,
+            },
+        );
     }
 
     Ok(MatchState::RoundEnded {

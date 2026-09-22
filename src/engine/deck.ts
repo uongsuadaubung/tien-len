@@ -1,10 +1,16 @@
 import { Card, InstantWinType, Rank } from './types';
 import { ALL_RANKS, ALL_SUITS, createCard, isBlackCard, isRedCard, sortCards } from './card';
+import { wasmCreateDeck, wasmCheckInstantWin, wasmDealCards } from './wasm-bridge';
 
 /**
  * Khởi tạo bộ bài 52 lá tiêu chuẩn
  */
 export function createDeck(): Card[] {
+  try {
+    return wasmCreateDeck();
+  } catch {
+    // Fallback to TS
+  }
   const deck: Card[] = [];
   for (const rank of ALL_RANKS) {
     for (const suit of ALL_SUITS) {
@@ -44,6 +50,11 @@ export function shuffleDeck(deck: Card[], rng: () => number = Math.random): Card
  * Chia bài cho người chơi (2, 3 hoặc 4 người, mỗi người 13 lá, đã được sắp xếp tăng dần)
  */
 export function dealCards(deck: Card[], playerCount: number = 4): Card[][] {
+  try {
+    return wasmDealCards(deck, playerCount);
+  } catch {
+    // Fallback to TS
+  }
   const count = Math.min(4, Math.max(2, playerCount));
   const hands: Card[][] = [];
   for (let i = 0; i < count; i++) {
@@ -60,6 +71,12 @@ export function dealCards(deck: Card[], playerCount: number = 4): Card[][] {
  */
 export function checkInstantWin(hand: Card[], isFirstGame = false): InstantWinType | null {
   if (!hand || hand.length < 12) return null;
+  try {
+    const wasmRes = wasmCheckInstantWin(hand, isFirstGame);
+    if (wasmRes) return wasmRes;
+  } catch {
+    // Fallback to TS
+  }
 
   const sorted = sortCards(hand);
 

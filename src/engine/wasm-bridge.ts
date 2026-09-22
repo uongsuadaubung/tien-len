@@ -1,6 +1,7 @@
 import __wbg_init, {
   initSync,
   wasm_create_deck,
+  wasm_deal_cards,
   wasm_identify_combination,
   wasm_can_beat,
   wasm_can_chop,
@@ -11,9 +12,14 @@ import __wbg_init, {
   wasm_sort_smart_groups,
   wasm_decide_bot_move,
   wasm_calculate_chop_penalty,
-  wasm_calculate_rotten_penalty
+  wasm_calculate_rotten_penalty,
+  wasm_calculate_cong_penalty,
+  wasm_calculate_count_cards_settlement,
+  wasm_calculate_winner_takes_all_settlement,
+  wasm_calculate_traditional_settlement,
+  wasm_check_instant_win
 } from './wasm/pkg/tien_len_core.js';
-import type { Card, Combination, MatchPlayer, GameRules } from './types';
+import type { Card, Combination, MatchPlayer, GameRules, InstantWinType } from './types';
 import type { MatchState } from './state-machine/types';
 import type { SmartCardGroup } from './hand-sorter';
 
@@ -75,9 +81,28 @@ export function isWasmReady(): boolean {
 }
 
 function ensureWasmReady(): void {
-  if (!isInitialized) {
-    throw new Error('[WasmBridge] Rust WebAssembly engine is not initialized. Call await initWasmCore() before executing engine commands.');
+  if (isInitialized) return;
+
+  if (typeof process !== 'undefined' && process.versions && (process.versions.bun || process.versions.node)) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const fs = require('fs');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const path = require('path');
+      const dir = typeof __dirname !== 'undefined' ? __dirname : (import.meta.dir || '.');
+      const wasmPath = path.resolve(dir, './wasm/pkg/tien_len_core_bg.wasm');
+      if (fs.existsSync(wasmPath)) {
+        const wasmBuffer = fs.readFileSync(wasmPath);
+        initSync({ module: wasmBuffer });
+        isInitialized = true;
+        return;
+      }
+    } catch {
+      // Fall through to error
+    }
   }
+
+  throw new Error('[WasmBridge] Rust WebAssembly engine is not initialized. Call await initWasmCore() before executing engine commands.');
 }
 
 // ============================================================================
@@ -220,4 +245,85 @@ export function wasmCalculateRottenPenalty(
     multiplier
   );
   return Number(res);
+}
+
+export function wasmCheckInstantWin(
+  hand: readonly Card[],
+  isFirstGame: boolean = false
+): InstantWinType | null {
+  ensureWasmReady();
+  const json = wasm_check_instant_win(JSON.stringify(hand), isFirstGame);
+  return JSON.parse(json);
+}
+
+export function wasmDealCards(deck: readonly Card[], playerCount: number = 4): Card[][] {
+  ensureWasmReady();
+  const json = wasm_deal_cards(JSON.stringify(deck), playerCount);
+  return JSON.parse(json);
+}
+
+export function wasmCalculateCongPenalty(betAmount: number, congMultiplier: number = 1.0): number {
+  ensureWasmReady();
+  const res = wasm_calculate_cong_penalty(BigInt(betAmount), congMultiplier);
+  return Number(res);
+}
+
+export function wasmCalculateCountCardsSettlement(
+  players: readonly MatchPlayer[],
+  winnerId: string,
+  betAmount: number,
+  penaltyMultiplier: number = 1.0,
+  isThreeSpadesWin: boolean = false,
+  congMultiplier: number = 1.0
+): Record<string, number> {
+  ensureWasmReady();
+  const json = wasm_calculate_count_cards_settlement(
+    JSON.stringify(players),
+    winnerId,
+    BigInt(betAmount),
+    penaltyMultiplier,
+    isThreeSpadesWin,
+    congMultiplier
+  );
+  return JSON.parse(json);
+}
+
+export function wasmCalculateWinnerTakesAllSettlement(
+  players: readonly MatchPlayer[],
+  winnerId: string,
+  betAmount: number,
+  penaltyMultiplier: number = 1.0,
+  isThreeSpadesWin: boolean = false,
+  congMultiplier: number = 1.0
+): Record<string, number> {
+  ensureWasmReady();
+  const json = wasm_calculate_winner_takes_all_settlement(
+    JSON.stringify(players),
+    winnerId,
+    BigInt(betAmount),
+    penaltyMultiplier,
+    isThreeSpadesWin,
+    congMultiplier
+  );
+  return JSON.parse(json);
+}
+
+export function wasmCalculateTraditionalSettlement(
+  players: readonly MatchPlayer[],
+  winners: readonly MatchPlayer[],
+  betAmount: number,
+  penaltyMultiplier: number = 1.0,
+  isThreeSpadesWin: boolean = false,
+  congMultiplier: number = 1.0
+): Record<string, number> {
+  ensureWasmReady();
+  const json = wasm_calculate_traditional_settlement(
+    JSON.stringify(players),
+    JSON.stringify(winners),
+    BigInt(betAmount),
+    penaltyMultiplier,
+    isThreeSpadesWin,
+    congMultiplier
+  );
+  return JSON.parse(json);
 }

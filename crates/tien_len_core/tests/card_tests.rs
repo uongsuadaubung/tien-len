@@ -12,7 +12,7 @@ fn test_card_ordering() {
     assert!(c3c < c3h);
     assert!(c3h < c4s);
     assert!(c4s < c2h);
-    assert_eq!(c2h.weight(), 15 * 4 + 4);
+    assert_eq!(c2h.weight(), 15 * 4 + 3);
 }
 
 #[test]

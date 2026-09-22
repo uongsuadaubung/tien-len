@@ -5,10 +5,10 @@ use std::fmt;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum Suit {
-    Spades = 1,
-    Clubs = 2,
-    Diamonds = 3,
-    Hearts = 4,
+    Spades = 0,
+    Clubs = 1,
+    Diamonds = 2,
+    Hearts = 3,
 }
 
 impl Suit {
@@ -41,6 +41,10 @@ pub struct Card {
     pub id: String,
     pub rank: u8, // 3..=15 (11=J, 12=Q, 13=K, 14=A, 15=2)
     pub suit: Suit,
+    #[serde(default)]
+    pub weight: u8,
+    #[serde(default)]
+    pub code: String,
 }
 
 impl Card {
@@ -52,8 +56,32 @@ impl Card {
             Suit::Diamonds => "DIAMONDS",
             Suit::Hearts => "HEARTS",
         };
-        let id = format!("{}-{}", rank, suit_str);
-        Self { id, rank, suit }
+        let id = format!("{}_{}", rank, suit_str);
+        let weight = rank * 4 + (suit as u8);
+        let suit_short = match suit {
+            Suit::Spades => "S",
+            Suit::Clubs => "C",
+            Suit::Diamonds => "D",
+            Suit::Hearts => "H",
+        };
+        let rank_str = match rank {
+            11 => "J",
+            12 => "Q",
+            13 => "K",
+            14 => "A",
+            15 => "2",
+            10 => "10",
+            9 => "9",
+            8 => "8",
+            7 => "7",
+            6 => "6",
+            5 => "5",
+            4 => "4",
+            3 => "3",
+            _ => "?",
+        };
+        let code = format!("{}{}", rank_str, suit_short);
+        Self { id, rank, suit, weight, code }
     }
 
     #[inline]
@@ -121,4 +149,17 @@ pub fn create_deck() -> Vec<Card> {
 
 pub fn sort_cards(cards: &mut [Card]) {
     cards.sort();
+}
+
+pub fn deal_cards(deck: &[Card], player_count: usize) -> Vec<Vec<Card>> {
+    let count = player_count.clamp(2, 4);
+    let mut hands = vec![Vec::new(); count];
+    let total = count * 13;
+    for i in 0..total.min(deck.len()) {
+        hands[i % count].push(deck[i].clone());
+    }
+    for hand in &mut hands {
+        sort_cards(hand);
+    }
+    hands
 }

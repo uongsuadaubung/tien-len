@@ -1,6 +1,7 @@
 import { Card, Combination } from './types';
 import { compareCards, isTwo, formatCard, formatCardVietnamese } from './card';
 import { identifyCombination } from './combinations';
+import { wasmCanBeat, wasmCanChop } from './wasm-bridge';
 
 export interface ValidValidationResult {
   readonly valid: true;
@@ -22,6 +23,22 @@ export type ValidationResult = ValidValidationResult | InvalidValidationResult;
  * Kiểm tra xem tổ hợp `candidate` có đè / chặt được tổ hợp `target` hay không
  */
 export function canBeat(candidate: Combination, target: Combination): ValidationResult {
+  try {
+    const isBeating = wasmCanBeat(candidate, target);
+    if (isBeating) {
+      const isChop = wasmCanChop(candidate, target) ||
+        candidate.type === 'THREE_PAIRS_SEQUENTIAL' ||
+        candidate.type === 'FOUR_PAIRS_SEQUENTIAL';
+      return {
+        valid: true,
+        combination: candidate,
+        isChop
+      };
+    }
+  } catch {
+    // Fallback to TS
+  }
+
   // 1. Trường hợp cùng loại tổ hợp và cùng số lượng lá
   if (candidate.type === target.type && candidate.cards.length === target.cards.length) {
     // Với Sảnh: so sánh lá cao nhất
