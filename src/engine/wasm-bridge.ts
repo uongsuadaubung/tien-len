@@ -22,6 +22,7 @@ import __wbg_init, {
   wasm_compute_table_elo_settlement,
   wasm_evaluate_candidate_moves_mcts,
   wasm_get_optimal_move_hint,
+  wasm_simulate_match_series,
   wasm_check_instant_win
 } from './wasm/pkg/tien_len_core.js';
 import type { Card, Combination, MatchPlayer, GameRules, InstantWinType } from './types';
@@ -458,4 +459,40 @@ export function wasmGetOptimalMoveHint(
   );
   return JSON.parse(json);
 }
+
+export interface SimulatedBotConfig {
+  id: string;
+  name: string;
+  avatar?: string;
+  elo?: number;
+  mctsSimulations?: number;
+}
+
+export interface MatchSeriesResult {
+  numGames: number;
+  winCounts: Record<string, number>;
+  winRates: Record<string, number>;
+  instantWins: number;
+  totalTurns: number;
+  durationMs: number;
+}
+
+export function wasmSimulateMatchSeries(
+  numGames: number,
+  baseSeed: number = Date.now(),
+  rules: GameRules | null = null,
+  bots: SimulatedBotConfig[] = [],
+  rotateSeats: boolean = true
+): MatchSeriesResult {
+  ensureWasmReady();
+  const json = wasm_simulate_match_series(
+    numGames,
+    baseSeed,
+    rules ? JSON.stringify(rules) : null,
+    JSON.stringify(bots),
+    rotateSeats
+  );
+  return JSON.parse(json);
+}
+
 

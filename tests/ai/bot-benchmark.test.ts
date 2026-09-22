@@ -7,6 +7,7 @@ import { GameEngine } from '../../src/engine/game';
 import { MatchPlayer, createDefaultGameRules } from '../../src/engine/types';
 import { createBotPlayer } from '../../src/engine/player-factory';
 import { parseCards } from '../../src/engine/card';
+import { wasmSimulateMatchSeries } from '../../src/engine/wasm-bridge';
 
 describe('AI Bot Benchmark Simulation & Latency Across 9 Tiers', () => {
   test('Mô phỏng 100 ván đấu công bằng với Luân Chuyển Vị Trí Ghế Ngồi (Rotated Seating Fairness)', () => {
@@ -184,4 +185,32 @@ describe('AI Bot Benchmark Simulation & Latency Across 9 Tiers', () => {
     }
     console.log('================================================================\n');
   });
+
+  test('Mô phỏng 100 ván đấu siêu tốc bằng Rust WASM Native (Sub-second High-Performance Engine)', () => {
+    const bots = [
+      { id: 'b1', name: 'Alex (Tier 1 Sắt - 700)', avatar: '🤠', elo: 700 },
+      { id: 'b2', name: 'Rex (Tier 3 Bạc - 1250)', avatar: '🧔', elo: 1250 },
+      { id: 'b3', name: 'Nova (Tier 6 Kim Cương - 2300)', avatar: '👑', elo: 2300 },
+      { id: 'b4', name: 'Alpha Mind (Tier 9 Thách Đấu - 3200)', avatar: '🧠', elo: 3200 }
+    ];
+
+    const start = performance.now();
+    const result = wasmSimulateMatchSeries(100, 12345, null, bots, true);
+    const duration = performance.now() - start;
+
+    console.log('\n================================================================');
+    console.log(`--- KẾT QUẢ MÔ PHỎNG RUST WASM NATIVE (100 VÁN CHỈ MẤT ${duration.toFixed(2)}ms) ---`);
+    for (const b of bots) {
+      const count = result.winCounts[b.id] || 0;
+      console.log(`${b.avatar} ${b.name}: ${count} ván thắng (${((count / 100) * 100).toFixed(1)}%)`);
+    }
+    console.log(`Tổng lượt đánh: ${result.totalTurns} lượt | Tới trắng: ${result.instantWins} ván`);
+    console.log('================================================================\n');
+
+    expect(result.numGames).toBe(100);
+    expect(result.totalTurns).toBeGreaterThan(1000);
+    // 100 ván trong Rust WASM phải hoàn tất dưới 1.5 giây (< 1500ms)
+    expect(duration).toBeLessThan(1500);
+  });
 });
+

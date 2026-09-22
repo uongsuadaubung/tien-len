@@ -8,6 +8,7 @@ pub mod hand_sorter;
 pub mod quick_response;
 pub mod elo;
 pub mod ai;
+pub mod simulation;
 pub mod wasm_api;
 
 pub use card::{create_deck, sort_cards, Card, Suit};

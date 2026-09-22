@@ -430,3 +430,33 @@ pub fn wasm_get_optimal_move_hint(
     serde_json::to_string(&hint).map_err(|e| JsValue::from_str(&e.to_string()))
 }
 
+#[wasm_bindgen]
+pub fn wasm_simulate_match_series(
+    num_games: usize,
+    base_seed: f64,
+    rules_json: Option<String>,
+    bots_json: &str,
+    rotate_seats: bool,
+) -> Result<String, JsValue> {
+    let bots: Vec<crate::simulation::SimulatedBotConfig> = serde_json::from_str(bots_json)
+        .map_err(|e| JsValue::from_str(&format!("Invalid bots JSON: {}", e)))?;
+
+    let rules: crate::rules::GameRules = match rules_json {
+        Some(s) if !s.is_empty() && s != "null" => {
+            serde_json::from_str(&s).unwrap_or_else(|_| crate::rules::GameRules::count_cards())
+        }
+        _ => crate::rules::GameRules::count_cards(),
+    };
+
+    let res = crate::simulation::simulate_match_series(
+        num_games,
+        base_seed as u64,
+        &rules,
+        &bots,
+        rotate_seats,
+    );
+
+    serde_json::to_string(&res).map_err(|e| JsValue::from_str(&e.to_string()))
+}
+
+

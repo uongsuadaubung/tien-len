@@ -64,6 +64,26 @@ pub fn evaluate_candidate_moves_mcts(
         return Vec::new();
     }
 
+    // 1. Nếu chỉ có 1 nước đi hợp lệ duy nhất, không cần giả lập
+    if candidate_moves.len() == 1 {
+        return vec![MctsEvaluation {
+            move_cards: candidate_moves[0].cards.clone(),
+            combination: candidate_moves[0].combination.clone(),
+            win_rate: 0.5,
+            simulations_count: 0,
+        }];
+    }
+
+    // 2. Nếu có nước đi kết liễu toàn bộ bài trên tay, thắng 100%, trả về ngay
+    if let Some(finishing) = candidate_moves.iter().find(|c| c.cards.len() == bot_hand.len()) {
+        return vec![MctsEvaluation {
+            move_cards: finishing.cards.clone(),
+            combination: finishing.combination.clone(),
+            win_rate: 1.0,
+            simulations_count: 0,
+        }];
+    }
+
     let bot_hand_ids: HashSet<String> = bot_hand.iter().map(|c| c.id.clone()).collect();
     let full_deck = create_deck();
     let unseen_pool: Vec<Card> = full_deck
@@ -89,13 +109,13 @@ pub fn evaluate_candidate_moves_mcts(
         }
     });
 
-    let target_candidates: Vec<MctsCandidateInput> = if sorted_candidates.len() > 10 {
-        sorted_candidates[..10].to_vec()
+    let target_candidates: Vec<MctsCandidateInput> = if sorted_candidates.len() > 6 {
+        sorted_candidates[..6].to_vec()
     } else {
         sorted_candidates
     };
 
-    let sims = simulations_count.min(40);
+    let sims = simulations_count.min(30);
     let mut win_counts = vec![0usize; target_candidates.len()];
     let mut rng = FastRng::new(seed ^ 0x9e3779b97f4a7c15);
 
