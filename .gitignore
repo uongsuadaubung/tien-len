@@ -35,3 +35,6 @@ scratch/
 # Rust build artifacts
 target/
 crates/**/target/
+
+# Track pre-built WASM package in git for CI/CD & zero-setup clones
+!src/engine/wasm/pkg/

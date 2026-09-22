@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "build:wasm": "bunx wasm-pack build crates/tien_len_core --target web --out-dir ../../src/engine/wasm/pkg",
+    "build:wasm": "bunx wasm-pack build crates/tien_len_core --target web --out-dir ../../src/engine/wasm/pkg && bun run scripts/clean-wasm-gitignore.ts",
     "test:rust": "cargo test",
     "preview": "vite preview",
     "lint": "eslint src/",

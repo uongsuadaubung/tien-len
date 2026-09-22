@@ -1,0 +1,16 @@
+{
+  "name": "tien_len_core",
+  "type": "module",
+  "description": "High-performance Tien Len Mien Nam core game engine in Rust/Wasm",
+  "version": "0.1.0",
+  "files": [
+    "tien_len_core_bg.wasm",
+    "tien_len_core.js",
+    "tien_len_core.d.ts"
+  ],
+  "main": "tien_len_core.js",
+  "types": "tien_len_core.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
