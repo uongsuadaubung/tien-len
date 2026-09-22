@@ -1,23 +1,11 @@
-import { Card, InstantWinType, Rank } from './types';
-import { ALL_RANKS, ALL_SUITS, createCard, isBlackCard, isRedCard, sortCards } from './card';
+import { Card, InstantWinType } from './types';
 import { wasmCreateDeck, wasmCheckInstantWin, wasmDealCards } from './wasm-bridge';
 
 /**
- * Khởi tạo bộ bài 52 lá tiêu chuẩn
+ * Khởi tạo bộ bài 52 lá tiêu chuẩn (Rust WASM Native)
  */
 export function createDeck(): Card[] {
-  try {
-    return wasmCreateDeck();
-  } catch {
-    // Fallback to TS
-  }
-  const deck: Card[] = [];
-  for (const rank of ALL_RANKS) {
-    for (const suit of ALL_SUITS) {
-      deck.push(createCard(rank, suit));
-    }
-  }
-  return deck;
+  return wasmCreateDeck();
 }
 
 /**
@@ -47,101 +35,16 @@ export function shuffleDeck(deck: Card[], rng: () => number = Math.random): Card
 }
 
 /**
- * Chia bài cho người chơi (2, 3 hoặc 4 người, mỗi người 13 lá, đã được sắp xếp tăng dần)
+ * Chia bài cho người chơi (2, 3 hoặc 4 người, mỗi người 13 lá, đã được sắp xếp tăng dần qua Rust WASM)
  */
 export function dealCards(deck: Card[], playerCount: number = 4): Card[][] {
-  try {
-    return wasmDealCards(deck, playerCount);
-  } catch {
-    // Fallback to TS
-  }
-  const count = Math.min(4, Math.max(2, playerCount));
-  const hands: Card[][] = [];
-  for (let i = 0; i < count; i++) {
-    hands.push([]);
-  }
-  for (let i = 0; i < count * 13; i++) {
-    hands[i % count].push(deck[i]);
-  }
-  return hands.map(sortCards);
+  return wasmDealCards(deck, playerCount);
 }
 
 /**
- * Kiểm tra xem tay bài có được Tới Trắng hay không
+ * Kiểm tra xem tay bài có được Tới Trắng hay không (Rust WASM Native)
  */
 export function checkInstantWin(hand: Card[], isFirstGame = false): InstantWinType | null {
   if (!hand || hand.length < 12) return null;
-  try {
-    const wasmRes = wasmCheckInstantWin(hand, isFirstGame);
-    if (wasmRes) return wasmRes;
-  } catch {
-    // Fallback to TS
-  }
-
-  const sorted = sortCards(hand);
-
-  // 1. Tứ quý 3 ở ván đầu tiên
-  if (isFirstGame) {
-    const threes = sorted.filter(c => c.rank === 3);
-    if (threes.length === 4) {
-      return 'FIRST_ROUND_FOUR_THREES';
-    }
-  }
-
-  // 2. Tứ quý 2 (4 con heo)
-  const twos = sorted.filter(c => c.rank === 15);
-  if (twos.length === 4) {
-    return 'FOUR_TWOS';
-  }
-
-  // 3. Sảnh Rồng (Dãy liên tiếp từ 3 tới A = 12 lá hoặc 3 tới 2 = 13 lá)
-  const uniqueRanks = new Set(sorted.map(c => c.rank));
-  const DRAGON_RANKS: readonly Rank[] = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
-  const hasDragon3ToA = DRAGON_RANKS.every(r => uniqueRanks.has(r));
-  if (hasDragon3ToA) {
-    return 'DRAGON_STRAIGHT';
-  }
-
-  // 4. 13 lá đồng màu (toàn đỏ hoặc toàn đen)
-  if (sorted.length === 13) {
-    if (sorted.every(isRedCard) || sorted.every(isBlackCard)) {
-      return 'SAME_COLOR_13';
-    }
-  }
-
-  // Gom các đôi trong tay bài để kiểm tra 5 đôi thông & 6 đôi bất kỳ
-  const rankCounts = new Map<Rank, number>();
-  for (const card of sorted) {
-    rankCounts.set(card.rank, (rankCounts.get(card.rank) || 0) + 1);
-  }
-
-  const pairRanks: Rank[] = [];
-  for (const [rank, count] of rankCounts.entries()) {
-    if (count >= 2) pairRanks.push(rank);
-    if (count === 4) pairRanks.push(rank); // Tứ quý tính là 2 đôi
-  }
-
-  // 5. 5 Đôi Thông (5 đôi liên tiếp, không tính đôi 2)
-  const distinctNonTwoPairRanks = Array.from(new Set(pairRanks.filter(r => r < 15))).sort((a, b) => a - b);
-  let maxConsecutivePairs = 1;
-  let currentConsecutive = 1;
-  for (let i = 0; i < distinctNonTwoPairRanks.length - 1; i++) {
-    if (distinctNonTwoPairRanks[i + 1] === distinctNonTwoPairRanks[i] + 1) {
-      currentConsecutive++;
-      maxConsecutivePairs = Math.max(maxConsecutivePairs, currentConsecutive);
-    } else {
-      currentConsecutive = 1;
-    }
-  }
-
-  if (maxConsecutivePairs >= 5) {
-    return 'FIVE_PAIRS_SEQUENTIAL';
-  }
-
-  // 6. 6 Đôi bất kỳ
-  if (pairRanks.length >= 6) {
-    return 'SIX_PAIRS';
-  }
-
-  return null;
+  return wasmCheckInstantWin(hand, isFirstGame);
 }

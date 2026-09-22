@@ -1,18 +1,15 @@
 import { Card, Combination } from '../engine/types';
-import { ALL_RANKS, ALL_SUITS, createCard, isTwo, sortCards } from '../engine/card';
-import { identifyCombination } from '../engine/combinations';
 import { CardTracker } from './card-tracker';
 import { MctsEvaluation } from './types';
-import { BayesianCardInferenceEngine } from './solvers/bayesian-card-tracker';
 import { wasmEvaluateCandidateMovesMcts } from '../engine/wasm-bridge';
 
 /**
  * Information Set Monte Carlo Rollout Engine (ISMCTS)
- * Ước lượng tỷ lệ thắng của các nước đi ứng viên bằng mô phỏng ngẫu nhiên
+ * Ước lượng tỷ lệ thắng của các nước đi ứng viên bằng mô phỏng ngẫu nhiên qua Rust WASM Native
  */
 export class MctsSolver {
   /**
-   * Chạy mô phỏng Monte Carlo đa thế bài cho danh sách nước đi ứng viên
+   * Chạy mô phỏng Monte Carlo đa thế bài cho danh sách nước đi ứng viên (Rust Native WASM Rollout)
    */
   public static evaluateCandidateMoves(
     botId: string,
@@ -21,315 +18,21 @@ export class MctsSolver {
     tracker: CardTracker,
     remainingPlayerCards: Record<string, number>,
     simulationsCount: number = 30,
-    useBayesianInference: boolean = true
+    _useBayesianInference: boolean = true
   ): MctsEvaluation[] {
     if (candidateMoves.length === 0 || simulationsCount <= 0) {
       return [];
     }
 
-    try {
-      const playedCardIds = tracker.getPlayedCardIds();
-      return wasmEvaluateCandidateMovesMcts(
-        botId,
-        botHand,
-        candidateMoves,
-        playedCardIds,
-        remainingPlayerCards,
-        simulationsCount,
-        Date.now()
-      );
-    } catch {
-      // Fallback to TS rollout
-    }
-
-    // 1. Thu thập tất cả các lá bài chưa xuất hiện trong tầm nhìn của Bot
-    const ownHandIds = new Set(botHand.map(c => c.id));
-    const unseenPool: Card[] = [];
-
-    for (const rank of ALL_RANKS) {
-      for (const suit of ALL_SUITS) {
-        const card = createCard(rank, suit);
-        if (!tracker.isCardPlayed(card) && !ownHandIds.has(card.id)) {
-          unseenPool.push(card);
-        }
-      }
-    }
-
-    // Danh sách đối thủ còn bài (> 0 lá)
-    const opponentIds = Object.keys(remainingPlayerCards).filter(
-      id => id !== botId && (remainingPlayerCards[id] || 0) > 0
+    const playedCardIds = tracker.getPlayedCardIds();
+    return wasmEvaluateCandidateMovesMcts(
+      botId,
+      botHand,
+      candidateMoves,
+      playedCardIds,
+      remainingPlayerCards,
+      simulationsCount,
+      Date.now()
     );
-
-    // Tối ưu hóa: Ưu tiên các tổ hợp nhiều lá trước (Sảnh, Đôi, Sám) và các lá bài nhỏ
-    const sortedCandidates = [...candidateMoves].sort((a, b) => {
-      if (b.cards.length !== a.cards.length) {
-        return b.cards.length - a.cards.length;
-      }
-      return a.combination.highestCard.weight - b.combination.highestCard.weight;
-    });
-
-    const targetCandidates = sortedCandidates.length > 10 ? sortedCandidates.slice(0, 10) : sortedCandidates;
-    const winCounts = new Array(targetCandidates.length).fill(0);
-    const sims = Math.min(simulationsCount, 40);
-
-    // 2. Chạy N vòng giả lập (Rollouts)
-    for (let sim = 0; sim < sims; sim++) {
-      let simulatedHands: Record<string, Card[]>;
-
-      if (useBayesianInference) {
-        // Lấy mẫu phân phối Bayes có trọng số
-        simulatedHands = BayesianCardInferenceEngine.sampleWeightedHands(
-          unseenPool,
-          remainingPlayerCards,
-          tracker,
-          opponentIds
-        );
-      } else {
-        // Xáo trộn ngẫu nhiên đồng đều cổ điển
-        const shuffled = [...unseenPool];
-        for (let i = shuffled.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          const temp = shuffled[i];
-          shuffled[i] = shuffled[j];
-          shuffled[j] = temp;
-        }
-
-        simulatedHands = {};
-        let cardOffset = 0;
-        for (const oppId of opponentIds) {
-          const needed = remainingPlayerCards[oppId] || 0;
-          simulatedHands[oppId] = sortCards(shuffled.slice(cardOffset, cardOffset + needed));
-          cardOffset += needed;
-        }
-      }
-
-      // Thử nghiệm từng nước đi ứng viên trong thế bài giả định này
-      for (let moveIdx = 0; moveIdx < targetCandidates.length; moveIdx++) {
-        const candidate = targetCandidates[moveIdx];
-        const botSimHand = botHand.filter(c => !candidate.cards.some(mc => mc.id === c.id));
-
-        const simHandsCopy: Record<string, Card[]> = {
-          [botId]: [...botSimHand]
-        };
-        for (const oppId of opponentIds) {
-          simHandsCopy[oppId] = [...(simulatedHands[oppId] || [])];
-        }
-
-        // Chạy ván đấu giả lập nhanh
-        const isBotWin = this.simulateFastGame(
-          botId,
-          simHandsCopy,
-          candidate.combination,
-          opponentIds
-        );
-
-        if (isBotWin) {
-          winCounts[moveIdx] += 1;
-        }
-      }
-    }
-
-    return targetCandidates.map((m, idx) => ({
-      moveCards: m.cards,
-      combination: m.combination,
-      winRate: winCounts[idx] / sims,
-      simulationsCount: sims
-    }));
-  }
-
-  /**
-   * Mô phỏng nhanh diễn biến ván đấu tới khi có người về Nhất
-   */
-  private static simulateFastGame(
-    botId: string,
-    hands: Record<string, Card[]>,
-    initialLeadCombo: Combination,
-    opponentIds: string[]
-  ): boolean {
-    if (!hands[botId] || hands[botId].length === 0) return true;
-
-    const allPlayers = [botId, ...opponentIds].filter(id => hands[id] && hands[id].length > 0);
-    if (allPlayers.length <= 1) return true;
-
-    let currentCombo: Combination | null = initialLeadCombo;
-    let turnIdx = 1; // Lượt tiếp theo đến đối thủ đầu tiên
-    let consecutivePasses = 0;
-    const maxSteps = 25; // Cắt ngắn số bước để tăng tốc độ x5
-
-    for (let step = 0; step < maxSteps; step++) {
-      const activePlayerId = allPlayers[turnIdx % allPlayers.length];
-      const playerHand = hands[activePlayerId];
-
-      if (playerHand.length === 0) {
-        return activePlayerId === botId;
-      }
-
-      // Nếu tất cả người khác đã bỏ lượt -> Người nắm vòng mở vòng mới
-      if (consecutivePasses >= allPlayers.length - 1) {
-        currentCombo = null;
-        consecutivePasses = 0;
-      }
-
-      // Tìm nhanh nước đi nhỏ nhất đè được
-      let chosenCards: Card[] | null = null;
-      let newCombo: Combination | null = null;
-
-      if (!currentCombo) {
-        // Mở vòng: Tìm nhanh Sảnh, Sám hoặc Đôi để mở bài
-        let foundCombo = false;
-        const nonTwos = playerHand.filter(c => !isTwo(c));
-
-        // 1. Thử tìm sảnh từ 3-5 lá dùng distinctRanks chuẩn xác
-        const distinctRanks = Array.from(new Set(nonTwos.map(c => c.rank))).sort((a, b) => a - b);
-        for (let len = Math.min(5, distinctRanks.length); len >= 3 && !foundCombo; len--) {
-          for (let i = 0; i <= distinctRanks.length - len; i++) {
-            let isConsecutive = true;
-            for (let k = 0; k < len - 1; k++) {
-              if (distinctRanks[i + k + 1] !== distinctRanks[i + k] + 1) {
-                isConsecutive = false;
-                break;
-              }
-            }
-            if (isConsecutive) {
-              const targetRanks = distinctRanks.slice(i, i + len);
-              const sample: Card[] = [];
-              for (const r of targetRanks) {
-                const c = nonTwos.find(card => card.rank === r);
-                if (c) sample.push(c);
-              }
-              if (sample.length === len) {
-                chosenCards = sample;
-                newCombo = identifyCombination(chosenCards);
-                foundCombo = true;
-                break;
-              }
-            }
-          }
-        }
-
-        // 2. Thử tìm Sám cô (Triple)
-        if (!foundCombo) {
-          for (let i = 0; i < playerHand.length - 2; i++) {
-            if (playerHand[i].rank === playerHand[i + 1].rank && playerHand[i + 1].rank === playerHand[i + 2].rank) {
-              chosenCards = [playerHand[i], playerHand[i + 1], playerHand[i + 2]];
-              newCombo = identifyCombination(chosenCards);
-              foundCombo = true;
-              break;
-            }
-          }
-        }
-
-        // 3. Thử tìm đôi
-        if (!foundCombo) {
-          for (let i = 0; i < playerHand.length - 1; i++) {
-            if (playerHand[i].rank === playerHand[i + 1].rank) {
-              chosenCards = [playerHand[i], playerHand[i + 1]];
-              newCombo = identifyCombination(chosenCards);
-              foundCombo = true;
-              break;
-            }
-          }
-        }
-
-        // 4. Đánh rác nhỏ nhất (tránh đánh Heo nếu đó là lá duy nhất còn lại)
-        if (!foundCombo) {
-          const nonTwos = playerHand.filter(c => !isTwo(c));
-          if (nonTwos.length > 0) {
-            chosenCards = [nonTwos[0]];
-            newCombo = identifyCombination(chosenCards);
-          } else if (playerHand.length > 1) {
-            chosenCards = [playerHand[0]];
-            newCombo = identifyCombination(chosenCards);
-          }
-        }
-      } else {
-        // Đè bài theo tổ hợp
-        if (currentCombo.type === 'SINGLE') {
-          for (let i = 0; i < playerHand.length; i++) {
-            if (playerHand.length === 1 && isTwo(playerHand[i])) continue; // Cấm về bằng Heo
-            if (playerHand[i].weight > currentCombo.highestCard.weight) {
-              chosenCards = [playerHand[i]];
-              newCombo = identifyCombination(chosenCards);
-              break;
-            }
-          }
-        } else if (currentCombo.type === 'PAIR') {
-          for (let i = 0; i < playerHand.length - 1; i++) {
-            if (playerHand[i].rank === playerHand[i + 1].rank) {
-              if (playerHand[i + 1].weight > currentCombo.highestCard.weight) {
-                chosenCards = [playerHand[i], playerHand[i + 1]];
-                newCombo = identifyCombination(chosenCards);
-                break;
-              }
-            }
-          }
-        } else if (currentCombo.type === 'TRIPLE') {
-          for (let i = 0; i < playerHand.length - 2; i++) {
-            if (playerHand[i].rank === playerHand[i + 1].rank && playerHand[i + 1].rank === playerHand[i + 2].rank) {
-              if (playerHand[i + 2].weight > currentCombo.highestCard.weight) {
-                chosenCards = [playerHand[i], playerHand[i + 1], playerHand[i + 2]];
-                newCombo = identifyCombination(chosenCards);
-                break;
-              }
-            }
-          }
-        } else if (currentCombo.type === 'STRAIGHT') {
-          const nonTwos = playerHand.filter(c => !isTwo(c));
-          const len = currentCombo.length;
-          const distinctRanks = Array.from(new Set(nonTwos.map(c => c.rank))).sort((a, b) => a - b);
-          for (let i = 0; i <= distinctRanks.length - len; i++) {
-            let isConsecutive = true;
-            for (let k = 0; k < len - 1; k++) {
-              if (distinctRanks[i + k + 1] !== distinctRanks[i + k] + 1) {
-                isConsecutive = false;
-                break;
-              }
-            }
-            if (isConsecutive) {
-              const targetRanks = distinctRanks.slice(i, i + len);
-              const sample: Card[] = [];
-              for (const r of targetRanks) {
-                const c = nonTwos.find(card => card.rank === r);
-                if (c) sample.push(c);
-              }
-              if (sample.length === len && sample[len - 1].weight > currentCombo.highestCard.weight) {
-                chosenCards = sample;
-                newCombo = identifyCombination(chosenCards);
-                break;
-              }
-            }
-          }
-        }
-      }
-
-      if (chosenCards && newCombo) {
-        // Đánh bài
-        const chosenCardIds = new Set(chosenCards.map(c => c.id));
-        hands[activePlayerId] = playerHand.filter(c => !chosenCardIds.has(c.id));
-        currentCombo = newCombo;
-        consecutivePasses = 0;
-
-        if (hands[activePlayerId].length === 0) {
-          return activePlayerId === botId;
-        }
-      } else {
-        // Bỏ lượt
-        consecutivePasses++;
-      }
-
-      turnIdx++;
-    }
-
-    // Ai ít bài nhất thắng
-    let minCards = hands[botId].length;
-    let bestPlayer = botId;
-    for (const oppId of opponentIds) {
-      if (hands[oppId].length < minCards) {
-        minCards = hands[oppId].length;
-        bestPlayer = oppId;
-      }
-    }
-
-    return bestPlayer === botId;
   }
 }

@@ -89,40 +89,11 @@ export function calculateChopPenalty(
   if (betAmount < 0) {
     throw new Error(`[calculateChopPenalty] Invariant violated: betAmount cannot be negative (got ${betAmount})`);
   }
-  let amount: number;
-  try {
-    amount = wasmCalculateChopPenalty(target, candidate, betAmount, penaltyMultiplier);
-  } catch {
-    amount = calculateChopPenaltyTsFallback(target, betAmount, penaltyMultiplier);
-  }
+  const amount = wasmCalculateChopPenalty(target, candidate, betAmount, penaltyMultiplier);
   return {
     amount,
     description: getChopDescription(target, amount)
   };
-}
-
-function calculateRottenPenaltyTsFallback(hand: readonly Card[], betAmount: number, penaltyMultiplier: number): number {
-  let penalty = 0;
-  const mult = getMultiplier(penaltyMultiplier);
-
-  for (const card of hand) {
-    if (isTwo(card)) {
-      penalty += (isRedCard(card) ? betAmount * 2 : betAmount * 1) * mult;
-    }
-  }
-
-  const rankCounts: Record<number, number> = {};
-  for (const card of hand) {
-    rankCounts[card.rank] = (rankCounts[card.rank] || 0) + 1;
-  }
-
-  for (const rank in rankCounts) {
-    if (rankCounts[rank] === 4 && Number(rank) < 15) {
-      penalty += betAmount * 4 * mult;
-    }
-  }
-
-  return penalty;
 }
 
 /**
@@ -132,11 +103,7 @@ export function calculateRottenPenalty(hand: readonly Card[], betAmount: number,
   if (betAmount < 0) {
     throw new Error(`[calculateRottenPenalty] Invariant violated: betAmount cannot be negative (got ${betAmount})`);
   }
-  try {
-    return wasmCalculateRottenPenalty(hand, betAmount, penaltyMultiplier);
-  } catch {
-    return calculateRottenPenaltyTsFallback(hand, betAmount, penaltyMultiplier);
-  }
+  return wasmCalculateRottenPenalty(hand, betAmount, penaltyMultiplier);
 }
 
 /**
@@ -148,11 +115,7 @@ export function calculateCongPenalty(betAmount: number, congMultiplier: number =
   if (betAmount < 0) {
     throw new Error(`[calculateCongPenalty] Invariant violated: betAmount cannot be negative (got ${betAmount})`);
   }
-  try {
-    return wasmCalculateCongPenalty(betAmount, congMultiplier);
-  } catch {
-    return 26 * betAmount * getMultiplier(congMultiplier);
-  }
+  return wasmCalculateCongPenalty(betAmount, congMultiplier);
 }
 
 /**
@@ -180,11 +143,7 @@ export function calculateCountCardsSettlement(
     throw new Error(`[calculateCountCardsSettlement] Invariant violated: betAmount cannot be negative (got ${betAmount})`);
   }
 
-  try {
-    return wasmCalculateCountCardsSettlement(players, winnerId, betAmount, penaltyMultiplier, isThreeSpadesWin, congMultiplier);
-  } catch {
-    return calculateCountCardsSettlementTsFallback(players, winnerId, betAmount, penaltyMultiplier, isThreeSpadesWin, congMultiplier);
-  }
+  return wasmCalculateCountCardsSettlement(players, winnerId, betAmount, penaltyMultiplier, isThreeSpadesWin, congMultiplier);
 }
 
 /**
@@ -208,11 +167,7 @@ export function calculateWinnerTakesAllSettlement(
     throw new Error(`[calculateWinnerTakesAllSettlement] Invariant violated: betAmount cannot be negative (got ${betAmount})`);
   }
 
-  try {
-    return wasmCalculateWinnerTakesAllSettlement(players, winnerId, betAmount, penaltyMultiplier, isThreeSpadesWin, congMultiplier);
-  } catch {
-    return calculateWinnerTakesAllSettlementTsFallback(players, winnerId, betAmount, penaltyMultiplier, isThreeSpadesWin, congMultiplier);
-  }
+  return wasmCalculateWinnerTakesAllSettlement(players, winnerId, betAmount, penaltyMultiplier, isThreeSpadesWin, congMultiplier);
 }
 
 /**
@@ -239,142 +194,7 @@ export function calculateTraditionalSettlement(
     throw new Error(`[calculateTraditionalSettlement] Invariant violated: betAmount cannot be negative (got ${betAmount})`);
   }
 
-  try {
-    return wasmCalculateTraditionalSettlement(players, winners, betAmount, penaltyMultiplier, isThreeSpadesWin, congMultiplier);
-  } catch {
-    return calculateTraditionalSettlementTsFallback(players, winners, betAmount, penaltyMultiplier, isThreeSpadesWin, congMultiplier);
-  }
+  return wasmCalculateTraditionalSettlement(players, winners, betAmount, penaltyMultiplier, isThreeSpadesWin, congMultiplier);
 }
 
-// ==========================================
-// Fallback TypeScript Implementations
-// ==========================================
-
-function calculateCountCardsSettlementTsFallback(
-  players: readonly MatchPlayer[],
-  winnerId: string,
-  betAmount: number,
-  penaltyMultiplier: number,
-  isThreeSpadesWin: boolean,
-  congMultiplier: number
-): Record<string, number> {
-  const payouts: Record<string, number> = {};
-  players.forEach(p => { payouts[p.id] = 0; });
-
-  const mult = getMultiplier(penaltyMultiplier);
-  const threeSpadesMultiplier = isThreeSpadesWin ? 2 : 1;
-  let totalWinnerEarn = 0;
-
-  for (const player of players) {
-    if (player.id !== winnerId) {
-      let lossAmount = 0;
-      if (player.hand.length === 13 && !player.hasPlayedFirstCard) {
-        lossAmount += calculateCongPenalty(betAmount, congMultiplier);
-      } else {
-        lossAmount += player.hand.length * betAmount;
-      }
-
-      const rotten = calculateRottenPenalty(player.hand, betAmount, mult);
-      lossAmount += rotten;
-      lossAmount *= threeSpadesMultiplier;
-
-      payouts[player.id] = -lossAmount;
-      totalWinnerEarn += lossAmount;
-    }
-  }
-
-  payouts[winnerId] = totalWinnerEarn;
-  return payouts;
-}
-
-function calculateWinnerTakesAllSettlementTsFallback(
-  players: readonly MatchPlayer[],
-  winnerId: string,
-  betAmount: number,
-  penaltyMultiplier: number,
-  isThreeSpadesWin: boolean,
-  congMultiplier: number
-): Record<string, number> {
-  const payouts: Record<string, number> = {};
-  players.forEach(p => { payouts[p.id] = 0; });
-
-  const mult = getMultiplier(penaltyMultiplier);
-  const threeSpadesMultiplier = isThreeSpadesWin ? 2 : 1;
-  let totalWinnerEarn = 0;
-
-  for (const player of players) {
-    if (player.id !== winnerId) {
-      let lossAmount = betAmount;
-
-      if (player.hand.length === 13 && !player.hasPlayedFirstCard) {
-        lossAmount += calculateCongPenalty(betAmount, congMultiplier);
-      }
-
-      const rotten = calculateRottenPenalty(player.hand, betAmount, mult);
-      lossAmount += rotten;
-      lossAmount *= threeSpadesMultiplier;
-
-      payouts[player.id] = -lossAmount;
-      totalWinnerEarn += lossAmount;
-    }
-  }
-
-  payouts[winnerId] = totalWinnerEarn;
-  return payouts;
-}
-
-function calculateTraditionalSettlementTsFallback(
-  players: readonly MatchPlayer[],
-  winners: readonly MatchPlayer[],
-  betAmount: number,
-  penaltyMultiplier: number,
-  isThreeSpadesWin: boolean,
-  congMultiplier: number
-): Record<string, number> {
-  const payouts: Record<string, number> = {};
-  players.forEach(p => { payouts[p.id] = 0; });
-  const mult = getMultiplier(penaltyMultiplier);
-  const threeSpadesMultiplier = isThreeSpadesWin ? 2 : 1;
-
-  if (winners.length >= 4) {
-    payouts[winners[0].id] = betAmount * 3 * threeSpadesMultiplier;
-    payouts[winners[1].id] = betAmount * 1;
-    payouts[winners[2].id] = -betAmount * 1;
-    payouts[winners[3].id] = -betAmount * 3 * threeSpadesMultiplier;
-  } else if (winners.length === 3) {
-    payouts[winners[0].id] = betAmount * 2 * threeSpadesMultiplier;
-    payouts[winners[1].id] = 0;
-    payouts[winners[2].id] = -betAmount * 2 * threeSpadesMultiplier;
-  } else if (winners.length === 2) {
-    payouts[winners[0].id] = betAmount * 1 * threeSpadesMultiplier;
-    payouts[winners[1].id] = -betAmount * 1 * threeSpadesMultiplier;
-  } else if (winners.length === 1) {
-    const remainingPlayers = players.filter(p => p.id !== winners[0].id);
-    payouts[winners[0].id] = betAmount * remainingPlayers.length * threeSpadesMultiplier;
-    remainingPlayers.forEach(p => {
-      payouts[p.id] = -betAmount * threeSpadesMultiplier;
-    });
-  }
-
-  const winnerFirst = winners[0];
-  for (const player of players) {
-    if (player.id !== winnerFirst.id && player.hand.length > 0) {
-      let rotten = calculateRottenPenalty(player.hand, betAmount, mult);
-      if (rotten > 0) {
-        rotten *= threeSpadesMultiplier;
-        payouts[player.id] -= rotten;
-        payouts[winnerFirst.id] += rotten;
-      }
-
-      if (player.hand.length === 13 && !player.hasPlayedFirstCard) {
-        let cong = calculateCongPenalty(betAmount, congMultiplier);
-        cong *= threeSpadesMultiplier;
-        payouts[player.id] -= cong;
-        payouts[winnerFirst.id] += cong;
-      }
-    }
-  }
-
-  return payouts;
-}
 

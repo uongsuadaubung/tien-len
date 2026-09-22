@@ -211,65 +211,17 @@ export function buildCombinationRecognitionChain(): CombinationRecognizer {
 const DEFAULT_RECOGNITION_CHAIN = buildCombinationRecognitionChain();
 
 /**
- * Phân tích và nhận diện danh sách các lá bài thuộc kiểu tổ hợp nào trong Tiến Lên Miền Nam
+ * Phân tích và nhận diện danh sách các lá bài thuộc kiểu tổ hợp nào trong Tiến Lên Miền Nam (Rust WASM Native)
  */
 export function identifyCombination(cards: Card[]): Combination | null {
   if (!cards || cards.length === 0) return null;
-  try {
-    const wasmResult = wasmIdentifyCombination(cards);
-    if (wasmResult) return wasmResult;
-  } catch {
-    // Fallback to TS recognition chain if WASM is unavailable
-  }
-  const sorted = sortCards(cards);
-  return DEFAULT_RECOGNITION_CHAIN.recognize(sorted);
+  return wasmIdentifyCombination(cards);
 }
 
 /**
- * So sánh 2 lá bài bất kỳ theo luật Tiến Lên Miền Nam
+ * So sánh 2 lá bài bất kỳ theo luật Tiến Lên Miền Nam (Rust WASM Native)
  */
 export function isBeating(candidate: Combination, target: Combination): boolean {
-  try {
-    return wasmCanBeat(candidate, target);
-  } catch {
-    // Fallback to TS rules
-  }
-  // 1. Cùng kiểu tổ hợp thông thường
-  if (candidate.type === target.type) {
-    if (candidate.type === 'STRAIGHT') {
-      if (candidate.length !== target.length) return false;
-      return compareCards(candidate.highestCard, target.highestCard) > 0;
-    }
-    return compareCards(candidate.highestCard, target.highestCard) > 0;
-  }
-
-  // 2. Chặt Heo đơn (1 lá 2)
-  if (target.type === 'SINGLE' && target.highestCard.rank === 15) {
-    if (candidate.type === 'THREE_PAIRS_SEQUENTIAL') return true;
-    if (candidate.type === 'FOUR_OF_A_KIND') return true;
-    if (candidate.type === 'FOUR_PAIRS_SEQUENTIAL') return true;
-    return false;
-  }
-
-  // 3. Chặt Đôi Heo (2 lá 2)
-  if (target.type === 'PAIR' && target.highestCard.rank === 15) {
-    if (candidate.type === 'FOUR_OF_A_KIND') return true;
-    if (candidate.type === 'FOUR_PAIRS_SEQUENTIAL') return true;
-    return false;
-  }
-
-  // 4. Chặt 3 Đôi Thông
-  if (target.type === 'THREE_PAIRS_SEQUENTIAL') {
-    if (candidate.type === 'FOUR_OF_A_KIND') return true;
-    if (candidate.type === 'FOUR_PAIRS_SEQUENTIAL') return true;
-    return false;
-  }
-
-  // 5. Chặt Tứ Quý
-  if (target.type === 'FOUR_OF_A_KIND') {
-    if (candidate.type === 'FOUR_PAIRS_SEQUENTIAL') return true;
-    return false;
-  }
-
-  return false;
+  return wasmCanBeat(candidate, target);
 }
+

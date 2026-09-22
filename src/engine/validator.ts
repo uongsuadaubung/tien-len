@@ -1,5 +1,5 @@
 import { Card, Combination } from './types';
-import { compareCards, isTwo, formatCard, formatCardVietnamese } from './card';
+import { isTwo, formatCard, formatCardVietnamese } from './card';
 import { identifyCombination } from './combinations';
 import { wasmCanBeat, wasmCanChop } from './wasm-bridge';
 
@@ -23,115 +23,16 @@ export type ValidationResult = ValidValidationResult | InvalidValidationResult;
  * Kiểm tra xem tổ hợp `candidate` có đè / chặt được tổ hợp `target` hay không
  */
 export function canBeat(candidate: Combination, target: Combination): ValidationResult {
-  try {
-    const isBeating = wasmCanBeat(candidate, target);
-    if (isBeating) {
-      const isChop = wasmCanChop(candidate, target) ||
-        candidate.type === 'THREE_PAIRS_SEQUENTIAL' ||
-        candidate.type === 'FOUR_PAIRS_SEQUENTIAL';
-      return {
-        valid: true,
-        combination: candidate,
-        isChop
-      };
-    }
-  } catch {
-    // Fallback to TS
-  }
-
-  // 1. Trường hợp cùng loại tổ hợp và cùng số lượng lá
-  if (candidate.type === target.type && candidate.cards.length === target.cards.length) {
-    // Với Sảnh: so sánh lá cao nhất
-    if (candidate.type === 'STRAIGHT') {
-      const diff = compareCards(candidate.highestCard, target.highestCard);
-      if (diff > 0) {
-        return {
-          valid: true,
-          combination: candidate,
-          isChop: false
-        };
-      }
-      return {
-        valid: false,
-        reason: 'Sảnh này không đủ lớn để đè sảnh trên bàn'
-      };
-    }
-
-    // Với các đôi thông đè đôi thông cùng số lượng đôi (ví dụ: 3 đôi thông đè 3 đôi thông)
-    if (candidate.type === 'THREE_PAIRS_SEQUENTIAL' || candidate.type === 'FOUR_PAIRS_SEQUENTIAL') {
-      const diff = compareCards(candidate.highestCard, target.highestCard);
-      if (diff > 0) {
-        return {
-          valid: true,
-          combination: candidate,
-          isChop: true
-        };
-      }
-      return {
-        valid: false,
-        reason: 'Tổ hợp đôi thông này không đủ lớn để đè'
-      };
-    }
-
-    // Các bộ thông thường khác (Đơn, Đôi, Sám, Tứ Quý): so sánh lá bài cao nhất
-    const diff = compareCards(candidate.highestCard, target.highestCard);
-    if (diff > 0) {
-      return {
-        valid: true,
-        combination: candidate,
-        isChop: false
-      };
-    }
+  const isBeating = wasmCanBeat(candidate, target);
+  if (isBeating) {
+    const isChop = wasmCanChop(candidate, target) ||
+      candidate.type === 'THREE_PAIRS_SEQUENTIAL' ||
+      candidate.type === 'FOUR_PAIRS_SEQUENTIAL';
     return {
-      valid: false,
-      reason: 'Tổ hợp này không đủ lớn để đè bài trên bàn'
+      valid: true,
+      combination: candidate,
+      isChop
     };
-  }
-
-  // 2. Trường hợp Chặt đặc biệt (Special Chopping Rules)
-  // Target là 1 lá Heo (SINGLE rank 15)
-  if (target.type === 'SINGLE' && isTwo(target.cards[0])) {
-    // 3 đôi thông chặt được 1 Heo
-    if (candidate.type === 'THREE_PAIRS_SEQUENTIAL') {
-      return { valid: true, combination: candidate, isChop: true };
-    }
-    // Tứ quý chặt được 1 Heo
-    if (candidate.type === 'FOUR_OF_A_KIND') {
-      return { valid: true, combination: candidate, isChop: true };
-    }
-    // 4 đôi thông chặt được 1 Heo
-    if (candidate.type === 'FOUR_PAIRS_SEQUENTIAL') {
-      return { valid: true, combination: candidate, isChop: true };
-    }
-  }
-
-  // Target là Đôi Heo (PAIR rank 15)
-  if (target.type === 'PAIR' && isTwo(target.cards[0])) {
-    // Tứ quý chặt được đôi Heo
-    if (candidate.type === 'FOUR_OF_A_KIND') {
-      return { valid: true, combination: candidate, isChop: true };
-    }
-    // 4 đôi thông chặt được đôi Heo
-    if (candidate.type === 'FOUR_PAIRS_SEQUENTIAL') {
-      return { valid: true, combination: candidate, isChop: true };
-    }
-  }
-
-  // Target là 3 đôi thông: bị chặt bởi 3 đôi thông lớn hơn, Tứ quý hoặc 4 đôi thông
-  if (target.type === 'THREE_PAIRS_SEQUENTIAL') {
-    if (candidate.type === 'FOUR_OF_A_KIND') {
-      return { valid: true, combination: candidate, isChop: true };
-    }
-    if (candidate.type === 'FOUR_PAIRS_SEQUENTIAL') {
-      return { valid: true, combination: candidate, isChop: true };
-    }
-  }
-
-  // Target là Tứ quý: bị chặt bởi Tứ quý lớn hơn hoặc 4 đôi thông
-  if (target.type === 'FOUR_OF_A_KIND') {
-    if (candidate.type === 'FOUR_PAIRS_SEQUENTIAL') {
-      return { valid: true, combination: candidate, isChop: true };
-    }
   }
 
   return {

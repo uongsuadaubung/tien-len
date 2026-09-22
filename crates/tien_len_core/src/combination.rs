@@ -19,7 +19,9 @@ pub enum CombinationType {
 pub struct Combination {
     #[serde(rename = "type")]
     pub combo_type: CombinationType,
+    #[serde(default)]
     pub length: usize,
+    #[serde(default)]
     pub cards: Vec<Card>, // Sorted in ascending order
     pub highest_card: Card,
 }

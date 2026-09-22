@@ -127,9 +127,21 @@ export function wasmIdentifyCombination(cards: readonly Card[]): Combination | n
   return JSON.parse(json);
 }
 
+function serializeCombination(c: Combination): string {
+  const cards = c.cards ?? [];
+  const highestCard = c.highestCard ?? (cards.length > 0 ? cards[cards.length - 1] : undefined);
+  const length = c.length ?? cards.length;
+  return JSON.stringify({
+    type: c.type,
+    length,
+    cards,
+    highestCard
+  });
+}
+
 export function wasmCanBeat(candidate: Combination, target: Combination): boolean {
   ensureWasmReady();
-  return wasm_can_beat(JSON.stringify(candidate), JSON.stringify(target));
+  return wasm_can_beat(serializeCombination(candidate), serializeCombination(target));
 }
 
 export function wasmCanChop(
@@ -140,8 +152,8 @@ export function wasmCanChop(
 ): boolean {
   ensureWasmReady();
   return wasm_can_chop(
-    JSON.stringify(candidate),
-    JSON.stringify(target),
+    serializeCombination(candidate),
+    serializeCombination(target),
     allowThreePairs,
     allowQuads
   );
@@ -231,8 +243,8 @@ export function wasmCalculateChopPenalty(
 ): number {
   ensureWasmReady();
   const res = wasm_calculate_chop_penalty(
-    JSON.stringify(target),
-    JSON.stringify(candidate),
+    serializeCombination(target),
+    serializeCombination(candidate),
     BigInt(betAmount),
     multiplier
   );
