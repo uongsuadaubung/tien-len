@@ -7,7 +7,7 @@ import { loadPlayerProfile } from '../../src/engine/storage';
 import { globalP2PClient } from '../../src/engine/network/p2p-client';
 import { createCard } from '../../src/engine/card';
 import { createPlayer } from '../../src/engine/player-factory';
-import { GameEndPacket, OnlineRoomState, OnlinePlayer, TableStateSyncPacket } from '../../src/engine/network/network.schema';
+import { GameEndPacket, OnlineRoomState, OnlinePlayer, TableStateSyncPacket, createGameEndPacket } from '../../src/engine/network/network.schema';
 
 describe('Online P2P Settlement & Coin Payout Tests', () => {
   beforeEach(() => {
@@ -176,7 +176,7 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
       ]
     });
 
-    const endPacket: GameEndPacket = {
+    const endPacket: GameEndPacket = createGameEndPacket({
       winners: ['p1'],
       payouts: {
         p0: -15000,
@@ -186,14 +186,15 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
         p0: -25,
         p1: 25
       },
+      playerScores: {
+        p0: 35000,
+        p1: 45000
+      },
       allPlayerHands: {
         p0: [{ rank: 15, suit: 'HEARTS', id: '2_HEARTS' }],
         p1: []
-      },
-      isThreeSpadesWin: false,
-      instantWinType: null,
-      loanDeduction: 0
-    };
+      }
+    });
 
     // Giả lập Khách nhận GameEndPacket từ Host
     globalP2PClient.emitGameEndForTest(endPacket, 'host_peer_123');
@@ -354,18 +355,16 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
       winners: []
     });
 
-    const endPacket: GameEndPacket = {
+    const endPacket: GameEndPacket = createGameEndPacket({
       winners: ['p1', 'p0'], // p1 về Nhất, p0 về Nhì
       payouts: { p1: 7000, p0: -7000 },
       eloDeltas: { p1: 25, p0: -25 },
+      playerScores: { p1: 57000, p0: 43000 },
       allPlayerHands: {
         p0: [createCard(3, 'SPADES'), createCard(4, 'SPADES')],
         p1: []
-      },
-      isThreeSpadesWin: false,
-      instantWinType: null,
-      loanDeduction: 0
-    };
+      }
+    });
 
     // Giả lập Guest nhận GameEndPacket
     globalP2PClient.emitGameEndForTest(endPacket, 'host_peer_456');
@@ -442,7 +441,7 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
       winners: [players[1]]
     });
 
-    const endPacket: GameEndPacket = {
+    const endPacket: GameEndPacket = createGameEndPacket({
       winners: ['p1'],
       payouts: {
         p0: -20000,
@@ -452,14 +451,15 @@ describe('Online P2P Settlement & Coin Payout Tests', () => {
         p0: -20,
         p1: 20
       },
+      playerScores: {
+        p0: 30000,
+        p1: 70000
+      },
       allPlayerHands: {
         p0: [{ rank: 4, suit: 'SPADES', id: '4_SPADES' }],
         p1: []
-      },
-      isThreeSpadesWin: false,
-      instantWinType: null,
-      loanDeduction: 0
-    };
+      }
+    });
 
     // Client nhận GameEndPacket
     globalP2PClient.emitGameEndForTest(endPacket, 'host_peer_test');

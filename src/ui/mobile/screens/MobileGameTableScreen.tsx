@@ -14,7 +14,6 @@ import { useGameTableScreenLogic } from '../../hooks/useGameTableScreenLogic';
 import { useViewStore } from '../../../stores/useViewStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useGameStore } from '../../../stores/useGameStore';
-import { useOnlineStore } from '../../../stores/useOnlineStore';
 import { useI18n } from '../../../locales';
 
 // Icons
@@ -67,9 +66,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
     gameSettings,
     selectedCardIds,
     handSortMode,
-    smartVariantIndex,
-    toggleCardSelect,
-    clearCardSelection
+    smartVariantIndex
   } = useGameStore();
 
   const {
@@ -90,9 +87,13 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
     handleQuickSelect,
     handlePlayCards,
     handlePassTurnAction,
+    handleToggleCardSelect,
+    handleClearCardSelection,
     isDealing,
     dealtCounts,
     dealBanner,
+    openingReason,
+    reconnectNotice,
     currentTurnPlayerId,
     leadPlayerId,
     currentMove,
@@ -106,8 +107,6 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
     onPlaySelectedCards,
     onPassTurn
   });
-
-  const reconnectNotice = useOnlineStore(s => s.reconnectNotice);
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[radial-gradient(ellipse_at_center,#141926_0%,#090c12_100%)] flex flex-col justify-between select-none">
@@ -189,26 +188,6 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
           </button>
         </div>
       </header>
-
-      {/* BANNER THÔNG BÁO CHỜ KẾT NỐI LẠI (GRACE PERIOD) */}
-      {reconnectNotice && (
-        <div className="absolute top-11 left-1/2 -translate-x-1/2 z-50 bg-amber-950/95 text-amber-200 font-medium px-4 py-1.5 rounded-full shadow-2xl border border-amber-500/80 flex items-center gap-2 text-xs tracking-wide animate-pulse pointer-events-none">
-          <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-          <span>
-            {t('online.reconnectWaitingBanner', {
-              name: reconnectNotice.playerName,
-              seconds: Math.max(0, Math.ceil((reconnectNotice.deadline - Date.now()) / 1000))
-            })}
-          </span>
-        </div>
-      )}
-
-      {/* BANNER THÔNG BÁO QUYỀN ĐI ĐẦU VÁN ĐẤU (COMPACT BANNER) */}
-      {dealBanner && !reconnectNotice && (
-        <div className="absolute top-11 left-1/2 -translate-x-1/2 z-50 bg-amber-500/90 text-slate-950 font-bold px-4 py-1 rounded-full shadow-lg border border-amber-300 animate-bounce pointer-events-none text-xs tracking-wide">
-          {dealBanner}
-        </div>
-      )}
 
       {/* BOTTOM SHEET / DRAWER: QUÂN SƯ AI & PHÂN TÍCH DIỄN BIẾN TRẬN ĐẤU */}
       <MobileMatchHUDDrawer
@@ -331,8 +310,8 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
           <PlayerHandView
             player={localPlayer}
             selectedCardIds={selectedCardIds}
-            onToggleCardSelect={toggleCardSelect}
-            onClearCardSelection={clearCardSelection}
+            onToggleCardSelect={handleToggleCardSelect}
+            onClearCardSelection={handleClearCardSelection}
             onPlaySelectedCards={handlePlayCards}
             onPassTurn={handlePassTurnAction}
             onAutoSort={onAutoSort}
@@ -352,6 +331,10 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
             cardSize="mobile"
             reverseButtons={reverseButtonsEnabled}
             quickResponseAssistEnabled={quickResponseAssistEnabled}
+            dealBanner={dealBanner}
+            openingReason={openingReason}
+            chopNotification={chopNotification}
+            reconnectNotice={reconnectNotice}
           />
         </div>
       </main>

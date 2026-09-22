@@ -29,16 +29,6 @@ export interface EndGameSettlementResult {
   readonly rottenPenalties: Readonly<Record<string, number>>;
 }
 
-/**
- * Helper trích xuất hệ số nhân sát phạt (multiplier: 1x, 2x, 3x, 4x, 5x...)
- */
-function getMultiplier(val: number = 1): number {
-  if (val < 0) {
-    throw new Error(`[getMultiplier] Invariant violated: multiplier cannot be negative (got ${val})`);
-  }
-  return Math.max(1, val);
-}
-
 function getChopDescription(target: Combination, amount: number): string {
   if (target.type === 'SINGLE' && isTwo(target.highestCard)) {
     const isRed = isRedCard(target.highestCard);
@@ -59,22 +49,6 @@ function getChopDescription(target: Combination, amount: number): string {
     return `Chặt Đè 4 Đôi Thông (+${amount.toLocaleString()} xu)`;
   }
   return `Chặt Hàng (+${amount.toLocaleString()} xu)`;
-}
-
-function calculateChopPenaltyTsFallback(target: Combination, betAmount: number, penaltyMultiplier: number): number {
-  const mult = getMultiplier(penaltyMultiplier);
-  if (target.type === 'SINGLE' && isTwo(target.highestCard)) {
-    return betAmount * (isRedCard(target.highestCard) ? 2 : 1) * mult;
-  }
-  if (target.type === 'PAIR' && isTwo(target.highestCard)) {
-    const redCount = target.cards.filter(isRedCard).length;
-    const baseMult = redCount === 2 ? 4 : redCount === 1 ? 3 : 2;
-    return betAmount * baseMult * mult;
-  }
-  if (target.type === 'THREE_PAIRS_SEQUENTIAL') return betAmount * 3 * mult;
-  if (target.type === 'FOUR_OF_A_KIND') return betAmount * 4 * mult;
-  if (target.type === 'FOUR_PAIRS_SEQUENTIAL') return betAmount * 6 * mult;
-  return betAmount * mult;
 }
 
 /**

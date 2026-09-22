@@ -8,6 +8,8 @@ import { resolveHandSortStrategy } from '../../engine/strategies/hand-sort-strat
 import { useI18n } from '../../locales';
 import { CardView } from './CardView';
 import { Play, SkipForward, ArrowUpDown, ArrowDownToLine, Layers, Crosshair } from 'lucide-react';
+import type { OpeningReason, ReconnectNotice } from '../../engine/network/network.schema';
+import type { ChopNotificationInfo } from '../../engine/state-machine/types';
 
 interface HandCardStyle extends React.CSSProperties {
   '--rot-deg'?: string;
@@ -37,6 +39,10 @@ export interface PlayerHandViewProps {
   readonly cardSize: 'sm' | 'md' | 'lg' | 'mobile';
   readonly reverseButtons: boolean;
   readonly quickResponseAssistEnabled: boolean;
+  readonly dealBanner?: string | null;
+  readonly openingReason?: OpeningReason | null;
+  readonly chopNotification?: ChopNotificationInfo | null;
+  readonly reconnectNotice?: ReconnectNotice | null;
 }
 
 const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
@@ -62,10 +68,46 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
   variantIndex,
   cardSize,
   reverseButtons,
-  quickResponseAssistEnabled
+  quickResponseAssistEnabled,
+  dealBanner,
+  openingReason,
+  chopNotification,
+  reconnectNotice
 }) => {
   const { t } = useI18n();
   const isReverseButtons = reverseButtons;
+
+  const [reconnectRemainingSeconds, setReconnectRemainingSeconds] = React.useState<number>(0);
+
+  React.useEffect(() => {
+    if (!reconnectNotice) {
+      setReconnectRemainingSeconds(0);
+      return;
+    }
+    const update = () => {
+      const remaining = Math.max(0, Math.ceil((reconnectNotice.deadline - Date.now()) / 1000));
+      setReconnectRemainingSeconds(remaining);
+    };
+    update();
+    const interval = setInterval(update, 500);
+    return () => clearInterval(interval);
+  }, [reconnectNotice]);
+
+  const resolvedOpeningText = React.useMemo(() => {
+    if (!dealBanner) return null;
+    if (!openingReason) return dealBanner;
+    const who = isLeader ? t('game.openingWhoYou') : t('game.openingWhoOpponent');
+    switch (openingReason) {
+      case 'THREE_SPADES':
+        return t('game.openingBannerThreeSpades', { who: who });
+      case 'SMALLEST_CARD':
+        return t('game.openingBannerSmallestCard', { who: who });
+      case 'PREVIOUS_WINNER':
+        return t('game.openingBannerPreviousWinner', { who: who });
+      default:
+        return dealBanner;
+    }
+  }, [dealBanner, openingReason, isLeader, t]);
 
   const isMobileSize = cardSize === 'mobile';
   const visibleCardCount = isDealing ? dealtCardsCount : player.hand.length;
@@ -116,22 +158,75 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
 
   return (
     <div id={`seat-${player.id}`} className="relative flex flex-col items-center justify-end w-full pb-0.5 z-30 select-none overflow-visible">
-      {/* Thông báo hướng dẫn nước đi đầu tiên ván 1 */}
-      {!isDealing && isCurrentTurn && isFirstMoveOfGame && hasRequiredCard && requiredCard && (
-        <div className="mb-1 animate-fade-in">
-          {selectedCardIds.size > 0 && !isSelectedWithRequired ? (
-            <div className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-red-950 border border-red-500/70 text-red-300 text-[10px] sm:text-[11px] font-bold shadow-xl">
-              <span>⚠️</span>
-              <span>{t('game.firstMoveWarning', { card: formatCardVietnamese(requiredCard) })}</span>
+      {/* KHU VỰC THÔNG BÁO TRUNG TÂM (Game Notification Banner Area) - Đồng bộ độ cao khi chọn bài */}
+      <div
+        className={`transition-transform duration-200 ${
+          hasSelectedCards ? '-translate-y-3.5 sm:-translate-y-4' : 'translate-y-0'
+        }`}
+      >
+        {/* 1. Thông báo Chờ Kết Nối Lại (Grace Period Reconnect Notice) - Độ ưu tiên cao nhất */}
+        {reconnectNotice && (
+          <div className="mb-1.5 animate-pulse z-50 pointer-events-none">
+            <div className="flex items-center gap-2 px-3.5 sm:px-5 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-red-950 via-amber-950 to-red-950 text-amber-200 font-bold text-xs sm:text-sm tracking-wide shadow-2xl border-2 border-amber-500/80">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping shrink-0" />
+              <span>
+                {t('online.reconnectWaitingBanner', {
+                  name: reconnectNotice.playerName,
+                  seconds: reconnectRemainingSeconds
+                })}
+              </span>
             </div>
-          ) : (
-            <div className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#0c3327] border border-[#d4af37]/70 text-[#f3e5ab] text-[10px] sm:text-[11px] font-bold shadow-xl">
-              <span>{requiredCard.suit === 'SPADES' ? '♠' : requiredCard.suit === 'CLUBS' ? '♣' : requiredCard.suit === 'DIAMONDS' ? '♦' : '♥'}</span>
-              <span>{t('game.firstMoveInstruction', { card: formatCardVietnamese(requiredCard) })}</span>
+          </div>
+        )}
+
+        {/* 2. Thông báo Chặt Heo / Chặt Chồng (Chop Notification) */}
+        {!reconnectNotice && chopNotification && chopNotification.visible && (
+          <div className="mb-1.5 animate-bounce z-50 pointer-events-none">
+            <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white font-black text-xs sm:text-sm tracking-wider shadow-2xl border-2 border-yellow-300">
+              <span className="text-base">{chopNotification.isCascade ? '🔥' : '⚡'}</span>
+              <span>
+                {chopNotification.isCascade
+                  ? t('table.chopCascadeTitle', { chain: chopNotification.chainCount || 1 })
+                  : t('table.chopSingleTitle')}
+              </span>
+              <span className="text-yellow-200 text-[10px] sm:text-xs font-semibold">
+                {t('table.chopDetail', {
+                  chopper: chopNotification.chopperName,
+                  amount: chopNotification.amount.toLocaleString(),
+                  victim: chopNotification.targetName
+                })}
+              </span>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+
+        {/* 3. Banner Thông Báo Quyền Mở Màn / Lý do đi đầu ván đấu */}
+        {!reconnectNotice && (!chopNotification || !chopNotification.visible) && resolvedOpeningText && (
+          <div className="mb-1.5 animate-bounce z-50 pointer-events-none">
+            <div className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 font-black text-xs sm:text-sm tracking-wide shadow-2xl border-2 border-amber-200">
+              <span className="text-sm sm:text-base">👑</span>
+              <span>{resolvedOpeningText}</span>
+            </div>
+          </div>
+        )}
+
+        {/* 4. Thông báo hướng dẫn nước đi đầu tiên ván 1 */}
+        {!reconnectNotice && (!chopNotification || !chopNotification.visible) && !resolvedOpeningText && !isDealing && isCurrentTurn && isFirstMoveOfGame && hasRequiredCard && requiredCard && (
+          <div className="mb-1 animate-fade-in z-50">
+            {selectedCardIds.size > 0 && !isSelectedWithRequired ? (
+              <div className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-red-950 border border-red-500/70 text-red-300 text-[10px] sm:text-[11px] font-bold shadow-xl">
+                <span>⚠️</span>
+                <span>{t('game.firstMoveWarning', { card: formatCardVietnamese(requiredCard) })}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#0c3327] border border-[#d4af37]/70 text-[#f3e5ab] text-[10px] sm:text-[11px] font-bold shadow-xl">
+                <span>{requiredCard.suit === 'SPADES' ? '♠' : requiredCard.suit === 'CLUBS' ? '♣' : requiredCard.suit === 'DIAMONDS' ? '♦' : '♥'}</span>
+                <span>{t('game.firstMoveInstruction', { card: formatCardVietnamese(requiredCard) })}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Bảng nút điều khiển hành động (Action Controls) - Z-Index 40, Tự động trượt lên khi chọn bài */}
       {!isDealing && (isCurrentTurn || hasSelectedCards) && (
@@ -290,7 +385,7 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
                       <CardView
                         card={card}
                         isSelected={isSelected}
-                        isPlayable={isCurrentTurn}
+                        isPlayable={!isDealing}
                         onClick={() => onToggleCardSelect(card.id)}
                         size={isMobileSize ? 'mobile' : 'md'}
                         style={{
@@ -324,7 +419,7 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
                 <CardView
                   card={card}
                   isSelected={isSelected}
-                  isPlayable={isCurrentTurn}
+                  isPlayable={!isDealing}
                   onClick={() => onToggleCardSelect(card.id)}
                   size={isMobileSize ? 'mobile' : 'md'}
                   style={{

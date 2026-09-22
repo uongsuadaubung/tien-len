@@ -1,8 +1,7 @@
 import type { MatchPlayer, Card, InstantWinType, PlayedMove, GameRules } from '../types';
 import type { EloDeltaResult } from '../elo';
-import type { CampaignChapter } from '../campaign';
+import type { CampaignChapter, CampaignResultMeta } from '../campaign';
 import type { I18nKeyPath } from '../../locales';
-import type { CampaignResultMeta } from '../../stores/useGameStore';
 import type { MatchLogReport } from '../match-logger';
 import type { GameOverMatchState } from '../state-machine/types';
 

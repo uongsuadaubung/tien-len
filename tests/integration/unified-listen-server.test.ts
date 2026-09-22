@@ -122,21 +122,21 @@ describe('Unified Listen Server Architecture (Full End-to-End Simulation)', () =
       expect(seat.cardCount).toBe(13);
     });
 
-    // Cho game chạy một vài lượt để bot hoặc người đánh bài
-    await new Promise(resolve => setTimeout(resolve, 50));
-
-    // Nếu tới lượt người chơi, người chơi chọn bài và đánh
-    let frame = humanSession.getLatestFrame();
-    if (frame.controls.isMyTurn) {
-      // Dùng quick select để chọn bài tự động
-      humanSession.sendIntent({ type: 'TRIGGER_QUICK_SELECT' });
-      frame = humanSession.getLatestFrame();
-      if (frame.controls.canPlay) {
-        humanSession.sendIntent({ type: 'SUBMIT_PLAY' });
+    // Chờ bot hoặc người chơi đánh bài (tối đa 500ms)
+    for (let i = 0; i < 10; i++) {
+      let frame = humanSession.getLatestFrame();
+      if (frame.controls.isMyTurn) {
+        humanSession.sendIntent({ type: 'TRIGGER_QUICK_SELECT' });
+        frame = humanSession.getLatestFrame();
+        if (frame.controls.canPlay) {
+          humanSession.sendIntent({ type: 'SUBMIT_PLAY' });
+        }
       }
+      if (host.engine.playedCardsInGame.length > 0) {
+        break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
-
-    await new Promise(resolve => setTimeout(resolve, 50));
 
     // Kiểm tra bàn đấu đã có ít nhất một nước đi được đánh ra
     expect(host.engine.playedCardsInGame.length).toBeGreaterThan(0);

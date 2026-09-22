@@ -1,4 +1,4 @@
-import { BOT_PERSONAS, generateRandomBotConfig, getBotConfig } from '../ai/bot-factory';
+import { BOT_PERSONAS, generateRandomBotConfig } from '../ai/bot-factory';
 import { BotConfig } from '../ai/types';
 import { MatchPlayer } from './types';
 import { 

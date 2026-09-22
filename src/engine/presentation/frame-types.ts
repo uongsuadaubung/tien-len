@@ -1,6 +1,8 @@
 import type { Card } from '../types';
 import type { MoveHint } from '../../ai/hint-engine';
-import type { HandSortMode } from '../../stores/game/types';
+import type { OpeningReason, LastAction } from '../network/network.schema';
+
+export type HandSortMode = 'NATURAL' | 'SMART_GROUP' | 'BY_SUIT' | 'TWO_PRESERVE';
 
 /**
  * HandCardRenderModel
@@ -84,6 +86,9 @@ export interface TableRenderFrame {
   readonly winners: readonly { id: string; name: string }[];
   readonly aiHint: MoveHint | null;
   readonly botThinkingThought: { botId: string; text: string } | null;
+  readonly turnDeadline: number | null;
+  readonly openingReason: OpeningReason | null;
+  readonly lastAction: LastAction | null;
 }
 
 /**

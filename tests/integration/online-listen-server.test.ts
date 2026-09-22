@@ -76,6 +76,7 @@ describe('Online Match via Unified Listen Server Architecture', () => {
     const rules = createDefaultGameRules({
       table: { playerCount: 2, betAmount: 2000, soundEnabled: true }
     });
+    rules.instantWin.enabled = false;
 
     const hostPlayerId = 'PLAYER_HOST';
     const guestPlayerId = 'PLAYER_GUEST';
@@ -168,6 +169,9 @@ describe('Online Match via Unified Listen Server Architecture', () => {
       cardIds: [firstCard.id]
     });
     activeSession.sendIntent({ type: 'SUBMIT_PLAY' });
+    for (let i = 0; i < 40 && host.engine.currentRound.moves.length === 0; i++) {
+      await new Promise(resolve => setTimeout(resolve, 25));
+    }
 
     // Host xử lý và broadcast TableSync -> Cả 2 session đều được cập nhật
     expect(host.engine.currentRound.moves).toHaveLength(1);

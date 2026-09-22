@@ -253,10 +253,85 @@ export async function dbResetEcosystem(): Promise<void> {
 }
 
 // ============================================================================
-// 1. PLAYER PROFILE OPERATIONS (Thuần 100% dựa trên bảng players)
+// 1. PLAYER PROFILE OPERATIONS (Thuần 100% dựa trên bảng players + Identity Anchor)
 // ============================================================================
 
+export const LOCAL_PROFILE_ID_KEY = 'tien_len_local_profile_id';
+
+let inMemoryAnchorProfileId: string | null = null;
+
+export function getLocalAnchorProfileId(): string | null {
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const stored = window.localStorage.getItem(LOCAL_PROFILE_ID_KEY);
+      if (stored) return stored;
+    } catch {}
+  }
+  return inMemoryAnchorProfileId;
+}
+
+export function setLocalAnchorProfileId(id: string): void {
+  if (!id) return;
+  inMemoryAnchorProfileId = id;
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      window.localStorage.setItem(LOCAL_PROFILE_ID_KEY, id);
+    } catch {}
+  }
+  try {
+    const db = getGameDB();
+    db.game_settings.put({ key: 'local_profile_id', data: id, updatedAt: Date.now() }).catch(() => {});
+  } catch {}
+}
+
+export function clearLocalAnchorProfileId(): void {
+  inMemoryAnchorProfileId = null;
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      window.localStorage.removeItem(LOCAL_PROFILE_ID_KEY);
+    } catch {}
+  }
+  try {
+    const db = getGameDB();
+    db.game_settings.delete('local_profile_id').catch(() => {});
+  } catch {}
+}
+
+export async function getAnchoredProfileIdAsync(): Promise<string | null> {
+  const syncId = getLocalAnchorProfileId();
+  if (syncId) return syncId;
+  try {
+    const db = getGameDB();
+    const record = await db.game_settings.get('local_profile_id');
+    if (record?.data && typeof record.data === 'string') {
+      setLocalAnchorProfileId(record.data);
+      return record.data;
+    }
+  } catch {}
+  return null;
+}
+
+export async function dbPurgeForeignHumanProfiles(ownerId: string): Promise<number> {
+  if (!ownerId) return 0;
+  let count = 0;
+  const allPlayers = await dbGetAllPlayers();
+  const foreignHumanIds = allPlayers
+    .filter(p => p.id.startsWith('usr_') && p.id !== ownerId)
+    .map(p => p.id);
+
+  for (const fId of foreignHumanIds) {
+    memoryStore.players.delete(fId);
+    try {
+      const db = getGameDB();
+      await db.players.delete(fId);
+    } catch {}
+    count++;
+  }
+  return count;
+}
+
 export async function dbGetPlayerProfile(id?: string): Promise<PlayerProfile | null> {
+  // 1. Nếu ID cụ thể được truyền vào
   if (id) {
     const p = await dbGetPlayer(id);
     if (p) {
@@ -273,36 +348,103 @@ export async function dbGetPlayerProfile(id?: string): Promise<PlayerProfile | n
         dbSavePlayer(p).catch(() => {});
       }
       const parsed = PlayerProfileSchema.safeParse(p);
-      return parsed.success ? parsed.data : null;
+      if (parsed.success) {
+        setLocalAnchorProfileId(parsed.data.id);
+        return parsed.data;
+      }
     }
+  }
+
+  // 2. Thử lấy từ Mỏ neo định danh (Local Anchor ID)
+  const anchoredId = await getAnchoredProfileIdAsync();
+  if (anchoredId) {
+    const p = await dbGetPlayer(anchoredId);
+    if (p) {
+      let needsSave = false;
+      if (p.name && p.name.startsWith('usr_')) {
+        p.name = '';
+        needsSave = true;
+      }
+      if (p.avatar === '👤') {
+        p.avatar = '🤠';
+        needsSave = true;
+      }
+      if (needsSave) {
+        dbSavePlayer(p).catch(() => {});
+      }
+      const parsed = PlayerProfileSchema.safeParse(p);
+      if (parsed.success) {
+        // Dọn dẹp các bản ghi usr_ ngoại lai (nếu có do trận online trước đó gây ra)
+        dbPurgeForeignHumanProfiles(anchoredId).catch(() => {});
+        return parsed.data;
+      }
+    }
+  }
+
+  // 3. Quét toàn bộ bảng players để tìm các bản ghi human (usr_...)
+  const allPlayers = await dbGetAllPlayers();
+  const humanCandidates = allPlayers.filter(p => p.id.startsWith('usr_'));
+
+  if (humanCandidates.length === 0) {
     return null;
   }
-  const allPlayers = await dbGetAllPlayers();
-  const human = allPlayers.find(p => p.id.startsWith('usr_'));
-  if (human) {
-    let needsSave = false;
-    if (human.name && human.name.startsWith('usr_')) {
-      human.name = '';
-      needsSave = true;
-    }
-    if (human.avatar === '👤') {
-      human.avatar = '🤠';
-      needsSave = true;
-    }
-    if (needsSave) {
-      dbSavePlayer(human).catch(() => {});
-    }
-    const parsed = PlayerProfileSchema.safeParse(human);
-    return parsed.success ? parsed.data : null;
+
+  // 4. THUẬT TOÁN TỰ PHỤC HỒI (Auto-Recovery):
+  // Nếu có từ 2 bản ghi human trở lên (dấu hiệu cơ sở dữ liệu đã bị ô nhiễm do bug tráo đổi danh tính),
+  // tự động phát hiện bản ghi chính chủ dựa trên:
+  // - Điểm tiến trình: Số trận đã chơi (gamesPlayed), Số trận thắng (wins)
+  // - Số Xu tích lũy (coins)
+  // - Điểm Elo
+  let bestCandidate = humanCandidates[0];
+  if (humanCandidates.length > 1) {
+    const calculateScore = (rec: PlayerRecord): number => {
+      const games = rec.stats?.gamesPlayed || 0;
+      const wins = rec.stats?.wins || 0;
+      const coins = rec.coins || 0;
+      const elo = rec.elo || 1000;
+      // Người chơi chính chủ có số xu lớn hoặc số trận nhiều sẽ có điểm ưu tiên vượt trội
+      return (games * 100_000_000) + (wins * 10_000_000) + coins + elo;
+    };
+
+    bestCandidate = [...humanCandidates].sort((a, b) => calculateScore(b) - calculateScore(a))[0];
   }
+
+  let needsSave = false;
+  if (bestCandidate.name && bestCandidate.name.startsWith('usr_')) {
+    bestCandidate.name = '';
+    needsSave = true;
+  }
+  if (bestCandidate.avatar === '👤') {
+    bestCandidate.avatar = '🤠';
+    needsSave = true;
+  }
+  if (needsSave) {
+    dbSavePlayer(bestCandidate).catch(() => {});
+  }
+
+  const parsed = PlayerProfileSchema.safeParse(bestCandidate);
+  if (parsed.success) {
+    // Đặt lại mỏ neo định danh cho bản ghi chính chủ vừa phục hồi
+    setLocalAnchorProfileId(parsed.data.id);
+    // Dọn dẹp sạch sẽ các bản ghi usr_ rác còn lại khỏi IndexedDB
+    if (humanCandidates.length > 1) {
+      await dbPurgeForeignHumanProfiles(parsed.data.id);
+    }
+    return parsed.data;
+  }
+
   return null;
 }
 
 export async function dbSavePlayerProfile(profile: PlayerProfile): Promise<void> {
+  if (profile.id) {
+    setLocalAnchorProfileId(profile.id);
+  }
   await dbSavePlayer(profileToPlayerRecord(profile));
 }
 
 export async function dbDeletePlayerProfile(id?: string): Promise<void> {
+  clearLocalAnchorProfileId();
   if (id) {
     memoryStore.players.delete(id);
     try {

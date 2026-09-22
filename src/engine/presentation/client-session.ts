@@ -1,20 +1,22 @@
 import { createPlayedMove, type Card, type MatchPlayer, type GameRules, type PlayedMove } from '../types';
-import { deriveSynchronizedPlayers, syncStorePlayersFromFrame, cloneMatchPlayers, updatePlayersHand, updatePlayerInList, revealPlayersHands, resetPlayersForNewGame } from '../player-factory';
+import { deriveSynchronizedPlayers, cloneMatchPlayers, updatePlayersHand, updatePlayerInList, revealPlayersHands, resetPlayersForNewGame } from '../player-factory';
 import type { IClientTransport, HostToClientPacket } from '../transport/transport.interface';
-import type { TableStateSyncPacket } from '../network/network.schema';
+import type { 
+  TableStateSyncPacket,
+  OpeningReason,
+  LastAction
+} from '../network/network.schema';
 import type { IGameSession } from './game-session.interface';
-import type { TableRenderFrame, UserIntent, AudioCue } from './frame-types';
+import type { TableRenderFrame, UserIntent, AudioCue, HandSortMode } from './frame-types';
 import { projectTableFrame } from './table-frame-projector';
 import { sortCards, createCard } from '../card';
 import { identifyCombination } from '../combinations';
 import { CardTracker } from '../../ai/card-tracker';
 import { getOptimalMoveHint, type MoveHint } from '../../ai/hint-engine';
 import { getSortedQuickSelectCandidates } from '../quick-response-finder';
-import type { HandSortMode } from '../../stores/game/types';
-import { useGameStore } from '../../stores/useGameStore';
 import { createPlayingTurnMatchState, isPlayingMatchState, type MatchState } from '../state-machine/types';
 import { createPerspectiveSettlement } from '../settlement/perspective-settlement';
-import { CAMPAIGN_CHAPTERS } from '../campaign';
+import { CAMPAIGN_CHAPTERS, type CampaignChapter, type CampaignResultMeta } from '../campaign';
 
 export interface ClientSessionOptions {
   localPlayerId: string;
@@ -22,6 +24,8 @@ export interface ClientSessionOptions {
   gameRules: GameRules;
   initialPlayers: MatchPlayer[];
   activeGameType?: 'QUICK' | 'CAMPAIGN' | 'ONLINE';
+  campaignChapter?: CampaignChapter;
+  campaignResultMeta?: CampaignResultMeta | null;
 }
 
 /**
@@ -41,6 +45,10 @@ export class ClientSession implements IGameSession {
   public isDealing: boolean = false;
   public dealBanner: string | null = null;
   public dealtCounts: Record<string, number> = {};
+  public lastWinnerId: string | null = null;
+  public turnDeadline: number | null = null;
+  public openingReason: OpeningReason | null = null;
+  public lastAction: LastAction | null = null;
   private myHand: Card[] = [];
   private selectedCardIds: Set<string> = new Set();
   private handSortMode: HandSortMode = 'NATURAL';
@@ -54,6 +62,8 @@ export class ClientSession implements IGameSession {
   private unsubscribeTransport: (() => void) | null = null;
   private lastMoveSignature: string | null = null;
   private lastPlayedMove: PlayedMove | null = null;
+  private campaignChapter: CampaignChapter | null = null;
+  private campaignResultMeta: CampaignResultMeta | null = null;
   private isDisposed: boolean = false;
 
   constructor(options: ClientSessionOptions) {
@@ -61,6 +71,8 @@ export class ClientSession implements IGameSession {
     this.transport = options.transport;
     this.activeGameType = options.activeGameType ?? 'QUICK';
     this.gameRules = options.gameRules;
+    this.campaignChapter = options.campaignChapter ?? null;
+    this.campaignResultMeta = options.campaignResultMeta ?? null;
     this.players = cloneMatchPlayers(options.initialPlayers);
     const localInitialPlayer = this.players.find(p => p.id === this.localPlayerId);
     if (localInitialPlayer && localInitialPlayer.hand && localInitialPlayer.hand.length > 0) {
@@ -77,6 +89,11 @@ export class ClientSession implements IGameSession {
     this.setupTransportListeners();
   }
 
+  public setCampaignMeta(chapter: CampaignChapter, meta: CampaignResultMeta | null = null): void {
+    this.campaignChapter = chapter;
+    this.campaignResultMeta = meta;
+  }
+
   private setupTransportListeners(): void {
     this.unsubscribeTransport = this.transport.onMessage((msg: HostToClientPacket) => {
       if (this.isDisposed) return;
@@ -85,6 +102,15 @@ export class ClientSession implements IGameSession {
         if (msg.packet.playerId === this.localPlayerId) {
           if (msg.packet.gameNumber) {
             this.gameNumber = msg.packet.gameNumber;
+          }
+          if (msg.packet.lastWinnerId !== undefined) {
+            this.lastWinnerId = msg.packet.lastWinnerId;
+          }
+          if (msg.packet.openingReason !== undefined) {
+            this.openingReason = msg.packet.openingReason;
+          }
+          if (msg.packet.turnDeadline !== undefined) {
+            this.turnDeadline = msg.packet.turnDeadline;
           }
           this.lastPlayedMove = null;
           this.myHand = sortCards(msg.packet.cards.map(c => createCard(c.rank, c.suit)));
@@ -128,8 +154,21 @@ export class ClientSession implements IGameSession {
           this.players = revealPlayersHands(this.players, revealedCards);
         }
 
-        const winners = this.players.filter(p => msg.packet.winners.includes(p.id));
-        const effectiveWinners = winners.length > 0 ? winners : [this.players[0]];
+        // Cập nhật số dư điểm xu chính thức từ Server (Authoritative Match Host)
+        if (msg.packet.playerScores) {
+          this.players = this.players.map(p => {
+            const serverScore = msg.packet.playerScores[p.id];
+            return serverScore !== undefined ? { ...p, score: serverScore } : p;
+          });
+        }
+
+        const winners = (msg.packet.winners || [])
+          .map(id => this.players.find(p => p.id === id))
+          .filter((p): p is MatchPlayer => p !== undefined && p !== null);
+        const effectiveWinners = winners.length > 0 ? winners : (this.players.length > 0 ? [this.players[0]] : []);
+        if (effectiveWinners.length > 0) {
+          this.lastWinnerId = effectiveWinners[0].id;
+        }
         const packetPayouts = msg.packet.payouts ?? {};
         const packetEloDeltas = msg.packet.eloDeltas ?? {};
 
@@ -146,8 +185,8 @@ export class ClientSession implements IGameSession {
               isThreeSpadesWin: msg.packet.isThreeSpadesWin ?? false,
               instantWinType: msg.packet.instantWinType ?? null,
               activeGameType: 'CAMPAIGN',
-              campaignChapter: useGameStore.getState().currentCampaignChapter || CAMPAIGN_CHAPTERS[0],
-              campaignResultMeta: useGameStore.getState().campaignResultMeta,
+              campaignChapter: this.campaignChapter ?? CAMPAIGN_CHAPTERS[0],
+              campaignResultMeta: this.campaignResultMeta ?? null,
               betAmount: this.gameRules.table.betAmount,
               subjectCoins: this.players.find(p => p.id === this.localPlayerId)?.score ?? 0
             })
@@ -193,11 +232,42 @@ export class ClientSession implements IGameSession {
     if (sync.gameNumber) {
       this.gameNumber = sync.gameNumber;
     }
+    if (sync.lastWinnerId !== undefined) {
+      this.lastWinnerId = sync.lastWinnerId;
+    }
+    if (sync.openingReason !== undefined) {
+      this.openingReason = sync.openingReason;
+    }
+    if (sync.turnDeadline !== undefined) {
+      this.turnDeadline = sync.turnDeadline;
+    }
+    if (sync.seats && sync.seats.length > 0) {
+      this.players = this.players.map(p => {
+        const seat = sync.seats!.find(s => s.playerId === p.id);
+        if (seat) {
+          return {
+            ...p,
+            cardCount: (p.id === this.localPlayerId && this.myHand.length > 0) ? this.myHand.length : seat.cardCount,
+            score: seat.score,
+            isPassedCurrentRound: seat.isPassed
+          };
+        }
+        return p;
+      });
+    }
     this.isDealing = sync.isDealing ?? false;
     this.dealBanner = sync.dealBanner ?? null;
 
     if (sync.remainingCardCounts) {
       this.dealtCounts = { ...sync.remainingCardCounts };
+    }
+
+    // Cập nhật số dư điểm xu chính thức từ Server (Authoritative Match Host)
+    if (sync.playerScores) {
+      this.players = this.players.map(p => {
+        const serverScore = sync.playerScores[p.id];
+        return serverScore !== undefined ? { ...p, score: serverScore } : p;
+      });
     }
 
     if (sync.isDealing) {
@@ -217,18 +287,27 @@ export class ClientSession implements IGameSession {
       return;
     }
 
-    // Phát hiện nước đi mới để phát âm thanh và lưu trữ fallback
-    if (sync.currentMoveCards && sync.currentMoveCards.length > 0 && sync.currentMovePlayerId) {
-      const cards = sync.currentMoveCards.map(c => createCard(c.rank, c.suit));
-      const combo = identifyCombination(cards);
-      const isSameMove = this.lastPlayedMove &&
-        this.lastPlayedMove.playerId === sync.currentMovePlayerId &&
-        this.lastPlayedMove.combination.cards.length === cards.length &&
-        this.lastPlayedMove.combination.cards.every((c, i) => c.id === cards[i].id);
+    // 1. Nhận diện hành động tức thời từ Server qua lastAction (Zero-Diffing)
+    if (sync.lastAction) {
+      const isNewAction = !this.lastAction ||
+        this.lastAction.playerId !== sync.lastAction.playerId ||
+        this.lastAction.type !== sync.lastAction.type ||
+        this.lastAction.summary !== sync.lastAction.summary;
 
-      if (combo && !isSameMove) {
-        this.lastPlayedMove = createPlayedMove(sync.currentMovePlayerId, combo);
+      this.lastAction = sync.lastAction;
+
+      // Chỉ phát âm thanh nếu không phải nước đi lạc quan do chính local player vừa gửi
+      if (isNewAction && sync.lastAction.playerId !== this.localPlayerId) {
+        if (sync.lastAction.type === 'CHOP') {
+          this.emitAudioCue('CHOP');
+        } else if (sync.lastAction.type === 'PLAY') {
+          this.emitAudioCue('CARD_PLAY');
+        } else if (sync.lastAction.type === 'PASS') {
+          this.emitAudioCue('PASS');
+        }
       }
+    } else if (sync.currentMoveCards && sync.currentMoveCards.length > 0 && sync.currentMovePlayerId) {
+      // Fallback cho legacy packets trong unit tests cũ
       const sig = `${sync.currentMovePlayerId}:${sync.currentMoveCards.map(c => c.id).sort().join(',')}`;
       if (sig !== this.lastMoveSignature) {
         this.lastMoveSignature = sig;
@@ -243,15 +322,15 @@ export class ClientSession implements IGameSession {
     // Chuyển đổi packet thành MatchState nội bộ
     if (!sync.isGameOver) {
       const leadingMoveCards = sync.currentMoveCards ? sync.currentMoveCards.map(c => createCard(c.rank, c.suit)) : [];
-      const leadingCombo = leadingMoveCards.length > 0 ? identifyCombination(leadingMoveCards) : null;
-      const isSameMove = this.lastPlayedMove &&
-        this.lastPlayedMove.playerId === sync.currentMovePlayerId &&
-        this.lastPlayedMove.combination.cards.length === leadingMoveCards.length &&
-        this.lastPlayedMove.combination.cards.every((c, i) => c.id === leadingMoveCards[i].id);
+      let leadingMove: PlayedMove | null = null;
 
-      const leadingMove = (leadingCombo && sync.currentMovePlayerId)
-        ? (isSameMove ? this.lastPlayedMove : createPlayedMove(sync.currentMovePlayerId, leadingCombo))
-        : null;
+      if (leadingMoveCards.length > 0 && sync.currentMovePlayerId) {
+        const combo = identifyCombination(leadingMoveCards);
+        if (combo) {
+          leadingMove = createPlayedMove(sync.currentMovePlayerId, combo);
+          this.lastPlayedMove = leadingMove;
+        }
+      }
 
       const reqCard = sync.firstMoveRequiredCard 
         ? createCard(sync.firstMoveRequiredCard.rank, sync.firstMoveRequiredCard.suit)
@@ -263,15 +342,19 @@ export class ClientSession implements IGameSession {
         this.selectedCardIds.clear();
       }
 
-      this.players = deriveSynchronizedPlayers(this.players, {
-        myPlayerId: this.localPlayerId,
-        myHand: this.myHand,
-        passedPlayerIds: sync.passedPlayerIds,
-        remainingCardCounts: sync.remainingCardCounts,
-        currentMoveCards: leadingMoveCards,
-        currentMovePlayerId: sync.currentMovePlayerId,
-        isGameOver: false
-      });
+      // Khi Server đã gửi snapshot ghế (seats), dùng trực tiếp 100% không cần derive tính toán lại
+      if (!sync.seats || sync.seats.length === 0) {
+        this.players = deriveSynchronizedPlayers(this.players, {
+          myPlayerId: this.localPlayerId,
+          myHand: this.myHand,
+          passedPlayerIds: sync.passedPlayerIds,
+          remainingCardCounts: sync.remainingCardCounts,
+          playerScores: sync.playerScores,
+          currentMoveCards: leadingMoveCards,
+          currentMovePlayerId: sync.currentMovePlayerId,
+          isGameOver: false
+        });
+      }
 
       this.latestMatchState = createPlayingTurnMatchState({
         status: 'PLAYING',
@@ -297,7 +380,9 @@ export class ClientSession implements IGameSession {
         ? createPlayedMove(sync.currentMovePlayerId, leadingCombo)
         : this.lastPlayedMove;
 
-      const winners = this.players.filter(p => sync.winners?.includes(p.id));
+      const winners = (sync.winners || [])
+        .map(id => this.players.find(p => p.id === id))
+        .filter((p): p is MatchPlayer => p !== undefined && p !== null);
       const fallbackPayouts: Record<string, number> = {};
       for (const p of this.players) {
         fallbackPayouts[p.id] = 0;
@@ -316,8 +401,8 @@ export class ClientSession implements IGameSession {
             isThreeSpadesWin: false,
             instantWinType: null,
             activeGameType: 'CAMPAIGN',
-            campaignChapter: useGameStore.getState().currentCampaignChapter || CAMPAIGN_CHAPTERS[0],
-            campaignResultMeta: useGameStore.getState().campaignResultMeta,
+            campaignChapter: this.campaignChapter ?? CAMPAIGN_CHAPTERS[0],
+            campaignResultMeta: this.campaignResultMeta ?? null,
             betAmount: this.gameRules.table.betAmount,
             subjectCoins: this.players.find(p => p.id === this.localPlayerId)?.score ?? 0
           })
@@ -384,45 +469,16 @@ export class ClientSession implements IGameSession {
       currentHint: this.currentHint,
       botThinkingThought: isPlayingMatchState(this.latestMatchState) ? this.latestMatchState.botThinkingThought : null,
       isDealing: this.isDealing,
-      dealBanner: this.dealBanner
+      dealBanner: this.dealBanner,
+      turnDeadline: this.turnDeadline,
+      openingReason: this.openingReason,
+      lastAction: this.lastAction,
+      currentMoveCombinationName: this.latestSync?.currentMoveCombinationName ?? null
     });
   }
 
   private updateAndEmitFrame(): void {
     const frame = this.buildCurrentFrame();
-
-    // Đồng bộ vào useGameStore để các component Web/Mobile hiển thị mượt mà 1:1
-    const store = useGameStore.getState();
-    const basePlayers = store.players.length > 0 ? store.players : this.players;
-    const updatedPlayers = syncStorePlayersFromFrame(basePlayers, frame, this.latestMatchState);
-
-    const effectiveCurrentMove = this.latestMatchState.status === 'PLAYING'
-      ? this.latestMatchState.leadingMove
-      : (this.latestMatchState.status === 'GAME_OVER'
-        ? this.latestMatchState.winningMove ?? this.latestMatchState.leadingMove ?? this.lastPlayedMove
-        : null);
-
-    const gameOverState = this.latestMatchState.status === 'GAME_OVER' ? this.latestMatchState : null;
-    const hasValidSettlementPayouts = gameOverState !== null && 
-      gameOverState.settlement !== undefined && 
-      Object.values(gameOverState.matchPayouts || {}).some(v => v !== 0);
-
-    useGameStore.setState({
-      matchState: this.latestMatchState,
-      currentMove: effectiveCurrentMove,
-      players: updatedPlayers,
-      selectedCardIds: new Set(this.selectedCardIds),
-      currentHint: this.currentHint,
-      dealtCounts: frame.dealtCounts,
-      gameNumber: this.gameNumber,
-      isDealing: frame.isDealing,
-      dealBanner: frame.dealBanner,
-      ...(hasValidSettlementPayouts && gameOverState ? {
-        perspectiveSettlement: gameOverState.settlement,
-        matchPayouts: gameOverState.matchPayouts,
-        allEloDeltas: gameOverState.eloDeltas
-      } : {})
-    });
 
     for (const listener of this.frameListeners) {
       try {

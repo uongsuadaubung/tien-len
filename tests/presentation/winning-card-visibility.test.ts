@@ -6,6 +6,7 @@ import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 import { createCard } from '../../src/engine/card';
 import { createDefaultGameRules } from '../../src/engine/types';
 import { useGameStore } from '../../src/stores/useGameStore';
+import { bindSessionToGameStore } from '../../src/stores/game/session-store-bridge';
 
 describe('Winning Move Card Visibility on Table Tests', () => {
   it('1. Human plays winning card: winningMove is preserved in session and frame discardPile', () => {
@@ -34,6 +35,7 @@ describe('Winning Move Card Visibility on Table Tests', () => {
       gameRules: rules,
       initialPlayers: [human, bot]
     });
+    const unbindStore = bindSessionToGameStore(session);
 
     host.startMatch(1);
 
@@ -94,6 +96,7 @@ describe('Winning Move Card Visibility on Table Tests', () => {
     expect(storeState.currentMove?.combination.cards[0].id).toBe(winningCard.id);
 
     host.dispose();
+    unbindStore();
     session.dispose();
     useGameStore.getState().resetMatchState();
   });
@@ -174,6 +177,7 @@ describe('Winning Move Card Visibility on Table Tests', () => {
         winners: ['bot_1'],
         payouts: { bot_1: 1000, human_0: -1000 },
         eloDeltas: { bot_1: 15, human_0: -15 },
+        playerScores: { bot_1: 51000, human_0: 49000 },
         allPlayerHands: {
           human_0: [createCard(4, 'SPADES'), createCard(5, 'SPADES')],
           bot_1: []

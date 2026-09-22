@@ -126,10 +126,6 @@ export function isRedTwo(card: Card): boolean {
   return isTwo(card) && isRedCard(card);
 }
 
-export function isBlackTwo(card: Card): boolean {
-  return isTwo(card) && isBlackCard(card);
-}
-
 export const SUIT_VIETNAMESE_NAMES: Record<Suit, string> = {
   SPADES: 'Bích',
   CLUBS: 'Tép',

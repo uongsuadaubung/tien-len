@@ -162,4 +162,77 @@ describe('AuthoritativeMatchHost Unit Tests (Kiểm Thử Listen Server Vòng L�
 
     host.dispose();
   });
+
+  it('6. Khi Bot thắng ván 1, ván 2 Bot phải được quyền đi trước (mở màn) chứ không phải Human', () => {
+    const profile = loadPlayerProfile();
+    const human = createPlayer(profile);
+    const bots = createBotPlayers(3);
+    const bot1 = bots[0];
+
+    const testRules = createDefaultGameRules();
+    testRules.instantWin.enabled = false;
+
+    const host = new AuthoritativeMatchHost({
+      rules: testRules,
+      players: [human, ...bots],
+      hostPlayerId: human.id,
+      instantDelay: true,
+      enableDealingAnimation: true
+    });
+
+    host.startMatch(1);
+    host.finishDealing();
+
+    // Giả lập Bot 1 về Nhất ván 1
+    host.engine.isGameOver = true;
+    host.engine.winners = [bot1, human];
+    host.engine.lastWinnerId = bot1.id;
+
+    // Bắt đầu ván 2 không truyền preserveWinnerId -> AuthoritativeMatchHost tự động lấy bot1
+    host.startMatch(2);
+    host.finishDealing();
+
+    expect(host.gameNumber).toBe(2);
+    expect(host.lastWinnerId).toBe(bot1.id);
+    expect(host.engine.getCurrentPlayer().id).toBe(bot1.id);
+    expect(host.dealBanner).toContain(bot1.name);
+    expect(host.dealBanner).toContain('Thắng ván trước');
+
+    host.dispose();
+  });
+
+  it('7. Khi Human thắng ván 1, ván 2 Human được quyền đi trước', () => {
+    const profile = loadPlayerProfile();
+    const human = createPlayer(profile);
+    const bots = createBotPlayers(3);
+
+    const testRules = createDefaultGameRules();
+    testRules.instantWin.enabled = false;
+
+    const host = new AuthoritativeMatchHost({
+      rules: testRules,
+      players: [human, ...bots],
+      hostPlayerId: human.id,
+      instantDelay: true,
+      enableDealingAnimation: true
+    });
+
+    host.startMatch(1);
+    host.finishDealing();
+
+    // Giả lập Human về Nhất ván 1
+    host.engine.isGameOver = true;
+    host.engine.winners = [human, bots[0]];
+    host.engine.lastWinnerId = human.id;
+
+    host.startMatch(2);
+    host.finishDealing();
+
+    expect(host.gameNumber).toBe(2);
+    expect(host.lastWinnerId).toBe(human.id);
+    expect(host.engine.getCurrentPlayer().id).toBe(human.id);
+    expect(host.dealBanner).toContain('Bạn (Người Chơi) giành quyền mở màn (Thắng ván trước)!');
+
+    host.dispose();
+  });
 });

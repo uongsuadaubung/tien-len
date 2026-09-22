@@ -10,6 +10,7 @@ import { createPlayer } from '../../src/engine/player-factory';
 import { isValidMove } from '../../src/engine/validator';
 import { identifyCombination } from '../../src/engine/combinations';
 import { appFlowCoordinator } from '../../src/services/app-flow-coordinator';
+import { createTableSyncPacket, createGameEndPacket } from '../../src/engine/network/packet-factory';
 
 describe('Online P2P Match Flow & State Transition Tests', () => {
   beforeEach(() => {
@@ -790,28 +791,20 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     expect(store.dealtCounts[guestId]).toBe(13);
 
     // 2. Host đánh ra lá bài 3 Bích (SINGLE [3S])
-    globalP2PClient.emitTableSyncForTest({
+    globalP2PClient.emitTableSyncForTest(createTableSyncPacket({
       seq: 1,
-      timestamp: Date.now(),
       currentTurnPlayerId: guestId, // Chuyển lượt sang Client
       leadPlayerId: hostId,
       currentMoveCards: [{ rank: 3, suit: 'SPADES', id: '3_SPADES' }],
       currentMovePlayerId: hostId,
-      isChop: false,
-      isCascadeChop: false,
       remainingCardCounts: {
         [hostId]: 12, // Host còn 12 lá
         [guestId]: 13 // Guest còn 13 lá
       },
-      passedPlayerIds: [],
-      roundNumber: 1,
-      winners: [],
-      isGameOver: false,
       lastActionMessage: 'Chủ Bàn đã đánh bài',
-      gameNumber: 1,
       isFirstMoveOfGame: false,
       isLeadMove: false
-    }, 'host_peer');
+    }), 'host_peer');
 
     const updatedStore = useGameStore.getState();
 
@@ -1082,22 +1075,13 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     }, 'host_peer_17');
 
     // Host broadcast TABLE_SYNC đang chia bài (isDealing: true)
-    globalP2PClient.emitTableSyncForTest({
+    globalP2PClient.emitTableSyncForTest(createTableSyncPacket({
       seq: 1,
-      timestamp: Date.now(),
-      roundNumber: 1,
-      isChop: false,
-      isCascadeChop: false,
       gameNumber: 2,
-      isGameOver: false,
-      currentTurnPlayerId: null,
-      leadPlayerId: null,
       remainingCardCounts: { host_p17: 0, [profileGuest.id]: 0 },
-      passedPlayerIds: [],
-      winners: [],
       isDealing: true,
       dealtCounts: { host_p17: 0, [profileGuest.id]: 0 }
-    }, 'host_peer_17');
+    }), 'host_peer_17');
 
     const guestGameStore = useGameStore.getState();
 
@@ -1113,22 +1097,15 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     expect(useViewStore.getState().isVictoryOpen).toBe(false);
 
     // 3. Khi hoạt ảnh chia bài hoàn tất (finishDealing từ Host gửi TABLE_SYNC)
-    globalP2PClient.emitTableSyncForTest({
+    globalP2PClient.emitTableSyncForTest(createTableSyncPacket({
       seq: 2,
-      timestamp: Date.now(),
-      roundNumber: 1,
-      isChop: false,
-      isCascadeChop: false,
       gameNumber: 2,
-      isGameOver: false,
       currentTurnPlayerId: 'host_p17',
       leadPlayerId: 'host_p17',
       remainingCardCounts: { host_p17: 13, [profileGuest.id]: 13 },
-      passedPlayerIds: [],
-      winners: [],
       isDealing: false,
       dealtCounts: { host_p17: 13, [profileGuest.id]: 13 }
-    }, 'host_peer_17');
+    }), 'host_peer_17');
 
     const syncedGuestStore = useGameStore.getState();
     expect(syncedGuestStore.isDealing).toBe(false);
@@ -1156,26 +1133,18 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
     }, 'host_peer_18');
 
     // Host mở vòng 1 với bộ 5-6-7-8, lượt chuyển sang Guest
-    globalP2PClient.emitTableSyncForTest({
+    globalP2PClient.emitTableSyncForTest(createTableSyncPacket({
       seq: 1,
-      timestamp: Date.now(),
-      roundNumber: 1,
-      isChop: false,
-      isCascadeChop: false,
-      gameNumber: 1,
-      isGameOver: false,
       currentTurnPlayerId: profileGuest.id,
       leadPlayerId: 'host_p18',
       remainingCardCounts: { host_p18: 9, [profileGuest.id]: 2 },
-      passedPlayerIds: [],
       currentMoveCards: [createCard(5, 'HEARTS'), createCard(6, 'CLUBS'), createCard(7, 'CLUBS'), createCard(8, 'HEARTS')],
       currentMovePlayerId: 'host_p18',
-      winners: [],
       isFirstMoveOfGame: false,
       isLeadMove: false,
       isDealing: false,
       dealtCounts: { host_p18: 9, [profileGuest.id]: 2 }
-    }, 'host_peer_18');
+    }), 'host_peer_18');
 
     // Guest bấm Bỏ Lượt ở Vòng 1
     useOnlineStore.getState().sendPassAction();
@@ -1187,26 +1156,20 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
 
     // Host thắng vòng 1 (CẦM CÁI) và bắt đầu Vòng 2 với Đôi 9 (9♣, 9♦). Lượt chuyển sang Guest.
     // TABLE_SYNC của vòng mới reset passedPlayerIds = []
-    globalP2PClient.emitTableSyncForTest({
+    globalP2PClient.emitTableSyncForTest(createTableSyncPacket({
       seq: 2,
-      timestamp: Date.now(),
       roundNumber: 2,
-      isChop: false,
-      isCascadeChop: false,
-      gameNumber: 1,
-      isGameOver: false,
       currentTurnPlayerId: profileGuest.id,
       leadPlayerId: 'host_p18',
       remainingCardCounts: { host_p18: 7, [profileGuest.id]: 2 },
       passedPlayerIds: [], // Đã reset sạch sẽ cho vòng mới
       currentMoveCards: [createCard(9, 'CLUBS'), createCard(9, 'DIAMONDS')],
       currentMovePlayerId: 'host_p18',
-      winners: [],
       isFirstMoveOfGame: false,
       isLeadMove: false,
       isDealing: false,
       dealtCounts: { host_p18: 7, [profileGuest.id]: 2 }
-    }, 'host_peer_18');
+    }), 'host_peer_18');
 
     const guestStoreInRound2 = useGameStore.getState();
     const guestPlayerInRound2 = guestStoreInRound2.players.find(p => p.id === profileGuest.id);

@@ -18,6 +18,7 @@ import type {
   DiscardPileRenderModel, 
   ActiveBannerRenderModel 
 } from './frame-types';
+import type { OpeningReason, LastAction } from '../network/network.schema';
 
 export interface TableFrameProjectionContext {
   readonly matchState: MatchState;
@@ -31,9 +32,13 @@ export interface TableFrameProjectionContext {
   readonly botThinkingThought: { botId: string; text: string } | null;
   readonly isDealing: boolean;
   readonly dealBanner: string | null;
+  readonly turnDeadline?: number | null;
+  readonly openingReason?: OpeningReason | null;
+  readonly lastAction?: LastAction | null;
+  readonly currentMoveCombinationName?: string | null;
 }
 
-function getCombinationName(type: string, length: number): string {
+export function getCombinationName(type: string, length: number): string {
   switch (type) {
     case 'SINGLE': return 'Lá Rác';
     case 'PAIR': return 'Đôi';
@@ -63,7 +68,11 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
     currentHint,
     botThinkingThought,
     isDealing,
-    dealBanner
+    dealBanner,
+    turnDeadline,
+    openingReason,
+    lastAction,
+    currentMoveCombinationName
   } = ctx;
 
   const localPlayer = players.find(p => p.id === localPlayerId) ?? null;
@@ -90,7 +99,7 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
     discardPile = {
       cards: leadingMove.combination.cards,
       playedByPlayerId: leadingMove.playerId,
-      combinationName: getCombinationName(leadingMove.combination.type, leadingMove.combination.length),
+      combinationName: currentMoveCombinationName || getCombinationName(leadingMove.combination.type, leadingMove.combination.length),
       isChop: leadingMove.isChop ?? false,
       chopChainCount: leadingMove.chopChainCount ?? 1
     };
@@ -264,6 +273,9 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
     isGameOver,
     winners: winnersList,
     aiHint: currentHint,
-    botThinkingThought
+    botThinkingThought,
+    turnDeadline: turnDeadline ?? null,
+    openingReason: openingReason ?? null,
+    lastAction: lastAction ?? null
   };
 }

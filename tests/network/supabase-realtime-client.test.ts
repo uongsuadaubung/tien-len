@@ -5,7 +5,9 @@ import {
   type OnlinePlayer,
   type DealHandPacket,
   type TableStateSyncPacket,
-  type GameEndPacket
+  type GameEndPacket,
+  createTableSyncPacket,
+  createGameEndPacket
 } from '../../src/engine/network/network.schema';
 
 describe('Supabase Realtime Network Client Unit Tests (P2PClient Adapter)', () => {
@@ -145,23 +147,14 @@ describe('Supabase Realtime Network Client Unit Tests (P2PClient Adapter)', () =
       receivedSync = sync;
     });
 
-    const mockSync: TableStateSyncPacket = {
+    const mockSync: TableStateSyncPacket = createTableSyncPacket({
       seq: 1,
-      timestamp: Date.now(),
-      gameNumber: 1,
-      roundNumber: 1,
       currentTurnPlayerId: 'p0',
       leadPlayerId: 'p0',
       remainingCardCounts: { p0: 13, p1: 13 },
       isFirstMoveOfGame: true,
-      firstMoveRequiredCard: null,
-      isLeadMove: true,
-      isChop: false,
-      isCascadeChop: false,
-      passedPlayerIds: [],
-      winners: [],
-      isGameOver: false
-    };
+      isLeadMove: true
+    });
 
     client.emitTableSyncForTest(mockSync, 'host_peer');
 
@@ -176,15 +169,12 @@ describe('Supabase Realtime Network Client Unit Tests (P2PClient Adapter)', () =
       receivedEnd = end;
     });
 
-    const mockEnd: GameEndPacket = {
+    const mockEnd: GameEndPacket = createGameEndPacket({
       winners: ['p0'],
       payouts: { p0: 10000, p1: -10000 },
-      eloDeltas: { p0: 25, p1: -25 },
-      allPlayerHands: {},
-      isThreeSpadesWin: false,
-      instantWinType: null,
-      loanDeduction: 0
-    };
+      playerScores: { p0: 60000, p1: 40000 },
+      eloDeltas: { p0: 25, p1: -25 }
+    });
 
     client.emitGameEndForTest(mockEnd, 'host_peer');
 

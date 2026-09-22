@@ -3,7 +3,7 @@ import tsPlugin from '@typescript-eslint/eslint-plugin';
 
 export default [
   {
-    ignores: ['dist/**', 'node_modules/**', '.vite/**', 'coverage/**']
+    ignores: ['dist/**', 'node_modules/**', '.vite/**', 'coverage/**', 'src/engine/wasm/pkg/**']
   },
   {
     files: ['src/**/*.{ts,tsx}'],

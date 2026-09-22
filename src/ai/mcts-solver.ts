@@ -17,8 +17,7 @@ export class MctsSolver {
     candidateMoves: { cards: Card[]; combination: Combination; isChop: boolean }[],
     tracker: CardTracker,
     remainingPlayerCards: Record<string, number>,
-    simulationsCount: number = 30,
-    _useBayesianInference: boolean = true
+    simulationsCount: number = 30
   ): MctsEvaluation[] {
     if (candidateMoves.length === 0 || simulationsCount <= 0) {
       return [];

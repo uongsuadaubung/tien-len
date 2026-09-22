@@ -1,7 +1,6 @@
 import { 
   type MatchPlayer, 
   type PlayedMove, 
-  type Card,
   createPlayedMove 
 } from '../../engine/types';
 import { 
@@ -72,8 +71,10 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
   isDealing: false,
   dealtCounts: {},
   dealBanner: null,
+  openingReason: null,
   chopNotification: null,
   questToast: null,
+  currentFrame: null,
 
   matchState: DEFAULT_MATCH_STATE,
   players: DEFAULT_PLAYERS,
@@ -126,6 +127,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
     dealtCounts: typeof countsOrUpdater === 'function' ? countsOrUpdater(state.dealtCounts) : countsOrUpdater
   })),
   setDealBanner: (banner) => set({ dealBanner: banner }),
+  setOpeningReason: (reason) => set({ openingReason: reason }),
   setChopNotification: (notif) => set({ chopNotification: notif }),
   setQuestToast: (toast) => set({ questToast: toast }),
 
@@ -155,12 +157,16 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
   setLastEloBreakdown: (breakdown) => set({ lastEloBreakdown: breakdown }),
   setAllEloDeltas: (deltas) => set({ allEloDeltas: deltas }),
   setMatchLogReport: (report) => set({ matchLogReport: report }),
-  setMatchState: (matchState) => set({
+  setMatchState: (matchState) => set((state) => ({
     matchState,
+    isGameOver: matchState.status === 'GAME_OVER' || matchState.status === 'INSTANT_WIN',
+    winners: matchState.status === 'GAME_OVER'
+      ? [...matchState.winners]
+      : (matchState.status === 'INSTANT_WIN' ? [matchState.instantWinner] : state.winners),
     isFirstMoveOfGame: matchState.status === 'PLAYING' ? matchState.isFirstMoveOfGame : false,
     firstMoveRequiredCard: matchState.status === 'PLAYING' && matchState.isFirstMoveOfGame ? matchState.firstMoveRequiredCard : null,
     isLeadMove: matchState.status === 'PLAYING' ? matchState.isLeadMove : true
-  }),
+  })),
   applyMatchState: (matchState) => {
     const isGameOver = matchState.status === 'GAME_OVER';
     const isInstantWin = matchState.status === 'INSTANT_WIN';
@@ -224,7 +230,8 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
         botThinkingThought: null,
         isFirstMoveOfGame: isPlaying ? matchState.isFirstMoveOfGame : false,
         firstMoveRequiredCard: isPlaying && matchState.isFirstMoveOfGame ? matchState.firstMoveRequiredCard : null,
-        isLeadMove: isPlaying ? matchState.isLeadMove : true
+        isLeadMove: isPlaying ? matchState.isLeadMove : true,
+        currentFrame: null
       };
     });
   },
@@ -237,19 +244,25 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
     let leadingMove: PlayedMove | null = null;
     let isNewMove = false;
 
+    if (sync.lastAction) {
+      isNewMove = (sync.lastAction.type === 'PLAY' || sync.lastAction.type === 'CHOP');
+    }
+
     if (sync.currentMoveCards && sync.currentMoveCards.length > 0) {
       const moveCards = sync.currentMoveCards.map(c => createCard(c.rank, c.suit));
       const combo = identifyCombination(moveCards);
+
       if (combo) {
         const prevLeading = currentState.matchState.status === 'PLAYING'
           ? currentState.matchState.leadingMove
           : currentState.currentMove;
-        const isSameMove = prevLeading &&
-          prevLeading.playerId === sync.currentMovePlayerId &&
-          prevLeading.combination.cards.length === moveCards.length &&
-          prevLeading.combination.cards.every((c: Card, i: number) => c.id === moveCards[i].id);
 
-        if (isSameMove && prevLeading) {
+        // Nếu có lastAction thì dựa vào lastAction, nếu không thì fallback so sánh đơn giản
+        const isSame = sync.lastAction
+          ? !isNewMove
+          : (prevLeading && prevLeading.playerId === sync.currentMovePlayerId && prevLeading.combination.cards.length === moveCards.length);
+
+        if (isSame && prevLeading) {
           leadingMove = prevLeading;
           isNewMove = false;
         } else {
@@ -263,7 +276,9 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
             } : undefined,
             Date.now()
           );
-          isNewMove = true;
+          if (!sync.lastAction) {
+            isNewMove = true;
+          }
         }
       }
     }
@@ -280,19 +295,34 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
       : null;
 
     set((state) => {
-
-      // 1. Đồng bộ người chơi chuẩn hóa (Single Source of Truth qua deriveSynchronizedPlayers)
-      const currentMoveCards = sync.currentMoveCards ? sync.currentMoveCards.map(c => createCard(c.rank, c.suit)) : undefined;
-      const myPlayer = state.players.find(p => p.id === state.myPlayerId);
-      const updatedPlayers = deriveSynchronizedPlayers(state.players, {
-        myPlayerId: state.myPlayerId,
-        myHand: myPlayer ? myPlayer.hand : [],
-        passedPlayerIds: sync.passedPlayerIds,
-        remainingCardCounts: sync.remainingCardCounts,
-        currentMoveCards,
-        currentMovePlayerId: sync.currentMovePlayerId,
-        isGameOver: sync.isGameOver
-      });
+      // 1. Đồng bộ người chơi: Ưu tiên dùng 100% snapshot seats từ Authoritative Server (Zero-Diffing)
+      let updatedPlayers = state.players;
+      if (sync.seats && sync.seats.length > 0) {
+        updatedPlayers = state.players.map(p => {
+          const seat = sync.seats!.find(s => s.playerId === p.id);
+          if (!seat) return p;
+          const isMe = p.id === state.myPlayerId;
+          return {
+            ...p,
+            cardCount: (isMe && p.hand && p.hand.length > 0) ? p.hand.length : seat.cardCount,
+            score: seat.score,
+            isPassedCurrentRound: seat.isPassed
+          };
+        });
+      } else {
+        const currentMoveCards = sync.currentMoveCards ? sync.currentMoveCards.map(c => createCard(c.rank, c.suit)) : undefined;
+        const myPlayer = state.players.find(p => p.id === state.myPlayerId);
+        updatedPlayers = deriveSynchronizedPlayers(state.players, {
+          myPlayerId: state.myPlayerId,
+          myHand: myPlayer ? myPlayer.hand : [],
+          passedPlayerIds: sync.passedPlayerIds,
+          remainingCardCounts: sync.remainingCardCounts,
+          playerScores: sync.playerScores,
+          currentMoveCards,
+          currentMovePlayerId: sync.currentMovePlayerId,
+          isGameOver: sync.isGameOver
+        });
+      }
 
       const mergedDealtCounts = { ...state.dealtCounts, ...sync.remainingCardCounts };
       for (const p of updatedPlayers) {
@@ -380,6 +410,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
         gameNumber: sync.gameNumber || state.gameNumber,
         isDealing: isDealingNow,
         dealBanner: sync.dealBanner !== undefined ? sync.dealBanner : state.dealBanner,
+        openingReason: sync.openingReason !== undefined ? sync.openingReason : state.openingReason,
         dealtCounts: effectiveDealtCounts,
         currentTurnPlayerId: currentTurnId,
         leadPlayerId: leadId,
@@ -428,6 +459,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
     isDealing: false,
     dealtCounts: {},
     dealBanner: null,
+    openingReason: null,
     chopNotification: null,
     questToast: null,
     currentTurnPlayerId: null,
@@ -452,8 +484,11 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
     allEloDeltas: {},
     matchLogReport: null,
     campaignResultMeta: null,
-    perspectiveSettlement: null
-  })
+    perspectiveSettlement: null,
+    currentFrame: null
+  }),
+
+  setCurrentFrame: (frame) => set({ currentFrame: frame })
 });
 
 /* =================================================================================

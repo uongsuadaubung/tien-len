@@ -9,8 +9,12 @@ import type {
   TableStateSyncPacket, 
   GameEndPacket, 
   NetworkChopNotification,
-  PlayerActionPacket
+  PlayerActionPacket,
+  OpeningReason,
+  LastAction,
+  SyncedSeatSnapshot
 } from '../network/network.schema';
+import { getCombinationName } from '../presentation/table-frame-projector';
 import { settleCompletedMatch, type MatchSettlementExecutionResult } from '../../services/match-settlement-service';
 import { GameEventBus } from '../events/game-event-bus';
 import { UI_TIMINGS } from '../../ui/constants/ui-timings';
@@ -49,6 +53,9 @@ export class AuthoritativeMatchHost {
   public dealBanner: string | null = null;
   public dealtCounts: Record<string, number> = {};
   public trackers: Record<string, CardTracker> = {};
+  public turnDeadline: number | null = null;
+  public openingReason: OpeningReason | null = null;
+  public lastAction: LastAction | null = null;
 
   private readonly transports: Map<string, IHostPeerTransport> = new Map();
   private readonly unregisterCallbacks: Map<string, () => void> = new Map();
@@ -93,6 +100,19 @@ export class AuthoritativeMatchHost {
     return cleanup;
   }
 
+  private _lastWinnerId: string | null = null;
+
+  public get lastWinnerId(): string | null {
+    return this._lastWinnerId || this.engine?.lastWinnerId || (this.engine?.winners?.length > 0 ? this.engine.winners[0].id : null);
+  }
+
+  public set lastWinnerId(id: string | null) {
+    this._lastWinnerId = id;
+    if (this.engine) {
+      this.engine.lastWinnerId = id;
+    }
+  }
+
   /**
    * Khởi động một ván đấu mới
    */
@@ -105,10 +125,29 @@ export class AuthoritativeMatchHost {
     this.clearAllTimers();
     this.dealBanner = null;
 
-    const startResult = this.engine.startNewGame(roundNumber, preserveWinnerId);
+    const resolvedWinnerId = preserveWinnerId || this.lastWinnerId;
+    if (resolvedWinnerId) {
+      this._lastWinnerId = resolvedWinnerId;
+      this.engine.lastWinnerId = resolvedWinnerId;
+    }
+    const startResult = this.engine.startNewGame(roundNumber, resolvedWinnerId);
     this.trackers = {};
     for (const p of this.engine.players) {
       this.trackers[p.id] = new CardTracker([...p.hand], 1.0, this.engine.players.length);
+    }
+
+    this.lastAction = null;
+    this.turnDeadline = null;
+    if (this.gameNumber > 1) {
+      this.openingReason = 'PREVIOUS_WINNER';
+    } else {
+      if (this.engine.firstMoveRequiredCard?.rank === 3 && this.engine.firstMoveRequiredCard?.suit === 'SPADES') {
+        this.openingReason = 'THREE_SPADES';
+      } else if (this.engine.firstMoveRequiredCard) {
+        this.openingReason = 'SMALLEST_CARD';
+      } else {
+        this.openingReason = null;
+      }
     }
 
     // 1. Gửi bài riêng tư cho từng Client (Fog of War: Mỗi client CHỈ nhận được bài của chính mình)
@@ -123,8 +162,12 @@ export class AuthoritativeMatchHost {
             leadPlayerId: this.engine.currentRound?.leadPlayerId ?? player.id,
             firstTurnPlayerId: this.engine.currentRound?.currentTurnPlayerId ?? player.id,
             gameNumber: this.gameNumber,
+            lastWinnerId: this.lastWinnerId,
+            openingReason: this.openingReason,
+            turnDeadline: this.turnDeadline,
             isFirstMoveOfGame: this.engine.isFirstMoveOfGame,
-            firstMoveRequiredCard: this.engine.firstMoveRequiredCard
+            firstMoveRequiredCard: this.engine.firstMoveRequiredCard,
+            isLeadMove: this.engine.isRoundLeadMove()
           }
         });
       }
@@ -160,6 +203,7 @@ export class AuthoritativeMatchHost {
 
     // 4. Phát sóng trạng thái bàn đấu ban đầu cho tất cả mọi người
     this.isDealing = false;
+    this.turnDeadline = this.instantDelay ? null : Date.now() + 15000;
     this.broadcastTableSync();
   }
 
@@ -183,6 +227,7 @@ export class AuthoritativeMatchHost {
       this.dealingSafetyTimer = null;
     }
     this.isDealing = false;
+    this.turnDeadline = this.instantDelay ? null : Date.now() + 15000;
     for (const p of this.engine.players) {
       this.dealtCounts[p.id] = p.hand.length;
     }
@@ -246,6 +291,13 @@ export class AuthoritativeMatchHost {
             t.recordPassWithDetails(playerId, leadingMove.combination);
           }
         }
+        const player = this.engine.getPlayer(playerId);
+        this.lastAction = {
+          playerId,
+          type: 'PASS',
+          summary: `${player?.name || 'Người chơi'} bỏ lượt`
+        };
+        this.turnDeadline = this.engine.isGameOver ? null : (this.instantDelay ? null : Date.now() + 15000);
         GameEventBus.getInstance().emit({
           type: 'TURN_PASSED',
           playerId
@@ -257,8 +309,22 @@ export class AuthoritativeMatchHost {
       const moveRes = this.engine.playMove(playerId, selectedCards);
 
       if (moveRes.success) {
+        if (this.dealBanner) {
+          this.dealBanner = null;
+          if (this.bannerTimer) {
+            clearTimeout(this.bannerTimer);
+            this.bannerTimer = null;
+          }
+        }
         this.lastPlayedMove = moveRes.playedMove;
         this.dealtCounts[playerId] = currentPlayer.hand.length;
+        const comboName = getCombinationName(moveRes.playedMove.combination.type, moveRes.playedMove.combination.cards.length);
+        this.lastAction = {
+          playerId,
+          type: moveRes.playedMove.isChop ? 'CHOP' : 'PLAY',
+          summary: `${currentPlayer.name} ${moveRes.playedMove.isChop ? 'chặt' : 'đánh'} ${comboName}`
+        };
+        this.turnDeadline = this.engine.isGameOver ? null : (this.instantDelay ? null : Date.now() + 15000);
         for (const t of Object.values(this.trackers)) {
           t.recordMove(moveRes.playedMove);
         }
@@ -317,8 +383,10 @@ export class AuthoritativeMatchHost {
     this.stateSyncSeq += 1;
 
     const remainingCardCounts: Record<string, number> = {};
+    const playerScores: Record<string, number> = {};
     for (const p of this.engine.players) {
       remainingCardCounts[p.id] = p.hand.length;
+      playerScores[p.id] = p.score;
     }
 
     const currentTurnId = this.engine.getCurrentPlayer()?.id || null;
@@ -342,18 +410,41 @@ export class AuthoritativeMatchHost {
         }
       : null;
 
+    const currentMoveCombinationName = effectiveMove
+      ? getCombinationName(effectiveMove.combination.type, effectiveMove.combination.cards.length)
+      : null;
+
+    const seats: SyncedSeatSnapshot[] = this.engine.players.map(p => ({
+      playerId: p.id,
+      name: p.name,
+      avatar: p.avatar,
+      cardCount: this.isDealing ? (this.dealtCounts[p.id] ?? 0) : p.hand.length,
+      score: p.score,
+      isPassed: this.engine.currentRound ? this.engine.currentRound.passedPlayerIds.includes(p.id) : false,
+      isCurrentTurn: this.isDealing ? false : (currentTurnId === p.id),
+      isBot: p.isBot
+    }));
+
     const packet: TableStateSyncPacket = {
       gameNumber: this.gameNumber,
       seq: this.stateSyncSeq,
       timestamp: Date.now(),
       roundNumber: this.engine.roundNumber,
       isGameOver: this.engine.isGameOver,
+      lastWinnerId: this.lastWinnerId,
+      openingReason: this.openingReason,
+      turnDeadline: this.turnDeadline,
+      lastAction: this.lastAction,
+      currentMoveCombinationName,
+      seats,
       currentTurnPlayerId: this.isDealing ? null : currentTurnId,
       leadPlayerId: this.isDealing ? null : leadId,
       remainingCardCounts: this.isDealing ? { ...this.dealtCounts } : remainingCardCounts,
+      playerScores,
       passedPlayerIds: this.engine.currentRound ? [...this.engine.currentRound.passedPlayerIds] : [],
       currentMoveCards: effectiveMove ? effectiveMove.combination.cards : undefined,
       currentMovePlayerId: effectiveMove ? effectiveMove.playerId : undefined,
+      currentMoveCombinationType: effectiveMove ? effectiveMove.combination.type : undefined,
       isChop: effectiveMove ? !!effectiveMove.isChop : false,
       isCascadeChop: !!this.chopNotification?.isCascade,
       chopNotification: this.chopNotification,
@@ -383,19 +474,26 @@ export class AuthoritativeMatchHost {
    * Kết thúc ván đấu và kết toán điểm
    */
   public handleGameOver(options?: { skipDelay?: boolean }): void {
+    this.turnDeadline = null;
+    if (this.engine.winners.length > 0) {
+      this._lastWinnerId = this.engine.winners[0].id;
+    }
     const doSettle = () => {
       if (this.isDisposed) return;
       const settlementResult = settleCompletedMatch(this.engine, this.hostPlayerId);
 
       const allPlayerHands: Record<string, Card[]> = {};
+      const playerScores: Record<string, number> = {};
       for (const p of this.engine.players) {
         allPlayerHands[p.id] = [...p.hand];
+        playerScores[p.id] = p.score;
       }
 
       const endPacket: GameEndPacket = {
         winners: this.engine.winners.map(w => w.id),
         payouts: settlementResult?.payouts ?? {},
         eloDeltas: settlementResult?.eloDeltas ?? {},
+        playerScores,
         allPlayerHands,
         isThreeSpadesWin: this.engine.isThreeSpadesWin ?? false,
         instantWinType: this.instantWinType ?? null,
@@ -472,14 +570,6 @@ export class AuthoritativeMatchHost {
     this.dispose();
   }
 
-  public get lastWinnerId(): string | null {
-    return this.engine?.winners[0]?.id ?? null;
-  }
-
-  public set lastWinnerId(id: string | null) {
-    void id;
-  }
-
   public playCards(playerId: string, cards: Card[]): { success: boolean; error?: string } {
     if (this.isDealing) {
       this.finishDealing();
@@ -490,7 +580,14 @@ export class AuthoritativeMatchHost {
       const player = this.engine.getPlayer(playerId);
       if (player) {
         this.dealtCounts[playerId] = player.hand.length;
+        const comboName = getCombinationName(res.playedMove.combination.type, res.playedMove.combination.cards.length);
+        this.lastAction = {
+          playerId,
+          type: res.playedMove.isChop ? 'CHOP' : 'PLAY',
+          summary: `${player.name} ${res.playedMove.isChop ? 'chặt' : 'đánh'} ${comboName}`
+        };
       }
+      this.turnDeadline = this.engine.isGameOver ? null : (this.instantDelay ? null : Date.now() + 15000);
       for (const t of Object.values(this.trackers)) {
         t.recordMove(res.playedMove);
       }

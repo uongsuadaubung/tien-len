@@ -15,7 +15,6 @@ import { useViewStore } from '../../../stores/useViewStore';
 import { useUserStore } from '../../../stores/useUserStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useGameStore } from '../../../stores/useGameStore';
-import { useOnlineStore } from '../../../stores/useOnlineStore';
 
 export interface WebGameTableScreenProps {
   onPlaySelectedCards: () => void;
@@ -55,9 +54,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     activeGameType,
     selectedCardIds,
     handSortMode,
-    smartVariantIndex,
-    toggleCardSelect,
-    clearCardSelection
+    smartVariantIndex
   } = useGameStore();
 
   const {
@@ -80,9 +77,13 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     handlePlayCards,
     handlePassTurnAction,
     handleOpenXRay,
+    handleToggleCardSelect,
+    handleClearCardSelection,
     isDealing,
     dealtCounts,
     dealBanner,
+    openingReason,
+    reconnectNotice,
     currentTurnPlayerId,
     leadPlayerId,
     currentMove,
@@ -96,8 +97,6 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     onPlaySelectedCards,
     onPassTurn
   });
-
-  const reconnectNotice = useOnlineStore(s => s.reconnectNotice);
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[radial-gradient(ellipse_at_center,#141926_0%,#090c12_100%)] flex flex-col justify-between select-none">
@@ -117,26 +116,6 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
         onReturnToLobby={onReturnToLobby}
         xrayEnabled={xrayEnabled}
       />
-
-      {/* BANNER THÔNG BÁO CHỜ KẾT NỐI LẠI (GRACE PERIOD) */}
-      {reconnectNotice && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 bg-amber-950/95 text-amber-200 font-medium px-5 py-2 rounded-full shadow-2xl border border-amber-500/80 flex items-center gap-2.5 text-sm tracking-wide animate-pulse">
-          <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
-          <span>
-            {t('online.reconnectWaitingBanner', {
-              name: reconnectNotice.playerName,
-              seconds: Math.max(0, Math.ceil((reconnectNotice.deadline - Date.now()) / 1000))
-            })}
-          </span>
-        </div>
-      )}
-
-      {/* BANNER THÔNG BÁO QUYỀN ĐI ĐẦU VÁN ĐẤU */}
-      {dealBanner && !reconnectNotice && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 bg-amber-500/90 text-slate-950 font-bold px-6 py-2 rounded-full shadow-lg border border-amber-300 animate-bounce pointer-events-none text-sm tracking-wide">
-          {dealBanner}
-        </div>
-      )}
 
       {/* HUD GÓC TRÁI: QUÂN SƯ AI & THỐNG KÊ CHIẾN THUẬT */}
       <LeftMatchHUD
@@ -260,8 +239,8 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
           <PlayerHandView
             player={localPlayer}
             selectedCardIds={selectedCardIds}
-            onToggleCardSelect={toggleCardSelect}
-            onClearCardSelection={clearCardSelection}
+            onToggleCardSelect={handleToggleCardSelect}
+            onClearCardSelection={handleClearCardSelection}
             onPlaySelectedCards={handlePlayCards}
             onPassTurn={handlePassTurnAction}
             onAutoSort={onAutoSort}
@@ -281,6 +260,10 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
             cardSize="md"
             reverseButtons={reverseButtonsEnabled}
             quickResponseAssistEnabled={quickResponseAssistEnabled}
+            dealBanner={dealBanner}
+            openingReason={openingReason}
+            chopNotification={chopNotification}
+            reconnectNotice={reconnectNotice}
           />
         </div>
       </main>

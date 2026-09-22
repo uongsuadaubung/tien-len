@@ -309,4 +309,32 @@ describe('Game Flow & Lifecycle Engine', () => {
     expect(game.winners[2].id).toBe('p3');
     expect(game.winners[3].id).toBe('p4');
   });
+
+  test('Ván 2: Người về Nhất ván 1 (dù là Bot hay Human) BẮT BUỘC phải đi trước ở ván 2', () => {
+    const players = createMockPlayers();
+    const game = new GameEngine(players, { mode: 'TRADITIONAL', betAmount: 100 });
+    game.rules.instantWin.enabled = false;
+    
+    // Giả lập ván 1 Bot p2 về Nhất
+    game.lastWinnerId = 'p2';
+    game.winners = [players[1], players[0]];
+
+    // Bắt đầu ván 2 (không truyền winnerId, engine tự lấy từ lastWinnerId)
+    game.startNewGame(2);
+    expect(game.gameNumber).toBe(2);
+    expect(game.getCurrentPlayer().id).toBe('p2');
+    expect(game.isFirstMoveOfGame).toBe(false);
+    expect(game.firstMoveRequiredCard).toBeNull();
+
+    // Giả lập ván 2 Human p1 về Nhất
+    game.lastWinnerId = 'p1';
+    game.winners = [players[0], players[1]];
+
+    // Bắt đầu ván 3 truyền p1
+    game.startNewGame(3, 'p1');
+    expect(game.gameNumber).toBe(3);
+    expect(game.getCurrentPlayer().id).toBe('p1');
+    expect(game.isFirstMoveOfGame).toBe(false);
+    expect(game.firstMoveRequiredCard).toBeNull();
+  });
 });

@@ -9,6 +9,7 @@ import type { TableRenderFrame } from '../../engine/presentation/frame-types';
 import type { MoveHint } from '../../ai/hint-engine';
 import { CardTracker } from '../../ai/card-tracker';
 import { getSortedQuickSelectCandidates, type QuickSelectCandidate } from '../../engine/quick-response-finder';
+import type { OpeningReason, ReconnectNotice } from '../../engine/network/network.schema';
 
 // Stores
 import { useSettingsStore } from '../../stores/useSettingsStore';
@@ -46,11 +47,15 @@ export interface GameTableScreenLogicResult {
   handlePlayCards: () => void;
   handlePassTurnAction: () => void;
   handleOpenXRay: () => void;
+  handleToggleCardSelect: (cardId: string) => void;
+  handleClearCardSelection: () => void;
   // MatchState derived properties
   isDealing: boolean;
   isPlaying: boolean;
   dealtCounts: Readonly<Record<string, number>>;
   dealBanner: string | null;
+  openingReason: OpeningReason | null;
+  reconnectNotice: ReconnectNotice | null;
   currentTurnPlayerId: string | null;
   leadPlayerId: string | null;
   currentMove: PlayedMove | null;
@@ -110,8 +115,13 @@ export function useGameTableScreenLogic({
     throw new Error('[useGameTableScreenLogic] Invariant Violated: Table must have at least 1 valid player');
   }
 
-  // 1. Phân giải trạng thái hiển thị qua Engine Projector (Single Source of Truth)
+  // 1. Phân giải trạng thái hiển thị qua Engine Projector (Passive Dumb View)
+  // Ưu tiên sử dụng frame tính toán sẵn từ Engine Session (0ms overhead).
+  // Chỉ fallback gọi projectTableFrame trong môi trường SSR hoặc mock unit tests không có session.
   const frame: TableRenderFrame = useMemo(() => {
+    if (state.currentFrame) {
+      return state.currentFrame;
+    }
     return projectTableFrame({
       matchState,
       localPlayerId: localPlayer.id,
@@ -126,6 +136,7 @@ export function useGameTableScreenLogic({
       dealBanner: storeDealBanner
     });
   }, [
+    state.currentFrame,
     matchState,
     localPlayer.id,
     localPlayer.hand,
@@ -148,7 +159,9 @@ export function useGameTableScreenLogic({
   const isDealing = frame.isDealing;
   const isPlaying = frame.status === 'PLAYING';
   const dealBanner = frame.dealBanner;
+  const openingReason = frame.openingReason;
   const dealtCounts = frame.dealtCounts;
+  const reconnectNotice = useOnlineStore(s => s.reconnectNotice);
 
   const activeTurn = matchState.status === 'PLAYING' ? matchState : null;
   const currentTurnPlayerId = activeTurn ? activeTurn.currentTurnPlayerId : null;
@@ -229,6 +242,23 @@ export function useGameTableScreenLogic({
     onPassTurn();
   }, [onPassTurn]);
 
+  const handleToggleCardSelect = useCallback((cardId: string) => {
+    useGameStore.getState().toggleCardSelect(cardId);
+    const session = appFlowCoordinator.getActiveSession();
+    if (session) {
+      const nextIds = useGameStore.getState().selectedCardIds;
+      session.sendIntent({ type: 'SET_SELECTED_CARDS', cardIds: Array.from(nextIds) });
+    }
+  }, []);
+
+  const handleClearCardSelection = useCallback(() => {
+    useGameStore.getState().clearCardSelection();
+    const session = appFlowCoordinator.getActiveSession();
+    if (session) {
+      session.sendIntent({ type: 'CLEAR_SELECTION' });
+    }
+  }, []);
+
   return {
     myPlayerIndex,
     localPlayer,
@@ -253,10 +283,14 @@ export function useGameTableScreenLogic({
     handlePlayCards,
     handlePassTurnAction,
     handleOpenXRay,
+    handleToggleCardSelect,
+    handleClearCardSelection,
     isDealing,
     isPlaying,
     dealtCounts,
     dealBanner,
+    openingReason,
+    reconnectNotice,
     currentTurnPlayerId,
     leadPlayerId,
     currentMove,

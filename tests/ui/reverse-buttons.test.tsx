@@ -246,4 +246,83 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
     expect(htmlDisabled).not.toContain('Bắt Bài');
     expect(htmlEnabled).toContain('Bắt Bài');
   });
+
+  it('7. PlayerHandView: Banner mở màn biến mất hoàn toàn khi dealBanner = null ngay cả khi openingReason = THREE_SPADES', () => {
+    const mockPlayer = {
+      id: 'p0',
+      name: 'Người Chơi',
+      hand: [createCard(3, 'SPADES'), createCard(4, 'HEARTS')],
+      cardCount: 2,
+      playedCards: [],
+      score: 10000,
+      avatar: '🤠',
+      isBot: false as const,
+      isPassedCurrentRound: false,
+      hasPlayedFirstCard: false
+    };
+
+    // Khi dealBanner có giá trị: Banner hiển thị
+    const htmlWithBanner = renderToString(
+      <PlayerHandView
+        player={mockPlayer}
+        selectedCardIds={new Set()}
+        onToggleCardSelect={() => {}}
+        onClearCardSelection={() => {}}
+        onPlaySelectedCards={() => {}}
+        onPassTurn={() => {}}
+        onAutoSort={() => {}}
+        onQuickSelect={() => {}}
+        canQuickSelect={false}
+        quickSelectCandidatesCount={0}
+        isCurrentTurn={true}
+        canPlay={false}
+        canPass={false}
+        isLeader={false}
+        isDealing={false}
+        dealtCardsCount={0}
+        isFirstMoveOfGame={true}
+        sortMode="NATURAL"
+        variantIndex={0}
+        cardSize="md"
+        reverseButtons={false}
+        quickResponseAssistEnabled={true}
+        dealBanner="Đối thủ giành quyền mở màn (Có 3♠ Bích)!"
+        openingReason="THREE_SPADES"
+      />
+    );
+    expect(htmlWithBanner).toContain('giành quyền mở màn');
+    expect(htmlWithBanner).toContain('👑');
+
+    // Khi dealBanner = null (sau 2.5s hoặc khi đã đánh bài): Banner biến mất hoàn toàn
+    const htmlWithoutBanner = renderToString(
+      <PlayerHandView
+        player={mockPlayer}
+        selectedCardIds={new Set()}
+        onToggleCardSelect={() => {}}
+        onClearCardSelection={() => {}}
+        onPlaySelectedCards={() => {}}
+        onPassTurn={() => {}}
+        onAutoSort={() => {}}
+        onQuickSelect={() => {}}
+        canQuickSelect={false}
+        quickSelectCandidatesCount={0}
+        isCurrentTurn={true}
+        canPlay={false}
+        canPass={false}
+        isLeader={false}
+        isDealing={false}
+        dealtCardsCount={0}
+        isFirstMoveOfGame={true}
+        sortMode="NATURAL"
+        variantIndex={0}
+        cardSize="md"
+        reverseButtons={false}
+        quickResponseAssistEnabled={true}
+        dealBanner={null}
+        openingReason="THREE_SPADES"
+      />
+    );
+    expect(htmlWithoutBanner).not.toContain('giành quyền mở màn');
+    expect(htmlWithoutBanner).not.toContain('👑');
+  });
 });

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 import { createCard } from '../../src/engine/card';
 import { createPlayer } from '../../src/engine/player-factory';
+import { createTableSyncPacket } from '../../src/engine/network/packet-factory';
 import { createDefaultGameRules } from '../../src/engine/types';
 import { AuthoritativeMatchHost } from '../../src/engine/server/match-host';
 import { ClientSession } from '../../src/engine/presentation/client-session';
@@ -218,22 +219,14 @@ describe('Reproduce and test Online Turn Playing with appFlowCoordinator', () =>
       dealtCounts: { [hostId]: 3, [guestId]: 1 }
     });
 
-    const syncPacket: TableStateSyncPacket = {
+    const syncPacket = createTableSyncPacket({
       seq: 2,
-      timestamp: Date.now(),
-      gameNumber: 1,
-      roundNumber: 1,
-      isGameOver: false,
-      isChop: false,
-      isCascadeChop: false,
       currentTurnPlayerId: guestId,
       leadPlayerId: hostId,
       currentMovePlayerId: hostId,
       currentMoveCards: [createCard(3, 'HEARTS')],
-      remainingCardCounts: { [hostId]: 2, [guestId]: 1 },
-      passedPlayerIds: [],
-      winners: []
-    };
+      remainingCardCounts: { [hostId]: 2, [guestId]: 1 }
+    });
 
     // This must NOT throw TypeError: can't access property "id", c is null
     expect(() => {

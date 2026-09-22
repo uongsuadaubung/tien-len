@@ -103,6 +103,7 @@ export class GameEngine {
   public instantWinner: MatchPlayer | null = null;
   public instantWinType: InstantWinType | null = null;
   public roundNumber: number = 1;
+  public lastWinnerId: string | null = null;
 
   public get state(): MatchState {
     return this._state;
@@ -215,7 +216,6 @@ export class GameEngine {
     return this.currentRound.moves[this.currentRound.moves.length - 1];
   }
 
-  public lastWinnerId: string | null = null;
   public isThreeSpadesWin: boolean = false;
 
   /**
@@ -278,6 +278,9 @@ export class GameEngine {
 
     // Reset danh sách người thắng cho ván mới
     this.winners = [];
+    if (previousWinnerId) {
+      this.lastWinnerId = previousWinnerId;
+    }
 
     // 3. Tìm người đi đầu tiên:
     const { firstPlayerId, isFirstMoveOfGame, firstMoveRequiredCard } = this.determineFirstPlayer(previousWinnerId);
@@ -334,6 +337,7 @@ export class GameEngine {
 
     if (this.gameNumber > 1 && resolvedPrevWinnerId && this.players.some(p => p.id === resolvedPrevWinnerId)) {
       // Ván thứ 2 trở đi: Người về Nhất ván trước được quyền đi trước bất kể đang cầm bài gì!
+      this.lastWinnerId = resolvedPrevWinnerId;
       return { firstPlayerId: resolvedPrevWinnerId, isFirstMoveOfGame: false, firstMoveRequiredCard: null };
     }
 
@@ -615,6 +619,9 @@ export class GameEngine {
     // 4. Kiểm tra người chơi đã Hết Bài (Về Nhất/Nhì/Ba)
     if (player.hand.length === 0) {
       this.winners = [...this.winners, player];
+      if (this.winners.length === 1) {
+        this.lastWinnerId = player.id;
+      }
 
       // Kiểm tra Về 3 Bích Cuối Cùng (Ăn Ba Bích):
       // Chỉ kích hoạt khi người về Nhất đánh lá ĐƠN 3 Bích và không phải ván 1 bắt buộc 3 Bích đi đầu

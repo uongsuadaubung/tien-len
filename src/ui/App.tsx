@@ -61,7 +61,7 @@ export const App: React.FC = () => {
       dbGetGameSettings(),
       dbGetQuickTableConfig(),
       minDelay
-    ]).then(async ([_wasm, hydrated, savedSettings, savedTableConfig]) => {
+    ]).then(async ([, hydrated, savedSettings, savedTableConfig]) => {
       if (hydrated.profile) {
         hydrateProfile(hydrated.profile);
         useGameStore.getState().setMyPlayerId(hydrated.profile.id);

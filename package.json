@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "bun run lint && tsc && vite build",
     "build:wasm": "bunx wasm-pack build crates/tien_len_core --target web --out-dir ../../src/engine/wasm/pkg && bun run scripts/clean-wasm-gitignore.ts",
     "test:rust": "cargo test",
     "preview": "vite preview",

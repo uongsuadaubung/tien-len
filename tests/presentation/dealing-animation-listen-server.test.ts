@@ -8,6 +8,7 @@ import { createDefaultGameRules, Card } from '../../src/engine/types';
 import { DEFAULT_GAME_SETTINGS } from '../../src/stores/game/tableConfigSlice';
 import type { HostToClientPacket } from '../../src/engine/transport/transport.interface';
 import { useGameStore } from '../../src/stores/useGameStore';
+import { bindSessionToGameStore } from '../../src/stores/game/session-store-bridge';
 import { appFlowCoordinator } from '../../src/services/app-flow-coordinator';
 import { useUserStore } from '../../src/stores/useUserStore';
 
@@ -149,6 +150,7 @@ describe('Dealing Animation & Sound Coordination in Listen Server Architecture',
       gameRules: rules,
       initialPlayers: [p1, p2]
     });
+    const unbindStore = bindSessionToGameStore(session);
 
     // Giả lập Host gửi DEAL_HAND
     humanTransports.hostTransport.send({
@@ -177,6 +179,7 @@ describe('Dealing Animation & Sound Coordination in Listen Server Architecture',
         currentTurnPlayerId: null,
         leadPlayerId: null,
         remainingCardCounts: { [p1.id]: 0, [p2.id]: 0 },
+        playerScores: { [p1.id]: 1000, [p2.id]: 1000 },
         passedPlayerIds: [],
         winners: [],
         isChop: false,
@@ -208,6 +211,7 @@ describe('Dealing Animation & Sound Coordination in Listen Server Architecture',
         currentTurnPlayerId: p1.id,
         leadPlayerId: p1.id,
         remainingCardCounts: { [p1.id]: 2, [p2.id]: 2 },
+        playerScores: { [p1.id]: 1000, [p2.id]: 1000 },
         passedPlayerIds: [],
         winners: [],
         isChop: false,
@@ -223,6 +227,7 @@ describe('Dealing Animation & Sound Coordination in Listen Server Architecture',
     expect(useGameStore.getState().isDealing).toBe(false);
     expect(useGameStore.getState().dealBanner).toBe('Bạn giành quyền mở màn (3 Bích)!');
 
+    unbindStore();
     session.dispose();
   });
 
@@ -268,6 +273,7 @@ describe('Dealing Animation & Sound Coordination in Listen Server Architecture',
         currentTurnPlayerId: botId,
         leadPlayerId: botId,
         remainingCardCounts: { [botId]: 1 },
+        playerScores: { [botId]: 1000 },
         passedPlayerIds: [],
         winners: [],
         isChop: false,
@@ -292,6 +298,7 @@ describe('Dealing Animation & Sound Coordination in Listen Server Architecture',
         currentTurnPlayerId: botId,
         leadPlayerId: botId,
         remainingCardCounts: { [botId]: 1 },
+        playerScores: { [botId]: 1000 },
         passedPlayerIds: [],
         winners: [],
         isChop: false,
@@ -316,6 +323,7 @@ describe('Dealing Animation & Sound Coordination in Listen Server Architecture',
         currentTurnPlayerId: botId,
         leadPlayerId: botId,
         remainingCardCounts: { [botId]: 1 },
+        playerScores: { [botId]: 1000 },
         passedPlayerIds: [],
         winners: [],
         isChop: false,
@@ -366,5 +374,52 @@ describe('Dealing Animation & Sound Coordination in Listen Server Architecture',
     appFlowCoordinator.finishDealing();
     expect(useGameStore.getState().isDealing).toBe(false);
     expect(useGameStore.getState().dealtCounts[profile.id]).toBe(13);
+  });
+
+  it('6. Host clears dealBanner immediately when any player plays a move, preventing persistent banner overlay', () => {
+    const rules = createDefaultGameRules({
+      table: { playerCount: 2, betAmount: 1000, soundEnabled: true },
+      instantWin: { enabled: false }
+    });
+
+    const p1 = createPlayer({ id: 'human_1', name: 'kk' });
+    const p2 = createBotPlayer('bot_1', 'BOT_ELO_1150', { name: 'Daiki' });
+
+    const p1Transports = createMemoryDuplexTransport('HOST', p1.id);
+
+    const host = new AuthoritativeMatchHost({
+      rules,
+      players: [p1, p2],
+      hostPlayerId: p1.id,
+      instantDelay: true,
+      enableDealingAnimation: true
+    });
+    host.registerClient(p1.id, p1Transports.hostTransport);
+
+    host.startMatch(1);
+    host.finishDealing();
+
+    // Deal banner ban đầu xuất hiện
+    expect(host.dealBanner).toBeTruthy();
+
+    // Người chơi đánh bài đầu tiên
+    const currentLead = host.engine.getCurrentPlayer();
+    expect(currentLead).toBeDefined();
+    const playedCard = host.engine.firstMoveRequiredCard || currentLead!.hand[0];
+
+    host.handleClientPacket(currentLead!.id, {
+      type: 'PLAYER_ACTION',
+      packet: {
+        type: 'PLAY',
+        playerId: currentLead!.id,
+        cardIds: [playedCard.id],
+        timestamp: Date.now()
+      }
+    });
+
+    // Ngay khi có nước đánh, dealBanner phải bị xóa ngay lập tức (null)
+    expect(host.dealBanner).toBeNull();
+
+    host.dispose();
   });
 });

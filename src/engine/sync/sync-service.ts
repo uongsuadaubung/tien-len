@@ -16,7 +16,9 @@ import {
   dbGetRecentMatchLogs,
   dbSaveMatchLog,
   dbSavePlayerProfile,
-  dbSaveGameSettings
+  dbSaveGameSettings,
+  setLocalAnchorProfileId,
+  dbPurgeForeignHumanProfiles
 } from '../db/indexed-db';
 import { safeParseSaveData } from '../schemas/sync.schema';
 
@@ -144,7 +146,9 @@ export async function applyRemoteSaveData(remote: TienLenSaveData): Promise<void
   if (remote.profile) {
     const validated = sanitizeAndValidateProfile(remote.profile);
     useUserStore.getState().setProfile(validated);
+    setLocalAnchorProfileId(validated.id);
     await dbSavePlayerProfile(validated).catch(() => {});
+    await dbPurgeForeignHumanProfiles(validated.id).catch(() => {});
   }
 
   // 2. Settings

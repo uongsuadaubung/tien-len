@@ -3,8 +3,11 @@ import { ClientSession } from '../../src/engine/presentation/client-session';
 import { createMemoryDuplexTransport } from '../../src/engine/transport/memory-transport';
 import { createDefaultGameRules } from '../../src/engine/types';
 import { createCard } from '../../src/engine/card';
+import { createTableSyncPacket, createGameEndPacket, createDealHandPacket } from '../../src/engine/network/packet-factory';
 import type { ClientToHostPacket } from '../../src/engine/transport/transport.interface';
 import type { AudioCue, TableRenderFrame } from '../../src/engine/presentation/frame-types';
+import { bindSessionToGameStore } from '../../src/stores/game/session-store-bridge';
+import { useGameStore } from '../../src/stores/useGameStore';
 
 describe('ClientSession (Dumb View Presentation Controller)', () => {
   const localPlayerId = 'LOCAL_ME';
@@ -191,6 +194,7 @@ describe('ClientSession (Dumb View Presentation Controller)', () => {
         currentTurnPlayerId: localPlayerId,
         leadPlayerId: botId,
         remainingCardCounts: { [localPlayerId]: 2, [botId]: 5 },
+        playerScores: { [localPlayerId]: 1000, [botId]: 1000 },
         passedPlayerIds: [],
         currentMoveCards: [createCard(9, 'CLUBS'), createCard(9, 'DIAMONDS')],
         currentMovePlayerId: botId,
@@ -221,6 +225,241 @@ describe('ClientSession (Dumb View Presentation Controller)', () => {
     expect(frame.controls.canPlay).toBe(true);
     expect(frame.controls.playButtonLabel).toBe('Đánh (2 lá)');
 
+    session.dispose();
+  });
+
+  it('should update player scores in frame and seats when receiving TABLE_SYNC and GAME_END with playerScores from host', () => {
+    const { hostTransport, clientTransport } = createMemoryDuplexTransport('HOST', localPlayerId);
+    const session = new ClientSession({
+      localPlayerId,
+      transport: clientTransport,
+      gameRules: rules,
+      initialPlayers: mockPlayers
+    });
+
+    // Verify initial scores
+    let frame = session.getLatestFrame();
+    expect(frame.seats.find(s => s.playerId === localPlayerId)?.score).toBe(1000);
+    expect(frame.seats.find(s => s.playerId === botId)?.score).toBe(1000);
+
+    // 1. Host sends TABLE_SYNC with updated playerScores
+    hostTransport.send({
+      type: 'TABLE_SYNC',
+      packet: createTableSyncPacket({
+        seq: 1,
+        currentTurnPlayerId: localPlayerId,
+        leadPlayerId: localPlayerId,
+        remainingCardCounts: { [localPlayerId]: 13, [botId]: 13 },
+        playerScores: { [localPlayerId]: 15000, [botId]: 8500 }
+      })
+    });
+
+    frame = session.getLatestFrame();
+    expect(frame.seats.find(s => s.playerId === localPlayerId)?.score).toBe(15000);
+    expect(frame.seats.find(s => s.playerId === botId)?.score).toBe(8500);
+
+    // 2. Host sends GAME_END with final playerScores
+    hostTransport.send({
+      type: 'GAME_END',
+      packet: createGameEndPacket({
+        winners: [localPlayerId],
+        payouts: { [localPlayerId]: 20000, [botId]: -20000 },
+        eloDeltas: { [localPlayerId]: 25, [botId]: -25 },
+        playerScores: { [localPlayerId]: 35000, [botId]: 0 }
+      })
+    });
+
+    frame = session.getLatestFrame();
+    expect(frame.seats.find(s => s.playerId === localPlayerId)?.score).toBe(35000);
+    expect(frame.seats.find(s => s.playerId === botId)?.score).toBe(0);
+
+    session.dispose();
+  });
+
+  it('should preserve the exact ranking order of winners when opponent wins 1st place', () => {
+    const { hostTransport, clientTransport } = createMemoryDuplexTransport('HOST', localPlayerId);
+    const session = new ClientSession({
+      localPlayerId,
+      transport: clientTransport,
+      gameRules: rules,
+      initialPlayers: mockPlayers
+    });
+
+    // Host sends GAME_END with botId as 1st place, localPlayerId as 2nd place
+    hostTransport.send({
+      type: 'GAME_END',
+      packet: createGameEndPacket({
+        winners: [botId, localPlayerId],
+        payouts: { [botId]: 20000, [localPlayerId]: -20000 }
+      })
+    });
+
+    const matchState = session.getLatestMatchState();
+    expect(matchState.status).toBe('GAME_OVER');
+    if (matchState.status === 'GAME_OVER') {
+      expect(matchState.winners[0]?.id).toBe(botId);
+      expect(matchState.winners[1]?.id).toBe(localPlayerId);
+    }
+
+    session.dispose();
+  });
+
+  it('should emit PASS and PLAY audio cues directly from lastAction and project extended frame fields', () => {
+    const { hostTransport, clientTransport } = createMemoryDuplexTransport('HOST', localPlayerId);
+    const session = new ClientSession({
+      localPlayerId,
+      transport: clientTransport,
+      gameRules: rules,
+      initialPlayers: mockPlayers
+    });
+
+    const cues: AudioCue[] = [];
+    session.subscribeAudioCue(cue => cues.push(cue));
+
+    const deadline = Date.now() + 15000;
+    hostTransport.send({
+      type: 'TABLE_SYNC',
+      packet: createTableSyncPacket({
+        turnDeadline: deadline,
+        openingReason: 'THREE_SPADES',
+        currentMoveCombinationName: 'Sảnh (3 lá)',
+        lastAction: {
+          playerId: botId,
+          type: 'PLAY',
+          summary: 'Bot đánh Sảnh (3 lá)'
+        },
+        seats: [
+          {
+            playerId: localPlayerId,
+            name: 'Me',
+            avatar: 'me.png',
+            cardCount: 13,
+            score: 50000,
+            isPassed: false,
+            isCurrentTurn: false,
+            isBot: false
+          },
+          {
+            playerId: botId,
+            name: 'Bot',
+            avatar: 'bot.png',
+            cardCount: 10,
+            score: 50000,
+            isPassed: false,
+            isCurrentTurn: true,
+            isBot: true
+          }
+        ]
+      })
+    });
+
+    expect(cues).toContain('CARD_PLAY');
+    const frame = session.getLatestFrame();
+    expect(frame.turnDeadline).toBe(deadline);
+    expect(frame.openingReason).toBe('THREE_SPADES');
+    expect(frame.lastAction?.summary).toBe('Bot đánh Sảnh (3 lá)');
+    expect(frame.seats.find(s => s.playerId === botId)?.cardCount).toBe(10);
+
+    // Host sends PASS action for bot
+    hostTransport.send({
+      type: 'TABLE_SYNC',
+      packet: createTableSyncPacket({
+        lastAction: {
+          playerId: botId,
+          type: 'PASS',
+          summary: 'Bot bỏ lượt'
+        }
+      })
+    });
+    expect(cues).toContain('PASS');
+
+    session.dispose();
+  });
+
+  it('should preserve pre-selected cards when receiving opponent moves and table sync events', () => {
+    useGameStore.getState().setMyPlayerId(localPlayerId);
+    useGameStore.getState().setPlayers(mockPlayers);
+    useGameStore.getState().resetMatchState();
+
+    const { hostTransport, clientTransport } = createMemoryDuplexTransport('HOST', localPlayerId);
+    const session = new ClientSession({
+      localPlayerId,
+      transport: clientTransport,
+      gameRules: rules,
+      initialPlayers: mockPlayers
+    });
+
+    const unbind = bindSessionToGameStore(session);
+
+    // Deal cards
+    const card3S = createCard(3, 'SPADES');
+    const card4H = createCard(4, 'HEARTS');
+    const card5D = createCard(5, 'DIAMONDS');
+    hostTransport.send({
+      type: 'DEAL_HAND',
+      packet: createDealHandPacket({
+        playerId: localPlayerId,
+        cards: [card3S, card4H, card5D],
+        gameNumber: 1
+      })
+    });
+
+    // Local player pre-selects 4_HEARTS and 5_DIAMONDS
+    session.sendIntent({ type: 'SET_SELECTED_CARDS', cardIds: [card4H.id, card5D.id] });
+
+    let latestFrame = session.getLatestFrame();
+    expect(latestFrame.myHand.find(h => h.card.id === card4H.id)?.isSelected).toBe(true);
+    expect(latestFrame.myHand.find(h => h.card.id === card5D.id)?.isSelected).toBe(true);
+    expect(useGameStore.getState().selectedCardIds.has(card4H.id)).toBe(true);
+    expect(useGameStore.getState().selectedCardIds.has(card5D.id)).toBe(true);
+
+    // Opponent plays a card (e.g. 3_HEARTS)
+    hostTransport.send({
+      type: 'TABLE_SYNC',
+      packet: createTableSyncPacket({
+        currentMovePlayerId: botId,
+        currentMoveCards: [{ rank: 3, suit: 'HEARTS', id: '3_HEARTS' }],
+        lastAction: {
+          playerId: botId,
+          type: 'PLAY',
+          summary: 'Bot đánh 3 Cơ'
+        }
+      })
+    });
+
+    // The pre-selected cards MUST remain selected both in the session frame and in useGameStore
+    latestFrame = session.getLatestFrame();
+    expect(latestFrame.myHand.find(h => h.card.id === card4H.id)?.isSelected).toBe(true);
+    expect(latestFrame.myHand.find(h => h.card.id === card5D.id)?.isSelected).toBe(true);
+    expect(useGameStore.getState().selectedCardIds.has(card4H.id)).toBe(true);
+    expect(useGameStore.getState().selectedCardIds.has(card5D.id)).toBe(true);
+
+    // Opponent passes
+    hostTransport.send({
+      type: 'TABLE_SYNC',
+      packet: createTableSyncPacket({
+        currentMovePlayerId: botId,
+        lastAction: {
+          playerId: botId,
+          type: 'PASS',
+          summary: 'Bot bỏ lượt'
+        }
+      })
+    });
+
+    // The pre-selected cards MUST STILL remain selected
+    latestFrame = session.getLatestFrame();
+    expect(latestFrame.myHand.find(h => h.card.id === card4H.id)?.isSelected).toBe(true);
+    expect(latestFrame.myHand.find(h => h.card.id === card5D.id)?.isSelected).toBe(true);
+    expect(useGameStore.getState().selectedCardIds.has(card4H.id)).toBe(true);
+    expect(useGameStore.getState().selectedCardIds.has(card5D.id)).toBe(true);
+
+    // Explicit clear selection drops them
+    session.sendIntent({ type: 'CLEAR_SELECTION' });
+    useGameStore.getState().clearCardSelection();
+    expect(useGameStore.getState().selectedCardIds.size).toBe(0);
+
+    unbind();
     session.dispose();
   });
 });

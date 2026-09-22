@@ -6,6 +6,7 @@ import { useGameStore } from '../../src/stores/useGameStore';
 import { createCard } from '../../src/engine/card';
 import { createDefaultGameRules } from '../../src/engine/types';
 import { createPlayingTurnMatchState } from '../../src/engine/state-machine/types';
+import { projectTableFrame } from '../../src/engine/presentation/table-frame-projector';
 
 describe('useGameTableScreenLogic (Dumb View Presentation Hook)', () => {
   const localPlayerId = useGameStore.getState().myPlayerId;
@@ -121,5 +122,81 @@ describe('useGameTableScreenLogic (Dumb View Presentation Hook)', () => {
     expect(hookResult!.isMyTurn).toBe(false);
     expect(hookResult!.isValidPlaySelection).toBe(false);
     expect(hookResult!.canPassTurn).toBe(false);
+  });
+
+  it('should toggle and clear card selections via handleToggleCardSelect and handleClearCardSelection', () => {
+    useGameStore.getState().clearCardSelection();
+    let hookResult: GameTableScreenLogicResult | null = null;
+    const TestComp = () => {
+      hookResult = useGameTableScreenLogic({
+        onPlaySelectedCards: () => {},
+        onPassTurn: () => {}
+      });
+      return null;
+    };
+    renderToString(React.createElement(TestComp));
+
+    expect(hookResult).not.toBeNull();
+    hookResult!.handleToggleCardSelect('3_SPADES');
+    expect(useGameStore.getState().selectedCardIds.has('3_SPADES')).toBe(true);
+
+    hookResult!.handleToggleCardSelect('3_SPADES');
+    expect(useGameStore.getState().selectedCardIds.has('3_SPADES')).toBe(false);
+
+    hookResult!.handleToggleCardSelect('4_HEARTS');
+    expect(useGameStore.getState().selectedCardIds.has('4_HEARTS')).toBe(true);
+
+    hookResult!.handleClearCardSelection();
+    expect(useGameStore.getState().selectedCardIds.size).toBe(0);
+  });
+
+  it('should directly consume currentFrame when available in store (Passive Dumb View optimization)', () => {
+    const store = useGameStore.getState();
+    store.setPlayers(mockPlayers);
+    store.clearCardSelection();
+
+    const baseFrame = projectTableFrame({
+      matchState: store.matchState,
+      localPlayerId: mockPlayers[0].id,
+      localHand: mockPlayers[0].hand,
+      selectedCardIds: store.selectedCardIds,
+      gameRules: rules,
+      players: store.players,
+      dealtCounts: {},
+      currentHint: null,
+      botThinkingThought: null,
+      isDealing: false,
+      dealBanner: null
+    });
+    const mockFrame = {
+      ...baseFrame,
+      dealBanner: 'UNIQUE_PASSIVE_DUMB_VIEW_BANNER',
+      controls: {
+        ...baseFrame.controls,
+        isMyTurn: true,
+        canPlay: true,
+        canQuickSelect: true
+      }
+    };
+
+    store.setCurrentFrame(mockFrame);
+
+    let hookResult: GameTableScreenLogicResult | null = null;
+    const TestComp = () => {
+      hookResult = useGameTableScreenLogic({
+        onPlaySelectedCards: () => {},
+        onPassTurn: () => {}
+      });
+      return null;
+    };
+    renderToString(React.createElement(TestComp));
+
+    expect(hookResult).not.toBeNull();
+    expect(hookResult!.dealBanner).toBe('UNIQUE_PASSIVE_DUMB_VIEW_BANNER');
+    expect(hookResult!.isMyTurn).toBe(true);
+    expect(hookResult!.isValidPlaySelection).toBe(true);
+    expect(hookResult!.canQuickSelect).toBe(true);
+
+    store.setCurrentFrame(null);
   });
 });

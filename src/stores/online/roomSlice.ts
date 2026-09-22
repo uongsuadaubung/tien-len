@@ -22,14 +22,14 @@ import {
   type TableRulesBuilder
 } from '../../engine/types';
 import { loadPlayerProfile, saveActiveOnlineSession, clearActiveOnlineSession } from '../../engine/storage';
-import { createPlayer, syncStorePlayersFromFrame, updatePlayersHand, maskOpponentHands, revealPlayersHands, cloneMatchPlayer, resetPlayersForNewGame } from '../../engine/player-factory';
+import { createPlayer, updatePlayersHand, maskOpponentHands, revealPlayersHands, cloneMatchPlayer, resetPlayersForNewGame, createMatchPlayerFromProfile } from '../../engine/player-factory';
 import { applyAuthoritativeSettlementToProfile } from '../../services/match-settlement-service';
 import { createPerspectiveSettlement } from '../../engine/settlement/perspective-settlement';
 import { type PlayingTurnMatchState, type GameOverMatchState, createPlayingTurnMatchState } from '../../engine/state-machine/types';
 import { type RoomSlice, type OnlineSliceCreator } from './types';
-import { P2PClientTransport, P2PHostPeerTransport } from '../../engine/transport/p2p-transport';
-import { ClientSession } from '../../engine/presentation/client-session';
+import { P2PHostPeerTransport } from '../../engine/transport/p2p-transport';
 import { appFlowCoordinator } from '../../services/app-flow-coordinator';
+import { TableSessionFactory } from '../../engine/session/table-session-factory';
 
 let activeJoinRetryTimer: ReturnType<typeof setInterval> | null = null;
 let activeJoinSafetyTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -551,26 +551,11 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
           gameStore.setIsDealing(false);
 
           if (!get().isHost && roomState.hostPeerId) {
-            const clientTransport = new P2PClientTransport(globalP2PClient, roomState.hostPeerId);
-            const clientSession = new ClientSession({
+            const clientSession = TableSessionFactory.createOnlineGuestSession({
+              hostPeerId: roomState.hostPeerId,
               localPlayerId: myId,
-              transport: clientTransport,
-              gameRules: customRules,
-              initialPlayers,
-              activeGameType: 'ONLINE'
-            });
-
-            clientSession.subscribeFrame(frame => {
-              const store = useGameStore.getState();
-              const myCards = frame.myHand.map(h => h.card);
-              store.setGameNumber(frame.gameNumber);
-              store.setIsDealing(frame.isDealing);
-              store.setDealtCounts(frame.dealtCounts);
-              const matchState = clientSession.getLatestMatchState();
-              store.applyMatchState(matchState);
-              store.setPlayers(prevPlayers => {
-                return syncStorePlayersFromFrame(prevPlayers, frame, matchState);
-              });
+              rules: customRules,
+              initialPlayers
             });
 
             appFlowCoordinator.setActiveSession(clientSession);
@@ -637,26 +622,11 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
 
       if (!get().isHost && !appFlowCoordinator.getActiveSession()) {
         const hostPeerId = room?.hostPeerId || 'host';
-        const clientTransport = new P2PClientTransport(globalP2PClient, hostPeerId);
-        const clientSession = new ClientSession({
+        const clientSession = TableSessionFactory.createOnlineGuestSession({
+          hostPeerId,
           localPlayerId: myId,
-          transport: clientTransport,
-          gameRules: gameStore.gameRules,
-          initialPlayers: currentPlayers,
-          activeGameType: 'ONLINE'
-        });
-
-        clientSession.subscribeFrame(frame => {
-          const store = useGameStore.getState();
-          const myCards = frame.myHand.map(h => h.card);
-          store.setGameNumber(frame.gameNumber);
-          store.setIsDealing(frame.isDealing);
-          store.setDealtCounts(frame.dealtCounts);
-          const matchState = clientSession.getLatestMatchState();
-          store.applyMatchState(matchState);
-          store.setPlayers(prevPlayers => {
-            return syncStorePlayersFromFrame(prevPlayers, frame, matchState);
-          });
+          rules: gameStore.gameRules,
+          initialPlayers: currentPlayers
         });
 
         appFlowCoordinator.setActiveSession(clientSession);
@@ -748,8 +718,16 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
           revealedMap[pid] = remoteCards.map(c => createCard(c.rank, c.suit));
         }
         updatedPlayers = revealPlayersHands(gameStore.players, revealedMap);
-        gameStore.setPlayers(updatedPlayers);
       }
+
+      // Cập nhật điểm số/xu từ Server Authoritative packet
+      if (endPacket.playerScores) {
+        updatedPlayers = updatedPlayers.map(p => {
+          const score = endPacket.playerScores[p.id];
+          return score !== undefined ? { ...p, score } : p;
+        });
+      }
+      gameStore.setPlayers(updatedPlayers);
 
       const onlineId = get().myPlayerId;
       const gameStoreId = gameStore.myPlayerId;
@@ -928,11 +906,13 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
     appFlowCoordinator.setActiveSession(null);
     globalP2PClient.leave();
 
-    const defaultProfileId = loadPlayerProfile().id;
+    const defaultProfile = loadPlayerProfile();
+    const defaultProfileId = defaultProfile.id;
     useGameStore.getState().setCurrentScreen('LOBBY');
     useGameStore.getState().setActiveGameType('QUICK');
     useGameStore.getState().setMyPlayerId(defaultProfileId);
     useGameStore.getState().resetMatchState();
+    useGameStore.getState().setPlayers([createMatchPlayerFromProfile(defaultProfile)]);
 
     set({
       sessionState: {

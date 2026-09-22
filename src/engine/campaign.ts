@@ -190,3 +190,66 @@ export function createCampaignBotEntity(botConfig: CampaignBotConfig, ecosystemB
     }
   };
 }
+
+export interface CampaignNextUnlockedMeta {
+  readonly status: 'NEXT_UNLOCKED';
+  readonly isUnlockedNext: true;
+  readonly isAllCompleted: false;
+  readonly nextChapter: CampaignChapter;
+  readonly currentWins: number;
+}
+
+export interface CampaignAllCompletedMeta {
+  readonly status: 'ALL_COMPLETED';
+  readonly isUnlockedNext: false;
+  readonly isAllCompleted: true;
+  readonly nextChapter: null;
+  readonly currentWins: number;
+}
+
+export interface CampaignInProgressMeta {
+  readonly status: 'IN_PROGRESS';
+  readonly isUnlockedNext: false;
+  readonly isAllCompleted: false;
+  readonly nextChapter: null;
+  readonly currentWins: number;
+}
+
+export type CampaignResultMeta =
+  | CampaignNextUnlockedMeta
+  | CampaignAllCompletedMeta
+  | CampaignInProgressMeta;
+
+export function createCampaignResultMeta(params: {
+  readonly isUnlockedNext: boolean;
+  readonly isAllCompleted: boolean;
+  readonly nextChapter: CampaignChapter | null;
+  readonly currentWins: number;
+}): CampaignResultMeta {
+  if (params.isAllCompleted) {
+    return {
+      status: 'ALL_COMPLETED',
+      isUnlockedNext: false,
+      isAllCompleted: true,
+      nextChapter: null,
+      currentWins: params.currentWins
+    };
+  }
+  if (params.isUnlockedNext && params.nextChapter) {
+    return {
+      status: 'NEXT_UNLOCKED',
+      isUnlockedNext: true,
+      isAllCompleted: false,
+      nextChapter: params.nextChapter,
+      currentWins: params.currentWins
+    };
+  }
+  return {
+    status: 'IN_PROGRESS',
+    isUnlockedNext: false,
+    isAllCompleted: false,
+    nextChapter: null,
+    currentWins: params.currentWins
+  };
+}
+

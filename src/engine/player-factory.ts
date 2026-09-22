@@ -7,6 +7,7 @@ export interface PlayerSyncContext {
   readonly myHand?: readonly Card[];
   readonly passedPlayerIds?: readonly string[];
   readonly remainingCardCounts?: Readonly<Record<string, number>>;
+  readonly playerScores?: Readonly<Record<string, number>>;
   readonly currentMoveCards?: readonly Card[];
   readonly currentMovePlayerId?: string | null;
   readonly isGameOver?: boolean;
@@ -26,6 +27,9 @@ export function deriveSynchronizedPlayers(
   return currentPlayers.map(p => {
     const isMe = p.id === ctx.myPlayerId;
     const isPassed = ctx.passedPlayerIds?.includes(p.id) ?? false;
+    const score = (ctx.playerScores && ctx.playerScores[p.id] !== undefined)
+      ? ctx.playerScores[p.id]
+      : p.score;
 
     // 1. Phân giải Hand & CardCount (Bảo vệ tuyệt đối Fog-of-War)
     let hand: Card[];
@@ -69,7 +73,8 @@ export function deriveSynchronizedPlayers(
       hand,
       cardCount,
       isPassedCurrentRound: isPassed,
-      playedCards
+      playedCards,
+      score
     };
   });
 }
@@ -78,24 +83,27 @@ export function deriveSynchronizedPlayers(
  * Single Source of Truth để đồng bộ danh sách MatchPlayer từ TableRenderFrame vào Zustand Store
  */
 export function syncStorePlayersFromFrame(
-  prevPlayers: readonly MatchPlayer[],
+  prevPlayers: readonly MatchPlayer[] | undefined | null,
   frame: TableRenderFrame,
   matchState: MatchState
 ): MatchPlayer[] {
+  const safePlayers: readonly MatchPlayer[] = (prevPlayers && prevPlayers.length > 0) ? prevPlayers : matchState.players;
   const isGameOver = matchState.status === 'GAME_OVER';
-  const myCards = frame.myHand.map(h => h.card);
+  const myCards = frame.myHand ? frame.myHand.map(h => h.card) : [];
 
-  return prevPlayers.map(p => {
+  return safePlayers.map((p: MatchPlayer) => {
     const isMe = p.id === frame.localPlayerId;
     const seat = frame.seats.find(s => s.playerId === p.id);
     const isPassed = seat?.isPassed ?? p.isPassedCurrentRound;
+    const score = seat?.score !== undefined ? seat.score : p.score;
 
     if (isMe) {
       return {
         ...p,
         hand: myCards,
         cardCount: myCards.length,
-        isPassedCurrentRound: isPassed
+        isPassedCurrentRound: isPassed,
+        score
       };
     }
 
@@ -106,7 +114,8 @@ export function syncStorePlayersFromFrame(
           ...p,
           hand: [...revealed.hand],
           cardCount: seat?.cardCount ?? revealed.hand.length,
-          isPassedCurrentRound: isPassed
+          isPassedCurrentRound: isPassed,
+          score
         };
       }
     }
@@ -115,7 +124,8 @@ export function syncStorePlayersFromFrame(
       ...p,
       hand: [],
       cardCount: seat?.cardCount ?? p.cardCount,
-      isPassedCurrentRound: isPassed
+      isPassedCurrentRound: isPassed,
+      score
     };
   });
 }
@@ -137,12 +147,14 @@ export function cloneMatchPlayer(
     : player.isPassedCurrentRound;
 
   if (player.isBot) {
-    const botOverrides = overrides as Partial<BotMatchPlayer> | undefined;
+    const botPersonaId = (overrides && 'botPersonaId' in overrides && overrides.botPersonaId)
+      ? overrides.botPersonaId
+      : player.botPersonaId;
     const cloned: BotMatchPlayer = {
       ...player,
-      ...botOverrides,
+      ...overrides,
       isBot: true,
-      botPersonaId: botOverrides?.botPersonaId ?? player.botPersonaId,
+      botPersonaId,
       hand,
       playedCards,
       cardCount,
@@ -151,11 +163,11 @@ export function cloneMatchPlayer(
     return cloned;
   }
 
-  const humanOverrides = overrides as Partial<HumanMatchPlayer> | undefined;
   const cloned: HumanMatchPlayer = {
     ...player,
-    ...humanOverrides,
+    ...overrides,
     isBot: false,
+    botPersonaId: undefined,
     hand,
     playedCards,
     cardCount,

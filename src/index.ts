@@ -13,3 +13,4 @@ export * from './ai/card-tracker';
 export * from './ai/decision-maker';
 export * from './ai/bot-factory';
 export * from './ai/hint-engine';
+export * from './engine/network/packet-factory';

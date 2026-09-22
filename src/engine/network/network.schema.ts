@@ -100,6 +100,32 @@ export const PlayerActionPacketSchema = z.object({
 
 export type PlayerActionPacket = z.infer<typeof PlayerActionPacketSchema>;
 
+// Lý do mở màn ván đấu (Ngữ nghĩa cấp cao cho UI / Voiceover / i18n)
+export const OpeningReasonSchema = z.enum(['THREE_SPADES', 'SMALLEST_CARD', 'PREVIOUS_WINNER']);
+export type OpeningReason = z.infer<typeof OpeningReasonSchema>;
+
+// Sự kiện hành động vừa diễn ra tức thì
+export const LastActionTypeSchema = z.enum(['PLAY', 'PASS', 'CHOP']);
+export const LastActionSchema = z.object({
+  playerId: z.string(),
+  type: LastActionTypeSchema,
+  summary: z.string()
+});
+export type LastAction = z.infer<typeof LastActionSchema>;
+
+// Trạng thái ghế ngồi đồng bộ hoàn chỉnh từ Server (Fog-of-War safe)
+export const SyncedSeatSnapshotSchema = z.object({
+  playerId: z.string(),
+  name: z.string(),
+  avatar: z.string(),
+  cardCount: z.number(),
+  score: z.number(),
+  isPassed: z.boolean(),
+  isCurrentTurn: z.boolean(),
+  isBot: z.boolean()
+});
+export type SyncedSeatSnapshot = z.infer<typeof SyncedSeatSnapshotSchema>;
+
 // Gói tin chia bài riêng tư từ Host cho từng Client (Fog of War)
 export const DealHandPacketSchema = z.object({
   playerId: z.string().optional(),
@@ -107,6 +133,9 @@ export const DealHandPacketSchema = z.object({
   leadPlayerId: z.string(),
   firstTurnPlayerId: z.string(),
   gameNumber: z.number().default(1),
+  lastWinnerId: z.string().nullable().optional(),
+  openingReason: OpeningReasonSchema.nullable().optional(),
+  turnDeadline: z.number().nullable().optional(),
   isFirstMoveOfGame: z.boolean().optional(),
   firstMoveRequiredCard: NetworkCardSchema.nullable().optional(),
   isLeadMove: z.boolean().optional()
@@ -135,15 +164,22 @@ export const TableStateSyncPacketSchema = z.object({
   currentMoveCards: z.array(NetworkCardSchema).optional(),
   currentMovePlayerId: z.string().optional(),
   currentMoveCombinationType: z.string().optional(),
+  currentMoveCombinationName: z.string().nullable().optional(),
   isChop: z.boolean().default(false),
   isCascadeChop: z.boolean().default(false),
   remainingCardCounts: z.record(z.string(), z.number()),
+  playerScores: z.record(z.string(), z.number()),
   passedPlayerIds: z.array(z.string()).default([]),
   roundNumber: z.number().default(1),
   chopNotification: NetworkChopNotificationSchema.nullable().optional(),
   winners: z.array(z.string()),
   isGameOver: z.boolean(),
+  lastWinnerId: z.string().nullable().optional(),
+  openingReason: OpeningReasonSchema.nullable().optional(),
+  turnDeadline: z.number().nullable().optional(),
+  lastAction: LastActionSchema.nullable().optional(),
   lastActionMessage: z.string().optional(),
+  seats: z.array(SyncedSeatSnapshotSchema).optional(),
   gameNumber: z.number().default(1),
   isFirstMoveOfGame: z.boolean().optional(),
   firstMoveRequiredCard: NetworkCardSchema.nullable().optional(),
@@ -170,6 +206,7 @@ export const GameEndPacketSchema = z.object({
   winners: z.array(z.string()),
   payouts: z.record(z.string(), z.number()),
   eloDeltas: z.record(z.string(), z.number()),
+  playerScores: z.record(z.string(), z.number()),
   allPlayerHands: z.record(z.string(), z.array(NetworkCardSchema)), // Mở bài cho mọi người xem khi ván kết thúc
   isThreeSpadesWin: z.boolean().default(false),
   instantWinType: InstantWinTypeSchema.nullable().default(null),
@@ -199,3 +236,4 @@ export const RematchVotePacketSchema = z.object({
 
 export type RematchVotePacket = z.infer<typeof RematchVotePacketSchema>;
 
+export * from './packet-factory';

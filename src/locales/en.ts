@@ -58,7 +58,12 @@ export const en: LocaleDictionary = {
     quickSelectTooltipEmpty: 'No valid counter cards',
     quickSelectActionLead: 'lead',
     quickSelectActionBeat: 'beat',
-    clearSelectionTooltip: 'Lower all selected cards'
+    clearSelectionTooltip: 'Lower all selected cards',
+    openingBannerThreeSpades: '{who} leads the round (Holds 3♠ Spades)!',
+    openingBannerSmallestCard: '{who} leads the round (Lowest card)!',
+    openingBannerPreviousWinner: '{who} leads the round (Won last game)!',
+    openingWhoYou: 'You',
+    openingWhoOpponent: 'Opponent'
   },
   sort: {
     naturalLabel: 'Rank (3 -> 2)',

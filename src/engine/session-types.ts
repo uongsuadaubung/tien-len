@@ -1,4 +1,3 @@
-import type { GameEngine } from './game';
 import type { 
   MatchPlayer, 
   PlayedMove, 
@@ -10,8 +9,15 @@ import type {
 } from './types';
 import type { BotConfig } from '../ai/types';
 import type { CampaignChapter } from './campaign';
-import type { ChopNotificationData } from '../stores/useGameStore';
-import type { MatchState } from './state-machine';
+
+export interface ChopNotificationData {
+  readonly visible: boolean;
+  readonly chopperName: string;
+  readonly targetName: string;
+  readonly amount: number;
+  readonly isCascade: boolean;
+  readonly chainCount: number;
+}
 
 export interface TableSessionConfig {
   gameType: 'QUICK' | 'CAMPAIGN';
@@ -40,13 +46,3 @@ export interface MatchSnapshot {
   isFirstMoveOfGame: boolean;
   isLeadMove: boolean;
 }
-
-export interface MatchCompletionResult {
-  engine: GameEngine;
-  instantWin: boolean;
-  instantWinType: InstantWinType | null;
-}
-
-export type SnapshotListener = (snapshot: MatchSnapshot) => void;
-export type MatchStateListener = (state: MatchState) => void;
-export type CompletionListener = (result: MatchCompletionResult) => void;

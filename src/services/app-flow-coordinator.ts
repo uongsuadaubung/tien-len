@@ -17,7 +17,7 @@ import {
   type MatchPlayer
 } from '../engine/types';
 import { resolveStrategyForMatch } from '../engine/strategies/game-mode-strategy';
-import { syncStorePlayersFromFrame } from '../engine/player-factory';
+import { bindSessionToGameStore } from '../stores/game/session-store-bridge';
 import { calculateRequiredDeposit, ECONOMY_CONSTANTS } from '../engine/constants/economy';
 import { 
   saveActiveMatchSession, 
@@ -35,13 +35,12 @@ import { assertValidMatchStartup } from '../engine/invariants/match-invariants';
 import { CardTracker } from '../ai/card-tracker';
 import { AuthoritativeMatchHost } from '../engine/server/match-host';
 import { BotAgent } from '../engine/server/bot-agent';
-import { ClientSession } from '../engine/presentation/client-session';
-import { createMemoryDuplexTransport } from '../engine/transport/memory-transport';
-import { soundManager } from '../ui/audio/sound-manager';
 import { GameEngine } from '../engine/game';
 import { createBotPlayer, createMatchPlayerFromProfile } from '../engine/player-factory';
 import { generateRealisticBotBankroll } from '../ai/bot-factory';
 import type { IGameSession } from '../engine/presentation/game-session.interface';
+import { TableSessionFactory } from '../engine/session/table-session-factory';
+import { CompositeDisposable } from '../engine/common/disposable';
 
 export interface AppFlowDriver {
   tableConfig: TableSessionConfig;
@@ -59,7 +58,9 @@ export class AppFlowCoordinator {
   public activeSession: IGameSession | null = null;
   public activeHost: AuthoritativeMatchHost | null = null;
   public activeBots: BotAgent[] = [];
+  public tableDisposables: CompositeDisposable | null = null;
   public currentTableConfig: TableSessionConfig | null = null;
+  private sessionStoreUnsubscribe: (() => void) | null = null;
 
   public static getInstance(): AppFlowCoordinator {
     if (!AppFlowCoordinator.instance) {
@@ -69,10 +70,17 @@ export class AppFlowCoordinator {
   }
 
   public setActiveSession(session: IGameSession | null): void {
+    if (this.sessionStoreUnsubscribe) {
+      this.sessionStoreUnsubscribe();
+      this.sessionStoreUnsubscribe = null;
+    }
     if (this.activeSession && this.activeSession !== session) {
       this.activeSession.dispose();
     }
     this.activeSession = session;
+    if (session) {
+      this.sessionStoreUnsubscribe = bindSessionToGameStore(session);
+    }
   }
 
   public getActiveSession(): IGameSession | null {
@@ -439,76 +447,28 @@ export class AppFlowCoordinator {
       );
     }
 
-    // 5. Khởi tạo AuthoritativeMatchHost (Listen Server trong RAM)
-    const host = new AuthoritativeMatchHost({
-      rules: config.rules,
-      players: initialPlayers,
-      hostPlayerId: currentProfile.id,
-      enableDealingAnimation: true
-    });
-    this.activeHost = host;
-
-    // 6. Kết nối ClientSession cho người chơi thật qua InMemoryTransport
-    const humanTransports = createMemoryDuplexTransport('HOST', currentProfile.id);
-    host.registerClient(currentProfile.id, humanTransports.hostTransport);
-
-    const clientSession = new ClientSession({
+    // 5. Khởi tạo toàn bộ hạ tầng trận đấu qua TableSessionFactory (Listen-Server, Session, Bots, Transports)
+    const bundle = TableSessionFactory.createOfflineTableSession({
       localPlayerId: currentProfile.id,
-      transport: humanTransports.clientTransport,
-      gameRules: config.rules,
       initialPlayers,
-      activeGameType: config.gameType === 'CAMPAIGN' ? 'CAMPAIGN' : 'QUICK'
-    });
-    this.setActiveSession(clientSession);
-
-    // Đăng ký phát âm thanh từ ClientSession ra SoundManager
-    clientSession.subscribeAudioCue(cue => {
-      switch (cue) {
-        case 'DEAL_START': soundManager.playShuffle(); break;
-        case 'CARD_PLAY': soundManager.playCardSlap(); break;
-        case 'CHOP': soundManager.playChop(); break;
-        case 'CARD_SLIDE': soundManager.playCardDeal(); break;
-        case 'PASS': soundManager.playPass(); break;
-        case 'VICTORY': soundManager.playVictory(); break;
-        case 'DEFEAT': soundManager.playDefeat(); break;
+      rules: config.rules,
+      activeGameType: config.gameType === 'CAMPAIGN' ? 'CAMPAIGN' : 'QUICK',
+      campaignChapter: config.campaignChapter ?? undefined,
+      campaignResultMeta: useGameStore.getState().campaignResultMeta,
+      enableDealingAnimation: true,
+      botPersonaIds: config.botPersonaIds,
+      customBotConfigs: config.customBotConfigs,
+      gameSpeed: () => useSettingsStore.getState().gameSpeed,
+      onThinkingChange: (bId, thought) => {
+        useGameStore.getState().setBotThinkingThought(thought ? { botId: bId, text: thought } : null);
       }
     });
 
-    // 7. Kết nối BotAgent độc lập cho từng Bot qua InMemoryTransport
-    for (let i = 0; i < config.playerCount - 1; i++) {
-      const botId = `bot_${i + 1}`;
-      const personaId = config.botPersonaIds[i] || 'BOT_ELO_1150';
-      const botTransports = createMemoryDuplexTransport('HOST', botId);
-      host.registerClient(botId, botTransports.hostTransport);
-
-      const botAgent = new BotAgent({
-        botId,
-        personaId,
-        customConfig: config.customBotConfigs[i],
-        transport: botTransports.clientTransport,
-        gameSpeed: () => useSettingsStore.getState().gameSpeed,
-        onThinkingChange: (bId, thought) => {
-          useGameStore.getState().setBotThinkingThought(thought ? { botId: bId, text: thought } : null);
-        }
-      });
-      this.activeBots.push(botAgent);
-    }
-
-    // 8. Đồng bộ Frame từ ClientSession sang Zustand Store cho Web UI & Modals
-    clientSession.subscribeFrame(frame => {
-      const store = useGameStore.getState();
-      const myCards = frame.myHand.map(h => h.card);
-      store.setGameNumber(frame.gameNumber);
-      store.setIsDealing(frame.isDealing);
-      store.setDealtCounts(frame.dealtCounts);
-
-      const matchState = clientSession.getLatestMatchState();
-      store.applyMatchState(matchState);
-
-      store.setPlayers(prevPlayers => {
-        return syncStorePlayersFromFrame(prevPlayers, frame, matchState);
-      });
-    });
+    const host = bundle.host;
+    this.activeHost = host;
+    this.activeBots = bundle.bots;
+    this.tableDisposables = bundle.disposables;
+    this.setActiveSession(bundle.session);
 
     // 9. Cầu nối tương thích ngược cho các test suite kiểm tra appFlowCoordinator.driver
     this.driver = {
@@ -624,7 +584,11 @@ export class AppFlowCoordinator {
    */
   public returnToLobby(reason?: string): void {
     void reason;
-    // 1. Dọn dẹp Driver, Session, Host, Bots và Timers
+    // 1. Dọn dẹp Driver, Session, Host, Bots, Subscriptions và Timers
+    if (this.tableDisposables) {
+      this.tableDisposables.dispose();
+      this.tableDisposables = null;
+    }
     if (this.activeHost) {
       this.activeHost.dispose();
       this.activeHost = null;
@@ -775,7 +739,7 @@ export class AppFlowCoordinator {
       timestamp: Date.now()
     });
 
-    const lastWinnerId = useGameStore.getState().winners[0]?.id || null;
+    const lastWinnerId = this.activeHost?.lastWinnerId || this.activeSession?.lastWinnerId || useGameStore.getState().winners[0]?.id || null;
     useGameStore.getState().setInstantWinType(undefined);
     useGameStore.getState().setGameNumber(nextGameNumber);
 

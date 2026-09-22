@@ -380,6 +380,16 @@ export function settleCompletedMatch(
   const { updatedProfile, loanSettlement } = applyAuthoritativeSettlementToProfile(settlementInput);
   gameStore.setLoanDeductionAmount(loanSettlement.loanDeduction);
 
+  // Cập nhật điểm số/xu (p.score) cho toàn bộ người chơi trong engine theo kết toán Server
+  for (const p of engine.players) {
+    if (p.id === humanPlayerId) {
+      p.score = updatedProfile.coins;
+    } else {
+      const deltaCoins = settlement.payouts[p.id] || 0;
+      p.score = Math.max(0, p.score + deltaCoins);
+    }
+  }
+
   const basePerspectiveParams = {
     subjectPlayerId: humanPlayerId,
     allPlayers: engine.players,
@@ -428,6 +438,8 @@ export function settleCompletedMatch(
     rules: engine.rules
   };
   gameStore.setMatchState(gameOverState);
+  gameStore.setWinners(engine.winners);
+  gameStore.setPlayers(engine.players.map(p => ({ ...p })));
 
   const matchReport = MatchLogger.getInstance().finalizeMatch({
     players: engine.players,
@@ -442,6 +454,13 @@ export function settleCompletedMatch(
 
   // Cập nhật kết quả trận đấu vào bảng players thống nhất (Dexie IndexedDB v2) cho toàn bộ người chơi tại bàn
   for (const p of engine.players) {
+    // Trong trận ONLINE: TUYỆT ĐỐI KHÔNG lưu thông tin của đối thủ online từ xa vào IndexedDB của Host.
+    // Đối thủ từ xa tự kết toán trên máy của họ khi nhận gói tin GAME_END.
+    // Chỉ cập nhật nếu là chính chủ (humanPlayerId) hoặc là Bot nội bộ.
+    if (activeGameType === 'ONLINE' && p.id !== humanPlayerId && !p.id.startsWith('bot_')) {
+      continue;
+    }
+
     const deltaCoins = settlement.payouts[p.id] || 0;
     const deltaElo = settlement.allEloDeltas[p.id] ?? (p.id === humanPlayerId ? settlement.eloDelta : 0);
     const isWinner = winner.id === p.id;

@@ -17,7 +17,9 @@ import {
   dbSaveHumanBehavior,
   dbClearHumanBehavior,
   dbGetPlayer,
-  dbSavePlayer
+  dbSavePlayer,
+  setLocalAnchorProfileId,
+  getLocalAnchorProfileId
 } from './db/indexed-db';
 
 import { PlayerProfileSchema, type PlayerProfile } from './schemas/profile.schema';
@@ -150,9 +152,11 @@ export async function hydrateStorageFromIndexedDB(): Promise<{
   humanBehavior: unknown | null;
 }> {
   try {
-    const dbProfile = await dbGetPlayerProfile();
+    const savedAnchorId = getLocalAnchorProfileId();
+    const dbProfile = await dbGetPlayerProfile(savedAnchorId ?? undefined);
     if (dbProfile) {
       cachedProfile = sanitizeAndValidateProfile(dbProfile);
+      setLocalAnchorProfileId(cachedProfile.id);
       // Đảm bảo profile luôn tồn tại trong db.players
       if (cachedProfile.id) {
         const existingPlayer = await dbGetPlayer(cachedProfile.id);
@@ -220,6 +224,7 @@ export function loadPlayerProfile(): PlayerProfile {
     dailyMilestonesClaimed: { 1: false, 3: false, 5: false }
   };
   cachedProfile = initialProfile;
+  setLocalAnchorProfileId(initialProfile.id);
   return initialProfile;
 }
 
@@ -229,6 +234,7 @@ export function loadPlayerProfile(): PlayerProfile {
 export function savePlayerProfile(profile: PlayerProfile): void {
   const sanitized = sanitizeAndValidateProfile(profile);
   cachedProfile = sanitized;
+  setLocalAnchorProfileId(sanitized.id);
   dbSavePlayerProfile(sanitized).catch(() => {});
 }
 

@@ -31,6 +31,7 @@ import type { Card, Combination, MatchPlayer, GameRules, InstantWinType } from '
 import type { MatchState } from './state-machine/types';
 import type { SmartCardGroup } from './hand-sorter';
 import type { TableGroup, SimulatedTableResult, BotEntity, EcosystemNewsItem } from './ecosystem/ecosystem-types';
+import type { EloPerformanceMetrics, EloDeltaResult } from './elo';
 
 let isInitialized = false;
 let initPromise: Promise<void> | null = null;
@@ -101,9 +102,7 @@ function ensureWasmReady(): void {
 
   if (typeof process !== 'undefined' && process.versions && (process.versions.bun || process.versions.node)) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const fs = require('fs');
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const path = require('path');
       const dir = typeof __dirname !== 'undefined' ? __dirname : (import.meta.dir || '.');
       const wasmPath = path.resolve(dir, './wasm/pkg/tien_len_core_bg.wasm');
@@ -387,8 +386,8 @@ export function wasmCalculateEloDelta(
   playerElo: number,
   opponentsAvgElo: number,
   totalPlayers: number = 4,
-  metrics?: any
-): any {
+  metrics?: EloPerformanceMetrics
+): EloDeltaResult {
   ensureWasmReady();
   const json = wasm_calculate_elo_delta(
     rankPosition,
@@ -411,7 +410,7 @@ export function wasmComputeTableEloSettlement(params: {
   isInstantWin: boolean;
 }): {
   allEloDeltas: Record<string, number>;
-  allEloBreakdowns: Record<string, any>;
+  allEloBreakdowns: Record<string, EloDeltaResult['breakdown']>;
 } {
   ensureWasmReady();
   const json = wasm_compute_table_elo_settlement(
@@ -519,9 +518,9 @@ export function wasmSimulateMatchSeries(
 
 function convertBotsToMapObject(
   botsInput: Map<string, BotEntity> | Record<string, BotEntity> | BotEntity[]
-): Record<string, any> {
+): Record<string, unknown> {
   if (botsInput instanceof Map) {
-    const obj: Record<string, any> = {};
+    const obj: Record<string, unknown> = {};
     for (const [k, v] of botsInput.entries()) {
       obj[k] = {
         id: v.id,
@@ -534,7 +533,7 @@ function convertBotsToMapObject(
     return obj;
   }
   if (Array.isArray(botsInput)) {
-    const obj: Record<string, any> = {};
+    const obj: Record<string, unknown> = {};
     for (const b of botsInput) {
       if (b && b.id) {
         obj[b.id] = {

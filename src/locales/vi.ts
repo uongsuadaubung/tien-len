@@ -56,7 +56,12 @@ export const vi = {
     quickSelectTooltipEmpty: 'Không có bài chặn được',
     quickSelectActionLead: 'ra trước',
     quickSelectActionBeat: 'chặn bài',
-    clearSelectionTooltip: 'Hạ toàn bộ các lá bài đang chọn xuống'
+    clearSelectionTooltip: 'Hạ toàn bộ các lá bài đang chọn xuống',
+    openingBannerThreeSpades: '{who} giành quyền mở màn (Có 3♠ Bích)!',
+    openingBannerSmallestCard: '{who} giành quyền mở màn (Bài nhỏ nhất)!',
+    openingBannerPreviousWinner: '{who} giành quyền mở màn (Thắng ván trước)!',
+    openingWhoYou: 'Bạn',
+    openingWhoOpponent: 'Đối thủ'
   },
   sort: {
     naturalLabel: 'Giá Trị (3 -> 2)',

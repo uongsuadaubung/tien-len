@@ -16,83 +16,31 @@ import type { BotConfig } from '../../ai/types';
 import type { MoveHint } from '../../ai/hint-engine';
 import type { MatchLogReport } from '../../engine/match-logger';
 import type { EloDeltaResult } from '../../engine/elo';
-import type { TableStateSyncPacket } from '../../engine/network/network.schema';
+import type { TableStateSyncPacket, OpeningReason } from '../../engine/network/network.schema';
 import type { PerspectiveMatchSettlement } from '../../engine/settlement/perspective-settlement';
+
+import type { HandSortMode, TableRenderFrame } from '../../engine/presentation/frame-types';
+import type { 
+  CampaignNextUnlockedMeta, 
+  CampaignAllCompletedMeta, 
+  CampaignInProgressMeta, 
+  CampaignResultMeta 
+} from '../../engine/campaign';
+import { createCampaignResultMeta } from '../../engine/campaign';
+import type { ChopNotificationData } from '../../engine/session-types';
 
 export type ActiveGameType = 'QUICK' | 'CAMPAIGN' | 'ONLINE';
 export type ScreenType = 'LOBBY' | 'GAME_TABLE';
-export type HandSortMode = 'NATURAL' | 'SMART_GROUP' | 'BY_SUIT' | 'TWO_PRESERVE';
 
-export interface CampaignNextUnlockedMeta {
-  readonly status: 'NEXT_UNLOCKED';
-  readonly isUnlockedNext: true;
-  readonly isAllCompleted: false;
-  readonly nextChapter: CampaignChapter;
-  readonly currentWins: number;
-}
-
-export interface CampaignAllCompletedMeta {
-  readonly status: 'ALL_COMPLETED';
-  readonly isUnlockedNext: false;
-  readonly isAllCompleted: true;
-  readonly nextChapter: null;
-  readonly currentWins: number;
-}
-
-export interface CampaignInProgressMeta {
-  readonly status: 'IN_PROGRESS';
-  readonly isUnlockedNext: false;
-  readonly isAllCompleted: false;
-  readonly nextChapter: null;
-  readonly currentWins: number;
-}
-
-export type CampaignResultMeta =
-  | CampaignNextUnlockedMeta
-  | CampaignAllCompletedMeta
-  | CampaignInProgressMeta;
-
-export function createCampaignResultMeta(params: {
-  readonly isUnlockedNext: boolean;
-  readonly isAllCompleted: boolean;
-  readonly nextChapter: CampaignChapter | null;
-  readonly currentWins: number;
-}): CampaignResultMeta {
-  if (params.isAllCompleted) {
-    return {
-      status: 'ALL_COMPLETED',
-      isUnlockedNext: false,
-      isAllCompleted: true,
-      nextChapter: null,
-      currentWins: params.currentWins
-    };
-  }
-  if (params.isUnlockedNext && params.nextChapter) {
-    return {
-      status: 'NEXT_UNLOCKED',
-      isUnlockedNext: true,
-      isAllCompleted: false,
-      nextChapter: params.nextChapter,
-      currentWins: params.currentWins
-    };
-  }
-  return {
-    status: 'IN_PROGRESS',
-    isUnlockedNext: false,
-    isAllCompleted: false,
-    nextChapter: null,
-    currentWins: params.currentWins
-  };
-}
-
-export interface ChopNotificationData {
-  readonly visible: boolean;
-  readonly chopperName: string;
-  readonly targetName: string;
-  readonly amount: number;
-  readonly isCascade: boolean;
-  readonly chainCount: number;
-}
+export type { 
+  HandSortMode, 
+  CampaignNextUnlockedMeta, 
+  CampaignAllCompletedMeta, 
+  CampaignInProgressMeta, 
+  CampaignResultMeta,
+  ChopNotificationData
+};
+export { createCampaignResultMeta };
 
 /**
  * 1. TableConfigSlice:
@@ -156,6 +104,7 @@ export interface MatchStateSlice {
   isDealing: boolean;
   dealtCounts: Record<string, number>;
   dealBanner: string | null;
+  openingReason: OpeningReason | null;
   chopNotification: ChopNotificationData | null;
   questToast: { title: string; rewardCoins: number; icon: string } | null;
 
@@ -194,6 +143,7 @@ export interface MatchStateSlice {
   setIsDealing: (dealing: boolean) => void;
   setDealtCounts: (countsOrUpdater: Record<string, number> | ((prev: Record<string, number>) => Record<string, number>)) => void;
   setDealBanner: (banner: string | null) => void;
+  setOpeningReason: (reason: OpeningReason | null) => void;
   setChopNotification: (notif: ChopNotificationData | null) => void;
   setQuestToast: (toast: { title: string; rewardCoins: number; icon: string } | null) => void;
 
@@ -220,6 +170,8 @@ export interface MatchStateSlice {
   applyMatchState: (state: MatchState) => void;
   applyAuthoritativeTableSync: (sync: TableStateSyncPacket) => void;
   resetMatchState: () => void;
+  currentFrame: TableRenderFrame | null;
+  setCurrentFrame: (frame: TableRenderFrame | null) => void;
 }
 
 export type GameStoreState = TableConfigSlice & PlayerHandSlice & MatchStateSlice;

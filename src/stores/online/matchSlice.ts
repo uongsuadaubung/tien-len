@@ -13,13 +13,12 @@ import {
   type GameFlowRulesBuilder,
   type TableRulesBuilder 
 } from '../../engine/types';
-import { createPlayer, syncStorePlayersFromFrame, resetPlayersForNewGame } from '../../engine/player-factory';
+import { createPlayer, resetPlayersForNewGame } from '../../engine/player-factory';
 import { type MatchSlice, type OnlineSliceCreator } from './types';
-import { createMemoryDuplexTransport } from '../../engine/transport/memory-transport';
 import { P2PHostPeerTransport } from '../../engine/transport/p2p-transport';
-import { ClientSession } from '../../engine/presentation/client-session';
 import { appFlowCoordinator } from '../../services/app-flow-coordinator';
 import { saveActiveOnlineSession, clearActiveOnlineSession } from '../../engine/storage';
+import { TableSessionFactory } from '../../engine/session/table-session-factory';
 
 export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
   hostInstance: null,
@@ -241,30 +240,12 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
       }
     });
 
-    // 2. Đăng ký Host local transport và ClientSession
-    const hostTransports = createMemoryDuplexTransport('HOST', get().myPlayerId);
-    host.registerClient(get().myPlayerId, hostTransports.hostTransport);
-
-    const clientSession = new ClientSession({
+    // 2. Đăng ký Host local transport và ClientSession qua TableSessionFactory
+    const clientSession = TableSessionFactory.createOnlineHostSession({
+      host,
       localPlayerId: get().myPlayerId,
-      transport: hostTransports.clientTransport,
-      gameRules: customRules,
-      initialPlayers,
-      activeGameType: 'ONLINE'
-    });
-
-    // Đăng ký đồng bộ frame từ ClientSession sang Zustand Store
-    clientSession.subscribeFrame(frame => {
-      const store = useGameStore.getState();
-      const myCards = frame.myHand.map(h => h.card);
-      store.setGameNumber(frame.gameNumber);
-      store.setIsDealing(frame.isDealing);
-      store.setDealtCounts(frame.dealtCounts);
-      const matchState = clientSession.getLatestMatchState();
-      store.applyMatchState(matchState);
-      store.setPlayers(prevPlayers => {
-        return syncStorePlayersFromFrame(prevPlayers, frame, matchState);
-      });
+      rules: customRules,
+      initialPlayers
     });
 
     appFlowCoordinator.setActiveSession(clientSession);
