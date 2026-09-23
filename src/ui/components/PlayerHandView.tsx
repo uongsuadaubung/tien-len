@@ -2,7 +2,6 @@ import React from 'react';
 import { MatchPlayer, Card } from '../../engine/types';
 import { formatCardVietnamese } from '../../engine/card';
 import { HandSortMode } from '../../stores/useGameStore';
-import { useUserStore } from '../../stores/useUserStore';
 import { getAvailableSmartVariants } from '../../engine/hand-sorter';
 import { resolveHandSortStrategy } from '../../engine/strategies/hand-sort-strategy';
 import { useI18n } from '../../locales';
@@ -75,7 +74,6 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
   reconnectNotice,
 }) => {
   const { t } = useI18n();
-  const userProfile = useUserStore(s => s.profile);
   const isReverseButtons = reverseButtons;
 
   const [reconnectRemainingSeconds, setReconnectRemainingSeconds] = React.useState<number>(0);
@@ -435,38 +433,6 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
           })}
         </div>
       )}
-
-      {/* Thông tin người chơi (Bản thân) - Hiển thị Avatar & Tên Vàng Sang Trọng */}
-      {(() => {
-        const playerAvatar = player.avatar || userProfile?.avatar || '🤠';
-
-        return (
-          <div className={`flex items-center gap-2 ${isMobileSize ? 'mt-0.5 px-2.5 py-0.5 rounded-full border border-[#d4af37]/60 text-xs' : 'mt-1 px-4 py-1 rounded-full border-2 border-[#d4af37]/60'} bg-[#121826]/95 backdrop-blur-sm shadow-xl`}>
-            {/* Avatar Vòng Tròn To Rõ Rệt */}
-            <div className={`${isMobileSize ? 'w-6 h-6 sm:w-7 sm:h-7 text-sm sm:text-base' : 'w-8 h-8 sm:w-9 sm:h-9 text-lg sm:text-xl'} rounded-full bg-[#182030] border-2 border-[#d4af37] flex items-center justify-center leading-none shadow-md shrink-0`}>
-              <span className="emoji-avatar">{playerAvatar}</span>
-            </div>
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className={`font-black text-[#f3e5ab] ${isMobileSize ? 'text-[11px] sm:text-xs' : 'text-sm'} truncate max-w-[90px] sm:max-w-[120px]`}>
-                {player.name}
-              </span>
-              <span className={`${isMobileSize ? 'text-[10px] sm:text-[11px]' : 'text-xs'} text-[var(--color-gold)] font-mono font-bold shrink-0`}>
-                {player.score.toLocaleString()} 🪙
-              </span>
-              {isLeader && (
-                <span className="bg-gradient-to-r from-amber-400 to-amber-600 text-black text-[8px] font-black px-1.5 py-0.2 rounded-full shadow shrink-0">
-                  {t('bot.leader')}
-                </span>
-              )}
-              {player.isPassedCurrentRound && (
-                <span className="bg-rose-950 text-rose-300 text-[8px] font-bold px-1.5 py-0.2 rounded-full border border-rose-500/60 shrink-0">
-                  {t('bot.passed')}
-                </span>
-              )}
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 };

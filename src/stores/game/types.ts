@@ -133,7 +133,14 @@ export interface MatchStateSlice {
   campaignResultMeta: CampaignResultMeta | null;
   perspectiveSettlement: PerspectiveMatchSettlement | null;
 
+  // Session Performance Tracking (Server Authoritative Single Source of Truth)
+  playerWins: Record<string, number>;
+  initialScores: Record<string, number>;
+
   // Actions
+  setPlayerWins: (wins: Record<string, number>) => void;
+  setInitialScores: (scores: Record<string, number>) => void;
+  resetSessionStats: () => void;
   setCampaignResultMeta: (meta: CampaignResultMeta | null) => void;
   setPerspectiveSettlement: (settlement: PerspectiveMatchSettlement | null) => void;
   setCurrentScreen: (screen: ScreenType) => void;

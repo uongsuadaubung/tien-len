@@ -220,4 +220,29 @@ describe('Zustand State Stores Integration Tests (Kiểm Thử Tích Hợp State
     expect(configs.customGameInitialConfig.choppingMultiplier).toBe(4);
     expect(configs.customGameInitialConfig.congMultiplier).toBe(3);
   });
+
+  it('8. useGameStore: Theo dõi thống kê phiên đấu từ Server Authoritative (playerWins & initialScores)', () => {
+    const gameStore = useGameStore.getState();
+
+    // Khởi đầu phiên: Bản ghi sạch sẽ từ Single Source of Truth
+    expect(gameStore.playerWins).toEqual({});
+    expect(gameStore.initialScores).toEqual({});
+
+    // Thiết lập vốn khởi điểm từ Authoritative Host
+    gameStore.setInitialScores({ [gameStore.myPlayerId]: 50000, bot_1: 40000 });
+    expect(useGameStore.getState().initialScores[gameStore.myPlayerId]).toBe(50000);
+    expect(useGameStore.getState().initialScores['bot_1']).toBe(40000);
+
+    // Đồng bộ danh sách ván thắng của tất cả người chơi từ Server (bình đẳng Human và Bot)
+    gameStore.setPlayerWins({ [gameStore.myPlayerId]: 3, bot_1: 2, bot_2: 1 });
+    expect(useGameStore.getState().playerWins[gameStore.myPlayerId]).toBe(3);
+    expect(useGameStore.getState().playerWins['bot_1']).toBe(2);
+    expect(useGameStore.getState().playerWins['bot_2']).toBe(1);
+
+    // Reset toàn bộ khi kết thúc phiên bàn đấu
+    gameStore.resetMatchState();
+    expect(useGameStore.getState().playerWins).toEqual({});
+    expect(useGameStore.getState().initialScores).toEqual({});
+  });
 });
+

@@ -750,6 +750,12 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       gameStore.setLastEloDelta(myEloDelta);
       gameStore.setAllEloDeltas(endPacket.eloDeltas);
       gameStore.setIsGameOver(true);
+      if (endPacket.playerWins) {
+        gameStore.setPlayerWins(endPacket.playerWins);
+      }
+      if (endPacket.initialScores) {
+        gameStore.setInitialScores(endPacket.initialScores);
+      }
 
       const winningPlayers = endPacket.winners.length > 0
         ? endPacket.winners

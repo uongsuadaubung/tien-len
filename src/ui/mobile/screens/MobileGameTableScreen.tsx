@@ -143,26 +143,29 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
         </div>
       )}
 
-      {/* TOP HEADER BAR SLIM CHO MOBILE LANDSCAPE (TỐI GIẢN TỐI ĐA CHIỀU CAO) */}
-      <header className="relative z-40 w-full px-3 py-1 flex items-center justify-between border-b border-white/5 bg-slate-950/60 backdrop-blur-md shrink-0 h-9">
-        {/* Góc Trái: Thông tin phòng & Ván */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 font-bold text-xs">
+      {/* TOP HEADER BAR SLIM CHO MOBILE LANDSCAPE: HOÀN TOÀN TRONG SUỐT VÀ NỔI TRÊN BÀN ĐẤU (OVERLAY) */}
+      <header 
+        className="absolute top-0 left-0 right-0 z-40 w-full flex items-center justify-between pointer-events-none bg-transparent border-none shadow-none"
+        style={{
+          paddingLeft: 'max(12px, env(safe-area-inset-left, 0px))',
+          paddingRight: 'max(12px, env(safe-area-inset-right, 0px))',
+          paddingTop: 'max(4px, env(safe-area-inset-top, 0px))'
+        }}
+      >
+        {/* Góc Trái: Thông tin phòng & Ván (Pill nổi có nền kính mờ) */}
+        <div className="pointer-events-auto flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-950/70 border border-white/10 backdrop-blur-md shadow-md">
+          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 font-bold text-xs">
             <Trophy className="w-3.5 h-3.5 text-amber-400" />
             <span>{t('hud.gameNumber', { number: gameNumber })}</span>
           </div>
 
-          <Badge variant="neutral" size="sm" className="hidden sm:inline-flex text-[11px] font-medium text-slate-300 border-white/10">
+          <Badge variant="neutral" size="sm" className="text-[10px] sm:text-[11px] font-medium text-slate-300 border-white/10">
             {gameSettings.mode === 'COUNT_CARDS' ? t('modes.countCards') : gameSettings.mode === 'WINNER_TAKES_ALL' ? t('modes.winnerTakesAll') : t('modes.traditional')}
           </Badge>
-
-          <span className="text-xs font-bold text-amber-400">
-            {t('victory.betAmountLabel', { amount: gameSettings.betAmount.toLocaleString() })}
-          </span>
         </div>
 
-        {/* Góc Phải: Các nút điều khiển nhanh */}
-        <div className="flex items-center gap-1">
+        {/* Góc Phải: Các nút điều khiển nhanh (Pill nổi có nền kính mờ) */}
+        <div className="pointer-events-auto flex items-center gap-1 px-1.5 py-1 rounded-xl bg-slate-950/70 border border-white/10 backdrop-blur-md shadow-md">
           {/* Nút mở Quân Sư AI & Lịch sử ván */}
           <button
             onClick={() => setIsMatchHudOpen(prev => !prev)}
@@ -229,9 +232,12 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
       )}
 
       {/* KHÔNG GIAN BÀN ĐẤU MOBILE LANDSCAPE (TỐI ƯU HÓA KHÔNG GIAN DỌC CHO BÀI NGƯỜI CHƠI) */}
-      <main className="relative flex-1 w-full flex flex-col justify-between items-center px-2 py-0 overflow-hidden">
-        {/* GHẾ TRÊN: BOT ĐỐI DIỆN */}
-        <div className="w-full flex justify-center z-20 shrink-0">
+      <main className="relative flex-1 w-full h-full flex flex-col justify-between items-center px-2 py-0 overflow-hidden">
+        {/* GHẾ TRÊN: BOT ĐỐI DIỆN (Đệm an toàn rộng rãi để bong bóng suy nghĩ -top-5 hiển thị trọn vẹn và dễ đọc) */}
+        <div 
+          className="w-full flex justify-center z-20 shrink-0 overflow-visible"
+          style={{ paddingTop: 'max(40px, calc(env(safe-area-inset-top, 0px) + 36px))' }}
+        >
           {topBot && (
             <BotSeat
               player={topBot}

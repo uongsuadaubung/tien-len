@@ -64,6 +64,8 @@ export class ClientSession implements IGameSession {
   private lastPlayedMove: PlayedMove | null = null;
   private campaignChapter: CampaignChapter | null = null;
   private campaignResultMeta: CampaignResultMeta | null = null;
+  public playerWins: Record<string, number> = {};
+  public initialScores: Record<string, number> = {};
   private isDisposed: boolean = false;
   private dealThrottleTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -75,6 +77,10 @@ export class ClientSession implements IGameSession {
     this.campaignChapter = options.campaignChapter ?? null;
     this.campaignResultMeta = options.campaignResultMeta ?? null;
     this.players = cloneMatchPlayers(options.initialPlayers);
+    for (const p of this.players) {
+      this.initialScores[p.id] = p.score;
+      this.playerWins[p.id] = 0;
+    }
     const localInitialPlayer = this.players.find(p => p.id === this.localPlayerId);
     if (localInitialPlayer && localInitialPlayer.hand && localInitialPlayer.hand.length > 0) {
       this.myHand = [...localInitialPlayer.hand];
@@ -163,6 +169,13 @@ export class ClientSession implements IGameSession {
             const serverScore = msg.packet.playerScores[p.id];
             return serverScore !== undefined ? { ...p, score: serverScore } : p;
           });
+        }
+
+        if (msg.packet.playerWins) {
+          this.playerWins = { ...msg.packet.playerWins };
+        }
+        if (msg.packet.initialScores) {
+          this.initialScores = { ...msg.packet.initialScores };
         }
 
         const winners = msg.packet.winners
@@ -270,6 +283,13 @@ export class ClientSession implements IGameSession {
         const serverScore = sync.playerScores[p.id];
         return serverScore !== undefined ? { ...p, score: serverScore } : p;
       });
+    }
+
+    if (sync.playerWins) {
+      this.playerWins = { ...sync.playerWins };
+    }
+    if (sync.initialScores) {
+      this.initialScores = { ...sync.initialScores };
     }
 
     if (sync.isDealing) {
@@ -527,7 +547,9 @@ export class ClientSession implements IGameSession {
       turnDeadline: this.turnDeadline,
       openingReason: this.openingReason,
       lastAction: this.lastAction,
-      currentMoveCombinationName: this.latestSync?.currentMoveCombinationName ?? null
+      currentMoveCombinationName: this.latestSync?.currentMoveCombinationName ?? null,
+      playerWins: this.playerWins,
+      initialScores: this.initialScores
     });
   }
 

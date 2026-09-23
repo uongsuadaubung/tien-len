@@ -32,6 +32,8 @@ const BotSeatComponent: React.FC<BotSeatProps> = ({
   const { t } = useI18n();
   const rankPosition = useGameStore(
     useCallback(state => {
+      // Chỉ tính thứ hạng vinh danh khi ván đấu đã kết thúc (GAME_OVER / INSTANT_WIN)
+      if (!state.isGameOver) return 0;
       const idx = state.winners.findIndex(w => w.id === player.id);
       return idx >= 0 ? idx + 1 : 0;
     }, [player.id])
@@ -65,7 +67,7 @@ const BotSeatComponent: React.FC<BotSeatProps> = ({
         className="relative flex items-center z-20 select-none"
       >
         {/* Bong bóng suy nghĩ động (Thought Bubble) */}
-        {isCurrentTurn && !player.isPassedCurrentRound && rankPosition === 0 && thoughtText && (
+        {Boolean(thoughtText) && (
           <div className="absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#121826] text-[#f3e5ab] text-[8px] font-black px-2 py-0.2 rounded-full border border-[#d4af37] shadow-xl animate-pulse flex items-center gap-1 z-30 pointer-events-none">
             <span>{thoughtText}</span>
           </div>
@@ -164,7 +166,7 @@ const BotSeatComponent: React.FC<BotSeatProps> = ({
       className="relative flex flex-col items-center justify-center z-20 select-none"
     >
       {/* Bong bóng suy nghĩ động (Thought Bubble) - Nền đặc không glass */}
-      {isCurrentTurn && !player.isPassedCurrentRound && rankPosition === 0 && thoughtText && (
+      {Boolean(thoughtText) && (
         <div className={`absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap bg-[#121826] text-[#f3e5ab] text-[10px] sm:text-[11px] font-black px-2.5 py-0.5 rounded-full border border-[#d4af37] shadow-xl animate-pulse flex items-center gap-1 z-30 pointer-events-none`}>
           <span>{thoughtText}</span>
         </div>

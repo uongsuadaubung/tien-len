@@ -43,6 +43,7 @@ export function syncStoreFromSessionFrame(session: IGameSession, frame: TableRen
 
   useGameStore.setState({
     currentFrame: frame,
+    winners: frame.winners,
     players: updatedPlayers,
     currentMove: effectiveCurrentMove,
     selectedCardIds: nextSelectedCardIds,
@@ -56,6 +57,12 @@ export function syncStoreFromSessionFrame(session: IGameSession, frame: TableRen
       perspectiveSettlement: gameOverState.settlement,
       matchPayouts: gameOverState.matchPayouts,
       allEloDeltas: gameOverState.eloDeltas
+    } : {}),
+    ...(frame.playerWins ? {
+      playerWins: { ...frame.playerWins }
+    } : {}),
+    ...(frame.initialScores ? {
+      initialScores: { ...frame.initialScores }
     } : {})
   });
 }

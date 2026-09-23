@@ -31,6 +31,9 @@ export interface SeatRenderModel {
   botPersonaId: string | null;
   statusText: string | null;
   score: number;
+  wins: number;
+  initialScore: number;
+  netProfit: number;
 }
 
 /**
@@ -90,6 +93,8 @@ export interface TableRenderFrame {
   readonly turnDeadline: number | null;
   readonly openingReason: OpeningReason | null;
   readonly lastAction: LastAction | null;
+  readonly playerWins?: Readonly<Record<string, number>>;
+  readonly initialScores?: Readonly<Record<string, number>>;
 }
 
 /**

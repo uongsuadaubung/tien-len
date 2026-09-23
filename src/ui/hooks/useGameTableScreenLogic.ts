@@ -170,7 +170,8 @@ export function useGameTableScreenLogic({
   const reconnectNotice = useOnlineStore(s => s.reconnectNotice);
 
   const activeTurn = matchState.status === 'PLAYING' ? matchState : null;
-  const currentTurnPlayerId = activeTurn ? activeTurn.currentTurnPlayerId : null;
+  const frameCurrentTurnPlayerId = frame.seats.find(s => s.isCurrentTurn)?.playerId ?? null;
+  const currentTurnPlayerId = frameCurrentTurnPlayerId || (activeTurn ? activeTurn.currentTurnPlayerId : null);
   const leadPlayerId = activeTurn ? activeTurn.leadPlayerId : null;
   const isLeadMove = activeTurn ? activeTurn.isLeadMove : false;
   const isFirstMoveOfGame = activeTurn ? activeTurn.isFirstMoveOfGame : false;
@@ -193,7 +194,7 @@ export function useGameTableScreenLogic({
   const chopNotification = activeTurn
     ? activeTurn.chopNotification
     : (matchState.status === 'GAME_OVER' ? (matchState.chopNotification ?? null) : null);
-  const botThinkingThought = (activeTurn && activeTurn.botThinkingThought) || storeBotThinkingThought || null;
+  const botThinkingThought = frame.botThinkingThought || (activeTurn && activeTurn.botThinkingThought) || storeBotThinkingThought || null;
 
   const selectedCards = localPlayer.hand.filter(c => c && selectedCardIds.has(c.id));
   const quickSelectCandidatesCount = frame.controls.quickSelectCandidatesCount;

@@ -56,6 +56,9 @@ export class AuthoritativeMatchHost {
   public turnDeadline: number | null = null;
   public openingReason: OpeningReason | null = null;
   public lastAction: LastAction | null = null;
+  public playerWins: Record<string, number> = {};
+  public initialScores: Record<string, number> = {};
+  private settledWinGameNumbers: Set<number> = new Set();
 
   private readonly transports: Map<string, IHostPeerTransport> = new Map();
   private readonly unregisterCallbacks: Map<string, () => void> = new Map();
@@ -77,6 +80,10 @@ export class AuthoritativeMatchHost {
     this.instantDelay = options.instantDelay ?? false;
     this.enableDealingAnimation = options.enableDealingAnimation ?? false;
     this.engine = new GameEngine(cloneMatchPlayers(options.players), options.rules);
+    for (const p of this.engine.players) {
+      this.playerWins[p.id] = 0;
+      this.initialScores[p.id] = p.score;
+    }
   }
 
   /**
@@ -422,7 +429,9 @@ export class AuthoritativeMatchHost {
       score: p.score,
       isPassed: this.engine.currentRound ? this.engine.currentRound.passedPlayerIds.includes(p.id) : false,
       isCurrentTurn: this.isDealing ? false : (currentTurnId === p.id),
-      isBot: p.isBot
+      isBot: p.isBot,
+      wins: this.playerWins[p.id] ?? 0,
+      initialScore: this.initialScores[p.id] ?? p.score
     }));
 
     const packet: TableStateSyncPacket = {
@@ -455,7 +464,9 @@ export class AuthoritativeMatchHost {
       isDealing: this.isDealing,
       dealBanner: this.dealBanner,
       dealtCounts: { ...this.dealtCounts },
-      reconnectNotice
+      reconnectNotice,
+      playerWins: { ...this.playerWins },
+      initialScores: { ...this.initialScores }
     };
 
     const hostToClientPacket: HostToClientPacket = {
@@ -477,6 +488,10 @@ export class AuthoritativeMatchHost {
     this.turnDeadline = null;
     if (this.engine.winners.length > 0) {
       this._lastWinnerId = this.engine.winners[0].id;
+      if (!this.settledWinGameNumbers.has(this.gameNumber)) {
+        this.settledWinGameNumbers.add(this.gameNumber);
+        this.playerWins[this._lastWinnerId] = (this.playerWins[this._lastWinnerId] || 0) + 1;
+      }
     }
     const doSettle = () => {
       if (this.isDisposed) return;
@@ -498,7 +513,9 @@ export class AuthoritativeMatchHost {
           allPlayerHands,
           isThreeSpadesWin: this.engine.isThreeSpadesWin,
           instantWinType: this.instantWinType ?? null,
-          loanDeduction: settlementResult.loanDeduction
+          loanDeduction: settlementResult.loanDeduction,
+          playerWins: { ...this.playerWins },
+          initialScores: { ...this.initialScores }
         };
 
         const hostEndMsg: HostToClientPacket = {

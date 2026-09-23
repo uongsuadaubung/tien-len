@@ -99,6 +99,14 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
   campaignResultMeta: null,
   perspectiveSettlement: null,
 
+  // Session Performance Tracking (Server-authoritative Single Source of Truth)
+  playerWins: {},
+  initialScores: {},
+
+  setPlayerWins: (wins) => set({ playerWins: { ...wins } }),
+  setInitialScores: (scores) => set({ initialScores: { ...scores } }),
+  resetSessionStats: () => set({ playerWins: {}, initialScores: {} }),
+
   setCampaignResultMeta: (meta) => set({ campaignResultMeta: meta }),
   setPerspectiveSettlement: (settlement) => set({ perspectiveSettlement: settlement }),
   setCurrentScreen: (screen: ScreenType) => {
@@ -227,7 +235,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
           : state.perspectiveSettlement,
         matchLogReport: isGameOver || isInstantWin ? matchState.matchLogReport : state.matchLogReport,
         chopNotification: isPlaying || isRoundEnded ? matchState.chopNotification : null,
-        botThinkingThought: null,
+        botThinkingThought: isPlaying ? state.botThinkingThought : null,
         isFirstMoveOfGame: isPlaying ? matchState.isFirstMoveOfGame : false,
         firstMoveRequiredCard: isPlaying && matchState.isFirstMoveOfGame ? matchState.firstMoveRequiredCard : null,
         isLeadMove: isPlaying ? matchState.isLeadMove : true,
@@ -431,7 +439,9 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
         } : null,
         isFirstMoveOfGame: isFirstMove,
         firstMoveRequiredCard: isFirstMove ? requiredCard : null,
-        isLeadMove: isLead
+        isLeadMove: isLead,
+        ...(sync.playerWins ? { playerWins: { ...sync.playerWins } } : {}),
+        ...(sync.initialScores ? { initialScores: { ...sync.initialScores } } : {})
       };
     });
 
@@ -485,6 +495,8 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
     matchLogReport: null,
     campaignResultMeta: null,
     perspectiveSettlement: null,
+    playerWins: {},
+    initialScores: {},
     currentFrame: null
   }),
 

@@ -199,4 +199,55 @@ describe('useGameTableScreenLogic (Dumb View Presentation Hook)', () => {
 
     store.setCurrentFrame(null);
   });
+
+  it('should cleanly deliver botThinkingThought to BotSeat and render thought bubble even when previous winners exist', async () => {
+    const { BotSeat } = await import('../../src/ui/components/BotSeat');
+    const store = useGameStore.getState();
+    store.setPlayers(mockPlayers);
+    // Giả lập ván trước bot thắng (winners chứa botId) nhưng ván mới đang chơi (isGameOver = false)
+    store.setWinners([mockPlayers[1]]);
+    useGameStore.setState({ isGameOver: false });
+
+    // Bot đang suy nghĩ
+    store.setBotThinkingThought({
+      botId: botId,
+      text: '🤔 Đang suy nghĩ...'
+    });
+
+    let hookResult: GameTableScreenLogicResult | null = null;
+    const TestComp = () => {
+      hookResult = useGameTableScreenLogic({
+        onPlaySelectedCards: () => {},
+        onPassTurn: () => {}
+      });
+      return null;
+    };
+    renderToString(React.createElement(TestComp));
+
+    expect(hookResult).not.toBeNull();
+    expect(hookResult!.botThinkingThought).toEqual({
+      botId: botId,
+      text: '🤔 Đang suy nghĩ...'
+    });
+
+    // Render BotSeat của Bot và đảm bảo bong bóng suy nghĩ hiển thị trọn vẹn
+    const botHtml = renderToString(
+      React.createElement(BotSeat, {
+        player: mockPlayers[1],
+        isCurrentTurn: true,
+        position: 'top',
+        isLeader: false,
+        isDealing: false,
+        displayCardCount: 2,
+        thoughtText: hookResult!.botThinkingThought?.botId === botId ? hookResult!.botThinkingThought.text : null,
+        size: 'compact'
+      })
+    );
+
+    expect(botHtml).toContain('🤔 Đang suy nghĩ...');
+
+    // Dọn sạch state
+    store.setBotThinkingThought(null);
+    store.setWinners([]);
+  });
 });

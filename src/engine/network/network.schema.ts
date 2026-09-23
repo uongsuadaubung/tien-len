@@ -122,7 +122,9 @@ export const SyncedSeatSnapshotSchema = z.object({
   score: z.number(),
   isPassed: z.boolean(),
   isCurrentTurn: z.boolean(),
-  isBot: z.boolean()
+  isBot: z.boolean(),
+  wins: z.number().default(0).optional(),
+  initialScore: z.number().optional()
 });
 export type SyncedSeatSnapshot = z.infer<typeof SyncedSeatSnapshotSchema>;
 
@@ -187,7 +189,9 @@ export const TableStateSyncPacketSchema = z.object({
   isDealing: z.boolean().optional(),
   dealBanner: z.string().nullable().optional(),
   dealtCounts: z.record(z.string(), z.number()).optional(),
-  reconnectNotice: ReconnectNoticeSchema.nullable().optional()
+  reconnectNotice: ReconnectNoticeSchema.nullable().optional(),
+  playerWins: z.record(z.string(), z.number()).optional(),
+  initialScores: z.record(z.string(), z.number()).optional()
 });
 
 export type TableStateSyncPacket = z.infer<typeof TableStateSyncPacketSchema>;
@@ -210,7 +214,9 @@ export const GameEndPacketSchema = z.object({
   allPlayerHands: z.record(z.string(), z.array(NetworkCardSchema)), // Mở bài cho mọi người xem khi ván kết thúc
   isThreeSpadesWin: z.boolean().default(false),
   instantWinType: InstantWinTypeSchema.nullable().default(null),
-  loanDeduction: z.number().default(0)
+  loanDeduction: z.number().default(0),
+  playerWins: z.record(z.string(), z.number()).optional(),
+  initialScores: z.record(z.string(), z.number()).optional()
 });
 
 export type GameEndPacket = z.infer<typeof GameEndPacketSchema>;

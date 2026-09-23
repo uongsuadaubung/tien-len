@@ -99,18 +99,18 @@ export const AIAssistantMascot: React.FC<AIAssistantMascotProps> = ({
   const message = isStandby ? t('hud.aiObserving') : hint.message;
 
   return (
-    <div className="w-[280px] sm:w-[310px] flex items-start gap-2.5 pointer-events-auto select-none">
+    <div className="w-[215px] sm:w-[275px] md:w-[310px] flex items-start gap-1.5 sm:gap-2.5 pointer-events-auto select-none">
       {/* 1. CHÚ ROBOT MASCOT QUÂN SƯ */}
       <div 
         onClick={() => setIsOpen(!isOpen)}
         className="relative cursor-pointer flex-shrink-0 transition-transform active:scale-95 group"
         title={t('hud.aiAdvisorTitle')}
       >
-        <div className="w-12 h-12 rounded-2xl p-0.5 bg-gradient-to-b from-amber-300 via-amber-500 to-yellow-800 shadow-xl shadow-amber-950/50 group-hover:scale-105 transition-all">
-          <div className="w-full h-full rounded-[14px] bg-[#0c1018] flex flex-col items-center justify-center relative overflow-hidden border border-amber-400/30">
+        <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl p-0.5 bg-gradient-to-b from-amber-300 via-amber-500 to-yellow-800 shadow-xl shadow-amber-950/50 group-hover:scale-105 transition-all">
+          <div className="w-full h-full rounded-[10px] sm:rounded-[14px] bg-[#0c1018] flex flex-col items-center justify-center relative overflow-hidden border border-amber-400/30">
             <div className="absolute inset-0 bg-gradient-to-t from-amber-500/20 to-transparent" />
-            <Bot className="w-6 h-6 text-amber-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
-            <span className="text-[7px] font-black uppercase text-amber-300 tracking-tighter scale-90">
+            <Bot className="w-4 h-4 sm:w-6 sm:h-6 text-amber-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" />
+            <span className="text-[5.5px] sm:text-[7px] font-black uppercase text-amber-300 tracking-tighter scale-90">
               {t('hud.aiAdvisor')}
             </span>
           </div>
@@ -118,9 +118,9 @@ export const AIAssistantMascot: React.FC<AIAssistantMascotProps> = ({
 
         {/* Chấm thông báo có lời khuyên */}
         {!isStandby && (
-          <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+          <span className="absolute -top-1 -right-1 flex h-3 w-3 sm:h-3.5 sm:w-3.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-500 border border-black text-[9px] items-center justify-center font-bold text-black">!</span>
+            <span className="relative inline-flex rounded-full h-3 w-3 sm:h-3.5 sm:w-3.5 bg-amber-500 border border-black text-[8px] sm:text-[9px] items-center justify-center font-bold text-black">!</span>
           </span>
         )}
       </div>
@@ -128,18 +128,18 @@ export const AIAssistantMascot: React.FC<AIAssistantMascotProps> = ({
       {/* 2. BONG BÓNG THOẠI CỦA ROBOT */}
       {isOpen ? (
         <div 
-          className={`flex-1 relative bg-[#0d121d]/95 backdrop-blur-md border rounded-2xl p-2.5 shadow-2xl transition-all animate-in fade-in slide-in-from-left-2 duration-200 ${theme.bubbleBorder}`}
+          className={`flex-1 relative bg-[#0d121d]/95 backdrop-blur-md border rounded-xl sm:rounded-2xl p-1.5 sm:p-2.5 shadow-2xl transition-all animate-in fade-in slide-in-from-left-2 duration-200 ${theme.bubbleBorder}`}
         >
           {/* Đuôi nhọn của bong bóng thoại chĩa thẳng vào miệng chú Robot */}
-          <div className="absolute -left-2 top-3.5 w-0 h-0 border-t-[6px] border-t-transparent border-r-[8px] border-r-[#0d121d] border-b-[6px] border-b-transparent" />
+          <div className="absolute -left-2 top-3 w-0 h-0 border-t-[5px] border-t-transparent border-r-[7px] border-r-[#0d121d] border-b-[5px] border-b-transparent sm:border-t-[6px] sm:border-r-[8px] sm:border-b-[6px]" />
 
           {/* Header Bong bóng */}
-          <div className="flex items-center justify-between gap-1.5 border-b border-white/[0.07] pb-1 mb-1">
-            <div className="flex items-center gap-1.5 min-w-0">
+          <div className="flex items-center justify-between gap-1 border-b border-white/[0.07] pb-1 mb-1">
+            <div className="flex items-center gap-1 sm:gap-1.5 min-w-0">
               <div className={`p-0.5 px-1 rounded border ${theme.badgeBg}`}>
                 {theme.icon}
               </div>
-              <span className={`text-[11px] font-bold uppercase tracking-wide truncate ${theme.titleColor}`}>
+              <span className={`text-[9.5px] sm:text-[11px] font-bold uppercase tracking-wide truncate ${theme.titleColor}`}>
                 {title}
               </span>
             </div>
@@ -152,22 +152,22 @@ export const AIAssistantMascot: React.FC<AIAssistantMascotProps> = ({
               className="p-0.5 rounded text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
               title={t('common.close')}
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             </button>
           </div>
 
           {/* Lời thoại Robot nói ra */}
-          <div className="text-xs text-zinc-200 font-medium leading-relaxed">
+          <div className="text-[9.5px] sm:text-xs text-zinc-200 font-medium leading-snug sm:leading-relaxed">
             {message}
           </div>
 
           {/* Footer nhỏ */}
-          <div className="mt-1.5 pt-1.5 border-t border-white/[0.06] flex items-center justify-between text-[9px] text-zinc-500">
-            <span className="flex items-center gap-1 text-amber-400/80 font-medium">
-              <MessageSquareQuote className="w-3 h-3" />
+          <div className="mt-1 pt-1 sm:mt-1.5 sm:pt-1.5 border-t border-white/[0.06] flex items-center justify-between text-[8px] sm:text-[9px] text-zinc-500">
+            <span className="flex items-center gap-0.5 sm:gap-1 text-amber-400/80 font-medium">
+              <MessageSquareQuote className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
               {t('hud.aiAdvisor')}
             </span>
-            <span className="text-[10px] text-zinc-400 italic">
+            <span className="text-[8.5px] sm:text-[10px] text-zinc-400 italic">
               {isStandby ? t('hud.aiObserving') : t('hud.aiTacticalReminder')}
             </span>
           </div>
@@ -175,7 +175,7 @@ export const AIAssistantMascot: React.FC<AIAssistantMascotProps> = ({
       ) : (
         <div 
           onClick={() => setIsOpen(true)}
-          className="flex-1 bg-[#0d121d]/80 hover:bg-[#0d121d] border border-amber-500/30 rounded-xl p-2 cursor-pointer shadow-lg transition-all flex items-center justify-between group self-center"
+          className="flex-1 bg-[#0d121d]/80 hover:bg-[#0d121d] border border-amber-500/30 rounded-lg sm:rounded-xl p-1.5 sm:p-2 cursor-pointer shadow-lg transition-all flex items-center justify-between group self-center"
           title={isStandby ? t('hud.aiAdvisor') : t('hud.aiAdviceBubble')}
         >
           <span className="text-[11px] font-bold text-amber-300">

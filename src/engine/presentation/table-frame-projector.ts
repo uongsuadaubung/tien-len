@@ -36,6 +36,8 @@ export interface TableFrameProjectionContext {
   readonly openingReason?: OpeningReason | null;
   readonly lastAction?: LastAction | null;
   readonly currentMoveCombinationName?: string | null;
+  readonly playerWins?: Readonly<Record<string, number>>;
+  readonly initialScores?: Readonly<Record<string, number>>;
 }
 
 export function getCombinationName(type: string, length: number): string {
@@ -72,7 +74,8 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
     turnDeadline,
     openingReason,
     lastAction,
-    currentMoveCombinationName
+    currentMoveCombinationName,
+    playerWins
   } = ctx;
 
   const localPlayer = players.find(p => p.id === localPlayerId) ?? null;
@@ -207,6 +210,10 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
       relativeSeatIndex = (idx - myIndex + players.length) % players.length;
     }
 
+    const wins = playerWins ? (playerWins[p.id] ?? 0) : 0;
+    const initialScore = ctx.initialScores ? (ctx.initialScores[p.id] ?? p.score) : p.score;
+    const netProfit = p.score - initialScore;
+
     return {
       seatIndex: relativeSeatIndex,
       playerId: p.id,
@@ -219,7 +226,10 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
       isBot: p.isBot,
       botPersonaId: p.isBot ? (p.botPersonaId ?? null) : null,
       statusText,
-      score: p.score
+      score: p.score,
+      wins,
+      initialScore,
+      netProfit
     };
   });
 
@@ -279,6 +289,8 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
     botThinkingThought,
     turnDeadline: turnDeadline ?? null,
     openingReason: openingReason ?? null,
-    lastAction: lastAction ?? null
+    lastAction: lastAction ?? null,
+    playerWins,
+    initialScores: ctx.initialScores
   };
 }
