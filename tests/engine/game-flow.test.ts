@@ -4,6 +4,7 @@ import { GameEngine } from '../../src/engine/game';
 import { MatchPlayer } from '../../src/engine/types';
 import { CardTracker } from '../../src/ai/card-tracker';
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
+import { executeBotTurn } from '../../src/ai/bot-runner';
 import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 
 const createMockPlayers = (): MatchPlayer[] => [
@@ -235,7 +236,7 @@ describe('Game Flow & Lifecycle Engine', () => {
     expect(game.isRoundLeadMove()).toBe(true);
   });
 
-  test('GameEngine.executeBotTurn: Bot tự động ra quyết định và tự phục hồi khi có sự cố mà không bị treo', () => {
+  test('executeBotTurn: Bot tự động ra quyết định và thực thi lượt đi hợp lệ', () => {
     const players = createMockPlayers();
     players[0].hand = parseCards('4S 5S 6S 7S 8S');
     players[1].hand = parseCards('3S 9S 10S JS QS'); // p2 là bot có 3S
@@ -249,8 +250,8 @@ describe('Game Flow & Lifecycle Engine', () => {
     const tracker = new CardTracker(players[1].hand, 1.0);
     const botConfig = BOT_PERSONAS.BOT_ELO_850;
 
-    // Thực thi bot turn thông qua engine
-    const res = game.executeBotTurn(botConfig, tracker);
+    // Thực thi bot turn thông qua bot runner
+    const res = executeBotTurn(game, botConfig, tracker);
     expect(res.action).toBe('PLAY');
     expect(res.playerId).toBe('p2');
     // Lượt kế tiếp được chuyển giao chính xác cho p3

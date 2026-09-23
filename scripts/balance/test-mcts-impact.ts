@@ -1,6 +1,7 @@
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { GameEngine } from '../../src/engine/game';
 import { CardTracker } from '../../src/ai/card-tracker';
+import { executeBotTurn } from '../../src/ai/bot-runner';
 import { createBotPlayer } from '../../src/engine/player-factory';
 
 function run1v1(botAConfig: any, botBConfig: any, label: string) {
@@ -27,7 +28,7 @@ function run1v1(botAConfig: any, botBConfig: any, label: string) {
         const cur = game.getCurrentPlayer()!;
         const cfg = cur.id === 'A' ? botAConfig : botBConfig;
         trackers[cur.id].updateOwnHand(cur.hand);
-        const res = game.executeBotTurn(cfg, trackers[cur.id]);
+        const res = executeBotTurn(game, cfg, trackers[cur.id]);
         if (res.action === 'PLAY' && res.playedMove) {
           trackers.A.recordMove(res.playedMove);
           trackers.B.recordMove(res.playedMove);

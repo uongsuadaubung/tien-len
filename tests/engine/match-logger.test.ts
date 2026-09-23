@@ -4,6 +4,7 @@ import { GameEngine } from '../../src/engine/game';
 import { createDefaultGameRules, MatchPlayer } from '../../src/engine/types';
 import { getBotConfig } from '../../src/ai/bot-factory';
 import { CardTracker } from '../../src/ai/card-tracker';
+import { executeBotTurn } from '../../src/ai/bot-runner';
 import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 
 describe('MatchLogger & Bot Reasoning Telemetry', () => {
@@ -130,7 +131,7 @@ describe('MatchLogger & Bot Reasoning Telemetry', () => {
       maxSafety--;
       const cur = engine.getCurrentPlayer();
       if (!cur) break;
-      engine.executeBotTurn(botConfig, tracker);
+      executeBotTurn(engine, botConfig, tracker);
     }
 
     const report = MatchLogger.getInstance().finalizeMatch({

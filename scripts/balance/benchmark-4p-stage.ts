@@ -1,6 +1,7 @@
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { GameEngine } from '../../src/engine/game';
 import { CardTracker } from '../../src/ai/card-tracker';
+import { executeBotTurn } from '../../src/ai/bot-runner';
 import { createBotPlayer } from '../../src/engine/player-factory';
 
 function calculatePearsonCorrelation(x: number[], y: number[]): number {
@@ -94,7 +95,7 @@ for (let qIdx = 0; qIdx < quadruplets.length; qIdx++) {
         const bObj = seated.find(b => b.id === cur.id)!;
         const t = trackers[cur.id];
         t.updateOwnHand(cur.hand);
-        const res = g.executeBotTurn(bObj.config, t);
+        const res = executeBotTurn(g, bObj.config, t);
         if (res.action === 'PLAY' && res.playedMove) {
           for (const tr of Object.values(trackers)) tr.recordMove(res.playedMove);
         } else if (g.getLeadingMove()) {

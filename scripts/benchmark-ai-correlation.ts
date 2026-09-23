@@ -13,6 +13,7 @@
 
 import { GameEngine } from '../src/engine/game';
 import { CardTracker } from '../src/ai/card-tracker';
+import { executeBotTurn } from '../src/ai/bot-runner';
 import { BOT_PERSONAS } from '../src/ai/bot-factory';
 import { Player } from '../src/engine/types';
 import { createBotPlayer } from '../src/engine/player-factory';
@@ -154,7 +155,7 @@ function simulateSingleMatch(
     const tracker = trackers[currentTurnPlayer.id];
     tracker.updateOwnHand(currentTurnPlayer.hand);
 
-    const result = game.executeBotTurn(botObj.config, tracker);
+    const result = executeBotTurn(game, botObj.config, tracker);
 
     if (result.action === 'PLAY' && result.playedMove) {
       for (const t of Object.values(trackers)) {

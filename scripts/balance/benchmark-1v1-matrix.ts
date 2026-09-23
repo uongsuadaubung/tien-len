@@ -1,6 +1,7 @@
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { GameEngine } from '../../src/engine/game';
 import { CardTracker } from '../../src/ai/card-tracker';
+import { executeBotTurn } from '../../src/ai/bot-runner';
 import { createBotPlayer } from '../../src/engine/player-factory';
 
 function calculatePearsonCorrelation(x: number[], y: number[]): number {
@@ -55,7 +56,7 @@ for (let i = 0; i < numBots; i++) {
         const cur = g1.getCurrentPlayer()!;
         const cfg = cur.id === botA.id ? botA.config : botB.config;
         t1[cur.id].updateOwnHand(cur.hand);
-        const res = g1.executeBotTurn(cfg, t1[cur.id]);
+        const res = executeBotTurn(g1, cfg, t1[cur.id]);
         if (res.action === 'PLAY' && res.playedMove) {
           t1[botA.id].recordMove(res.playedMove);
           t1[botB.id].recordMove(res.playedMove);
@@ -80,7 +81,7 @@ for (let i = 0; i < numBots; i++) {
         const cur = g2.getCurrentPlayer()!;
         const cfg = cur.id === botA.id ? botA.config : botB.config;
         t2[cur.id].updateOwnHand(cur.hand);
-        const res = g2.executeBotTurn(cfg, t2[cur.id]);
+        const res = executeBotTurn(g2, cfg, t2[cur.id]);
         if (res.action === 'PLAY' && res.playedMove) {
           t2[botA.id].recordMove(res.playedMove);
           t2[botB.id].recordMove(res.playedMove);

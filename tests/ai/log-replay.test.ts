@@ -3,6 +3,7 @@ import { GameEngine } from '../../src/engine/game';
 import { MatchLogger, MatchLogReport } from '../../src/engine/match-logger';
 import { BOT_PERSONAS, getBotConfig } from '../../src/ai/bot-factory';
 import { CardTracker } from '../../src/ai/card-tracker';
+import { executeBotTurn } from '../../src/ai/bot-runner';
 import { replayTurnDecisionFromLog } from '../../src/ai/log-replayer';
 import { Card, createDefaultGameRules } from '../../src/engine/types';
 import { createBotPlayer } from '../../src/engine/player-factory';
@@ -34,7 +35,7 @@ describe('Log Replay & Deterministic Test Reproduction', () => {
       safetyLoop++;
       const currentTurnPlayer = game.getCurrentPlayer();
       const botConfig = getBotConfig(currentTurnPlayer.botPersonaId || 'BOT_ELO_1750');
-      game.executeBotTurn(botConfig, trackers[currentTurnPlayer.id]);
+      executeBotTurn(game, botConfig, trackers[currentTurnPlayer.id]);
     }
 
     expect(game.isGameOver).toBe(true);

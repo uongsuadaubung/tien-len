@@ -1,6 +1,7 @@
 import { BOT_PERSONAS } from '../../src/ai/bot-factory';
 import { GameEngine } from '../../src/engine/game';
 import { CardTracker } from '../../src/ai/card-tracker';
+import { executeBotTurn } from '../../src/ai/bot-runner';
 import { createBotPlayer } from '../../src/engine/player-factory';
 
 const t3 = { tier: 3, id: 'bot_t3', name: 'Bác Sáu Vàng', elo: 1600, config: BOT_PERSONAS.BOT_ELO_1600 };
@@ -34,7 +35,7 @@ for (let b = 0; b < 25; b++) {
       const bObj = cur.id === t3.id ? t3 : t5;
       const t = trackers[cur.id];
       t.updateOwnHand(cur.hand);
-      const res = game.executeBotTurn(bObj.config, t);
+      const res = executeBotTurn(game, bObj.config, t);
       if (res.action === 'PLAY' && res.playedMove) {
         for (const tr of Object.values(trackers)) tr.recordMove(res.playedMove);
       } else {

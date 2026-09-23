@@ -4,6 +4,7 @@ import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 import { createDefaultGameRules, createPlayedMove } from '../../src/engine/types';
 import { createCard } from '../../src/engine/card';
 import { CardTracker } from '../../src/ai/card-tracker';
+import { executeBotTurn } from '../../src/ai/bot-runner';
 import { UI_TIMINGS } from '../../src/ui/constants/ui-timings';
 import { mapMatchStateToSnapshot } from '../../src/engine/state-machine/match-state-machine';
 import { GameOverMatchState } from '../../src/engine/state-machine/types';
@@ -109,7 +110,7 @@ describe('Bot Winning Card Visibility & 2-Second Victory Modal Delay Tests', () 
     const tracker = new CardTracker(bot.hand, 1, 2);
 
     // Trigger bot turn
-    const botRes = host.engine.executeBotTurn(botConfig as any, tracker);
+    const botRes = executeBotTurn(host.engine, botConfig as any, tracker);
     expect(botRes.action).toBe('PLAY');
     expect(host.engine.isGameOver).toBe(true);
 

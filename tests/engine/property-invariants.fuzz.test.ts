@@ -3,6 +3,7 @@ import { GameEngine } from '../../src/engine/game';
 import { GameRulesBuilder, GameSettlementRule, MatchPlayer, PlayerCount, Card } from '../../src/engine/types';
 import { getBotConfig } from '../../src/ai/bot-factory';
 import { CardTracker } from '../../src/ai/card-tracker';
+import { executeBotTurn } from '../../src/ai/bot-runner';
 import { createBotPlayer, createBotPlayers } from '../../src/engine/player-factory';
 
 describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Biến 1000+ Ván Ngẫu Nhiên)', () => {
@@ -74,7 +75,7 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
         if (!curr) break;
         const config = getBotConfig(curr.botPersonaId || 'BOT_ELO_1150');
         const tracker = new CardTracker(curr.hand);
-        engine.executeBotTurn(config, tracker);
+        executeBotTurn(engine, config, tracker);
       }
 
       // Tổng điểm số tăng giảm của cả bàn phải bằng chính xác 0 (Bảo toàn số dư)
@@ -111,7 +112,7 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
         if (!curr) break;
         const config = getBotConfig(curr.botPersonaId || 'BOT_ELO_1750');
         const tracker = new CardTracker(curr.hand);
-        engine.executeBotTurn(config, tracker);
+        executeBotTurn(engine, config, tracker);
       }
 
       // Ván đấu phải kết thúc trong hữu hạn lượt, không bao giờ bị treo
