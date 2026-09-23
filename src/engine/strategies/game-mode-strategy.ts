@@ -18,7 +18,7 @@ import {
   TableEloSettlementResult 
 } from '../elo';
 import { generateRandomBotConfig, getBotConfig, getRandomBotConfigsForTable, generateRealisticBotBankroll, sanitizeAvatar } from '../../ai/bot-factory';
-import { BotConfig } from '../../ai/types';
+import { BotConfig, isBotConfig } from '../../ai/types';
 import { CampaignChapter } from '../campaign';
 import { PlayerProfile } from '../storage';
 import { getTierFromElo } from '../ecosystem/ecosystem-types';
@@ -132,16 +132,19 @@ function buildInitialPlayers(
     }
 
     botAvatar = sanitizeAvatar(botAvatar, i + 1);
-    config.name = botName;
-    config.avatar = botAvatar;
+    const resolvedConfig: BotConfig = {
+      ...config,
+      name: botName,
+      avatar: botAvatar
+    };
 
     usedNames.push(botName);
     usedAvatars.push(botAvatar);
 
-    const botInitialBankroll = generateRealisticBotBankroll(config, betAmount);
+    const botInitialBankroll = generateRealisticBotBankroll(resolvedConfig, betAmount);
 
     players.push(
-      createBotPlayer(`p${i + 1}`, personaId || null, {
+      createBotPlayer(`p${i + 1}`, personaId, {
         name: botName,
         avatar: botAvatar,
         score: botInitialBankroll
@@ -161,25 +164,42 @@ function createMatchSetupResult(
   settings: GameSettings,
   defaultBotConfigs: BotConfig[]
 ): MatchSetupResult {
-  const rawConfigs = context.customBotConfigs || [];
+  const rawConfigs = context.customBotConfigs ?? [];
   const customBotConfigs: [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>] = [
-    rawConfigs[0] || {},
-    rawConfigs[1] || {},
-    rawConfigs[2] || {}
+    rawConfigs[0] ?? {},
+    rawConfigs[1] ?? {},
+    rawConfigs[2] ?? {}
   ];
   let bConfigs: BotConfig[];
   let botPersonaIds: [string, string, string];
 
-  if (context.customBotPersonaIds && context.customBotPersonaIds.length >= 3) {
+  if (
+    context.customBotConfigs &&
+    context.customBotConfigs.length >= 3 &&
+    isBotConfig(context.customBotConfigs[0]) &&
+    isBotConfig(context.customBotConfigs[1]) &&
+    isBotConfig(context.customBotConfigs[2])
+  ) {
+    bConfigs = [
+      context.customBotConfigs[0],
+      context.customBotConfigs[1],
+      context.customBotConfigs[2]
+    ];
+    botPersonaIds = [
+      context.customBotPersonaIds?.[0] ?? bConfigs[0].id,
+      context.customBotPersonaIds?.[1] ?? bConfigs[1].id,
+      context.customBotPersonaIds?.[2] ?? bConfigs[2].id
+    ];
+  } else if (context.customBotPersonaIds && context.customBotPersonaIds.length >= 3) {
     botPersonaIds = [
       context.customBotPersonaIds[0],
       context.customBotPersonaIds[1],
       context.customBotPersonaIds[2]
     ];
     bConfigs = [
-      getBotConfig(botPersonaIds[0], customBotConfigs[0]),
-      getBotConfig(botPersonaIds[1], customBotConfigs[1]),
-      getBotConfig(botPersonaIds[2], customBotConfigs[2])
+      isBotConfig(customBotConfigs[0]) ? customBotConfigs[0] : getBotConfig(botPersonaIds[0], customBotConfigs[0]),
+      isBotConfig(customBotConfigs[1]) ? customBotConfigs[1] : getBotConfig(botPersonaIds[1], customBotConfigs[1]),
+      isBotConfig(customBotConfigs[2]) ? customBotConfigs[2] : getBotConfig(botPersonaIds[2], customBotConfigs[2])
     ];
   } else {
     bConfigs = defaultBotConfigs;

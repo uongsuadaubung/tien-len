@@ -613,29 +613,18 @@ export function getBotConfig(id: string, customOverrides?: Partial<BotConfig>): 
       baseKey = match[0];
     }
   }
-  const base = BOT_PERSONAS[baseKey] || BOT_PERSONAS[id] || BOT_PERSONAS.BOT_ELO_1150;
-  return {
-    ...base,
-    ...(customOverrides || {})
-  };
+  const base = BOT_PERSONAS[baseKey] ?? BOT_PERSONAS[id];
+  if (!base) {
+    throw new Error(`[BotFactory] Unknown bot persona ID: "${id}". Persona must be registered in BOT_PERSONAS.`);
+  }
+  return customOverrides ? { ...base, ...customOverrides } : { ...base };
 }
 
 export function createCustomBotConfig(
   baseId: string,
   overrides: Partial<BotConfig>
 ): BotConfig {
-  let baseKey = baseId;
-  if (baseId) {
-    const match = baseId.match(/BOT_ELO_\d+/);
-    if (match && BOT_PERSONAS[match[0]]) {
-      baseKey = match[0];
-    }
-  }
-  const base = BOT_PERSONAS[baseKey] || BOT_PERSONAS[baseId] || BOT_PERSONAS.BOT_ELO_1150;
-  return {
-    ...base,
-    ...overrides
-  };
+  return getBotConfig(baseId, overrides);
 }
 
 export function getAllBotConfigs(): BotConfig[] {
@@ -757,11 +746,11 @@ export function generateRandomBotConfig(
 ): BotConfig {
   const normalizedTier = Math.max(1, Math.min(RANK_TIERS.length, tier));
   const candidateIds = getPersonasForTier(normalizedTier);
-  const chosenBaseId = options?.baseId || candidateIds[Math.floor(Math.random() * candidateIds.length)];
-  const baseConfig = BOT_PERSONAS[chosenBaseId] || BOT_PERSONAS.BOT_ELO_1150;
+  const chosenBaseId = options?.baseId ?? candidateIds[Math.floor(Math.random() * candidateIds.length)];
+  const baseConfig = getBotConfig(chosenBaseId);
 
-  const excludeNames = options?.excludeNames || [];
-  const excludeAvatars = options?.excludeAvatars || [];
+  const excludeNames = options?.excludeNames ?? [];
+  const excludeAvatars = options?.excludeAvatars ?? [];
 
   // Sinh Gamertag ngẫu nhiên chuẩn quốc tế
   let generatedName = '';
@@ -800,9 +789,8 @@ export function generateRandomBotConfig(
  * Trả về nhãn định danh chuẩn hóa cho Persona (ví dụ: "Tier 1: Sắt (Elo 750)")
  */
 export function getBotArchetypeLabel(config: BotConfig): string {
-  const safeElo = config.elo ?? 1000;
-  const tierInfo = getTierFromElo(safeElo);
-  return `${tierInfo.tier} (Elo ${safeElo})`;
+  const tierInfo = getTierFromElo(config.elo);
+  return `${tierInfo.tier} (Elo ${config.elo})`;
 }
 
 /**
@@ -846,8 +834,8 @@ export function getRandomBotConfigsForTable(
  * Sinh số tiền vốn (Bankroll) khởi điểm tự nhiên, sống động cho Bot
  * dựa trên Bậc Elo, tính cách (Risk Appetite) và Mức cược bàn chơi
  */
-export function generateRealisticBotBankroll(config: Partial<BotConfig>, betAmount: number = 100): number {
-  const elo = config.elo || 1150;
+export function generateRealisticBotBankroll(config: BotConfig, betAmount: number = 100): number {
+  const elo = config.elo;
   const effectiveBet = Math.max(50, betAmount);
 
   // Xác định bậc Tier của Bot (1 đến 5)

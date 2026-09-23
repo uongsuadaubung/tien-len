@@ -29,8 +29,7 @@ import { matchBotsForPlayerTable } from '../engine/ecosystem/matchmaker';
 import { getRandomBotConfigsForTable, getBotConfig } from '../ai/bot-factory';
 import type { QuickTableConfig, GameSettlementRule } from '../engine/schemas/settings.schema';
 import type { CampaignChapter } from '../engine/campaign';
-import type { CustomGameModalConfig } from '../ui/web/modals/CustomGameModal';
-import type { BotConfig } from '../ai/types';
+import { type BotConfig, isBotConfig } from '../ai/types';
 import { assertValidMatchStartup } from '../engine/invariants/match-invariants';
 import { CardTracker } from '../ai/card-tracker';
 import { AuthoritativeMatchHost } from '../engine/server/match-host';
@@ -298,16 +297,15 @@ export class AppFlowCoordinator {
         ? 'Nhất Ăn Tất Tùy Chỉnh'
         : 'Truyền Thống Tùy Chỉnh';
 
-    const resolvedBotConfigs: BotConfig[] = config.botPersonaIds.map((id, idx) => ({
-      ...getBotConfig(id),
-      ...(config.customBotConfigs[idx] || {})
-    }));
+    const resolvedBotConfigs: BotConfig[] = config.botPersonaIds.map((id, idx) =>
+      getBotConfig(id, config.customBotConfigs[idx])
+    );
 
     useMatchmakingStore.getState().startMatchmaking({
       betAmount: config.settings.betAmount,
       modeName: modeTitle,
       botConfigs: resolvedBotConfigs,
-      playerCount: config.playerCount ?? 4,
+      playerCount: config.playerCount,
       onStart: () => {
         const customRules = new GameRulesBuilder()
           .withSettlement(settlementRule)
@@ -437,7 +435,9 @@ export class AppFlowCoordinator {
     for (let i = 0; i < config.playerCount - 1; i++) {
       const personaId = config.botPersonaIds[i];
       const customConfig = config.customBotConfigs[i];
-      const botCfg = getBotConfig(personaId, customConfig);
+      const botCfg = isBotConfig(customConfig)
+        ? customConfig
+        : getBotConfig(personaId, customConfig);
       const botId = `bot_${i + 1}`;
       initialPlayers.push(
         createBotPlayer(botId, personaId, {
@@ -662,7 +662,7 @@ export class AppFlowCoordinator {
         elo: nextElo,
         stats: {
           ...profile.stats,
-          gamesPlayed: (profile.stats?.gamesPlayed || 0) + 1,
+          gamesPlayed: profile.stats.gamesPlayed + 1,
           currentStreak: 0
         }
       };
@@ -706,11 +706,11 @@ export class AppFlowCoordinator {
     useViewStore.getState().closeModal('VICTORY');
 
     // Trừ cọc cho ván mới
-    const multiplier = tableConfig.rules.chopping.multiplier || 1;
+    const multiplier = tableConfig.rules.chopping.multiplier;
     const targetDeposit = calculateRequiredDeposit(
       betAmount,
-      tableConfig.rules.cong.multiplier ?? 1,
-      tableConfig.rules.cong.enabled ?? true
+      tableConfig.rules.cong.multiplier,
+      tableConfig.rules.cong.enabled
     );
     let actualDeposit = 0;
     if (betAmount > 0) {
@@ -723,7 +723,7 @@ export class AppFlowCoordinator {
       savePlayerProfile(updatedProfile);
     }
 
-    const nextGameNumber = (useGameStore.getState().gameNumber || 1) + 1;
+    const nextGameNumber = useGameStore.getState().gameNumber + 1;
     saveActiveMatchSession({
       gameId: `match_${Date.now()}`,
       gameType: tableConfig.gameType,

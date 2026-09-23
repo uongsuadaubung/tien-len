@@ -1,4 +1,4 @@
-import { Card, PlayedMove, createDefaultGameRules } from '../engine/types';
+import { Card, PlayedMove } from '../engine/types';
 import { CardTracker } from './card-tracker';
 import { getBotConfig } from './bot-factory';
 import { DecisionContext, BotDecision, makeBotDecision, createDecisionContext } from './decision-maker';
@@ -81,8 +81,14 @@ export function replayTurnDecisionFromLog(
   const isLeadMove = turnEntry.isLeadMove;
 
   const playerIds = report.players.map(p => p.id);
+  if (playerIds.length === 0) {
+    throw new Error('[LogReplayer] Invalid match log: report.players is empty');
+  }
   const currentIdx = playerIds.indexOf(turnEntry.playerId);
-  const nextPlayerId = playerIds[(currentIdx + 1) % playerIds.length] || playerIds[0] || '';
+  if (currentIdx === -1) {
+    throw new Error(`[LogReplayer] Player ${turnEntry.playerId} not found in report.players`);
+  }
+  const nextPlayerId = playerIds[(currentIdx + 1) % playerIds.length];
   const isNextPlayerOneCard = (remainingPlayerCards[nextPlayerId] ?? 13) === 1;
 
   const context: DecisionContext = createDecisionContext({
@@ -94,11 +100,11 @@ export function replayTurnDecisionFromLog(
     config,
     remainingPlayerCards,
     nextPlayerId,
-    rules: report.rules || createDefaultGameRules(),
+    rules: report.rules,
     hasPlayedFirstCard: turnEntry.handBeforeTurn.length < 13,
     isNextPlayerOneCard,
-    prohibitEndingWithTwo: report.rules?.gameFlow?.prohibitEndingWithTwo ?? true,
-    gameMode: report.gameMode || 'COUNT_CARDS',
+    prohibitEndingWithTwo: report.rules.gameFlow.prohibitEndingWithTwo,
+    gameMode: report.gameMode,
     mctsMap: null,
     compositeRuleStrategy: null,
     opponentProfiles: null

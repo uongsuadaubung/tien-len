@@ -667,7 +667,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       if (!gameStore.isDealing) {
         const playingState: PlayingTurnMatchState = createPlayingTurnMatchState({
           status: 'PLAYING',
-          gameNumber: dealPacket.gameNumber || 1,
+          gameNumber: dealPacket.gameNumber,
           roundNumber: 1,
           players: currentPlayers,
           currentTurnPlayerId: dealPacket.firstTurnPlayerId,

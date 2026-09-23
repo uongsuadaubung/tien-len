@@ -29,7 +29,7 @@ describe('Endgame Settlement & Remaining Cards Visibility Integration Tests', ()
     rules.table.betAmount = 1000;
 
     const human = createPlayer({ id: humanId, name: 'kk', avatar: '🤠' });
-    const bot = createBotPlayer('bot_daiki', 'BOT_ELO_1050', { name: 'Daiki (Blitzer)', avatar: '🤖' });
+    const bot = createBotPlayer('bot_daiki', 'BOT_ELO_1000', { name: 'Daiki (Blitzer)', avatar: '🤖' });
 
     const winningCard = createCard(10, 'HEARTS');
     const botCard1 = createCard(4, 'SPADES');

@@ -570,24 +570,30 @@ export class GameEngine {
     }
 
     // 3. Ghi nhận nước đi vào Round
-    const playedMoveRecord: PlayedMove = isChop
-      ? {
-          playerId,
-          combination: validation.combination,
-          timestamp: Date.now(),
-          isChop: true,
-          choppedPlayerId: choppedPlayerId || '',
-          penaltyAmount: penaltyAmount || 0,
-          isCascadeChop: !!isCascadeChop,
-          chopChainCount: chopChainCount || 1,
-          chopChainTotalAmount: chopChainTotalAmount || penaltyAmount || 0
-        }
-      : {
-          playerId,
-          combination: validation.combination,
-          timestamp: Date.now(),
-          isChop: false
-        };
+    let playedMoveRecord: PlayedMove;
+    if (isChop) {
+      if (!choppedPlayerId) {
+        throw new Error('[GameEngine] Invariant violation: isChop is true but choppedPlayerId is missing');
+      }
+      playedMoveRecord = {
+        playerId,
+        combination: validation.combination,
+        timestamp: Date.now(),
+        isChop: true,
+        choppedPlayerId,
+        penaltyAmount,
+        isCascadeChop,
+        chopChainCount,
+        chopChainTotalAmount
+      };
+    } else {
+      playedMoveRecord = {
+        playerId,
+        combination: validation.combination,
+        timestamp: Date.now(),
+        isChop: false
+      };
+    }
 
     this.currentRound.moves = [...this.currentRound.moves, playedMoveRecord];
 
@@ -744,10 +750,13 @@ export class GameEngine {
    */
   public executeBotTurn(botConfig: BotConfig, tracker: CardTracker): BotTurnResult {
     const currentPlayer = this.getCurrentPlayer();
-    if (!currentPlayer || !currentPlayer.isBot || currentPlayer.hand.length === 0) {
+    if (!currentPlayer) {
+      throw new Error('[GameEngine] Cannot execute bot turn: no current player found');
+    }
+    if (!currentPlayer.isBot || currentPlayer.hand.length === 0) {
       return {
         action: 'PASS',
-        playerId: currentPlayer?.id || '',
+        playerId: currentPlayer.id,
         isGameOver: this.isGameOver,
         botDecisionDetails: null
       };
@@ -1115,7 +1124,7 @@ export class GameEngine {
       target, 
       candidate, 
       this.rules.table.betAmount, 
-      this.rules.chopping.multiplier || 1
+      this.rules.chopping.multiplier
     ).amount;
   }
 
@@ -1135,7 +1144,7 @@ export class GameEngine {
     return calculateRottenPenalty(
       hand, 
       this.rules.table.betAmount, 
-      this.rules.chopping.multiplier || 1
+      this.rules.chopping.multiplier
     );
   }
 
@@ -1152,8 +1161,8 @@ export class GameEngine {
 
     if (winnerId) {
       const bet = this.rules.table.betAmount;
-      const penaltyMultiplier = this.rules.chopping.multiplier || 1;
-      const congMultiplier = this.rules.cong.multiplier || 1;
+      const penaltyMultiplier = this.rules.chopping.multiplier;
+      const congMultiplier = this.rules.cong.multiplier;
 
       if (this.rules.settlementRule === 'COUNT_CARDS') {
         payouts = calculateCountCardsSettlement(

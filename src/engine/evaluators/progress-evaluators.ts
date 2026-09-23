@@ -462,11 +462,11 @@ export class CampaignAllClearAchievementEvaluator implements ProgressEvaluator {
 
   evaluate(_event: GameEvent, _currentCount: number, targetCount: number, profile: PlayerProfile): number {
     let completedChaptersCount = 0;
-    const winsMap = profile.campaignChapterWins || {};
+    const winsMap = profile.campaignChapterWins;
 
     for (const chapter of CAMPAIGN_CHAPTERS) {
-      const wins = winsMap[chapter.id] || 0;
-      if (wins >= chapter.requiredWins || (profile.campaignUnlockedChapter || 1) > chapter.id) {
+      const wins = winsMap[chapter.id] ?? 0;
+      if (wins >= chapter.requiredWins || profile.campaignUnlockedChapter > chapter.id) {
         completedChaptersCount++;
       }
     }

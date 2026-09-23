@@ -122,7 +122,7 @@ describe('MatchLogger & Bot Reasoning Telemetry', () => {
 
     engine.startNewGame(1);
 
-    const botConfig = getBotConfig('master', { id: 'bot1' });
+    const botConfig = getBotConfig('BOT_ELO_2300', { id: 'bot1' });
     const tracker = new CardTracker([], 1.0);
 
     let maxSafety = 50;

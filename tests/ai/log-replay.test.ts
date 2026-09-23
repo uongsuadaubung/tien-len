@@ -14,7 +14,7 @@ describe('Log Replay & Deterministic Test Reproduction', () => {
     const players = [
       createBotPlayer('p0', 'BOT_ELO_1750', { name: 'Bot 1', score: 0 }),
       createBotPlayer('p1', 'BOT_ELO_1900', { name: 'Bot 2', score: 0 }),
-      createBotPlayer('p2', 'BOT_ELO_2100', { name: 'Bot 3', score: 0 }),
+      createBotPlayer('p2', 'BOT_ELO_2150', { name: 'Bot 3', score: 0 }),
       createBotPlayer('p3', 'BOT_ELO_2300', { name: 'Bot 4', score: 0 })
     ];
     const game = new GameEngine(players, rules);

@@ -9,7 +9,7 @@ describe('TableSessionFactory Architecture Tests', () => {
   const mockPlayers = [
     createPlayer({ id: localPlayerId, name: 'Tester', avatar: '🤠', score: 50000 }),
     createBotPlayer('bot_1', 'BOT_ELO_1150', { name: 'Bot 1', avatar: '🤖', score: 50000 }),
-    createBotPlayer('bot_2', 'BOT_ELO_1300', { name: 'Bot 2', avatar: '🦊', score: 50000 })
+    createBotPlayer('bot_2', 'BOT_ELO_1350', { name: 'Bot 2', avatar: '🦊', score: 50000 })
   ];
 
   it('should cleanly create host, session, bots, and composite disposable', () => {

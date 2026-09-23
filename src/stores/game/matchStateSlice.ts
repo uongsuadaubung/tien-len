@@ -365,18 +365,18 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
       } else if (sync.isDealing) {
         nextMatchState = {
           status: 'DEALING',
-          gameNumber: sync.gameNumber || state.gameNumber,
+          gameNumber: sync.gameNumber,
           players: updatedPlayers,
           dealtCounts: sync.dealtCounts ? { ...sync.dealtCounts } : mergedDealtCounts,
           dealBanner: sync.dealBanner ?? null,
-          totalCardsDealt: Object.values(sync.dealtCounts || {}).reduce((a, b) => a + b, 0),
+          totalCardsDealt: sync.dealtCounts ? Object.values(sync.dealtCounts).reduce((a, b) => a + b, 0) : 0,
           rules: state.gameRules
         };
       } else if (currentTurnId && leadId) {
         const playingState: PlayingTurnMatchState = createPlayingTurnMatchState({
           status: 'PLAYING',
-          gameNumber: sync.gameNumber || state.gameNumber,
-          roundNumber: sync.roundNumber || (state.matchState.status === 'PLAYING' ? state.matchState.roundNumber : 1),
+          gameNumber: sync.gameNumber,
+          roundNumber: sync.roundNumber,
           players: updatedPlayers,
           currentTurnPlayerId: currentTurnId,
           leadPlayerId: leadId,
@@ -385,7 +385,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
           isLeadMove: isLead,
           isFirstMoveOfGame: isFirstMove,
           firstMoveRequiredCard: requiredCard,
-          passedPlayerIds: sync.passedPlayerIds || [],
+          passedPlayerIds: sync.passedPlayerIds,
           chopNotification: sync.chopNotification ? {
             visible: sync.chopNotification.visible,
             chopperName: sync.chopNotification.chopperName,

@@ -225,7 +225,7 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
               roomState: disbanded,
               disbandNotice: {
                 title: 'BÀN CHƠI ĐÃ BỊ GIẢI TÁN',
-                message: disbanded.disbandReason || ''
+                message: disbanded.disbandReason
               }
             });
             clearActiveOnlineSession();
@@ -308,7 +308,7 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
     const { hostInstance, roomState, myPlayerId } = get();
     if (!hostInstance || !roomState) return;
 
-    const nextGameNum = (hostInstance.gameNumber || 1) + 1;
+    const nextGameNum = hostInstance.gameNumber + 1;
     const lastWinner = hostInstance.lastWinnerId;
 
     // 1. Cập nhật RoomState: Chuyển status sang PLAYING

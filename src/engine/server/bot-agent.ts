@@ -3,7 +3,7 @@ import type { IClientTransport, HostToClientPacket } from '../transport/transpor
 import type { TableStateSyncPacket } from '../network/network.schema';
 import { CardTracker } from '../../ai/card-tracker';
 import { getBotConfig } from '../../ai/bot-factory';
-import type { BotConfig } from '../../ai/types';
+import { type BotConfig, isBotConfig } from '../../ai/types';
 import { createCard, isTwo } from '../card';
 import { makeBotDecision, createDecisionContext, type BotDecision } from '../../ai/decision-maker';
 import { createPlayedMove, createDefaultGameRules } from '../types';
@@ -45,7 +45,9 @@ export class BotAgent {
   constructor(options: BotAgentOptions) {
     this.botId = options.botId;
     this.personaId = options.personaId;
-    this.botConfig = getBotConfig(this.personaId, options.customConfig);
+    this.botConfig = isBotConfig(options.customConfig)
+      ? options.customConfig
+      : getBotConfig(this.personaId, options.customConfig);
     this.transport = options.transport;
     this.instantDelay = options.instantDelay ?? false;
     this.gameSpeed = options.gameSpeed;
