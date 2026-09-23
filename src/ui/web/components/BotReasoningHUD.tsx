@@ -116,9 +116,16 @@ export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
             <button
               onClick={handleExportJson}
               title={t('hud.exportAnalysis')}
-              className="p-1 rounded hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--color-gold)] transition-colors"
+              className="p-1 rounded hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--color-gold)] transition-colors cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={onToggle}
+              title={t('hud.collapseHud')}
+              className="p-1 rounded hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--color-gold)] transition-colors cursor-pointer"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>

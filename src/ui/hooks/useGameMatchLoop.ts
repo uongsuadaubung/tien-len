@@ -14,7 +14,7 @@ export type { CampaignResultMeta };
  * Cầu nối tinh gọn kết nối UI với AppFlowCoordinator và AuthoritativeMatchHost / ClientSession
  */
 export function useGameMatchLoop() {
-  const { campaignResultMeta } = useGameStore();
+  const campaignResultMeta = useGameStore(s => s.campaignResultMeta);
 
   // Hook Xếp bài thông minh & Gợi ý AI
   const { handleAutoSort } = useSmartHandSorting();

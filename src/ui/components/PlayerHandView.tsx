@@ -126,7 +126,7 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
   const isSmartMode = sortMode === 'SMART_GROUP';
   const availableVariants = React.useMemo(() => {
     return getAvailableSmartVariants(hand);
-  }, [handCardFingerprint, hand]);
+  }, [handCardFingerprint]);
 
   const totalVariants = availableVariants.length;
   const smartGroups = React.useMemo(() => {
@@ -395,9 +395,7 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
                         isPlayable={!isDealing}
                         onCardClick={onToggleCardSelect}
                         size={isMobileSize ? 'mobile' : 'md'}
-                        style={{
-                          transform: `rotate(${rot}deg)`
-                        }}
+                        rotationDeg={rot}
                       />
                     </div>
                   );
@@ -429,9 +427,7 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
                   isPlayable={!isDealing}
                   onCardClick={onToggleCardSelect}
                   size={isMobileSize ? 'mobile' : 'md'}
-                  style={{
-                    transform: `rotate(${rot}deg)`
-                  }}
+                  rotationDeg={rot}
                 />
               </div>
             );

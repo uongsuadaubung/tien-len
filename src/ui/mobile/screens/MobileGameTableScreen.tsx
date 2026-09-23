@@ -4,7 +4,7 @@ import { TableCenter } from '../../components/TableCenter';
 import { DealingDeckAnimation } from '../../components/DealingDeckAnimation';
 import { PlayerHandView } from '../../components/PlayerHandView';
 import { BotReasoningHUD } from '../../web/components/BotReasoningHUD';
-import { MobileMatchHUDDrawer } from '../components/MobileMatchHUDDrawer';
+import { LeftMatchHUD } from '../../web/components/LeftMatchHUD';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { lockToLandscape } from '../../utils/fullscreen';
 import { useGameTableScreenLogic } from '../../hooks/useGameTableScreenLogic';
@@ -46,7 +46,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
   onReturnToLobby
 }) => {
   const { t } = useI18n();
-  const [isMatchHudDrawerOpen, setIsMatchHudDrawerOpen] = useState<boolean>(false);
+  const [isMatchHudOpen, setIsMatchHudOpen] = useState<boolean>(false);
   const [isReasoningHudOpen, setIsReasoningHudOpen] = useState<boolean>(false);
 
   const { isPortrait } = useIsMobile();
@@ -54,12 +54,14 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
 
   const {
     soundEnabled,
+    aiHintEnabled,
     quickResponseAssistEnabled,
     botReasoningLogEnabled,
     reverseButtonsEnabled,
     toggleSound
   } = useSettingsStore(useShallow(s => ({
     soundEnabled: s.soundEnabled,
+    aiHintEnabled: s.aiHintEnabled,
     quickResponseAssistEnabled: s.quickResponseAssistEnabled,
     botReasoningLogEnabled: s.botReasoningLogEnabled,
     reverseButtonsEnabled: s.reverseButtonsEnabled,
@@ -93,6 +95,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
     rightBot,
     quickSelectCandidatesCount,
     canQuickSelect,
+    activeAiHint,
     handleQuickSelect,
     handlePlayCards,
     handlePassTurnAction,
@@ -162,8 +165,8 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
         <div className="flex items-center gap-1">
           {/* Nút mở Quân Sư AI & Lịch sử ván */}
           <button
-            onClick={() => setIsMatchHudDrawerOpen(true)}
-            className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-300 hover:text-white active:scale-95 transition-transform"
+            onClick={() => setIsMatchHudOpen(prev => !prev)}
+            className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-300 hover:text-white active:scale-95 transition-transform cursor-pointer"
             title={t('header.aiAdvisorTooltip')}
           >
             <BarChart3 className="w-4 h-4 text-emerald-400" />
@@ -198,10 +201,10 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
         </div>
       </header>
 
-      {/* BOTTOM SHEET / DRAWER: QUÂN SƯ AI & PHÂN TÍCH DIỄN BIẾN TRẬN ĐẤU */}
-      <MobileMatchHUDDrawer
-        isOpen={isMatchHudDrawerOpen}
-        onClose={() => setIsMatchHudDrawerOpen(false)}
+      {/* HUD GÓC TRÁI: QUÂN SƯ AI & THỐNG KÊ CHIẾN THUẬT (MẶC ĐỊNH THU GỌN TRÊN MOBILE) */}
+      <LeftMatchHUD
+        isOpen={isMatchHudOpen}
+        onToggle={() => setIsMatchHudOpen(prev => !prev)}
         players={players}
         currentTurnPlayerId={currentTurnPlayerId}
         leadPlayerId={leadPlayerId}
@@ -209,6 +212,9 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
         betAmount={gameSettings.betAmount}
         isDealing={isDealing}
         dealtCounts={dealtCounts}
+        aiHint={activeAiHint}
+        isHumanTurn={isMyTurn}
+        aiHintEnabled={aiHintEnabled}
       />
 
       {/* HUD GÓC PHẢI: LOGIC SUY LUẬN REAL-TIME CỦA BOT */}

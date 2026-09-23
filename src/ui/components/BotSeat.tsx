@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { MatchPlayer } from '../../engine/types';
 import { getBotConfig } from '../../ai/bot-factory';
+import { isBotConfig } from '../../ai/types';
 import { createCampaignBotEntity } from '../../engine/campaign';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { useViewStore } from '../../stores/useViewStore';
@@ -40,7 +41,9 @@ const BotSeatComponent: React.FC<BotSeatProps> = ({
 
   const handleInspectBot = () => {
     if (!player.isBot) return;
-    const botConfig = getBotConfig(player.botPersonaId, player.customBotConfig);
+    const botConfig = isBotConfig(player.customBotConfig) 
+      ? player.customBotConfig 
+      : getBotConfig(player.botPersonaId, player.customBotConfig);
     const ecosystemBots = useEcosystemStore.getState().bots;
     const botEntity = ecosystemBots.find(b => b.id === botConfig.id || b.name === botConfig.name || b.name === player.name) 
       ?? createCampaignBotEntity(botConfig, ecosystemBots);

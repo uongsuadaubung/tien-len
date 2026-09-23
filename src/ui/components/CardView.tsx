@@ -12,6 +12,7 @@ export interface CardViewProps {
   style?: React.CSSProperties;
   className?: string;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'mobile' | 'table';
+  rotationDeg?: number;
 }
 
 const CardViewComponent: React.FC<CardViewProps> = ({
@@ -23,7 +24,8 @@ const CardViewComponent: React.FC<CardViewProps> = ({
   disabled = false,
   style,
   className = '',
-  size = 'md'
+  size = 'md',
+  rotationDeg
 }) => {
   const isRed = isRedCard(card);
   const rankStr = RANK_NAMES[card.rank];
@@ -76,10 +78,17 @@ const CardViewComponent: React.FC<CardViewProps> = ({
     }
   }, [disabled, isPlayable, onCardClick, onClick, card.id]);
 
+  const computedStyle = React.useMemo(() => {
+    if (rotationDeg === undefined) return style;
+    const rotTransform = `rotate(${rotationDeg}deg)`;
+    if (!style) return { transform: rotTransform };
+    return { ...style, transform: style.transform ? `${style.transform} ${rotTransform}` : rotTransform };
+  }, [rotationDeg, style]);
+
   return (
     <div
       onClick={handleClick}
-      style={style}
+      style={computedStyle}
       className={`
         playing-card ${sizeClasses} select-none relative overflow-hidden
         ${isSelected ? 'selected' : ''}

@@ -34,6 +34,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
   onReturnToLobby
 }) => {
   const { t } = useI18n();
+  const [isMatchHudOpen, setIsMatchHudOpen] = useState<boolean>(true);
   const [isReasoningHudOpen, setIsReasoningHudOpen] = useState<boolean>(true);
   const { openModal } = useViewStore();
   const { profile } = useUserStore();
@@ -131,6 +132,8 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
 
       {/* HUD GÓC TRÁI: QUÂN SƯ AI & THỐNG KÊ CHIẾN THUẬT */}
       <LeftMatchHUD
+        isOpen={isMatchHudOpen}
+        onToggle={() => setIsMatchHudOpen(prev => !prev)}
         players={players}
         currentTurnPlayerId={currentTurnPlayerId}
         leadPlayerId={leadPlayerId}

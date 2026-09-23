@@ -65,6 +65,7 @@ export class ClientSession implements IGameSession {
   private campaignChapter: CampaignChapter | null = null;
   private campaignResultMeta: CampaignResultMeta | null = null;
   private isDisposed: boolean = false;
+  private dealThrottleTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(options: ClientSessionOptions) {
     this.localPlayerId = options.localPlayerId;
@@ -113,8 +114,10 @@ export class ClientSession implements IGameSession {
             this.turnDeadline = msg.packet.turnDeadline;
           }
           this.lastPlayedMove = null;
+          this.currentHint = null;
           this.myHand = sortCards(msg.packet.cards.map(c => createCard(c.rank, c.suit)));
           this.players = resetPlayersForNewGame(this.players, this.localPlayerId, this.myHand);
+          this.tracker = new CardTracker(this.myHand, 1.0, this.players.length);
           const reqCard = msg.packet.firstMoveRequiredCard
             ? createCard(msg.packet.firstMoveRequiredCard.rank, msg.packet.firstMoveRequiredCard.suit)
             : null;
@@ -328,6 +331,9 @@ export class ClientSession implements IGameSession {
         if (combo) {
           leadingMove = createPlayedMove(sync.currentMovePlayerId, combo);
           this.lastPlayedMove = leadingMove;
+          if (this.tracker) {
+            this.tracker.recordMove(leadingMove);
+          }
         }
       }
 
@@ -444,11 +450,22 @@ export class ClientSession implements IGameSession {
     const player = this.players[playerIndex];
     if (player) {
       this.dealtCounts[player.id] = currentCardCount;
-      this.updateAndEmitFrame();
+      if (!this.dealThrottleTimer) {
+        this.dealThrottleTimer = setTimeout(() => {
+          this.dealThrottleTimer = null;
+          if (!this.isDisposed) {
+            this.updateAndEmitFrame();
+          }
+        }, 80);
+      }
     }
   }
 
   public finishDealing(): void {
+    if (this.dealThrottleTimer) {
+      clearTimeout(this.dealThrottleTimer);
+      this.dealThrottleTimer = null;
+    }
     this.isDealing = false;
     for (const p of this.players) {
       this.dealtCounts[p.id] = p.hand.length;
@@ -456,7 +473,45 @@ export class ClientSession implements IGameSession {
     this.updateAndEmitFrame();
   }
 
+  private computeCurrentAiHint(): MoveHint | null {
+    if (this.latestMatchState.status !== 'PLAYING') return null;
+    if (this.latestMatchState.currentTurnPlayerId !== this.localPlayerId) return null;
+    if (this.myHand.length === 0) return null;
+
+    if (!this.tracker) {
+      this.tracker = new CardTracker(this.myHand, 1.0, this.players.length);
+    } else {
+      this.tracker.updateOwnHand(this.myHand);
+    }
+    const currentMove = this.latestMatchState.leadingMove ?? null;
+    const isLead = this.latestMatchState.isLeadMove;
+    const isFirst = this.latestMatchState.isFirstMoveOfGame;
+
+    return getOptimalMoveHint(
+      [...this.myHand],
+      currentMove,
+      isFirst,
+      isLead,
+      this.tracker,
+      this.latestSync?.remainingCardCounts ?? {},
+      '',
+      false,
+      this.gameRules.gameFlow.prohibitEndingWithTwo,
+      this.gameRules.settlementRule ?? 'COUNT_CARDS',
+      this.gameRules,
+      true,
+      this.localPlayerId
+    );
+  }
+
   private buildCurrentFrame(): TableRenderFrame {
+    const aiHint = this.computeCurrentAiHint();
+    if (aiHint) {
+      this.currentHint = aiHint;
+    } else if (this.latestMatchState.status !== 'PLAYING' || this.latestMatchState.currentTurnPlayerId !== this.localPlayerId) {
+      this.currentHint = null;
+    }
+
     return projectTableFrame({
       matchState: this.latestMatchState,
       localPlayerId: this.localPlayerId,
@@ -465,7 +520,7 @@ export class ClientSession implements IGameSession {
       gameRules: this.gameRules,
       players: this.players,
       dealtCounts: this.isDealing ? this.dealtCounts : (this.latestSync?.remainingCardCounts ?? this.dealtCounts),
-      currentHint: this.currentHint,
+      currentHint: aiHint ?? this.currentHint,
       botThinkingThought: isPlayingMatchState(this.latestMatchState) ? this.latestMatchState.botThinkingThought : null,
       isDealing: this.isDealing,
       dealBanner: this.dealBanner,
@@ -545,6 +600,7 @@ export class ClientSession implements IGameSession {
         this.myHand = this.myHand.filter(c => !playedIds.has(c.id));
         this.players = updatePlayersHand(this.players, this.localPlayerId, this.myHand);
         this.selectedCardIds.clear();
+        this.currentHint = null;
 
         // 2. Optimistic UI Projection: Chiếu ngay nước đi ra giữa bàn và phát âm thanh (0ms)
         if (playedMove) {
@@ -586,6 +642,7 @@ export class ClientSession implements IGameSession {
       }
       case 'SUBMIT_PASS': {
         this.selectedCardIds.clear();
+        this.currentHint = null;
         this.emitAudioCue('PASS');
         this.players = updatePlayerInList(this.players, this.localPlayerId, { isPassedCurrentRound: true });
         if (this.latestMatchState.status === 'PLAYING') {
@@ -647,29 +704,7 @@ export class ClientSession implements IGameSession {
         break;
       }
       case 'APPLY_HINT': {
-        if (!this.tracker) {
-          this.tracker = new CardTracker(this.myHand, 1.0);
-        }
-        const currentMove = (this.latestMatchState.status === 'PLAYING') ? this.latestMatchState.leadingMove : null;
-        const isLead = (this.latestMatchState.status === 'PLAYING') ? this.latestMatchState.isLeadMove : false;
-        const isFirst = (this.latestMatchState.status === 'PLAYING') ? this.latestMatchState.isFirstMoveOfGame : false;
-
-        const hint = getOptimalMoveHint(
-          [...this.myHand],
-          currentMove,
-          isFirst,
-          isLead,
-          this.tracker,
-          this.latestSync?.remainingCardCounts ?? {},
-          '',
-          false,
-          this.gameRules.gameFlow.prohibitEndingWithTwo,
-          'COUNT_CARDS',
-          this.gameRules,
-          true,
-          this.localPlayerId
-        );
-
+        const hint = this.computeCurrentAiHint() ?? this.currentHint;
         if (hint && hint.action === 'PLAY' && hint.cards.length > 0) {
           this.currentHint = hint;
           this.selectedCardIds = new Set(hint.cards.map(c => c.id));
@@ -706,6 +741,10 @@ export class ClientSession implements IGameSession {
 
   public dispose(): void {
     this.isDisposed = true;
+    if (this.dealThrottleTimer) {
+      clearTimeout(this.dealThrottleTimer);
+      this.dealThrottleTimer = null;
+    }
     if (this.unsubscribeTransport) {
       this.unsubscribeTransport();
       this.unsubscribeTransport = null;

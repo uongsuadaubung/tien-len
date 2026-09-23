@@ -11,17 +11,17 @@ import type { Card } from '../../engine/types';
  * Hook quản lý thuật toán xếp bài thông minh & xoay vòng các phương án bộ bài
  */
 export function useSmartHandSorting() {
-  const {
-    handSortMode,
-    smartVariantIndex,
-    players,
-    myPlayerId,
-    setHandSortMode,
-    setSmartVariantIndex,
-    setPlayers
-  } = useGameStore();
-
   const handleAutoSort = useCallback(() => {
+    const {
+      handSortMode,
+      smartVariantIndex,
+      players,
+      myPlayerId,
+      setHandSortMode,
+      setSmartVariantIndex,
+      setPlayers
+    } = useGameStore.getState();
+
     const localPlayer = players.find(p => p.id === myPlayerId) ?? null;
     if (!localPlayer || localPlayer.hand.length === 0) return;
 
@@ -56,7 +56,7 @@ export function useSmartHandSorting() {
     appFlowCoordinator.reorderPlayerHand(localPlayer.id, nextSortedHand);
 
     soundManager.playCardDeal();
-  }, [handSortMode, smartVariantIndex, players, myPlayerId, setHandSortMode, setSmartVariantIndex, setPlayers]);
+  }, []);
 
   return {
     handleAutoSort

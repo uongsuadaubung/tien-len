@@ -7,7 +7,8 @@ import { appFlowCoordinator } from '../../services/app-flow-coordinator';
  * Hook quản lý áp dụng gợi ý nước đi tối ưu của Quân Sư AI
  */
 export function useMatchAIHints(onPassTurn?: () => void) {
-  const { currentHint, setSelectedCardIds } = useGameStore();
+  const currentHint = useGameStore(s => s.currentHint);
+  const setSelectedCardIds = useGameStore(s => s.setSelectedCardIds);
 
   const handleApplyAiHint = useCallback(() => {
     if (!currentHint || currentHint.action === 'PASS') {

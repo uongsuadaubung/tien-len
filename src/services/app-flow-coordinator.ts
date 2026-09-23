@@ -26,7 +26,7 @@ import {
   savePlayerProfile 
 } from '../engine/storage';
 import { matchBotsForPlayerTable } from '../engine/ecosystem/matchmaker';
-import { getRandomBotConfigsForTable, getBotConfig } from '../ai/bot-factory';
+import { getRandomBotConfigsForTable, getBotConfig, convertBotEntityToBotConfig } from '../ai/bot-factory';
 import type { QuickTableConfig, GameSettlementRule } from '../engine/schemas/settings.schema';
 import type { CustomGameModalConfig } from '../ui/hooks/useCustomGame';
 import type { CampaignChapter } from '../engine/campaign';
@@ -112,14 +112,14 @@ export class AppFlowCoordinator {
       const tableOpponents = await useEcosystemStore.getState().prepareMatchEcosystem(liveProfile.elo, config.betAmount);
       if (tableOpponents && tableOpponents.length > 0) {
         const chosen = tableOpponents.slice(0, requiredCount);
-        botConfigs = chosen;
+        botConfigs = chosen.map(convertBotEntityToBotConfig);
         botIds = chosen.map(b => b.id);
       }
     } catch {
       const ecosystemBots = useEcosystemStore.getState().bots;
       if (ecosystemBots.length > 0) {
         const matched = matchBotsForPlayerTable(ecosystemBots, liveProfile.elo, config.betAmount, requiredCount);
-        botConfigs = matched;
+        botConfigs = matched.map(convertBotEntityToBotConfig);
         botIds = matched.map(b => b.id);
       }
     }

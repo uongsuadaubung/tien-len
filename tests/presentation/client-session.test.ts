@@ -456,10 +456,76 @@ describe('ClientSession (Dumb View Presentation Controller)', () => {
 
     // Explicit clear selection drops them
     session.sendIntent({ type: 'CLEAR_SELECTION' });
-    useGameStore.getState().clearCardSelection();
     expect(useGameStore.getState().selectedCardIds.size).toBe(0);
 
     unbind();
     session.dispose();
   });
+
+  it('should correctly select 3 4 5 6 and deselect 6 5 4 3 until all cards are lowered', () => {
+    useGameStore.getState().setMyPlayerId(localPlayerId);
+    useGameStore.getState().setPlayers(mockPlayers);
+    useGameStore.getState().resetMatchState();
+
+    const { hostTransport, clientTransport } = createMemoryDuplexTransport('HOST', localPlayerId);
+    const session = new ClientSession({
+      localPlayerId,
+      transport: clientTransport,
+      gameRules: rules,
+      initialPlayers: mockPlayers
+    });
+
+    const unbind = bindSessionToGameStore(session);
+
+    // Deal sảnh 3 4 5 6
+    const c3 = createCard(3, 'SPADES');
+    const c4 = createCard(4, 'CLUBS');
+    const c5 = createCard(5, 'DIAMONDS');
+    const c6 = createCard(6, 'HEARTS');
+
+    hostTransport.send({
+      type: 'DEAL_HAND',
+      packet: createDealHandPacket({
+        playerId: localPlayerId,
+        cards: [c3, c4, c5, c6],
+        gameNumber: 1
+      })
+    });
+
+    // 1. Chọn lần lượt 3, 4, 5, 6
+    session.sendIntent({ type: 'TOGGLE_CARD_SELECT', cardId: c3.id });
+    session.sendIntent({ type: 'TOGGLE_CARD_SELECT', cardId: c4.id });
+    session.sendIntent({ type: 'TOGGLE_CARD_SELECT', cardId: c5.id });
+    session.sendIntent({ type: 'TOGGLE_CARD_SELECT', cardId: c6.id });
+
+    expect(useGameStore.getState().selectedCardIds.size).toBe(4);
+    let frame = session.getLatestFrame();
+    expect(frame.myHand.every(h => h.isSelected)).toBe(true);
+
+    // 2. Hạ lần lượt bài 6, 5, 4
+    session.sendIntent({ type: 'TOGGLE_CARD_SELECT', cardId: c6.id });
+    expect(useGameStore.getState().selectedCardIds.size).toBe(3);
+    expect(useGameStore.getState().selectedCardIds.has(c6.id)).toBe(false);
+
+    session.sendIntent({ type: 'TOGGLE_CARD_SELECT', cardId: c5.id });
+    expect(useGameStore.getState().selectedCardIds.size).toBe(2);
+    expect(useGameStore.getState().selectedCardIds.has(c5.id)).toBe(false);
+
+    session.sendIntent({ type: 'TOGGLE_CARD_SELECT', cardId: c4.id });
+    expect(useGameStore.getState().selectedCardIds.size).toBe(1);
+    expect(useGameStore.getState().selectedCardIds.has(c4.id)).toBe(false);
+    expect(useGameStore.getState().selectedCardIds.has(c3.id)).toBe(true);
+
+    // 3. Hạ lá thứ 3 (lá số 3) còn lại cuối cùng: phải hạ được sạch sẽ
+    session.sendIntent({ type: 'TOGGLE_CARD_SELECT', cardId: c3.id });
+    expect(useGameStore.getState().selectedCardIds.size).toBe(0);
+    expect(useGameStore.getState().selectedCardIds.has(c3.id)).toBe(false);
+
+    frame = session.getLatestFrame();
+    expect(frame.myHand.every(h => !h.isSelected)).toBe(true);
+
+    unbind();
+    session.dispose();
+  });
 });
+

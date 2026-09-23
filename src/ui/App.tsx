@@ -30,12 +30,15 @@ import { useOnlineStore } from '../stores/useOnlineStore';
 import { appFlowCoordinator } from '../services/app-flow-coordinator';
 
 export const App: React.FC = () => {
-  const { currentScreen, openModal } = useViewStore();
-  const { profile, setProfile, hydrateProfile } = useUserStore();
+  const currentScreen = useViewStore(s => s.currentScreen);
+  const openModal = useViewStore(s => s.openModal);
+  const profile = useUserStore(s => s.profile);
+  const setProfile = useUserStore(s => s.setProfile);
+  const hydrateProfile = useUserStore(s => s.hydrateProfile);
   const [isHydrated, setIsHydrated] = useState(false);
   const [hasEnteredGame, setHasEnteredGame] = useState(false);
   const { isMobile } = useIsMobile();
-  const { activeGameType } = useGameStore();
+  const activeGameType = useGameStore(s => s.activeGameType);
 
   const {
     campaignResultMeta,
@@ -51,9 +54,9 @@ export const App: React.FC = () => {
     handleRequestExitTable
   } = useGameMatchLoop();
 
-  // Khởi động nạp dữ liệu từ Dexie IndexedDB thuần túy (Tối thiểu 2s)
+  // Khởi động nạp dữ liệu từ Dexie IndexedDB thuần túy
   useEffect(() => {
-    const minDelay = new Promise(resolve => setTimeout(resolve, 2000));
+    const minDelay = new Promise(resolve => setTimeout(resolve, 200));
 
     Promise.all([
       initWasmCore().catch(err => console.warn('[App] Wasm init warning:', err)),

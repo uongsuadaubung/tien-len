@@ -1,7 +1,8 @@
 import { z } from 'zod';
-import { getTierFromElo } from "../engine/ecosystem/ecosystem-types";
+import { BotEntity, getTierFromElo } from "../engine/ecosystem/ecosystem-types";
 import { RANK_TIERS, getTierInfoByTierNum } from "../engine/constants/ranks";
-import { BotConfig } from "./types";
+import { BotConfig, isBotConfig } from "./types";
+import { useEcosystemStore } from "../stores/useEcosystemStore";
 
 type BotPersonaRaw = Omit<BotConfig, 'name' | 'avatar' | 'useMinimaxEndgame' | 'useBayesianInference' | 'useDynamicRepartitioning'> & {
   name?: string;
@@ -612,7 +613,41 @@ export const BOT_PERSONAS: Record<string, BotConfig> = Object.fromEntries(
   })
 );
 
+export function convertBotEntityToBotConfig(bot: BotEntity): BotConfig {
+  return {
+    id: bot.id,
+    name: bot.name,
+    avatar: bot.avatar,
+    description: bot.description || `Đấu thủ ${bot.name} (Elo ${bot.elo})`,
+    elo: bot.elo,
+    memoryDepth: bot.memoryDepth,
+    riskAppetite: bot.riskAppetite,
+    trapTendency: bot.trapTendency,
+    baitingTendency: bot.baitingTendency,
+    antiLeaderAggression: bot.antiLeaderAggression,
+    tempoControl: bot.tempoControl,
+    damageControl: bot.damageControl,
+    turnsToWinLookahead: bot.turnsToWinLookahead,
+    dynamicHandSacrifice: bot.dynamicHandSacrifice,
+    bombInferenceRate: bot.bombInferenceRate,
+    semiCooperativeCooperation: bot.semiCooperativeCooperation,
+    positionalAwareness: bot.positionalAwareness,
+    inMatchAdaptationRate: bot.inMatchAdaptationRate,
+    mctsSimulations: bot.mctsSimulations,
+    handPartitioningOptimality: bot.handPartitioningOptimality,
+    simulationLookahead: bot.simulationLookahead,
+    useMinimaxEndgame: bot.useMinimaxEndgame ,
+    useBayesianInference: bot.useBayesianInference,
+    useDynamicRepartitioning: bot.useDynamicRepartitioning,
+  };
+}
+
 export function getBotConfig(id: string, customOverrides?: Partial<BotConfig>): BotConfig {
+  if (isBotConfig(customOverrides)) {
+    return customOverrides;
+  }
+
+  // 1. Kiểm tra trong kho Persona tĩnh BOT_PERSONAS
   let baseKey = id;
   if (id) {
     const match = id.match(/BOT_ELO_\d+/);
@@ -621,10 +656,35 @@ export function getBotConfig(id: string, customOverrides?: Partial<BotConfig>): 
     }
   }
   const base = BOT_PERSONAS[baseKey] ?? BOT_PERSONAS[id];
-  if (!base) {
-    throw new Error(`[BotFactory] Unknown bot persona ID: "${id}". Persona must be registered in BOT_PERSONAS.`);
+  if (base) {
+    return customOverrides ? { ...base, ...customOverrides } : { ...base };
   }
-  return customOverrides ? { ...base, ...customOverrides } : { ...base };
+
+  // 2. Tra cứu trực tiếp từ Hệ sinh thái (Ecosystem Bots) theo ID
+  try {
+    const ecoBots = useEcosystemStore.getState().bots;
+    const foundEcoBot = ecoBots.find(b => b.id === id);
+    if (foundEcoBot) {
+      const ecoConfig = convertBotEntityToBotConfig(foundEcoBot);
+      return customOverrides ? { ...ecoConfig, ...customOverrides } : ecoConfig;
+    }
+  } catch {
+    // Không có store hoặc đang chạy unit test môi trường cô lập
+  }
+
+  // 3. Nếu ID chứa thông tin Tier (ví dụ bot_eco_t2_4_...)
+  const ecoTierMatch = id?.match(/bot_eco_t(\d+)_/);
+  if (ecoTierMatch) {
+    const tierNum = parseInt(ecoTierMatch[1], 10);
+    const tierInfo = getTierInfoByTierNum(tierNum);
+    const midElo = Math.round((tierInfo.minElo + Math.min(tierInfo.maxElo, 2300)) / 2);
+    const tierPersona = generateRandomBotConfig(midElo);
+    return customOverrides ? { ...tierPersona, ...customOverrides } : { ...tierPersona };
+  }
+
+  // 4. Fallback an toàn tới Persona cơ sở
+  const defaultPersona = BOT_PERSONAS['BOT_ELO_1000'] ?? BOT_PERSONAS['BOT_ELO_1150'] ?? Object.values(BOT_PERSONAS)[0];
+  return customOverrides ? { ...defaultPersona, ...customOverrides } : { ...defaultPersona };
 }
 
 export function createCustomBotConfig(

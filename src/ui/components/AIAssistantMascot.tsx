@@ -34,7 +34,9 @@ export const AIAssistantMascot: React.FC<AIAssistantMascotProps> = ({
     }
   }, [isHumanTurn, hint]);
 
-  if (!enabled || !isHumanTurn || !hint) return null;
+  if (!enabled) return null;
+
+  const isStandby = !isHumanTurn || !hint;
 
   // Lấy cấu hình màu sắc và icon theo loại lời khuyên
   const getThemeConfig = (type?: HintType) => {
@@ -85,7 +87,16 @@ export const AIAssistantMascot: React.FC<AIAssistantMascotProps> = ({
     }
   };
 
-  const theme = getThemeConfig(hint?.type);
+  const standbyTheme = {
+    badgeBg: 'bg-zinc-800/60 border-zinc-700/50 text-zinc-400',
+    bubbleBorder: 'border-zinc-800/80 shadow-black/30',
+    titleColor: 'text-zinc-300',
+    icon: <Bot className="w-4 h-4 text-amber-400/80" />
+  };
+
+  const theme = isStandby ? standbyTheme : getThemeConfig(hint?.type);
+  const title = isStandby ? t('hud.aiStandbyTitle') : hint.title;
+  const message = isStandby ? t('hud.aiObserving') : hint.message;
 
   return (
     <div className="w-[280px] sm:w-[310px] flex items-start gap-2.5 pointer-events-auto select-none">
@@ -106,7 +117,7 @@ export const AIAssistantMascot: React.FC<AIAssistantMascotProps> = ({
         </div>
 
         {/* Chấm thông báo có lời khuyên */}
-        {isHumanTurn && hint && (
+        {!isStandby && (
           <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-amber-500 border border-black text-[9px] items-center justify-center font-bold text-black">!</span>
@@ -129,7 +140,7 @@ export const AIAssistantMascot: React.FC<AIAssistantMascotProps> = ({
                 {theme.icon}
               </div>
               <span className={`text-[11px] font-bold uppercase tracking-wide truncate ${theme.titleColor}`}>
-                {hint.title}
+                {title}
               </span>
             </div>
 
@@ -147,7 +158,7 @@ export const AIAssistantMascot: React.FC<AIAssistantMascotProps> = ({
 
           {/* Lời thoại Robot nói ra */}
           <div className="text-xs text-zinc-200 font-medium leading-relaxed">
-            {hint.message}
+            {message}
           </div>
 
           {/* Footer nhỏ */}
@@ -156,17 +167,23 @@ export const AIAssistantMascot: React.FC<AIAssistantMascotProps> = ({
               <MessageSquareQuote className="w-3 h-3" />
               {t('hud.aiAdvisor')}
             </span>
-            <span className="text-[10px] text-zinc-400 italic">{t('hud.aiTacticalReminder')}</span>
+            <span className="text-[10px] text-zinc-400 italic">
+              {isStandby ? t('hud.aiObserving') : t('hud.aiTacticalReminder')}
+            </span>
           </div>
         </div>
       ) : (
         <div 
           onClick={() => setIsOpen(true)}
           className="flex-1 bg-[#0d121d]/80 hover:bg-[#0d121d] border border-amber-500/30 rounded-xl p-2 cursor-pointer shadow-lg transition-all flex items-center justify-between group self-center"
-          title={t('hud.aiAdviceBubble')}
+          title={isStandby ? t('hud.aiAdvisor') : t('hud.aiAdviceBubble')}
         >
-          <span className="text-[11px] font-bold text-amber-300">{t('hud.aiAdviceBubble')}</span>
-          <span className="text-[10px] text-zinc-400 group-hover:text-amber-300 transition-colors">{t('hud.viewAdvice')}</span>
+          <span className="text-[11px] font-bold text-amber-300">
+            {isStandby ? t('hud.aiAdvisor') : t('hud.aiAdviceBubble')}
+          </span>
+          <span className="text-[10px] text-zinc-400 group-hover:text-amber-300 transition-colors">
+            {isStandby ? t('hud.aiStandbyTitle') : t('hud.viewAdvice')}
+          </span>
         </div>
       )}
     </div>

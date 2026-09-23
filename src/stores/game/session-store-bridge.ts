@@ -32,19 +32,13 @@ export function syncStoreFromSessionFrame(session: IGameSession, frame: TableRen
   const localPlayer = updatedPlayers.find(p => p.id === store.myPlayerId);
   const myHandCardIds = new Set(localPlayer ? localPlayer.hand.map(c => c.id) : []);
 
-  // Bảo lưu các lá bài người chơi đã chọn sẵn (Pre-selection) khi nhận sự kiện từ đối thủ/server:
+  // Đồng bộ danh sách các lá bài đang chọn từ TableRenderFrame:
   let nextSelectedCardIds: Set<string>;
   if (frame.isDealing || matchState.status === 'DEALING' || matchState.status === 'GAME_OVER') {
     nextSelectedCardIds = new Set<string>();
   } else {
-    // 1. Nếu frame của session có bài được chọn (ví dụ qua QuickSelect / AI Hint trên Session):
     const frameSelected = frame.myHand ? frame.myHand.filter(h => h.isSelected).map(h => h.card.id) : [];
-    if (frameSelected.length > 0) {
-      nextSelectedCardIds = new Set(frameSelected.filter(id => myHandCardIds.has(id)));
-    } else {
-      // 2. Bảo lưu danh sách các lá bài người chơi đã chọn sẵn trước đó trên tay (nếu lá bài vẫn còn trên tay)
-      nextSelectedCardIds = new Set(Array.from(store.selectedCardIds).filter(id => myHandCardIds.has(id)));
-    }
+    nextSelectedCardIds = new Set(frameSelected.filter(id => myHandCardIds.has(id)));
   }
 
   useGameStore.setState({

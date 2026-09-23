@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { MatchPlayer } from '../../../engine/types';
 import { getBotConfig } from '../../../ai/bot-factory';
-import { Trophy, Coins } from 'lucide-react';
+import { isBotConfig } from '../../../ai/types';
+import { Trophy, Coins, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '../../primitives';
 import { MoveHint } from '../../../ai/hint-engine';
 import { AIAssistantMascot } from '../../components/AIAssistantMascot';
@@ -22,6 +23,8 @@ interface LeftMatchHUDProps {
   aiHint: MoveHint | null;
   isHumanTurn: boolean;
   aiHintEnabled: boolean;
+  isOpen?: boolean;
+  onToggle?: () => void;
 }
 
 export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
@@ -34,13 +37,19 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
   dealtCounts,
   aiHint,
   isHumanTurn = false,
-  aiHintEnabled = true
+  aiHintEnabled = true,
+  isOpen: isOpenProp,
+  onToggle: onToggleProp
 }) => {
-  const [isOpen] = useState<boolean>(true);
+  const [internalOpen, setInternalOpen] = useState<boolean>(true);
+  const isOpen = isOpenProp !== undefined ? isOpenProp : internalOpen;
+  const handleToggle = onToggleProp || (() => setInternalOpen(prev => !prev));
+
   const { t } = useI18n();
-  const { profile } = useUserStore();
+  const profileElo = useUserStore(s => s.profile.elo);
   const ecosystemBots = useEcosystemStore(state => state.bots);
-  const { myPlayerId, winners } = useGameStore();
+  const myPlayerId = useGameStore(s => s.myPlayerId);
+  const winners = useGameStore(s => s.winners);
 
   return (
     <div
@@ -48,24 +57,38 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
       style={{
         top: '50%',
         left: '12px',
-        transform: isOpen ? 'translateY(-50%)' : 'translate(calc(-100% + 14px), -50%)'
+        transform: isOpen ? 'translateY(-50%)' : 'translate(calc(-100% + 36px), -50%)'
       }}
     >
-      {/* BẢNG TABLE HUD CHÍNH */}
-      <div className="w-[280px] sm:w-[310px] bg-[var(--bg-container)] border border-[var(--border-container)] rounded-2xl shadow-2xl p-3 text-[var(--text-primary)] flex flex-col gap-2.5">
-        {/* Header HUD */}
-        <div className="flex items-center justify-between border-b border-[var(--border-container)] pb-2 px-0.5">
-          <div className="flex items-center gap-1.5">
-            <Trophy className="w-4 h-4 text-[var(--color-gold)]" />
-            <span className="font-bold text-xs text-[var(--text-primary)] uppercase tracking-wider">
-              {t('hud.gameNumber', { number: gameNumber })}
-            </span>
+      {/* KHỐI NỘI DUNG PANEL TRÁI (BẢNG THỐNG KÊ + TRỢ LÝ AI) */}
+      <div 
+        className="flex flex-col gap-2.5 max-h-[88vh] overflow-y-auto scrollbar-none"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {/* BẢNG TABLE HUD CHÍNH */}
+        <div className="w-[280px] sm:w-[310px] bg-[var(--bg-container)] border border-[var(--border-container)] rounded-2xl shadow-2xl p-3 text-[var(--text-primary)] flex flex-col gap-2.5">
+          {/* Header HUD */}
+          <div className="flex items-center justify-between border-b border-[var(--border-container)] pb-2 px-0.5">
+            <div className="flex items-center gap-1.5">
+              <Trophy className="w-4 h-4 text-[var(--color-gold)]" />
+              <span className="font-bold text-xs text-[var(--text-primary)] uppercase tracking-wider">
+                {t('hud.gameNumber', { number: gameNumber })}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Badge variant="gold" size="sm">
+                <Coins className="w-3.5 h-3.5 text-[#0a0c0e]" />
+                <span>{betAmount.toLocaleString()} {t('common.coins')}</span>
+              </Badge>
+              <button
+                onClick={handleToggle}
+                className="p-1 rounded-lg hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--color-gold)] transition-colors cursor-pointer"
+                title={t('hud.collapseHud')}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-          <Badge variant="gold" size="sm">
-            <Coins className="w-3.5 h-3.5 text-[#0a0c0e]" />
-            <span>{betAmount.toLocaleString()} {t('common.coins')}</span>
-          </Badge>
-        </div>
 
         {/* BẢNG TABLE KẺ CỘT */}
         <div className="overflow-hidden rounded-xl border border-[var(--border-container)] bg-[var(--bg-canvas)]">
@@ -88,9 +111,11 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                 const rankIndex = winners.findIndex(w => w.id === p.id);
                 const rankPosition = rankIndex >= 0 ? rankIndex + 1 : 0;
                 const isOneCardLeft = !isDealing && cardCount === 1 && rankPosition === 0;
-                const cfg = p.isBot ? getBotConfig(p.botPersonaId, p.customBotConfig) : null;
+                const cfg = p.isBot 
+                  ? (isBotConfig(p.customBotConfig) ? p.customBotConfig : getBotConfig(p.botPersonaId, p.customBotConfig)) 
+                  : null;
                 const liveBot = p.isBot ? ecosystemBots.find(b => b.id === p.botPersonaId || b.id === p.id || b.name === p.name) : null;
-                const displayElo = isMe ? profile.elo : (liveBot?.elo ?? cfg?.elo ?? 1000);
+                const displayElo = isMe ? profileElo : (liveBot?.elo ?? cfg?.elo ?? 1000);
 
                 return (
                   <tr
@@ -179,6 +204,22 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
           enabled={aiHintEnabled}
         />
       )}
+      </div>
+
+      {/* NÚT TAY CẦM MỞ / ĐÓNG HUD BÊN PHẢI PANEL */}
+      <button
+        onClick={handleToggle}
+        className="flex flex-col items-center justify-center py-3 px-1.5 bg-[var(--bg-container)] border border-[var(--border-container)] rounded-r-xl shadow-2xl hover:bg-[var(--bg-card-active)] transition-all cursor-pointer select-none text-[var(--color-gold)] group z-50 ml-[-1px]"
+        title={isOpen ? t('hud.collapseHud') : t('hud.expandMatchHud')}
+      >
+        <Trophy className="w-5 h-5 group-hover:scale-110 transition-transform text-[var(--color-gold)]" />
+        <span className="text-[9px] font-extrabold uppercase mt-1 [writing-mode:vertical-lr] tracking-widest text-[var(--text-primary)]">
+          {isOpen ? t('hud.collapseHud') : t('hud.expandMatchHud')}
+        </span>
+        <div className="mt-1 text-[var(--text-muted)] group-hover:text-[var(--color-gold)]">
+          {isOpen ? <ChevronLeft className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+        </div>
+      </button>
     </div>
   );
 };

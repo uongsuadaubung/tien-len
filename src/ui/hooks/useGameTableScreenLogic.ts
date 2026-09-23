@@ -16,6 +16,7 @@ import { useGameStore } from '../../stores/useGameStore';
 import { useViewStore } from '../../stores/useViewStore';
 import { useOnlineStore } from '../../stores/useOnlineStore';
 import { appFlowCoordinator } from '../../services/app-flow-coordinator';
+import { useShallow } from 'zustand/react/shallow';
 
 export interface UseGameTableScreenLogicProps {
   onPlaySelectedCards: () => void;
@@ -67,15 +68,28 @@ export function useGameTableScreenLogic({
   onPlaySelectedCards,
   onPassTurn
 }: UseGameTableScreenLogicProps): GameTableScreenLogicResult {
-  const {
-    aiHintEnabled
-  } = useSettingsStore();
+  const aiHintEnabled = useSettingsStore(s => s.aiHintEnabled);
 
-  const gameStore = useGameStore();
+  const stateSlice = useGameStore(useShallow(s => ({
+    myPlayerId: s.myPlayerId,
+    playerCount: s.playerCount,
+    players: s.players,
+    matchState: s.matchState,
+    selectedCardIds: s.selectedCardIds,
+    currentHint: s.currentHint,
+    gameRules: s.gameRules,
+    dealtCounts: s.dealtCounts,
+    botThinkingThought: s.botThinkingThought,
+    isDealing: s.isDealing,
+    dealBanner: s.dealBanner,
+    activeGameType: s.activeGameType,
+    currentFrame: s.currentFrame
+  })));
+
   // Trong môi trường SSR/test (renderToString không có window), useSyncExternalStore trả về initial state
   const state = (typeof window === 'undefined' && useGameStore.getState().matchState.status !== 'WAITING')
     ? useGameStore.getState()
-    : gameStore;
+    : stateSlice;
 
   const {
     myPlayerId: storeMyPlayerId,
@@ -222,20 +236,20 @@ export function useGameTableScreenLogic({
   }, [onPassTurn]);
 
   const handleToggleCardSelect = useCallback((cardId: string) => {
-    useGameStore.getState().toggleCardSelect(cardId);
     const session = appFlowCoordinator.getActiveSession();
     if (session) {
-      const nextIds = useGameStore.getState().selectedCardIds;
-      session.sendIntent({ type: 'SET_SELECTED_CARDS', cardIds: Array.from(nextIds) });
+      session.sendIntent({ type: 'TOGGLE_CARD_SELECT', cardId });
+    } else {
+      useGameStore.getState().toggleCardSelect(cardId);
     }
   }, []);
 
   const handleClearCardSelection = useCallback(() => {
-    useGameStore.getState().clearCardSelection();
     const session = appFlowCoordinator.getActiveSession();
     if (session) {
       session.sendIntent({ type: 'CLEAR_SELECTION' });
     }
+    useGameStore.getState().clearCardSelection();
   }, []);
 
   return {

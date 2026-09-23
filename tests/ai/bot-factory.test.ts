@@ -75,4 +75,19 @@ describe('Bot Factory & Dynamic Matchmaking Verification', () => {
     const uniqueElos = new Set(botElos);
     expect(uniqueElos.size).toBeGreaterThan(1);
   });
+
+  test('4. getBotConfig không throw error khi nhận dynamic bot ID dạng ecosystem (bot_eco_...)', () => {
+    const ecoBotId = 'bot_eco_t2_4_1788847708218_107q';
+    expect(() => getBotConfig(ecoBotId)).not.toThrow();
+
+    const config = getBotConfig(ecoBotId);
+    expect(config).toBeDefined();
+    expect(config.elo).toBeGreaterThan(0);
+
+    // Khi truyền customBotConfig là một BotConfig hoàn chỉnh:
+    const customConfig = generateRandomBotConfig(1500);
+    const resolved = getBotConfig(ecoBotId, customConfig);
+    expect(resolved.name).toBe(customConfig.name);
+    expect(resolved.elo).toBe(customConfig.elo);
+  });
 });
