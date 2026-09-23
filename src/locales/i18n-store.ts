@@ -36,13 +36,20 @@ function resolveKeyPath(dict: LocaleDictionary, path: string): string {
 
 /**
  * Thay thế biến số nội suy: 'Phạt {amount} Xu' + { amount: 5000 } -> 'Phạt 5.000 Xu'
+ * Tự động phân giải tham số dạng key (ví dụ: typeKey: 'victory.instantWinTypes.DRAGON_STRAIGHT' -> thay thế {type} bằng bản dịch tương ứng)
  */
-function interpolate(template: string, params: I18nParams | null = null): string {
+function interpolate(dict: LocaleDictionary, template: string, params: I18nParams | null = null): string {
   if (!params) return template;
   let result = template;
   for (const [k, v] of Object.entries(params)) {
     const formattedVal = typeof v === 'number' ? v.toLocaleString('vi-VN') : String(v);
     result = result.replace(new RegExp(`\\{${k}\\}`, 'g'), formattedVal);
+
+    if (k.endsWith('Key') && typeof v === 'string') {
+      const baseKey = k.slice(0, -3);
+      const translatedVal = resolveKeyPath(dict, v);
+      result = result.replace(new RegExp(`\\{${baseKey}\\}`, 'g'), translatedVal);
+    }
   }
   return result;
 }
@@ -54,7 +61,7 @@ export function t(keyPath: I18nKeyPath | (string & {}), params: I18nParams | nul
   const locale = useI18nStore.getState().locale;
   const dict = DICTIONARIES[locale] || DICTIONARIES.vi;
   const template = resolveKeyPath(dict, keyPath);
-  return interpolate(template, params);
+  return interpolate(dict, template, params);
 }
 
 /**
@@ -65,7 +72,7 @@ export function useI18n() {
   const translate = (keyPath: I18nKeyPath, params: I18nParams | null = null): string => {
     const dict = DICTIONARIES[locale] || DICTIONARIES.vi;
     const template = resolveKeyPath(dict, keyPath);
-    return interpolate(template, params);
+    return interpolate(dict, template, params);
   };
 
   return {

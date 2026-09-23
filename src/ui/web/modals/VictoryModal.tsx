@@ -86,7 +86,6 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
     readyOnlinePlayers,
     handleExportJson,
     instantWinType,
-    getInstantWinTitle,
     isThreeSpadesWin,
     loanDeduction,
     eloDelta,
@@ -290,9 +289,11 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
         {/* Bảng Xếp Hạng & Bài Tàn Cuộc Của Người Chơi */}
         <div className="space-y-2.5 max-h-64 sm:max-h-80 overflow-y-auto pr-1">
           {settlement.players.map((p) => {
-            const rankLabel = p.rankLabelParams
-              ? t(p.rankLabelKey, p.rankLabelParams)
-              : t(p.rankLabelKey);
+            const rankLabelParams: Record<string, string | number> = { ...(p.rankLabelParams || {}) };
+            if (typeof rankLabelParams.typeKey === 'string') {
+              rankLabelParams.type = t(rankLabelParams.typeKey as I18nKeyPath);
+            }
+            const rankLabel = t(p.rankLabelKey, rankLabelParams);
 
             return (
               <Card
@@ -360,11 +361,6 @@ export const VictoryModal: React.FC<VictoryModalProps> = ({
 
                   {/* Huy hiệu cảnh báo đặc biệt / Tới Trắng */}
                   <div className="flex items-center gap-1">
-                    {p.isWinner && instantWinType && (
-                      <span className="text-[9px] font-bold text-[var(--color-gold)] bg-[var(--color-gold-bg)] border border-[var(--color-gold-border)] px-1.5 py-0.5 rounded animate-pulse">
-                        {t('victory.instantWinBadge', { type: getInstantWinTitle(instantWinType) })}
-                      </span>
-                    )}
                     {!p.isWinner && instantWinType && (
                       <span className="text-[9px] font-bold text-rose-300 bg-rose-500/20 border border-rose-500/40 px-1.5 py-0.5 rounded">
                         {t('victory.instantWinPenaltyLeaves')}

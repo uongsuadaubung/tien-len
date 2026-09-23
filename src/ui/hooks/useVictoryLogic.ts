@@ -10,20 +10,10 @@ import { useI18n, type I18nKeyPath } from '../../locales';
 import { EloDeltaResult } from '../../engine/elo';
 import { 
   type PerspectiveMatchSettlement, 
-  createPerspectiveSettlement, 
-  INSTANT_WIN_KEY_LOOKUP 
+  createPerspectiveSettlement 
 } from '../../engine/settlement/perspective-settlement';
 
 export type { InstantWinType };
-
-export const INSTANT_WIN_KEY_MAP: Record<InstantWinType, I18nKeyPath> = {
-  DRAGON_STRAIGHT: 'victory.instantWinTypes.DRAGON_STRAIGHT',
-  FOUR_TWOS: 'victory.instantWinTypes.FOUR_TWOS',
-  FIVE_PAIRS_SEQUENTIAL: 'victory.instantWinTypes.FIVE_PAIRS_SEQUENTIAL',
-  SIX_PAIRS: 'victory.instantWinTypes.SIX_PAIRS',
-  SAME_COLOR_13: 'victory.instantWinTypes.SAME_COLOR_13',
-  FIRST_ROUND_FOUR_THREES: 'victory.instantWinTypes.FIRST_ROUND_FOUR_THREES'
-};
 
 export type PrimaryBtnIconType = 'PLAY' | 'CHECK' | 'SWORDS' | 'ROTATE_CCW' | 'HOME' | 'BANK' | 'SPINNER';
 export type SecondaryBtnIconType = 'HOME' | 'MAP';
@@ -77,7 +67,6 @@ export interface VictoryLogicResult {
   winners: MatchPlayer[];
   allPlayers: MatchPlayer[];
   instantWinType: InstantWinType | null;
-  getInstantWinTitle: (type: InstantWinType | null) => string;
   isThreeSpadesWin: boolean;
   betAmount: number;
   activeGameType: ActiveGameType;
@@ -105,7 +94,7 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     winners,
     players: allPlayers,
     gameSettings,
-    instantWinType = null,
+    instantWinType: rawStoreInstantWinType = null,
     isThreeSpadesWin,
     matchPayouts: payouts,
     loanDeductionAmount: loanDeduction,
@@ -148,7 +137,7 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
       subjectEloBreakdown: lastEloBreakdown ?? null,
       loanDeduction,
       isThreeSpadesWin,
-      instantWinType,
+      instantWinType: rawStoreInstantWinType,
       betAmount,
       subjectCoins: playerCoins
     };
@@ -177,7 +166,7 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     lastEloBreakdown,
     loanDeduction,
     isThreeSpadesWin,
-    instantWinType,
+    rawStoreInstantWinType,
     activeGameType,
     betAmount,
     playerCoins,
@@ -197,7 +186,7 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     if (isOpen) {
       clearActiveMatchSession();
 
-      if (isHumanWinner || instantWinType !== null) {
+      if (isHumanWinner || settlement.instantWinType !== null) {
         void confetti({
           particleCount: 120,
           spread: 80,
@@ -205,7 +194,7 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
         });
       }
     }
-  }, [isOpen, isHumanWinner, instantWinType]);
+  }, [isOpen, isHumanWinner, settlement.instantWinType]);
 
   const handleExportJson = useCallback(() => {
     const jsonStr = MatchLogger.getInstance().exportToJsonString();
@@ -478,13 +467,6 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     t
   ]);
 
-  const getInstantWinTitle = useCallback((type: InstantWinType | null): string => {
-    if (type && INSTANT_WIN_KEY_LOOKUP[type]) {
-      return t(INSTANT_WIN_KEY_LOOKUP[type]);
-    }
-    return '';
-  }, [t]);
-
   return {
     isHumanWinner,
     isCampaign,
@@ -519,8 +501,7 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     settlement,
     winners,
     allPlayers,
-    instantWinType,
-    getInstantWinTitle,
+    instantWinType: settlement.instantWinType,
     isThreeSpadesWin,
     betAmount,
     activeGameType,

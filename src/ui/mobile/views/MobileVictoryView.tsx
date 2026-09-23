@@ -85,7 +85,6 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
     readyOnlinePlayers,
     handleExportJson,
     instantWinType,
-    getInstantWinTitle,
     isThreeSpadesWin,
     betAmount,
     activeGameType,
@@ -276,9 +275,11 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
           {/* DANH SÁCH BẢNG XẾP HẠNG & BÀI TÀN CUỘC CỦA TỪNG ĐẤU THỦ */}
           <div className="space-y-2">
             {settlement.players.map((p) => {
-              const rankLabel = p.rankLabelParams
-                ? t(p.rankLabelKey, p.rankLabelParams)
-                : t(p.rankLabelKey);
+              const rankLabelParams: Record<string, string | number> = { ...(p.rankLabelParams || {}) };
+              if (typeof rankLabelParams.typeKey === 'string') {
+                rankLabelParams.type = t(rankLabelParams.typeKey as I18nKeyPath);
+              }
+              const rankLabel = t(p.rankLabelKey, rankLabelParams);
 
               return (
                 <div
@@ -360,11 +361,6 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
 
                     {/* Huy hiệu cảnh báo đặc biệt */}
                     <div className="flex items-center gap-1 shrink-0">
-                      {p.isWinner && instantWinType && (
-                        <span className="text-[8px] font-black text-amber-300 bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.5 rounded-lg animate-pulse">
-                          {t('victory.instantWinBadge', { type: getInstantWinTitle(instantWinType) })}
-                        </span>
-                      )}
                       {!p.isWinner && instantWinType && (
                         <span className="text-[8px] font-bold text-rose-300 bg-rose-500/20 border border-rose-500/40 px-1.5 py-0.5 rounded-lg">
                           {t('victory.instantWinPenaltyLeaves')}

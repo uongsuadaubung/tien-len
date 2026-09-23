@@ -35,6 +35,12 @@ describe('Centralized i18n & Localization Dictionary System', () => {
 
     const waiting = t('game.turnWaiting', { name: 'Bot Tí' });
     expect(waiting).toBe('Đang chờ Bot Tí đi bài...');
+
+    // Tự động phân giải tham số dạng Key (ví dụ: typeKey -> {type} trong Tới Trắng)
+    const instantWinResolvedVi = t('victory.instantWinBadge', {
+      typeKey: 'victory.instantWinTypes.DRAGON_STRAIGHT'
+    });
+    expect(instantWinResolvedVi).toBe('⚡ Tới Trắng (Sảnh Rồng)');
   });
 
   it('3. Chuyển đổi ngôn ngữ sang Tiếng Anh (English Locale Switch)', () => {
@@ -47,6 +53,7 @@ describe('Centralized i18n & Localization Dictionary System', () => {
     expect(t('game.quickSelect')).toBe('Quick Match');
     expect(t('sort.naturalLabel')).toBe('Rank (3 -> 2)');
     expect(t('sort.twoPreserveLabel')).toBe('Preserve 2s');
+    expect(t('victory.instantWinBadge', { typeKey: 'victory.instantWinTypes.DRAGON_STRAIGHT' })).toBe('⚡ Instant Win (Dragon Straight)');
   });
 
   it('4. Kiểm tra số lượng key và tính đồng bộ 100% giữa các từ điển (vi vs en)', () => {
