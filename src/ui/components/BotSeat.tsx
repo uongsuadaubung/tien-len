@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { MatchPlayer } from '../../engine/types';
 import { BotConfig } from '../../ai/types';
+import { getBotConfig } from '../../ai/bot-factory';
 import { createCampaignBotEntity } from '../../engine/campaign';
 import { useEcosystemStore } from '../../stores/useEcosystemStore';
 import { useViewStore } from '../../stores/useViewStore';
@@ -9,7 +10,7 @@ import { useI18n } from '../../locales';
 
 interface BotSeatProps {
   player: MatchPlayer;
-  botConfig: BotConfig;
+  botConfig?: BotConfig;
   isCurrentTurn: boolean;
   position: 'left' | 'top' | 'right';
   isLeader: boolean;
@@ -39,11 +40,12 @@ const BotSeatComponent: React.FC<BotSeatProps> = ({
   );
 
   const isCompact = size === 'compact';
+  const effectiveBotConfig = botConfig ?? getBotConfig(player.botPersonaId || 'BOT_ELO_1150');
 
   const handleInspectBot = () => {
     const ecosystemBots = useEcosystemStore.getState().bots;
-    const botEntity = ecosystemBots.find(b => b.id === botConfig.id || b.name === botConfig.name) 
-      ?? createCampaignBotEntity(botConfig, ecosystemBots);
+    const botEntity = ecosystemBots.find(b => b.id === effectiveBotConfig.id || b.name === effectiveBotConfig.name || b.name === player.name) 
+      ?? createCampaignBotEntity(effectiveBotConfig, ecosystemBots);
     useEcosystemStore.getState().setSelectedBot(botEntity);
     useViewStore.getState().openModal({ type: 'BOT_PROFILE', bot: botEntity });
   };

@@ -37,8 +37,6 @@ export interface GameTableScreenLogicResult {
   topBot: MatchPlayer | null;
   leftBot: MatchPlayer | null;
   rightBot: MatchPlayer | null;
-  topBotPersonaId: string;
-  topBotCustomConfig: Partial<BotConfig> | null;
   quickSelectCandidates: QuickSelectCandidate[];
   quickSelectCandidatesCount: number;
   canQuickSelect: boolean;
@@ -222,9 +220,6 @@ export function useGameTableScreenLogic({
   const leftBot = relativeSeats.leftPlayer;
   const rightBot = relativeSeats.rightPlayer;
 
-  const topBotPersonaId = isSolo1v1 ? botPersonaIds[0] : botPersonaIds[1];
-  const topBotCustomConfig = isSolo1v1 ? (customBotConfigs[0] || null) : (customBotConfigs[1] || null);
-
   const handlePlayCards = useCallback(() => {
     onPlaySelectedCards();
   }, [onPlaySelectedCards]);
@@ -264,8 +259,6 @@ export function useGameTableScreenLogic({
     topBot,
     leftBot,
     rightBot,
-    topBotPersonaId,
-    topBotCustomConfig,
     quickSelectCandidates,
     quickSelectCandidatesCount,
     canQuickSelect,
