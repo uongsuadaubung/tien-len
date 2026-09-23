@@ -170,10 +170,10 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
   });
 
   test('7. Vốn Khởi Điểm Tự Nhiên (Realistic Bot Bankroll): Tiền Bot dao động đa dạng theo Bậc và Mức cược', () => {
-    const { generateRealisticBotBankroll } = require('../../src/ai/bot-factory');
-    const rookieBankroll = generateRealisticBotBankroll({ elo: 850 }, 100);
-    const masterBankroll = generateRealisticBotBankroll({ elo: 1850 }, 100);
-    const mythicBankroll = generateRealisticBotBankroll({ elo: 2400 }, 100);
+    const { generateRealisticBotBankroll, getBotConfig } = require('../../src/ai/bot-factory');
+    const rookieBankroll = generateRealisticBotBankroll(getBotConfig('BOT_ELO_850'), 100);
+    const masterBankroll = generateRealisticBotBankroll(getBotConfig('BOT_ELO_1850'), 100);
+    const mythicBankroll = generateRealisticBotBankroll(getBotConfig('BOT_ELO_2500'), 100);
 
     // Không còn cảnh tất cả bot đều là 5000 tròn trịa
     expect(rookieBankroll).toBeGreaterThanOrEqual(3000);

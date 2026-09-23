@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { getTierFromElo } from "../engine/ecosystem/ecosystem-types";
 import { RANK_TIERS, getTierInfoByTierNum } from "../engine/constants/ranks";
 import { BotConfig } from "./types";
@@ -830,12 +831,19 @@ export function getRandomBotConfigsForTable(
   return result;
 }
 
+export const BankrollInputSchema = z.object({
+  elo: z.number(),
+  riskAppetite: z.number().default(0.7)
+});
+export type BankrollInput = z.input<typeof BankrollInputSchema>;
+
 /**
  * Sinh số tiền vốn (Bankroll) khởi điểm tự nhiên, sống động cho Bot
  * dựa trên Bậc Elo, tính cách (Risk Appetite) và Mức cược bàn chơi
  */
-export function generateRealisticBotBankroll(config: { elo: number; riskAppetite?: number }, betAmount: number = 100): number {
-  const elo = config.elo;
+export function generateRealisticBotBankroll(config: BankrollInput, betAmount: number = 100): number {
+  const validated = BankrollInputSchema.parse(config);
+  const elo = validated.elo;
   const effectiveBet = Math.max(50, betAmount);
 
   // Xác định bậc Tier của Bot (1 đến 5)
@@ -872,8 +880,8 @@ export function generateRealisticBotBankroll(config: { elo: number; riskAppetite
       break;
   }
 
-  // Yếu tố tâm lý mạo hiểm (Risk Appetite)
-  const risk = config.riskAppetite ?? 0.7;
+  // Yếu tố tâm lý mạo hiểm (Risk Appetite) - Luôn đảm bảo bởi Zod Schema
+  const risk = validated.riskAppetite;
   const riskBonus = (risk - 0.5) * 10;
 
   // Tính toán số nhân ngẫu nhiên
