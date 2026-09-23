@@ -38,21 +38,12 @@ export const useUserStore = create<UserState>((set) => ({
   }),
 
   addCoins: (amount) => set((state) => {
-    const prevStats = state.profile.stats || {
-      gamesPlayed: 0,
-      wins: 0,
-      chopsDone: 0,
-      congsGiven: 0,
-      totalEarned: 0,
-      highestStreak: 0,
-      currentStreak: 0
-    };
     const next: PlayerProfile = {
       ...state.profile,
       coins: state.profile.coins + amount,
       stats: {
-        ...prevStats,
-        totalEarned: prevStats.totalEarned + Math.max(0, amount)
+        ...state.profile.stats,
+        totalEarned: state.profile.stats.totalEarned + Math.max(0, amount)
       }
     };
     savePlayerProfile(next);

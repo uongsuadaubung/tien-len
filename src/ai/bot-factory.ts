@@ -607,26 +607,27 @@ export const GLOBAL_AVATARS: readonly string[] = [
 ];
 
 /**
- * Kiểm tra xem một avatar có hợp lệ hay không (không bị rỗng hoặc vỡ ký tự Unicode surrogate)
+ * Schema Zod kiểm định avatar: chuỗi không rỗng và không bị vỡ ký tự Unicode surrogate đơn lẻ
+ */
+export const AvatarSchema = z.string().trim().min(1).refine(
+  val => !(val.length === 1 && val.charCodeAt(0) >= 0xd800 && val.charCodeAt(0) <= 0xdfff),
+  { message: 'Invalid or broken surrogate avatar' }
+);
+
+/**
+ * Kiểm tra xem một avatar có hợp lệ hay không qua Zod Schema
  */
 export function isValidAvatar(avatar: unknown): avatar is string {
-  if (typeof avatar !== 'string') return false;
-  const trimmed = avatar.trim();
-  if (trimmed === '') return false;
-  // Kiểm tra nếu chỉ chứa 1 lone surrogate character (0xD800 - 0xDFFF)
-  if (trimmed.length === 1) {
-    const code = trimmed.charCodeAt(0);
-    if (code >= 0xd800 && code <= 0xdfff) return false;
-  }
-  return true;
+  return AvatarSchema.safeParse(avatar).success;
 }
 
 /**
- * Chuẩn hóa avatar, nếu rỗng hoặc lỗi surrogate thì gán avatar ngẫu nhiên hợp lệ
+ * Chuẩn hóa avatar qua Zod: nếu không hợp lệ thì gán avatar ngẫu nhiên an toàn
  */
 export function sanitizeAvatar(avatar: unknown, fallbackSeed: number = 0): string {
-  if (isValidAvatar(avatar)) {
-    return avatar;
+  const result = AvatarSchema.safeParse(avatar);
+  if (result.success) {
+    return result.data;
   }
   const safeIdx = Math.abs(fallbackSeed) % GLOBAL_AVATARS.length;
   return GLOBAL_AVATARS[safeIdx] || '🤖';

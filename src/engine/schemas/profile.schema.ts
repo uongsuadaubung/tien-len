@@ -54,8 +54,8 @@ export type ActiveLoan = z.infer<typeof ActiveLoanSchema>;
 
 export const PlayerProfileSchema = z.object({
   id: z.string().default(() => 'usr_' + Math.random().toString(36).slice(2, 10)),
-  name: z.string().default(''),
-  avatar: z.string().default('🤠'),
+  name: z.preprocess((val) => (typeof val === 'string' && val.startsWith('usr_')) ? '' : (val ?? ''), z.string().default('')),
+  avatar: z.preprocess((val) => (val === '👤' || !val) ? '🤠' : val, z.string().default('🤠')),
   coins: z.number().default(50000),
   elo: z.number().default(1000),
   campaignUnlockedChapter: z.number().int().min(1).max(10).default(1),

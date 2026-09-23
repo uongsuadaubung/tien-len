@@ -118,29 +118,21 @@ export function sanitizeAndValidateProfile(parsed: Partial<PlayerProfile>): Play
     return initialAch;
   });
 
-  const rawName = parsed.name ?? '';
-  const sanitizedName = (!rawName || rawName.startsWith('usr_')) ? '' : rawName;
-  const rawAvatar = parsed.avatar ?? '🤠';
-  const sanitizedAvatar = (!rawAvatar || rawAvatar === '👤') ? '🤠' : rawAvatar;
-
-  return {
+  return PlayerProfileSchema.parse({
     ...DEFAULT_PROFILE,
     ...parsed,
-    name: sanitizedName,
-    avatar: sanitizedAvatar,
     lastDailyResetDate: todayStr,
     dailyQuests,
     achievements,
-    dailyMilestonesClaimed: parsed.dailyMilestonesClaimed || { 1: false, 3: false, 5: false },
     stats: {
       ...DEFAULT_PROFILE.stats,
-      ...(parsed.stats || {})
+      ...(parsed.stats ?? {})
     },
     campaignChapterWins: {
       ...DEFAULT_PROFILE.campaignChapterWins,
-      ...(parsed.campaignChapterWins || {})
+      ...(parsed.campaignChapterWins ?? {})
     }
-  };
+  });
 }
 
 /**

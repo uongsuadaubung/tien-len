@@ -1,13 +1,21 @@
 import { type RealtimeChannel } from '@supabase/supabase-js';
 import { getSupabaseClient } from '../../config/supabase';
 import {
-  type OnlineRoomState,
-  type PlayerActionPacket,
-  type DealHandPacket,
-  type TableStateSyncPacket,
-  type GameEndPacket,
-  type ChatPacket,
+  OnlinePlayerSchema,
   type OnlinePlayer,
+  OnlineRoomStateSchema,
+  type OnlineRoomState,
+  DealHandPacketSchema,
+  type DealHandPacket,
+  PlayerActionPacketSchema,
+  type PlayerActionPacket,
+  TableStateSyncPacketSchema,
+  type TableStateSyncPacket,
+  GameEndPacketSchema,
+  type GameEndPacket,
+  ChatPacketSchema,
+  type ChatPacket,
+  RematchVotePacketSchema,
   type RematchVotePacket
 } from './network.schema';
 
@@ -127,53 +135,69 @@ export class P2PClient {
       }
     });
 
-    // 2. Lắng nghe các kênh Broadcast
-    this.channel.on<BroadcastEnvelope<OnlinePlayer>>('broadcast', { event: 'join_req' }, ({ payload }) => {
+    // 2. Lắng nghe các kênh Broadcast với Zod Boundary Validation
+    this.channel.on<BroadcastEnvelope<unknown>>('broadcast', { event: 'join_req' }, ({ payload }) => {
       if (!payload || !payload.data) return;
       if (payload.targetPeerId && payload.targetPeerId !== this.selfPeerId) return;
-      this.onJoinRequestCallbacks.forEach(cb => cb(payload.data, payload.senderPeerId));
+      const parsed = OnlinePlayerSchema.safeParse(payload.data);
+      if (!parsed.success) return;
+      this.onJoinRequestCallbacks.forEach(cb => cb(parsed.data, payload.senderPeerId));
     });
 
-    this.channel.on<BroadcastEnvelope<OnlineRoomState>>('broadcast', { event: 'room_state' }, ({ payload }) => {
+    this.channel.on<BroadcastEnvelope<unknown>>('broadcast', { event: 'room_state' }, ({ payload }) => {
       if (!payload || !payload.data) return;
       if (payload.targetPeerId && payload.targetPeerId !== this.selfPeerId) return;
-      this.onRoomStateCallbacks.forEach(cb => cb(payload.data, payload.senderPeerId));
+      const parsed = OnlineRoomStateSchema.safeParse(payload.data);
+      if (!parsed.success) return;
+      this.onRoomStateCallbacks.forEach(cb => cb(parsed.data, payload.senderPeerId));
     });
 
-    this.channel.on<BroadcastEnvelope<DealHandPacket>>('broadcast', { event: 'deal_hand' }, ({ payload }) => {
+    this.channel.on<BroadcastEnvelope<unknown>>('broadcast', { event: 'deal_hand' }, ({ payload }) => {
       if (!payload || !payload.data) return;
       if (payload.targetPeerId && payload.targetPeerId !== this.selfPeerId) return;
-      this.onDealHandCallbacks.forEach(cb => cb(payload.data, payload.senderPeerId));
+      const parsed = DealHandPacketSchema.safeParse(payload.data);
+      if (!parsed.success) return;
+      this.onDealHandCallbacks.forEach(cb => cb(parsed.data, payload.senderPeerId));
     });
 
-    this.channel.on<BroadcastEnvelope<PlayerActionPacket>>('broadcast', { event: 'player_act' }, ({ payload }) => {
+    this.channel.on<BroadcastEnvelope<unknown>>('broadcast', { event: 'player_act' }, ({ payload }) => {
       if (!payload || !payload.data) return;
       if (payload.targetPeerId && payload.targetPeerId !== this.selfPeerId) return;
-      this.onPlayerActionCallbacks.forEach(cb => cb(payload.data, payload.senderPeerId));
+      const parsed = PlayerActionPacketSchema.safeParse(payload.data);
+      if (!parsed.success) return;
+      this.onPlayerActionCallbacks.forEach(cb => cb(parsed.data, payload.senderPeerId));
     });
 
-    this.channel.on<BroadcastEnvelope<TableStateSyncPacket>>('broadcast', { event: 'table_sync' }, ({ payload }) => {
+    this.channel.on<BroadcastEnvelope<unknown>>('broadcast', { event: 'table_sync' }, ({ payload }) => {
       if (!payload || !payload.data) return;
       if (payload.targetPeerId && payload.targetPeerId !== this.selfPeerId) return;
-      this.onTableSyncCallbacks.forEach(cb => cb(payload.data, payload.senderPeerId));
+      const parsed = TableStateSyncPacketSchema.safeParse(payload.data);
+      if (!parsed.success) return;
+      this.onTableSyncCallbacks.forEach(cb => cb(parsed.data, payload.senderPeerId));
     });
 
-    this.channel.on<BroadcastEnvelope<GameEndPacket>>('broadcast', { event: 'game_end' }, ({ payload }) => {
+    this.channel.on<BroadcastEnvelope<unknown>>('broadcast', { event: 'game_end' }, ({ payload }) => {
       if (!payload || !payload.data) return;
       if (payload.targetPeerId && payload.targetPeerId !== this.selfPeerId) return;
-      this.onGameEndCallbacks.forEach(cb => cb(payload.data, payload.senderPeerId));
+      const parsed = GameEndPacketSchema.safeParse(payload.data);
+      if (!parsed.success) return;
+      this.onGameEndCallbacks.forEach(cb => cb(parsed.data, payload.senderPeerId));
     });
 
-    this.channel.on<BroadcastEnvelope<ChatPacket>>('broadcast', { event: 'chat' }, ({ payload }) => {
+    this.channel.on<BroadcastEnvelope<unknown>>('broadcast', { event: 'chat' }, ({ payload }) => {
       if (!payload || !payload.data) return;
       if (payload.targetPeerId && payload.targetPeerId !== this.selfPeerId) return;
-      this.onChatCallbacks.forEach(cb => cb(payload.data, payload.senderPeerId));
+      const parsed = ChatPacketSchema.safeParse(payload.data);
+      if (!parsed.success) return;
+      this.onChatCallbacks.forEach(cb => cb(parsed.data, payload.senderPeerId));
     });
 
-    this.channel.on<BroadcastEnvelope<RematchVotePacket>>('broadcast', { event: 'rematch_vote' }, ({ payload }) => {
+    this.channel.on<BroadcastEnvelope<unknown>>('broadcast', { event: 'rematch_vote' }, ({ payload }) => {
       if (!payload || !payload.data) return;
       if (payload.targetPeerId && payload.targetPeerId !== this.selfPeerId) return;
-      this.onRematchVoteCallbacks.forEach(cb => cb(payload.data, payload.senderPeerId));
+      const parsed = RematchVotePacketSchema.safeParse(payload.data);
+      if (!parsed.success) return;
+      this.onRematchVoteCallbacks.forEach(cb => cb(parsed.data, payload.senderPeerId));
     });
 
     // 3. Đăng ký kênh và theo dõi Hiện diện
