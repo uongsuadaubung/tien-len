@@ -30,6 +30,7 @@ Thumbs.db
 
 # Agent & AI artifacts
 .agents/
+.codebase-memory/
 scratch/
 
 # Rust build artifacts

@@ -34,9 +34,9 @@ const CardViewComponent: React.FC<CardViewProps> = ({
   const sizeClasses = {
     xs: 'w-6 h-9 sm:w-7 sm:h-10 text-[8px] rounded-[4px] p-0.5',
     sm: 'w-12 h-18 text-xs rounded-lg',
-    table: 'w-[50px] h-[72px] sm:w-[54px] sm:h-[78px] text-xs rounded-xl',
+    table: 'w-[50px] h-[72px] sm:w-[56px] sm:h-[82px] text-xs sm:text-sm rounded-xl',
     mobile: 'w-[56px] h-[84px] sm:w-[62px] sm:h-[92px] text-sm rounded-xl',
-    md: 'w-[74px] h-[106px] text-sm rounded-xl',
+    md: 'w-[74px] h-[106px] sm:w-[82px] sm:h-[118px] text-sm sm:text-base rounded-xl',
     lg: 'w-24 h-34 text-base rounded-2xl'
   }[size];
 

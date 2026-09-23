@@ -247,15 +247,16 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
               isDealing={isDealing}
               displayCardCount={dealtCounts[topBot.id]}
               thoughtText={botThinkingThought?.botId === topBot.id ? botThinkingThought.text : null}
-              size="compact"
+              cardFanPlacement="side"
+              cardScale="normal"
             />
           )}
         </div>
 
-        {/* TRỤC GIỮA: GHẾ TRÁI + TRUNG TÂM BÀN TRÒN + GHẾ PHẢI (NGỒI SÁT CẠNH BÀN) */}
-        <div className="w-full flex-1 flex justify-center items-center gap-2 sm:gap-4 z-10 px-1 my-auto overflow-visible min-h-[140px]">
-          {/* Ghế Trái: Bot 1 */}
-          <div className="flex justify-center shrink-0">
+        {/* TRỤC GIỮA: GHẾ TRÁI + TRUNG TÂM BÀN TRÒN + GHẾ PHẢI */}
+        <div className="w-full flex-1 flex justify-center items-center gap-6 sm:gap-10 z-10 px-1 my-auto overflow-visible min-h-[140px]">
+          {/* Ghế Trái: Bot 1 (Khung kích thước cố định chống xê dịch) */}
+          <div className="w-28 sm:w-32 flex justify-center items-center shrink-0">
             {leftBot && (
               <BotSeat
                 player={leftBot}
@@ -265,7 +266,8 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
                 isDealing={isDealing}
                 displayCardCount={dealtCounts[leftBot.id]}
                 thoughtText={botThinkingThought?.botId === leftBot.id ? botThinkingThought.text : null}
-                size="compact"
+                cardFanPlacement="bottom"
+                cardScale="normal"
               />
             )}
           </div>
@@ -305,8 +307,8 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
             </div>
           </div>
 
-          {/* Ghế Phải: Bot 3 */}
-          <div className="flex justify-center shrink-0">
+          {/* Ghế Phải: Bot 3 (Khung kích thước cố định chống xê dịch) */}
+          <div className="w-28 sm:w-32 flex justify-center items-center shrink-0">
             {rightBot && (
               <BotSeat
                 player={rightBot}
@@ -316,16 +318,18 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
                 isDealing={isDealing}
                 displayCardCount={dealtCounts[rightBot.id]}
                 thoughtText={botThinkingThought?.botId === rightBot.id ? botThinkingThought.text : null}
-                size="compact"
+                cardFanPlacement="bottom"
+                cardScale="normal"
               />
             )}
           </div>
         </div>
 
-        {/* GHẾ DƯỚI: TAY BÀI VÀ CÁC NÚT ĐIỀU KHIỂN CỦA NGƯỜI CHƠI (FULL THÂN BÀI 100%) */}
-        <div className="w-full flex justify-center z-30 mb-0 overflow-visible shrink-0">
-          <PlayerHandView
-            player={localPlayer}
+        {/* GHẾ DƯỚI: TAY BÀI VÀ CÁC NÚT ĐIỀU KHIỂN CỦA NGƯỜI CHƠI */}
+        <div className="w-full flex flex-col items-center justify-end z-30 mb-0 overflow-visible shrink-0">
+          <div className="w-full flex justify-center">
+            <PlayerHandView
+              player={localPlayer}
             selectedCardIds={selectedCardIds}
             onToggleCardSelect={handleToggleCardSelect}
             onClearCardSelection={handleClearCardSelection}
@@ -354,7 +358,8 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
             reconnectNotice={reconnectNotice}
           />
         </div>
-      </main>
-    </div>
-  );
+      </div>
+    </main>
+  </div>
+);
 };

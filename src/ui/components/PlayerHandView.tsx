@@ -164,183 +164,210 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
 
   return (
     <div id={`seat-${player.id}`} className="relative flex flex-col items-center justify-end w-full pb-0.5 z-30 select-none overflow-visible">
-      {/* KHU VỰC THÔNG BÁO TRUNG TÂM (Game Notification Banner Area) - Đồng bộ độ cao khi chọn bài */}
-      <div
-        className={`transition-transform duration-200 ${
-          hasSelectedCards ? '-translate-y-3.5 sm:-translate-y-4' : 'translate-y-0'
-        }`}
-      >
-        {/* 1. Thông báo Chờ Kết Nối Lại (Grace Period Reconnect Notice) - Độ ưu tiên cao nhất */}
-        {reconnectNotice && (
-          <div className="mb-1.5 animate-pulse z-50 pointer-events-none">
-            <div className="flex items-center gap-2 px-3.5 sm:px-5 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-red-950 via-amber-950 to-red-950 text-amber-200 font-bold text-xs sm:text-sm tracking-wide shadow-2xl border-2 border-amber-500/80">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping shrink-0" />
-              <span>
-                {t('online.reconnectWaitingBanner', {
-                  name: reconnectNotice.playerName,
-                  seconds: reconnectRemainingSeconds
-                })}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* 2. Thông báo Chặt Heo / Chặt Chồng (Chop Notification) */}
-        {!reconnectNotice && chopNotification && chopNotification.visible && (
-          <div className="mb-1.5 animate-bounce z-50 pointer-events-none">
-            <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white font-black text-xs sm:text-sm tracking-wider shadow-2xl border-2 border-yellow-300">
-              <span className="text-base">{chopNotification.isCascade ? '🔥' : '⚡'}</span>
-              <span>
-                {chopNotification.isCascade
-                  ? t('table.chopCascadeTitle', { chain: chopNotification.chainCount || 1 })
-                  : t('table.chopSingleTitle')}
-              </span>
-              <span className="text-yellow-200 text-[10px] sm:text-xs font-semibold">
-                {t('table.chopDetail', {
-                  chopper: chopNotification.chopperName,
-                  amount: chopNotification.amount.toLocaleString(),
-                  victim: chopNotification.targetName
-                })}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* 3. Banner Thông Báo Quyền Mở Màn / Lý do đi đầu ván đấu */}
-        {!reconnectNotice && (!chopNotification || !chopNotification.visible) && resolvedOpeningText && (
-          <div className="mb-1.5 animate-bounce z-50 pointer-events-none">
-            <div className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 font-black text-xs sm:text-sm tracking-wide shadow-2xl border-2 border-amber-200">
-              <span className="text-sm sm:text-base">👑</span>
-              <span>{resolvedOpeningText}</span>
-            </div>
-          </div>
-        )}
-
-        {/* 4. Thông báo hướng dẫn nước đi đầu tiên ván 1 */}
-        {!reconnectNotice && (!chopNotification || !chopNotification.visible) && !resolvedOpeningText && !isDealing && isCurrentTurn && isFirstMoveOfGame && hasRequiredCard && requiredCard && (
-          <div className="mb-1 animate-fade-in z-50">
-            {selectedCardIds.size > 0 && !isSelectedWithRequired ? (
-              <div className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-red-950 border border-red-500/70 text-red-300 text-[10px] sm:text-[11px] font-bold shadow-xl">
-                <span>⚠️</span>
-                <span>{t('game.firstMoveWarning', { card: formatCardVietnamese(requiredCard) })}</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#0c3327] border border-[#d4af37]/70 text-[#f3e5ab] text-[10px] sm:text-[11px] font-bold shadow-xl">
-                <span>{requiredCard.suit === 'SPADES' ? '♠' : requiredCard.suit === 'CLUBS' ? '♣' : requiredCard.suit === 'DIAMONDS' ? '♦' : '♥'}</span>
-                <span>{t('game.firstMoveInstruction', { card: formatCardVietnamese(requiredCard) })}</span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Bảng nút điều khiển hành động (Action Controls) - Z-Index 40, Tự động trượt lên khi chọn bài */}
-      {!isDealing && (isCurrentTurn || hasSelectedCards) && (
+      {/* KHU VỰC THÔNG BÁO NỔI - ZERO LAYOUT SHIFT (Tách khỏi document flow: h-0 overflow-visible để không bao giờ làm xê dịch UI) */}
+      <div className="h-0 w-full flex items-center justify-center overflow-visible z-50 pointer-events-none select-none">
         <div
-          className={`flex items-center justify-center gap-1.5 sm:gap-2 mb-1 z-40 transition-transform duration-200 ${
-            hasSelectedCards ? '-translate-y-3.5 sm:-translate-y-4' : 'translate-y-0'
-          } ${isReverseButtons ? 'flex-row-reverse' : 'flex-row'}`}
+          className={`relative -top-9 sm:-top-11 flex flex-col items-center whitespace-nowrap transition-transform duration-200 ${
+            hasSelectedCards ? '-translate-y-2 sm:-translate-y-3' : 'translate-y-0'
+          }`}
         >
-          {/* Nhóm nút thao tác chính (Đánh bài, Bắt bài, Hạ bài, Xếp bài) */}
-          <div className={`flex items-center ${isReverseButtons ? 'flex-row-reverse' : 'flex-row'} ${isMobileSize ? 'gap-1 px-1.5 py-0.5 rounded-xl border border-amber-500/50' : 'gap-1.5 sm:gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-2xl border-2 border-amber-500/60'} bg-[#0d1322] shadow-xl`}>
-            {/* Các nút hành động khi đến lượt đi */}
-            {isCurrentTurn && (
-              <>
-                {/* Nút Đánh Bài */}
-                <button
-                  onClick={onPlaySelectedCards}
-                  disabled={!canPlay}
-                  className={`
-                    flex items-center gap-1 ${isMobileSize ? 'px-2.5 py-0.5 rounded-lg text-[10px] sm:text-[11px]' : 'px-3.5 sm:px-5 py-1 sm:py-1.5 rounded-xl text-xs sm:text-sm'} font-black uppercase tracking-wider transition-all duration-150 shadow-md
-                    ${canPlay
-                      ? 'bg-gradient-to-r from-[#f0cb64] via-[#d4af37] to-[#b08c23] hover:brightness-110 text-black hover:scale-105 shadow-[#d4af37]/40 cursor-pointer border border-amber-200'
-                      : 'bg-[#182030] text-slate-500 cursor-not-allowed border border-white/5'
-                    }
-                  `}
-                >
-                  <Play className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5 sm:w-4 sm:h-4'} fill-current`} />
-                  <span>{t('game.playCard')}</span>
-                </button>
+          {/* 1. Thông báo Chờ Kết Nối Lại (Grace Period Reconnect Notice) - Độ ưu tiên cao nhất */}
+          {reconnectNotice && (
+            <div className="animate-pulse shadow-2xl">
+              <div className="flex items-center gap-2 px-3.5 sm:px-5 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-red-950 via-amber-950 to-red-950 text-amber-200 font-bold text-xs sm:text-sm tracking-wide border-2 border-amber-500/80">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping shrink-0" />
+                <span>
+                  {t('online.reconnectWaitingBanner', {
+                    name: reconnectNotice.playerName,
+                    seconds: reconnectRemainingSeconds
+                  })}
+                </span>
+              </div>
+            </div>
+          )}
 
-                {/* Nút Bắt Bài (Tự động chọn nhanh tổ hợp vừa khít để đè bài trên bàn) */}
-                {quickResponseAssistEnabled && onQuickSelect && (
-                  <button
-                    onClick={onQuickSelect}
-                    disabled={!canQuickSelect}
-                    className={`
-                      flex items-center gap-1 ${isMobileSize ? 'px-1.5 sm:px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px]' : 'px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-xs'} font-bold transition-all duration-150 shadow
-                      ${canQuickSelect
-                        ? 'bg-[#2e1808] hover:bg-[#40220a] text-amber-300 border border-amber-500/60 hover:border-amber-400 hover:scale-105 cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.2)]'
-                        : 'bg-[#182030] text-slate-500 cursor-not-allowed border border-white/5 opacity-50'
-                      }
-                    `}
-                    title={
-                      canQuickSelect
-                        ? `${t('game.quickSelectTooltipReady', { action: isLeader ? t('game.quickSelectActionLead') : t('game.quickSelectActionBeat') })}${quickSelectCandidatesCount > 1 ? ` (${quickSelectCandidatesCount})` : ''}`
-                        : t('game.quickSelectTooltipEmpty')
-                    }
-                  >
-                    <Crosshair className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-amber-300`} />
-                    <span>{t('game.quickSelect')}</span>
-                  </button>
-                )}
-              </>
-            )}
+          {/* 2. Thông báo Chặt Heo / Chặt Chồng (Chop Notification) */}
+          {!reconnectNotice && chopNotification && chopNotification.visible && (
+            <div className="animate-bounce shadow-2xl">
+              <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white font-black text-xs sm:text-sm tracking-wider border-2 border-yellow-300">
+                <span className="text-base">{chopNotification.isCascade ? '🔥' : '⚡'}</span>
+                <span>
+                  {chopNotification.isCascade
+                    ? t('table.chopCascadeTitle', { chain: chopNotification.chainCount || 1 })
+                    : t('table.chopSingleTitle')}
+                </span>
+                <span className="text-yellow-200 text-[10px] sm:text-xs font-semibold">
+                  {t('table.chopDetail', {
+                    chopper: chopNotification.chopperName,
+                    amount: chopNotification.amount.toLocaleString(),
+                    victim: chopNotification.targetName
+                  })}
+                </span>
+              </div>
+            </div>
+          )}
 
-            {/* Nút Hạ Bài (Xuất hiện khi có bài đang chọn) */}
-            {hasSelectedCards && onClearCardSelection && (
-              <button
-                onClick={onClearCardSelection}
-                className={`flex items-center gap-1 ${isMobileSize ? 'px-1.5 sm:px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px]' : 'px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-xs'} bg-[#1c2438] hover:bg-[#283450] text-[#f3e5ab] border border-amber-400/40 hover:scale-105 cursor-pointer font-bold shadow transition-all duration-150`}
-                title={t('game.clearSelectionTooltip')}
-              >
-                <ArrowDownToLine className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-[#d4af37]`} />
-                <span>{t('game.clearSelection')} {selectedCardIds.size > 1 ? `(${selectedCardIds.size})` : ''}</span>
-              </button>
-            )}
+          {/* 3. Banner Thông Báo Quyền Mở Màn / Lý do đi đầu ván đấu */}
+          {!reconnectNotice && (!chopNotification || !chopNotification.visible) && resolvedOpeningText && (
+            <div className="animate-bounce shadow-2xl">
+              <div className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 font-black text-xs sm:text-sm tracking-wide border-2 border-amber-200">
+                <span className="text-sm sm:text-base">👑</span>
+                <span>{resolvedOpeningText}</span>
+              </div>
+            </div>
+          )}
 
-            {/* Nút Xếp Bài: Xoay vòng đa phương án Xếp Bộ và Xếp Điểm */}
-            <button
-              onClick={onAutoSort}
-              className={`flex items-center gap-1 ${isMobileSize ? 'px-1.5 sm:px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px]' : 'px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-xs'} bg-[#1c2438] hover:bg-[#283450] text-slate-300 border border-white/10 hover:scale-105 cursor-pointer font-bold transition-all duration-150`}
-              title={sortButtonTitle}
-            >
-              {sortMode === 'NATURAL' ? (
-                <>
-                  <ArrowUpDown className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-[#d4af37]`} />
-                  <span>{sortButtonLabel}</span>
-                </>
+          {/* 4. Thông báo hướng dẫn nước đi đầu tiên ván 1 */}
+          {!reconnectNotice && (!chopNotification || !chopNotification.visible) && !resolvedOpeningText && !isDealing && isCurrentTurn && isFirstMoveOfGame && hasRequiredCard && requiredCard && (
+            <div className="animate-fade-in shadow-xl">
+              {selectedCardIds.size > 0 && !isSelectedWithRequired ? (
+                <div className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-red-950 border border-red-500/70 text-red-300 text-[10px] sm:text-[11px] font-bold">
+                  <span>⚠️</span>
+                  <span>{t('game.firstMoveWarning', { card: formatCardVietnamese(requiredCard) })}</span>
+                </div>
               ) : (
-                <>
-                  <Layers className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-[#d4af37]`} />
-                  <span>{sortButtonLabel}</span>
-                </>
+                <div className="flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-[#0c3327] border border-[#d4af37]/70 text-[#f3e5ab] text-[10px] sm:text-[11px] font-bold">
+                  <span>{requiredCard.suit === 'SPADES' ? '♠' : requiredCard.suit === 'CLUBS' ? '♣' : requiredCard.suit === 'DIAMONDS' ? '♦' : '♥'}</span>
+                  <span>{t('game.firstMoveInstruction', { card: formatCardVietnamese(requiredCard) })}</span>
+                </div>
               )}
-            </button>
-          </div>
-
-          {/* Nhóm nút Bỏ lượt riêng biệt - Nền đặc đỏ thẫm */}
-          {isCurrentTurn && (
-            <div className={`bg-[#0d1322] ${isMobileSize ? 'px-1 py-0.5 rounded-xl border border-red-500/50' : 'px-1.5 py-1 sm:py-1.5 rounded-2xl border-2 border-red-500/50'} shadow-2xl flex items-center`}>
-              <button
-                onClick={onPassTurn}
-                disabled={!canPass}
-                className={`
-                  flex items-center gap-1 ${isMobileSize ? 'px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px]' : 'px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-xl text-xs'} font-bold transition-all duration-150
-                  ${canPass
-                    ? 'bg-[#3b1219] hover:bg-[#521822] text-red-200 hover:text-white border border-red-500/70 hover:border-red-400 hover:scale-105 cursor-pointer shadow-[0_0_12px_rgba(239,68,68,0.25)]'
-                    : 'bg-[#182030]/60 text-slate-600 cursor-not-allowed border border-white/5 opacity-50'
-                  }
-                `}
-                title={canPass ? t('game.passTurn') : ''}
-              >
-                <SkipForward className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-red-400`} />
-                <span>{t('game.passTurn')}</span>
-              </button>
             </div>
           )}
         </div>
-      )}
+      </div>
+
+      {/* Bảng nút điều khiển hành động (Action Controls) - Z-Index 40, Khóa chiều cao cố định để không đẩy hand */}
+      <div className="h-8 sm:h-10 flex items-center justify-center mb-3 sm:mb-5 z-40">
+        {!isDealing && (isCurrentTurn || hasSelectedCards) ? (
+          <div
+            className={`flex items-center justify-center gap-1.5 sm:gap-2 z-40 transition-transform duration-200 ${
+              hasSelectedCards ? '-translate-y-2 sm:-translate-y-3' : 'translate-y-0'
+            } ${isReverseButtons ? 'flex-row-reverse' : 'flex-row'}`}
+          >
+            {/* Nhóm nút thao tác chính (Đánh bài, Bắt bài, Hạ bài, Xếp bài) */}
+            <div className={`flex items-center ${isReverseButtons ? 'flex-row-reverse' : 'flex-row'} ${isMobileSize ? 'gap-1 px-1.5 py-0.5 rounded-xl border border-amber-500/50' : 'gap-1.5 sm:gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-2xl border-2 border-amber-500/60'} bg-[#0d1322] shadow-xl`}>
+              {/* Các nút hành động khi đến lượt đi */}
+              {isCurrentTurn && (
+                <>
+                  {/* Nút Đánh Bài */}
+                  <button
+                    onClick={onPlaySelectedCards}
+                    disabled={!canPlay}
+                    className={`
+                      flex items-center gap-1 ${isMobileSize ? 'px-2.5 py-0.5 rounded-lg text-[10px] sm:text-[11px]' : 'px-3.5 sm:px-5 py-1 sm:py-1.5 rounded-xl text-xs sm:text-sm'} font-black uppercase tracking-wider transition-all duration-150 shadow-md
+                      ${canPlay
+                        ? 'bg-gradient-to-r from-[#f0cb64] via-[#d4af37] to-[#b08c23] hover:brightness-110 text-black hover:scale-105 shadow-[#d4af37]/40 cursor-pointer border border-amber-200'
+                        : 'bg-[#182030] text-slate-500 cursor-not-allowed border border-white/5'
+                      }
+                    `}
+                  >
+                    <Play className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5 sm:w-4 sm:h-4'} fill-current`} />
+                    <span>{t('game.playCard')}</span>
+                  </button>
+
+                  {/* Nút Bắt Bài (Tự động chọn nhanh tổ hợp vừa khít để đè bài trên bàn) */}
+                  {quickResponseAssistEnabled && onQuickSelect && (
+                    <button
+                      onClick={onQuickSelect}
+                      disabled={!canQuickSelect}
+                      className={`
+                        flex items-center gap-1 ${isMobileSize ? 'px-1.5 sm:px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px]' : 'px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-xs'} font-bold transition-all duration-150 shadow
+                        ${canQuickSelect
+                          ? 'bg-[#2e1808] hover:bg-[#40220a] text-amber-300 border border-amber-500/60 hover:border-amber-400 hover:scale-105 cursor-pointer shadow-[0_0_12px_rgba(245,158,11,0.2)]'
+                          : 'bg-[#182030] text-slate-500 cursor-not-allowed border border-white/5 opacity-50'
+                        }
+                      `}
+                      title={
+                        canQuickSelect
+                          ? `${t('game.quickSelectTooltipReady', { action: isLeader ? t('game.quickSelectActionLead') : t('game.quickSelectActionBeat') })}${quickSelectCandidatesCount > 1 ? ` (${quickSelectCandidatesCount})` : ''}`
+                          : t('game.quickSelectTooltipEmpty')
+                      }
+                    >
+                      <Crosshair className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-amber-300`} />
+                      <span>{t('game.quickSelect')}</span>
+                    </button>
+                  )}
+                </>
+              )}
+
+              {/* Nút Hạ Bài (Xuất hiện khi có bài đang chọn) */}
+              {hasSelectedCards && onClearCardSelection && (
+                <button
+                  onClick={onClearCardSelection}
+                  className={`flex items-center gap-1 ${isMobileSize ? 'px-1.5 sm:px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px]' : 'px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-xs'} bg-[#1c2438] hover:bg-[#283450] text-[#f3e5ab] border border-amber-400/40 hover:scale-105 cursor-pointer font-bold shadow transition-all duration-150`}
+                  title={t('game.clearSelectionTooltip')}
+                >
+                  <ArrowDownToLine className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-[#d4af37]`} />
+                  <span>{t('game.clearSelection')} {selectedCardIds.size > 1 ? `(${selectedCardIds.size})` : ''}</span>
+                </button>
+              )}
+
+              {/* Nút Xếp Bài: Xoay vòng đa phương án Xếp Bộ và Xếp Điểm */}
+              <button
+                onClick={onAutoSort}
+                className={`flex items-center gap-1 ${isMobileSize ? 'px-1.5 sm:px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px]' : 'px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl text-xs'} bg-[#1c2438] hover:bg-[#283450] text-slate-300 border border-white/10 hover:scale-105 cursor-pointer font-bold transition-all duration-150`}
+                title={sortButtonTitle}
+              >
+                {sortMode === 'NATURAL' ? (
+                  <>
+                    <ArrowUpDown className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-[#d4af37]`} />
+                    <span>{sortButtonLabel}</span>
+                  </>
+                ) : (
+                  <>
+                    <Layers className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-[#d4af37]`} />
+                    <span>{sortButtonLabel}</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Nhóm nút Bỏ lượt riêng biệt - Nền đặc đỏ thẫm */}
+            {isCurrentTurn && (
+              <div className={`bg-[#0d1322] ${isMobileSize ? 'px-1 py-0.5 rounded-xl border border-red-500/50' : 'px-1.5 py-1 sm:py-1.5 rounded-2xl border-2 border-red-500/50'} shadow-2xl flex items-center`}>
+                <button
+                  onClick={onPassTurn}
+                  disabled={!canPass}
+                  className={`
+                    flex items-center gap-1 ${isMobileSize ? 'px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px]' : 'px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-xl text-xs'} font-bold transition-all duration-150
+                    ${canPass
+                      ? 'bg-[#3b1219] hover:bg-[#521822] text-red-200 hover:text-white border border-red-500/70 hover:border-red-400 hover:scale-105 cursor-pointer shadow-[0_0_12px_rgba(239,68,68,0.25)]'
+                      : 'bg-[#182030]/60 text-slate-600 cursor-not-allowed border border-white/5 opacity-50'
+                    }
+                  `}
+                  title={canPass ? t('game.passTurn') : ''}
+                >
+                  <SkipForward className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-red-400`} />
+                  <span>{t('game.passTurn')}</span>
+                </button>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Khi chưa tới lượt: Nút xếp bài với chiều cao cố định để tay bài không bị giật lên xuống */
+          !isDealing && (
+            <div className="flex items-center justify-center z-40">
+              <button
+                onClick={onAutoSort}
+                className={`flex items-center gap-1 ${isMobileSize ? 'px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px]' : 'px-3 py-1 rounded-xl text-xs'} bg-[#1c2438]/80 hover:bg-[#283450] text-slate-300 border border-white/10 hover:scale-105 cursor-pointer font-bold transition-all shadow`}
+                title={sortButtonTitle}
+              >
+                {sortMode === 'NATURAL' ? (
+                  <>
+                    <ArrowUpDown className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-[#d4af37]`} />
+                    <span>{sortButtonLabel}</span>
+                  </>
+                ) : (
+                  <>
+                    <Layers className={`${isMobileSize ? 'w-2.5 h-2.5 sm:w-3 sm:h-3' : 'w-3.5 h-3.5'} text-[#d4af37]`} />
+                    <span>{sortButtonLabel}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          )
+        )}
+      </div>
 
       {/* Dãy bài trên tay người chơi (Giữ nguyên z-index tự nhiên từ trái sang phải: 10 + index, Tự động scale vừa khít màn hình khi xếp nhiều bộ) */}
       {isSmartMode && smartGroups.length > 0 ? (

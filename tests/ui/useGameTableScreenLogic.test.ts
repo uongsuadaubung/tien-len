@@ -240,7 +240,8 @@ describe('useGameTableScreenLogic (Dumb View Presentation Hook)', () => {
         isDealing: false,
         displayCardCount: 2,
         thoughtText: hookResult!.botThinkingThought?.botId === botId ? hookResult!.botThinkingThought.text : null,
-        size: 'compact'
+        cardFanPlacement: 'side',
+        cardScale: 'normal'
       })
     );
 

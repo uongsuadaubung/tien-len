@@ -42,7 +42,7 @@ describe('LeftMatchHUD Component Tests', () => {
 
     useGameStore.setState({
       myPlayerId: 'human_1',
-      winners: [{ id: 'human_1', name: 'Player 1' }],
+      winners: [p1],
       playerWins: { human_1: 2, bot_1: 1 },
       currentFrame: {
         gameNumber: 2,

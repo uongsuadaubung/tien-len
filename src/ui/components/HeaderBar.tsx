@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { GameMode } from '../../engine/types';
-import { Settings, Eye, Volume2, VolumeX, Home, BookOpen, Maximize, Minimize } from 'lucide-react';
-import { getRankTierByElo } from '../../engine/elo';
-import { Button, Badge } from '../primitives';
+import { Settings, Eye, Volume2, VolumeX, Home, BookOpen, Maximize, Minimize, Trophy, BarChart3, BrainCircuit } from 'lucide-react';
+import { Badge } from '../primitives';
 import { isFullScreen, toggleFullScreen } from '../utils/fullscreen';
 import { ActiveGameType } from '../../stores/useGameStore';
 import { useI18n } from '../../locales';
 
-interface HeaderBarProps {
+export interface HeaderBarProps {
   gameNumber: number;
   mode: GameMode;
   betAmount: number;
   activeGameType: ActiveGameType;
-  playerCoins: number;
-  playerElo: number;
   soundEnabled: boolean;
   onToggleSound: () => void;
   onOpenRules: () => void;
@@ -21,22 +18,31 @@ interface HeaderBarProps {
   onOpenXRay: () => void;
   onReturnToLobby: () => void;
   xrayEnabled: boolean;
+  onToggleMatchHud?: () => void;
+  onToggleReasoningHud?: () => void;
+  isMatchHudOpen?: boolean;
+  isReasoningHudOpen?: boolean;
+  botReasoningLogEnabled?: boolean;
 }
 
 export const HeaderBar: React.FC<HeaderBarProps> = ({
+  gameNumber,
+  mode,
   activeGameType,
-  playerCoins,
-  playerElo,
   soundEnabled,
   onToggleSound,
   onOpenRules,
   onOpenSettings,
   onOpenXRay,
   onReturnToLobby,
-  xrayEnabled = false
+  xrayEnabled = false,
+  onToggleMatchHud,
+  onToggleReasoningHud,
+  isMatchHudOpen = false,
+  isReasoningHudOpen = false,
+  botReasoningLogEnabled = false
 }) => {
   const { t } = useI18n();
-  const currentRank = getRankTierByElo(playerElo);
   const [isFullscreenState, setIsFullscreenState] = useState(isFullScreen());
 
   useEffect(() => {
@@ -57,112 +63,138 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   }, []);
 
   const modeBadgeText: Record<ActiveGameType, string> = {
-    QUICK: t('lobby.quickPlay'),
+    QUICK: mode === 'COUNT_CARDS' ? t('modes.countCards') : mode === 'WINNER_TAKES_ALL' ? t('modes.winnerTakesAll') : t('modes.traditional'),
     CAMPAIGN: t('lobby.campaign'),
     ONLINE: t('lobby.joinRoom')
   };
 
   return (
-    <header className="relative z-40 w-full flex items-center justify-between px-3 sm:px-6 py-2.5 bg-[var(--bg-container)] border-b border-[var(--border-container)] shadow-md">
-      {/* Nút Về Sảnh & Tiêu đề */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        <Button
-          variant="surface"
-          size="sm"
+    <header 
+      className="absolute top-0 left-0 right-0 z-40 w-full flex items-center justify-between pointer-events-none bg-transparent border-none shadow-none"
+      style={{
+        paddingLeft: 'max(14px, env(safe-area-inset-left, 0px))',
+        paddingRight: 'max(14px, env(safe-area-inset-right, 0px))',
+        paddingTop: 'max(8px, env(safe-area-inset-top, 0px))'
+      }}
+    >
+      {/* Cụm Trái: Nút Về Sảnh, Logo & Thông tin Ván đấu */}
+      <div className="pointer-events-auto flex items-center gap-2 px-2.5 py-1.5 rounded-2xl bg-slate-950/75 border border-white/10 backdrop-blur-md shadow-xl transition-all">
+        {/* Nút Về Sảnh */}
+        <button
           onClick={onReturnToLobby}
-          leftIcon={<Home className="w-4 h-4 text-[var(--color-gold)]" />}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-200 hover:text-white active:scale-95 transition-all cursor-pointer font-bold text-xs"
           title={t('header.lobby')}
         >
+          <Home className="w-3.5 h-3.5 text-amber-400" />
           <span className="hidden sm:inline">{t('header.lobby')}</span>
-        </Button>
+        </button>
 
-        <div className="w-7 h-7 rounded-lg bg-[var(--bg-card)] border border-[var(--border-card)] flex items-center justify-center text-[var(--color-gold)] font-bold text-xs shadow-sm">
+        {/* Biểu tượng Sòng bài */}
+        <div className="w-6 h-6 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 font-black text-xs shadow-inner">
           ♠
         </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-sm sm:text-base font-bold text-[var(--text-primary)] tracking-wider">
-              {t('table.emblem')}
-            </h1>
-            <Badge variant="gold" size="sm">
-              {modeBadgeText[activeGameType]}
-            </Badge>
-          </div>
+
+        {/* Badge Ván đấu */}
+        <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 font-bold text-xs">
+          <Trophy className="w-3.5 h-3.5 text-amber-400" />
+          <span>{t('hud.gameNumber', { number: gameNumber })}</span>
         </div>
+
+        {/* Badge Chế độ */}
+        <Badge variant="gold" size="sm" className="hidden sm:inline-flex text-[11px] font-semibold py-0.5 px-2">
+          {modeBadgeText[activeGameType]}
+        </Badge>
       </div>
 
-      {/* THÔNG TIN NGƯỜI CHƠI & CÔNG CỤ */}
-      <div className="flex items-center gap-2.5 sm:gap-3">
-        {/* Số Dư Tiền */}
-        <Badge variant="neutral" size="md">
-          🪙 {playerCoins.toLocaleString()}
-        </Badge>
+      {/* Cụm Phải: Các Công Cụ & Tiện Ích */}
+      <div className="pointer-events-auto flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl bg-slate-950/75 border border-white/10 backdrop-blur-md shadow-xl">
+        {/* Nút Toggle Quân Sư AI */}
+        {onToggleMatchHud && (
+          <button
+            onClick={onToggleMatchHud}
+            className={`p-1.5 rounded-xl border transition-all cursor-pointer ${
+              isMatchHudOpen
+                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.3)]'
+                : 'bg-white/5 border-white/10 text-slate-300 hover:text-white'
+            }`}
+            title={t('header.aiAdvisorTooltip')}
+          >
+            <BarChart3 className="w-4 h-4" />
+          </button>
+        )}
 
-        {/* Bậc Rank Elo */}
-        <div className="hidden md:flex items-center gap-1.5 bg-[var(--bg-card)] border border-[var(--border-card)] px-2.5 py-1 rounded-lg text-xs font-semibold shadow-sm">
-          <span>{currentRank.badge}</span>
-          <span className="text-[var(--color-gold)]">{currentRank.name}</span>
-          <span className="text-[10px] text-[var(--text-muted)]">({playerElo})</span>
-        </div>
+        {/* Nút Toggle Bot Reasoning Log */}
+        {botReasoningLogEnabled && onToggleReasoningHud && (
+          <button
+            onClick={onToggleReasoningHud}
+            className={`p-1.5 rounded-xl border transition-all cursor-pointer ${
+              isReasoningHudOpen
+                ? 'bg-purple-500/20 border-purple-500/40 text-purple-300 shadow-[0_0_8px_rgba(168,85,247,0.3)]'
+                : 'bg-white/5 border-white/10 text-slate-300 hover:text-white'
+            }`}
+            title="Bot Reasoning"
+          >
+            <BrainCircuit className="w-4 h-4" />
+          </button>
+        )}
 
         {/* Nút Soi Bài X-Ray */}
         {xrayEnabled && (
-          <Button
-            variant="surface"
-            size="icon"
+          <button
             onClick={onOpenXRay}
+            className="p-1.5 rounded-xl bg-white/5 border border-white/10 text-amber-400 hover:text-amber-300 hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
             title={t('header.xrayTooltip')}
           >
-            <Eye className="w-4 h-4 text-[var(--color-gold)]" />
-          </Button>
+            <Eye className="w-4 h-4" />
+          </button>
         )}
 
         {/* Nút Âm Thanh */}
-        <Button
-          variant={soundEnabled ? 'surface' : 'danger'}
-          size="icon"
+        <button
           onClick={onToggleSound}
+          className={`p-1.5 rounded-xl border transition-all active:scale-95 cursor-pointer ${
+            soundEnabled
+              ? 'bg-white/5 border-white/10 text-amber-400 hover:text-amber-300 hover:bg-white/10'
+              : 'bg-rose-500/20 border-rose-500/40 text-rose-300'
+          }`}
           title={soundEnabled ? t('header.soundOffTooltip') : t('header.soundOnTooltip')}
         >
-          {soundEnabled ? <Volume2 className="w-4 h-4 text-[var(--text-secondary)]" /> : <VolumeX className="w-4 h-4" />}
-        </Button>
+          {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+        </button>
 
-        {/* Nút Luật Chơi */}
-        <Button
-          variant="surface"
-          size="icon"
+        {/* Nút Hướng Dẫn Luật */}
+        <button
           onClick={onOpenRules}
+          className="p-1.5 rounded-xl bg-white/5 border border-white/10 text-amber-400 hover:text-amber-300 hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
           title={t('header.rules')}
         >
-          <BookOpen className="w-4 h-4 text-[var(--color-gold)]" />
-        </Button>
+          <BookOpen className="w-4 h-4" />
+        </button>
 
-        {/* Nút Toàn Màn Hình (Full Screen) */}
-        <Button
-          variant="surface"
-          size="icon"
+        {/* Nút Toàn Màn Hình */}
+        <button
           onClick={async () => {
             const fs = await toggleFullScreen();
             setIsFullscreenState(fs);
           }}
+          className="p-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
           title={isFullscreenState ? t('header.exitFullscreenTooltip') : t('header.fullscreenTooltip')}
         >
           {isFullscreenState ? (
-            <Minimize className="w-4 h-4 text-[var(--color-gold)]" />
+            <Minimize className="w-4 h-4 text-amber-400" />
           ) : (
-            <Maximize className="w-4 h-4 text-[var(--text-secondary)]" />
+            <Maximize className="w-4 h-4" />
           )}
-        </Button>
+        </button>
 
         {/* Nút Cài Đặt */}
-        <Button
-          variant="surface"
-          size="icon"
+        <button
           onClick={onOpenSettings}
+          className="p-1.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
           title={t('header.settings')}
         >
-          <Settings className="w-4 h-4 text-[var(--text-secondary)]" />
-        </Button>
+          <Settings className="w-4 h-4" />
+        </button>
       </div>
     </header>
   );

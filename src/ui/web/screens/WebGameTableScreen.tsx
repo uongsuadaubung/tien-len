@@ -11,7 +11,6 @@ import { useI18n } from '../../../locales';
 
 // Stores
 import { useViewStore } from '../../../stores/useViewStore';
-import { useUserStore } from '../../../stores/useUserStore';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useGameStore } from '../../../stores/useGameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -35,9 +34,8 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
 }) => {
   const { t } = useI18n();
   const [isMatchHudOpen, setIsMatchHudOpen] = useState<boolean>(true);
-  const [isReasoningHudOpen, setIsReasoningHudOpen] = useState<boolean>(true);
+  const [isReasoningHudOpen, setIsReasoningHudOpen] = useState<boolean>(false);
   const { openModal } = useViewStore();
-  const { profile } = useUserStore();
   const {
     soundEnabled,
     aiHintEnabled,
@@ -113,14 +111,12 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
 
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-[radial-gradient(ellipse_at_center,#141926_0%,#090c12_100%)] flex flex-col justify-between select-none">
-      {/* HEADER BAR CHÍNH */}
+      {/* HEADER BAR DẠNG FLOATING GLASSMORPHIC OVERLAY (GIỐNG MOBILE) */}
       <HeaderBar
         gameNumber={gameNumber}
         mode={gameSettings.mode}
         betAmount={gameSettings.betAmount}
         activeGameType={activeGameType}
-        playerCoins={profile.coins}
-        playerElo={profile.elo}
         soundEnabled={soundEnabled}
         onToggleSound={toggleSound}
         onOpenRules={() => openModal('RULES')}
@@ -128,6 +124,11 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
         onOpenXRay={handleOpenXRay}
         onReturnToLobby={onReturnToLobby}
         xrayEnabled={xrayEnabled}
+        onToggleMatchHud={() => setIsMatchHudOpen(prev => !prev)}
+        onToggleReasoningHud={() => setIsReasoningHudOpen(prev => !prev)}
+        isMatchHudOpen={isMatchHudOpen}
+        isReasoningHudOpen={isReasoningHudOpen}
+        botReasoningLogEnabled={botReasoningLogEnabled}
       />
 
       {/* HUD GÓC TRÁI: QUÂN SƯ AI & THỐNG KÊ CHIẾN THUẬT */}
@@ -157,28 +158,31 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
         />
       )}
 
-      {/* KHÔNG GIAN BÀN ĐẤU CHÍNH */}
-      <main className="relative flex-1 w-full max-w-7xl mx-auto flex flex-col justify-between items-center px-4 py-2">
-        {/* GHẾ TRÊN: BOT ĐỐI DIỆN */}
-        <div className="w-full flex justify-center z-20">
+      {/* ĐẤU TRƯỜNG BÀN ĐẤU CHÍNH (KHÓA HÌNH HỌC - CHỐNG XÊ DỊCH) */}
+      <main className="relative flex-1 w-full h-full flex flex-col justify-between items-center px-4 pt-14 pb-1 overflow-hidden">
+        {/* TRỤC TRÊN: GHẾ TRÊN (TOP BOT) - CHIỀU CAO CỐ ĐỊNH, ĐỆM AN TOÀN CHO THOUGHT BUBBLE */}
+        <div className="w-full flex justify-center items-center z-20 shrink-0 h-20 sm:h-24 mt-1 sm:mt-2.5 overflow-visible">
           {topBot && (
-            <BotSeat
-              player={topBot}
-              isCurrentTurn={currentTurnPlayerId === topBot.id}
-              position="top"
-              isLeader={leadPlayerId === topBot.id}
-              isDealing={isDealing}
-              displayCardCount={dealtCounts[topBot.id]}
-              thoughtText={botThinkingThought?.botId === topBot.id ? botThinkingThought.text : null}
-              size="normal"
-            />
+            <div className="flex justify-center items-center shrink-0 overflow-visible">
+              <BotSeat
+                player={topBot}
+                isCurrentTurn={currentTurnPlayerId === topBot.id}
+                position="top"
+                isLeader={leadPlayerId === topBot.id}
+                isDealing={isDealing}
+                displayCardCount={dealtCounts[topBot.id]}
+                thoughtText={botThinkingThought?.botId === topBot.id ? botThinkingThought.text : null}
+                cardFanPlacement="bottom"
+                cardScale="large"
+              />
+            </div>
           )}
         </div>
 
-        {/* TRỤC GIỮA: GHẾ TRÁI + TRUNG TÂM BÀN TRÒN + GHẾ PHẢI (NGỒI SÁT CẠNH BÀN) */}
-        <div className="w-full flex justify-center items-center gap-3 sm:gap-6 md:gap-8 my-auto z-10 px-2">
-          {/* Ghế Trái: Bot 1 (Nếu có) */}
-          <div className="flex justify-center shrink-0 w-24 sm:w-28 md:w-32">
+        {/* TRỤC GIỮA: GHẾ TRÁI + BÀN TRÒN TRUNG TÂM + GHẾ PHẢI */}
+        <div className="w-full flex-1 flex justify-center items-center gap-3 sm:gap-5 md:gap-7 z-10 px-2 my-auto overflow-visible min-h-[220px]">
+          {/* Ghế Trái (Left Bot): Kích thước cố định để không co giật layout */}
+          <div className="w-28 sm:w-32 md:w-36 flex justify-center items-center shrink-0 overflow-visible">
             {leftBot && (
               <BotSeat
                 player={leftBot}
@@ -188,12 +192,13 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
                 isDealing={isDealing}
                 displayCardCount={dealtCounts[leftBot.id]}
                 thoughtText={botThinkingThought?.botId === leftBot.id ? botThinkingThought.text : null}
-                size="normal"
+                cardFanPlacement="bottom"
+                cardScale="large"
               />
             )}
           </div>
 
-          {/* BÀN TRÒN TRUNG TÂM */}
+          {/* BÀN TRÒN TRUNG TÂM (TÂM ĐIỂM BẤT DI BẤT DỊCH) */}
           <div className="round-table relative z-30 flex items-center justify-center p-4 sm:p-6 shadow-2xl shrink-0 overflow-visible">
             <div className="table-inner-felt">
               <div className="table-center-emblem">
@@ -228,8 +233,8 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
             </div>
           </div>
 
-          {/* Ghế Phải: Bot 3 (Nếu có) */}
-          <div className="flex justify-center shrink-0 w-24 sm:w-28 md:w-32">
+          {/* Ghế Phải (Right Bot): Kích thước cố định để không co giật layout */}
+          <div className="w-28 sm:w-32 md:w-36 flex justify-center items-center shrink-0 overflow-visible">
             {rightBot && (
               <BotSeat
                 player={rightBot}
@@ -239,43 +244,47 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
                 isDealing={isDealing}
                 displayCardCount={dealtCounts[rightBot.id]}
                 thoughtText={botThinkingThought?.botId === rightBot.id ? botThinkingThought.text : null}
-                size="normal"
+                cardFanPlacement="bottom"
+                cardScale="large"
               />
             )}
           </div>
         </div>
 
-        {/* GHẾ DƯỚI: TAY BÀI VÀ CÁC NÚT ĐIỀU KHIỂN CỦA NGƯỜI CHƠI */}
-        <div className="w-full flex justify-center z-30 mb-1">
-          <PlayerHandView
-            player={localPlayer}
-            selectedCardIds={selectedCardIds}
-            onToggleCardSelect={handleToggleCardSelect}
-            onClearCardSelection={handleClearCardSelection}
-            onPlaySelectedCards={handlePlayCards}
-            onPassTurn={handlePassTurnAction}
-            onAutoSort={onAutoSort}
-            onQuickSelect={handleQuickSelect}
-            canQuickSelect={canQuickSelect}
-            quickSelectCandidatesCount={quickSelectCandidatesCount}
-            isCurrentTurn={isMyTurn}
-            canPlay={isValidPlaySelection}
-            canPass={canPassTurn}
-            isLeader={leadPlayerId === localPlayer.id}
-            isDealing={isDealing}
-            dealtCardsCount={dealtCounts[localPlayer.id] ?? 0}
-            isFirstMoveOfGame={isFirstMoveOfGame}
-            firstMoveRequiredCard={firstMoveRequiredCard}
-            sortMode={handSortMode}
-            variantIndex={smartVariantIndex}
-            cardSize="md"
-            reverseButtons={reverseButtonsEnabled}
-            quickResponseAssistEnabled={quickResponseAssistEnabled}
-            dealBanner={dealBanner}
-            openingReason={openingReason}
-            chopNotification={chopNotification}
-            reconnectNotice={reconnectNotice}
-          />
+        {/* TRỤC DƯỚI: KHAY BÀI VÀ CÁC NÚT ĐIỀU KHIỂN */}
+        <div className="w-full flex flex-col items-center justify-end z-30 shrink-0 pb-1">
+          {/* Tay bài của người chơi */}
+          <div className="w-full flex justify-center">
+            <PlayerHandView
+              player={localPlayer}
+              selectedCardIds={selectedCardIds}
+              onToggleCardSelect={handleToggleCardSelect}
+              onClearCardSelection={handleClearCardSelection}
+              onPlaySelectedCards={handlePlayCards}
+              onPassTurn={handlePassTurnAction}
+              onAutoSort={onAutoSort}
+              onQuickSelect={handleQuickSelect}
+              canQuickSelect={canQuickSelect}
+              quickSelectCandidatesCount={quickSelectCandidatesCount}
+              isCurrentTurn={isMyTurn}
+              canPlay={isValidPlaySelection}
+              canPass={canPassTurn}
+              isLeader={leadPlayerId === localPlayer.id}
+              isDealing={isDealing}
+              dealtCardsCount={dealtCounts[localPlayer.id] ?? 0}
+              isFirstMoveOfGame={isFirstMoveOfGame}
+              firstMoveRequiredCard={firstMoveRequiredCard}
+              sortMode={handSortMode}
+              variantIndex={smartVariantIndex}
+              cardSize="md"
+              reverseButtons={reverseButtonsEnabled}
+              quickResponseAssistEnabled={quickResponseAssistEnabled}
+              dealBanner={dealBanner}
+              openingReason={openingReason}
+              chopNotification={chopNotification}
+              reconnectNotice={reconnectNotice}
+            />
+          </div>
         </div>
       </main>
     </div>

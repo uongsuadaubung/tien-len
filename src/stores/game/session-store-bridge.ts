@@ -43,7 +43,7 @@ export function syncStoreFromSessionFrame(session: IGameSession, frame: TableRen
 
   useGameStore.setState({
     currentFrame: frame,
-    winners: frame.winners,
+    winners: updatedPlayers.filter(p => frame.winners.some(w => w.id === p.id)),
     players: updatedPlayers,
     currentMove: effectiveCurrentMove,
     selectedCardIds: nextSelectedCardIds,

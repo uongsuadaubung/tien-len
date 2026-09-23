@@ -75,7 +75,7 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {/* BẢNG TABLE HUD CHÍNH */}
-        <div className="w-[215px] sm:w-[275px] md:w-[310px] bg-[var(--bg-container)] border border-[var(--border-container)] rounded-xl sm:rounded-2xl shadow-2xl p-2 sm:p-3 text-[var(--text-primary)] flex flex-col gap-1.5 sm:gap-2.5">
+        <div className="w-auto min-w-[245px] sm:min-w-[290px] max-w-[min(90vw,380px)] bg-[var(--bg-container)] border border-[var(--border-container)] rounded-xl sm:rounded-2xl shadow-2xl p-2.5 sm:p-3 text-[var(--text-primary)] flex flex-col gap-2 sm:gap-2.5">
           {/* Header HUD */}
           <div className="flex items-center justify-between border-b border-[var(--border-container)] pb-1.5 sm:pb-2 px-0.5">
             <div className="flex items-center gap-1 sm:gap-1.5">
@@ -126,14 +126,14 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
             </div>
           </div>
 
-        {/* BẢNG TABLE KẺ CỘT */}
-        <div className="overflow-hidden rounded-lg sm:rounded-xl border border-[var(--border-container)] bg-[var(--bg-canvas)]">
-          <table className="w-full text-left border-collapse">
+        {/* BẢNG TABLE KẺ CỘT - KHÔNG GIỚI HẠN CHIỀU NGANG */}
+        <div className="overflow-x-auto rounded-lg sm:rounded-xl border border-[var(--border-container)] bg-[var(--bg-canvas)] scrollbar-none">
+          <table className="w-full text-left border-collapse min-w-full">
             <thead>
-              <tr className="bg-[var(--bg-card)] text-[var(--text-primary)] text-[8.5px] sm:text-[11px] font-bold uppercase tracking-wider border-b border-[var(--border-container)]">
-                <th className="py-1 px-1.5 sm:py-2 sm:px-2.5 border-r border-[var(--border-container)]">{t('hud.colPlayer')}</th>
-                <th className="py-1 px-1 sm:py-2 sm:px-2 text-center border-r border-[var(--border-container)] w-11 sm:w-16">{t('hud.colCards')}</th>
-                <th className="py-1 px-1.5 sm:py-2 sm:px-2.5 text-right w-13 sm:w-18">{t('hud.colScore')}</th>
+              <tr className="bg-[var(--bg-card)] text-[var(--text-primary)] text-[9px] sm:text-[11px] font-bold uppercase tracking-wider border-b border-[var(--border-container)]">
+                <th className="py-1.5 px-2 sm:py-2 sm:px-2.5 border-r border-[var(--border-container)] whitespace-nowrap">{t('hud.colPlayer')}</th>
+                <th className="py-1.5 px-1.5 sm:py-2 sm:px-2.5 text-center border-r border-[var(--border-container)] whitespace-nowrap min-w-[50px] sm:min-w-[65px]">{t('hud.colCards')}</th>
+                <th className="py-1.5 px-2 sm:py-2 sm:px-3 text-right whitespace-nowrap min-w-[60px] sm:min-w-[75px]">{t('hud.colScore')}</th>
               </tr>
             </thead>
             <tbody className="text-[10px] sm:text-xs font-semibold divide-y divide-white/5">
@@ -165,7 +165,7 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                     }`}
                   >
                     {/* Cột 1: Thông tin người chơi & Trạng thái */}
-                    <td className="py-1 px-1.5 sm:py-2 sm:px-2.5 border-r border-[var(--border-container)]">
+                    <td className="py-1.5 px-2 sm:py-2 sm:px-2.5 border-r border-[var(--border-container)] whitespace-nowrap">
                       <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                         {/* Avatar */}
                         <div className="relative flex-shrink-0">
@@ -179,14 +179,24 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
 
                         {/* Tên & Tag */}
                         <div className="flex flex-col min-w-0">
-                          <div className="flex items-center gap-1">
-                            <span className={`truncate text-[10px] sm:text-xs max-w-[62px] sm:max-w-none ${isMe ? 'text-[var(--color-gold)] font-bold' : 'text-[var(--text-primary)]'}`}>
-                              {isMe ? `${p.name} ${t('hud.you')}` : p.name}
+                          <div className="flex items-center gap-1 whitespace-nowrap">
+                            <span 
+                              className={`text-[11px] sm:text-xs font-bold truncate max-w-[70px] sm:max-w-[95px] ${
+                                isMe ? 'text-[var(--color-gold)]' : 'text-[var(--text-primary)]'
+                              }`}
+                              title={p.name}
+                            >
+                              {p.name}
                             </span>
+                            {isMe && (
+                              <span className="text-[9px] sm:text-[10px] text-[var(--color-gold)] font-medium shrink-0">
+                                ({t('hud.you')})
+                              </span>
+                            )}
                             {(() => {
                               const seatWins = currentFrame?.seats.find(s => s.playerId === p.id)?.wins ?? 0;
                               return seatWins > 0 ? (
-                                <span className="text-[8.5px] sm:text-[10px] text-amber-400 font-mono font-bold flex items-center shrink-0" title={t('hud.winsBadgeTitle', { count: seatWins })}>
+                                <span className="text-[9px] sm:text-[10px] text-amber-400 font-mono font-bold flex items-center shrink-0 ml-0.5" title={t('hud.winsBadgeTitle', { count: seatWins })}>
                                   🏆{seatWins}
                                 </span>
                               ) : null;
@@ -194,13 +204,13 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                           </div>
 
                           {/* Bậc Rank hoặc Trạng thái Bỏ Lượt */}
-                          <div className="flex items-center gap-0.5 sm:gap-1 text-[7.5px] sm:text-[9px]">
+                          <div className="flex items-center gap-0.5 sm:gap-1 text-[8px] sm:text-[9.5px] whitespace-nowrap">
                             {p.isPassedCurrentRound ? (
                               <span className="text-red-400 font-bold">{t('hud.turnPassed')}</span>
                             ) : rankPosition > 0 ? (
                               <span className="text-[var(--color-gold)] font-bold">{t('hud.rankBadge', { rank: rankPosition })}</span>
                             ) : isTurn ? (
-                              <span className="text-[var(--color-gold)] font-bold">{t('hud.turnPlaying')}</span>
+                              <span className="text-emerald-400 font-bold animate-pulse">{t('hud.turnPlaying')}</span>
                             ) : (
                               <span className="text-[var(--text-muted)] font-medium">{displayElo} Elo</span>
                             )}
@@ -210,22 +220,22 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                     </td>
 
                     {/* Cột 2: Số lá bài còn lại */}
-                    <td className="py-1 px-1 sm:py-2 sm:px-2 text-center border-r border-[var(--border-container)] font-mono">
+                    <td className="py-1.5 px-1.5 sm:py-2 sm:px-2.5 text-center border-r border-[var(--border-container)] font-mono whitespace-nowrap">
                       {rankPosition > 0 ? (
-                        <Badge variant="gold" size="sm" className="text-[8px] sm:text-[10px] px-1 py-0.5">#{rankPosition}</Badge>
+                        <Badge variant="gold" size="sm" className="text-[8.5px] sm:text-[10px] px-1.5 py-0.5">#{rankPosition}</Badge>
                       ) : isOneCardLeft ? (
-                        <span className="bg-red-600 text-white font-bold px-1 py-0.5 rounded text-[8.5px] sm:text-[10px] animate-pulse">
+                        <span className="bg-red-600 text-white font-bold px-1.5 py-0.5 rounded text-[8.5px] sm:text-[10px] animate-pulse">
                           {t('hud.oneCardAlert')}
                         </span>
                       ) : (
-                        <span className={`text-[10px] sm:text-xs font-bold ${cardCount <= 3 ? 'text-amber-400' : 'text-[var(--text-primary)]'}`}>
+                        <span className={`text-[11px] sm:text-xs font-bold ${cardCount <= 3 ? 'text-amber-400' : 'text-[var(--text-primary)]'}`}>
                           {cardCount}
                         </span>
                       )}
                     </td>
 
                     {/* Cột 3: Điểm số / Xu */}
-                    <td className="py-1 px-1.5 sm:py-2 sm:px-2.5 text-right font-mono text-[9.5px] sm:text-[11px] text-[var(--text-secondary)]">
+                    <td className="py-1.5 px-2 sm:py-2 sm:px-3 text-right font-mono text-[10px] sm:text-xs text-[var(--text-secondary)] whitespace-nowrap">
                       {p.score > 1000000 
                         ? `${(p.score / 1000000).toFixed(1)}M` 
                         : p.score > 1000 

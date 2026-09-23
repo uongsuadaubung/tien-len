@@ -3,10 +3,10 @@
    ========================================================= */
 
 .round-table {
-  width: clamp(140px, 38dvh, 440px);
-  height: clamp(140px, 38dvh, 440px);
-  max-width: min(38dvh, 46vw);
-  max-height: min(38dvh, 46vw);
+  width: clamp(240px, 42dvh, 460px);
+  height: clamp(240px, 42dvh, 460px);
+  max-width: min(44dvh, 48vw);
+  max-height: min(44dvh, 48vw);
   aspect-ratio: 1 / 1;
   border-radius: 50% !important;
   background: radial-gradient(circle at 50% 45%, #134e3d 0%, #0c382b 50%, #07261d 85%, #041610 100%);
@@ -22,6 +22,18 @@
   flex-shrink: 0;
   transform: translateZ(0);
   backface-visibility: hidden;
+  transition: width 0.2s ease, height 0.2s ease;
+}
+
+/* Tối ưu kích thước bàn tròn cho Mobile Landscape (chiều cao hẹp) */
+@media (max-height: 580px) {
+  .round-table {
+    width: clamp(130px, 35dvh, 220px);
+    height: clamp(130px, 35dvh, 220px);
+    max-width: min(35dvh, 42vw);
+    max-height: min(35dvh, 42vw);
+    border-width: clamp(5px, 1.2dvh, 10px);
+  }
 }
 
 /* Đệm viền da sang trọng bao ngoài bàn */
@@ -60,4 +72,17 @@
   align-items: center;
   justify-content: center;
   pointer-events: none;
+}
+
+/* =========================================================
+   ZERO LAYOUT SHIFT UTILITIES: KHÓA HÌNH HỌC VỊ TRÍ GHẾ
+   ========================================================= */
+
+.seat-box-anchor {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  contain: layout;
 }
