@@ -96,14 +96,12 @@ export function useGameTableScreenLogic({
     dealBanner: storeDealBanner
   } = state;
 
-  const onlineMyPlayerId = useOnlineStore.getState().myPlayerId;
-  const effectiveMyPlayerId = storeMyPlayerId || onlineMyPlayerId;
+  const targetPlayerId = state.activeGameType === 'ONLINE'
+    ? (useOnlineStore.getState().myPlayerId || storeMyPlayerId)
+    : storeMyPlayerId;
 
   // Xác định người chơi cục bộ theo perspective - Invariant Bàn Đấu
-  let foundIndex = players.findIndex(p => p.id === effectiveMyPlayerId);
-  if (foundIndex === -1 && state.activeGameType === 'ONLINE') {
-    foundIndex = players.findIndex(p => p.id === onlineMyPlayerId);
-  }
+  let foundIndex = players.findIndex(p => p.id === targetPlayerId);
   if (foundIndex === -1) {
     const humanIndex = players.findIndex(p => !p.isBot);
     foundIndex = humanIndex !== -1 ? humanIndex : 0;
@@ -173,13 +171,13 @@ export function useGameTableScreenLogic({
       return matchState.leadingMove;
     }
     if (matchState.status === 'GAME_OVER') {
-      return matchState.winningMove ?? matchState.leadingMove ?? state.currentMove ?? null;
+      return matchState.winningMove ?? matchState.leadingMove ?? null;
     }
     if (matchState.status === 'ROUND_ENDED') {
       return matchState.lastRoundMoves[matchState.lastRoundMoves.length - 1] ?? null;
     }
     return null;
-  }, [matchState, state.currentMove]);
+  }, [matchState]);
 
   const isGameOver = matchState.status === 'GAME_OVER' || matchState.status === 'INSTANT_WIN';
 

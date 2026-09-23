@@ -94,7 +94,7 @@ export class TableSessionFactory {
       const botTransports = createMemoryDuplexTransport('HOST', bot.id);
       host.registerClient(bot.id, botTransports.hostTransport);
 
-      const personaId = options.botPersonaIds?.[i] || bot.botPersonaId || 'BOT_ELO_1150';
+      const personaId = bot.botPersonaId || options.botPersonaIds?.[i] || 'BOT_ELO_1150';
       const customConfig = options.customBotConfigs?.[i];
 
       const botAgent = new BotAgent({

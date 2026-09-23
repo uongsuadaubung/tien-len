@@ -500,6 +500,7 @@ export function settleCompletedMatch(
           : 0;
 
         return {
+          playerId: p.id,
           botId: p.botPersonaId || p.id,
           rank,
           deltaCoins,
@@ -510,10 +511,14 @@ export function settleCompletedMatch(
       });
 
     const eloDeltasMap: Record<string, number> = {
-      [humanPlayerId]: settlement.eloDelta
+      [humanPlayerId]: settlement.eloDelta,
+      ...(settlement.allEloDeltas ?? {})
     };
     botResults.forEach(b => {
-      eloDeltasMap[b.botId] = b.deltaElo;
+      eloDeltasMap[b.playerId] = b.deltaElo;
+      if (b.botId) {
+        eloDeltasMap[b.botId] = b.deltaElo;
+      }
     });
     gameStore.setAllEloDeltas(eloDeltasMap);
 
@@ -524,7 +529,7 @@ export function settleCompletedMatch(
         if (!cfg) return {};
         const playerAtIdx = engine.players[idx + 1];
         if (!playerAtIdx) return cfg;
-        const res = botResults.find(b => b.botId === playerAtIdx.botPersonaId || b.botId === playerAtIdx.id || b.botId === playerAtIdx.name);
+        const res = botResults.find(b => b.playerId === playerAtIdx.id);
         if (res) {
           const currentElo = cfg.elo ?? 1000;
           return {
