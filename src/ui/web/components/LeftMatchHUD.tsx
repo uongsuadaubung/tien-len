@@ -23,7 +23,6 @@ interface LeftMatchHUDProps {
   aiHint: MoveHint | null;
   isHumanTurn: boolean;
   aiHintEnabled: boolean;
-  customBotConfigs: [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>] | null;
 }
 
 export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
@@ -36,8 +35,7 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
   dealtCounts,
   aiHint,
   isHumanTurn = false,
-  aiHintEnabled = true,
-  customBotConfigs
+  aiHintEnabled = true
 }) => {
   const [isOpen] = useState<boolean>(true);
   const { t } = useI18n();
@@ -90,10 +88,7 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                   : p.cardCount;
                 const rankIndex = winners.findIndex(w => w.id === p.id);
                 const rankPosition = rankIndex >= 0 ? rankIndex + 1 : 0;
-                const isOneCardLeft = !isDealing && cardCount === 1 && rankPosition === 0;
-                const botIdx = p.isBot ? players.filter(pl => pl.isBot).findIndex(pl => pl.id === p.id) : -1;
-                const botOverride = customBotConfigs && botIdx >= 0 && botIdx < customBotConfigs.length ? customBotConfigs[botIdx] : undefined;
-                const cfg = p.isBot ? getBotConfig(p.botPersonaId, botOverride) : null;
+                const cfg = p.isBot ? getBotConfig(p.botPersonaId, p.customBotConfig) : null;
                 const liveBot = p.isBot ? ecosystemBots.find(b => b.id === p.botPersonaId || b.id === p.id || b.name === p.name) : null;
                 const displayElo = isMe ? profile.elo : (liveBot?.elo ?? cfg?.elo ?? 1000);
 

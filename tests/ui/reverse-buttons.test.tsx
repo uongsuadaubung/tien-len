@@ -99,11 +99,16 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
         isDealing={false}
         dealtCardsCount={0}
         isFirstMoveOfGame={false}
+        firstMoveRequiredCard={null}
         sortMode="NATURAL"
         variantIndex={0}
         cardSize="md"
         reverseButtons={false}
         quickResponseAssistEnabled={true}
+        dealBanner={null}
+        openingReason={null}
+        chopNotification={null}
+        reconnectNotice={null}
       />
     );
 
@@ -127,11 +132,16 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
         isDealing={false}
         dealtCardsCount={0}
         isFirstMoveOfGame={false}
+        firstMoveRequiredCard={null}
         sortMode="NATURAL"
         variantIndex={0}
         cardSize="md"
         reverseButtons={true}
         quickResponseAssistEnabled={true}
+        dealBanner={null}
+        openingReason={null}
+        chopNotification={null}
+        reconnectNotice={null}
       />
     );
 
@@ -163,11 +173,16 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
         isDealing={false}
         dealtCardsCount={0}
         isFirstMoveOfGame={false}
+        firstMoveRequiredCard={null}
         sortMode="NATURAL"
         variantIndex={0}
         cardSize="md"
         reverseButtons={storeState.reverseButtonsEnabled}
         quickResponseAssistEnabled={true}
+        dealBanner={null}
+        openingReason={null}
+        chopNotification={null}
+        reconnectNotice={null}
       />
     );
     expect(htmlFromStoreReversed).toContain('flex-row-reverse');
@@ -207,11 +222,16 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
         isDealing={false}
         dealtCardsCount={0}
         isFirstMoveOfGame={false}
+        firstMoveRequiredCard={null}
         sortMode="NATURAL"
         variantIndex={0}
         cardSize="md"
         reverseButtons={false}
         quickResponseAssistEnabled={false}
+        dealBanner={null}
+        openingReason={null}
+        chopNotification={null}
+        reconnectNotice={null}
       />
     );
 
@@ -235,11 +255,16 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
         isDealing={false}
         dealtCardsCount={0}
         isFirstMoveOfGame={false}
+        firstMoveRequiredCard={null}
         sortMode="NATURAL"
         variantIndex={0}
         cardSize="md"
         reverseButtons={false}
         quickResponseAssistEnabled={true}
+        dealBanner={null}
+        openingReason={null}
+        chopNotification={null}
+        reconnectNotice={null}
       />
     );
 
@@ -281,6 +306,7 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
         isDealing={false}
         dealtCardsCount={0}
         isFirstMoveOfGame={true}
+        firstMoveRequiredCard={null}
         sortMode="NATURAL"
         variantIndex={0}
         cardSize="md"
@@ -288,6 +314,8 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
         quickResponseAssistEnabled={true}
         dealBanner="Đối thủ giành quyền mở màn (Có 3♠ Bích)!"
         openingReason="THREE_SPADES"
+        chopNotification={null}
+        reconnectNotice={null}
       />
     );
     expect(htmlWithBanner).toContain('giành quyền mở màn');
@@ -313,6 +341,7 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
         isDealing={false}
         dealtCardsCount={0}
         isFirstMoveOfGame={true}
+        firstMoveRequiredCard={null}
         sortMode="NATURAL"
         variantIndex={0}
         cardSize="md"
@@ -320,6 +349,8 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
         quickResponseAssistEnabled={true}
         dealBanner={null}
         openingReason="THREE_SPADES"
+        chopNotification={null}
+        reconnectNotice={null}
       />
     );
     expect(htmlWithoutBanner).not.toContain('giành quyền mở màn');

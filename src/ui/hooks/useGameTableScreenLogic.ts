@@ -1,7 +1,6 @@
 import { useMemo, useCallback } from 'react';
 import { soundManager } from '../audio/sound-manager';
 import { MatchPlayer, Card, PlayedMove } from '../../engine/types';
-import { BotConfig } from '../../ai/types';
 import type { ChopNotificationInfo, BotThinkingInfo } from '../../engine/state-machine/types';
 import { computeRelativeTableSeats } from '../../engine/seating';
 import { projectTableFrame } from '../../engine/presentation/table-frame-projector';
@@ -32,8 +31,6 @@ export interface GameTableScreenLogicResult {
   canPassTurn: boolean;
   isSolo1v1: boolean;
   playerCount: number;
-  botPersonaIds: [string, string, string];
-  customBotConfigs: [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>];
   topBot: MatchPlayer | null;
   leftBot: MatchPlayer | null;
   rightBot: MatchPlayer | null;
@@ -83,8 +80,6 @@ export function useGameTableScreenLogic({
   const {
     myPlayerId: storeMyPlayerId,
     playerCount,
-    botPersonaIds,
-    customBotConfigs,
     players,
     matchState,
     selectedCardIds,
@@ -252,8 +247,6 @@ export function useGameTableScreenLogic({
     canPassTurn,
     isSolo1v1,
     playerCount,
-    botPersonaIds,
-    customBotConfigs,
     topBot,
     leftBot,
     rightBot,

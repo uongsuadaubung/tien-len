@@ -39,8 +39,8 @@ const BotSeatComponent: React.FC<BotSeatProps> = ({
   const isCompact = size === 'compact';
 
   const handleInspectBot = () => {
-    if (!player.botPersonaId) return;
-    const botConfig = getBotConfig(player.botPersonaId);
+    if (!player.isBot) return;
+    const botConfig = getBotConfig(player.botPersonaId, player.customBotConfig);
     const ecosystemBots = useEcosystemStore.getState().bots;
     const botEntity = ecosystemBots.find(b => b.id === botConfig.id || b.name === botConfig.name || b.name === player.name) 
       ?? createCampaignBotEntity(botConfig, ecosystemBots);

@@ -3,7 +3,6 @@ import { MatchPlayer } from '../../../engine/types';
 import { getBotConfig } from '../../../ai/bot-factory';
 import { Trophy, X } from 'lucide-react';
 import { Badge } from '../../primitives';
-import { BotConfig } from '../../../ai/types';
 import { useUserStore } from '../../../stores/useUserStore';
 import { useEcosystemStore } from '../../../stores/useEcosystemStore';
 import { useGameStore } from '../../../stores/useGameStore';
@@ -19,7 +18,6 @@ export interface MobileMatchHUDDrawerProps {
   betAmount: number;
   isDealing: boolean;
   dealtCounts: { [playerId: string]: number };
-  customBotConfigs: [Partial<BotConfig>, Partial<BotConfig>, Partial<BotConfig>] | null;
 }
 
 export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
@@ -31,8 +29,7 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
   gameNumber,
   betAmount,
   isDealing,
-  dealtCounts,
-  customBotConfigs
+  dealtCounts
 }) => {
   const { t } = useI18n();
   const { profile } = useUserStore();
@@ -91,13 +88,7 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
                   : p.cardCount;
                 const rankIndex = winners.findIndex(w => w.id === p.id);
                 const rankPosition = rankIndex >= 0 ? rankIndex + 1 : 0;
-                const isOneCardLeft = !isDealing && cardCount === 1 && rankPosition === 0;
-                const botIdx = p.isBot ? players.filter(pl => pl.isBot).findIndex(pl => pl.id === p.id) : -1;
-                const botOverride =
-                  customBotConfigs && botIdx >= 0 && botIdx < customBotConfigs.length
-                    ? customBotConfigs[botIdx]
-                    : undefined;
-                const cfg = p.isBot ? getBotConfig(p.botPersonaId, botOverride) : null;
+                const cfg = p.isBot ? getBotConfig(p.botPersonaId, p.customBotConfig) : null;
                 const liveBot = p.isBot
                   ? ecosystemBots.find(b => b.id === p.botPersonaId || b.id === p.id || b.name === p.name)
                   : null;

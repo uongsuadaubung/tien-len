@@ -1,3 +1,5 @@
+import type { BotConfig } from '../ai/types';
+
 export type Suit = 'SPADES' | 'CLUBS' | 'DIAMONDS' | 'HEARTS';
 
 export type Rank = 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15; // 11=J, 12=Q, 13=K, 14=A, 15=2
@@ -156,6 +158,7 @@ export interface HumanMatchPlayer extends BaseMatchPlayer {
 export interface BotMatchPlayer extends BaseMatchPlayer {
   readonly isBot: true;
   readonly botPersonaId: string;
+  readonly customBotConfig?: Partial<BotConfig>;
 }
 
 export type MatchPlayer = HumanMatchPlayer | BotMatchPlayer;

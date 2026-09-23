@@ -33,16 +33,16 @@ export interface PlayerHandViewProps {
   readonly isDealing: boolean;
   readonly dealtCardsCount: number;
   readonly isFirstMoveOfGame: boolean;
-  readonly firstMoveRequiredCard?: Card | null;
+  readonly firstMoveRequiredCard: Card | null;
   readonly sortMode: HandSortMode;
   readonly variantIndex: number;
   readonly cardSize: 'sm' | 'md' | 'lg' | 'mobile';
   readonly reverseButtons: boolean;
   readonly quickResponseAssistEnabled: boolean;
-  readonly dealBanner?: string | null;
-  readonly openingReason?: OpeningReason | null;
-  readonly chopNotification?: ChopNotificationInfo | null;
-  readonly reconnectNotice?: ReconnectNotice | null;
+  readonly dealBanner: string | null;
+  readonly openingReason: OpeningReason | null;
+  readonly chopNotification: ChopNotificationInfo | null;
+  readonly reconnectNotice: ReconnectNotice | null;
 }
 
 const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({

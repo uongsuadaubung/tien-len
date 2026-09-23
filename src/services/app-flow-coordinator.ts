@@ -396,11 +396,11 @@ export class AppFlowCoordinator {
     this.setActiveSession(null);
 
     // 2. Tính cọc và trừ cọc an toàn
-    const multiplier = config.rules.chopping.multiplier || 1;
+    const multiplier = config.rules.chopping.multiplier;
     const targetDeposit = calculateRequiredDeposit(
       betAmount,
-      config.rules.cong.multiplier ?? 1,
-      config.rules.cong.enabled ?? true
+      config.rules.cong.multiplier,
+      config.rules.cong.enabled
     );
     let actualDeposit = 0;
     if (betAmount > 0) {
@@ -435,14 +435,16 @@ export class AppFlowCoordinator {
     ];
 
     for (let i = 0; i < config.playerCount - 1; i++) {
-      const personaId = config.botPersonaIds[i] || 'BOT_ELO_1150';
-      const botCfg = { ...getBotConfig(personaId), ...(config.customBotConfigs[i] || {}) };
+      const personaId = config.botPersonaIds[i];
+      const customConfig = config.customBotConfigs[i];
+      const botCfg = getBotConfig(personaId, customConfig);
       const botId = `bot_${i + 1}`;
       initialPlayers.push(
         createBotPlayer(botId, personaId, {
           name: botCfg.name,
           avatar: botCfg.avatar,
-          score: generateRealisticBotBankroll(botCfg, config.settings.betAmount)
+          score: generateRealisticBotBankroll(botCfg, config.settings.betAmount),
+          customBotConfig: customConfig
         })
       );
     }
@@ -456,7 +458,6 @@ export class AppFlowCoordinator {
       campaignChapter: config.campaignChapter ?? undefined,
       campaignResultMeta: useGameStore.getState().campaignResultMeta,
       enableDealingAnimation: true,
-      customBotConfigs: config.customBotConfigs,
       gameSpeed: () => useSettingsStore.getState().gameSpeed,
       onThinkingChange: (bId, thought) => {
         useGameStore.getState().setBotThinkingThought(thought ? { botId: bId, text: thought } : null);

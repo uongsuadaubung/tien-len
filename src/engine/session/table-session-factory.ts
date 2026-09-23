@@ -7,7 +7,6 @@ import { globalP2PClient } from '../network/p2p-client';
 import { CompositeDisposable } from '../common/disposable';
 import { soundManager } from '../../ui/audio/sound-manager';
 import type { MatchPlayer, GameRules } from '../types';
-import type { BotConfig } from '../../ai/types';
 import type { ActiveGameType, CampaignResultMeta } from '../../stores/game/types';
 import type { CampaignChapter } from '../campaign';
 import type { GameSpeedMode } from '../game-speed';
@@ -22,7 +21,6 @@ export interface CreateOfflineTableSessionOptions {
   enableDealingAnimation?: boolean;
   instantDelay?: boolean;
   gameSpeed?: GameSpeedMode | (() => GameSpeedMode);
-  customBotConfigs?: readonly (Partial<BotConfig> | undefined)[];
   onThinkingChange?: (botId: string, thought: string | null) => void;
 }
 
@@ -94,7 +92,7 @@ export class TableSessionFactory {
       host.registerClient(bot.id, botTransports.hostTransport);
 
       const personaId = bot.botPersonaId;
-      const customConfig = options.customBotConfigs?.[i];
+      const customConfig = bot.customBotConfig;
 
       const botAgent = new BotAgent({
         botId: bot.id,

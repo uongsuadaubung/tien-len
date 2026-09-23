@@ -1,6 +1,7 @@
 import { BaseMatchPlayer, HumanMatchPlayer, BotMatchPlayer, MatchPlayer, PlayerProfile, Card } from './types';
 import type { TableRenderFrame } from './presentation/frame-types';
 import type { MatchState } from './state-machine/types';
+import type { BotConfig } from '../ai/types';
 
 export interface PlayerSyncContext {
   readonly myPlayerId: string;
@@ -301,6 +302,7 @@ export function resetPlayersForNewGame(
 export type PlayerCreationOverrides = Partial<BaseMatchPlayer> & {
   isBot?: boolean;
   botPersonaId?: string | null;
+  customBotConfig?: Partial<BotConfig>;
 };
 
 /**
@@ -374,7 +376,8 @@ export function createBotPlayer(
       playedCards: opts.playedCards ?? [],
       score: opts.score ?? 1000,
       isPassedCurrentRound: opts.isPassedCurrentRound ?? false,
-      hasPlayedFirstCard: opts.hasPlayedFirstCard ?? false
+      hasPlayedFirstCard: opts.hasPlayedFirstCard ?? false,
+      customBotConfig: opts.customBotConfig ?? overrides?.customBotConfig
     };
   }
 
@@ -395,7 +398,8 @@ export function createBotPlayer(
     playedCards: overrides?.playedCards ?? [],
     score: overrides?.score ?? 1000,
     isPassedCurrentRound: overrides?.isPassedCurrentRound ?? false,
-    hasPlayedFirstCard: overrides?.hasPlayedFirstCard ?? false
+    hasPlayedFirstCard: overrides?.hasPlayedFirstCard ?? false,
+    customBotConfig: overrides?.customBotConfig
   };
 }
 

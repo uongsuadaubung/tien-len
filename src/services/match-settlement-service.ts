@@ -205,8 +205,7 @@ export function computeAuthoritativeSettlement(
  * Nhận kết quả thuần từ computeAuthoritativeSettlement và cập nhật Store, EventBus, Quests/Achs
  */
 export function applyAuthoritativeSettlementToProfile(
-  input: AuthoritativeSettlementInput,
-  providedProfile?: PlayerProfile
+  input: AuthoritativeSettlementInput
 ): {
   updatedProfile: PlayerProfile;
   matchCompletedEvent: MatchCompletedEvent;
@@ -214,7 +213,7 @@ export function applyAuthoritativeSettlementToProfile(
 } {
   const userStore = useUserStore.getState();
   const gameStore = useGameStore.getState();
-  const currentProfile = providedProfile ?? userStore.profile;
+  const currentProfile = userStore.profile;
 
   const result = computeAuthoritativeSettlement(input, currentProfile);
 
@@ -344,7 +343,7 @@ export function settleCompletedMatch(
   gameStore.setMatchPayouts(settlement.payouts);
   gameStore.setLastEloDelta(settlement.eloDelta);
   gameStore.setLastEloBreakdown(settlement.eloBreakdown ?? null);
-  gameStore.setAllEloDeltas(settlement.allEloDeltas ?? {});
+  gameStore.setAllEloDeltas(settlement.allEloDeltas);
 
   const session = getActiveMatchSession();
   const heldDeposit = session ? session.depositAmount : 0;
@@ -354,7 +353,7 @@ export function settleCompletedMatch(
   const baseSettlementInput = {
     humanPlayerId,
     payouts: settlement.payouts,
-    eloDeltas: settlement.allEloDeltas ?? {},
+    eloDeltas: settlement.allEloDeltas,
     eloDelta: settlement.eloDelta,
     isVictoryModalRanked: settlement.isVictoryModalRanked,
     winners: engine.winners,
@@ -395,7 +394,7 @@ export function settleCompletedMatch(
     allPlayers: engine.players,
     winners: engine.winners,
     payouts: settlement.payouts,
-    eloDeltas: settlement.allEloDeltas ?? {},
+    eloDeltas: settlement.allEloDeltas,
     subjectEloDelta: settlement.eloDelta,
     subjectEloBreakdown: settlement.eloBreakdown ?? null,
     loanDeduction: loanSettlement.loanDeduction,
@@ -420,9 +419,9 @@ export function settleCompletedMatch(
   const perspectiveSettlement = createPerspectiveSettlement(perspectiveParams);
   gameStore.setPerspectiveSettlement(perspectiveSettlement);
 
-  const lastMove = engine.currentRound.moves[engine.currentRound.moves.length - 1] ?? null;
-  const existingWinningMove = (gameStore.matchState.status === 'GAME_OVER' ? gameStore.matchState.winningMove : null) ?? gameStore.currentMove;
-  const winningMove = lastMove ?? engine.getLeadingMove() ?? existingWinningMove ?? null;
+  const winningMove = engine.currentRound.moves.length > 0
+    ? engine.currentRound.moves[engine.currentRound.moves.length - 1]
+    : engine.getLeadingMove();
   const gameOverState: GameOverMatchState = {
     status: 'GAME_OVER',
     gameNumber: engine.gameNumber,
@@ -432,7 +431,7 @@ export function settleCompletedMatch(
     leadingMove: winningMove,
     isThreeSpadesWin: engine.isThreeSpadesWin,
     matchPayouts: settlement.payouts,
-    eloDeltas: settlement.allEloDeltas ?? {},
+    eloDeltas: settlement.allEloDeltas,
     settlement: perspectiveSettlement,
     matchLogReport: null,
     rules: engine.rules
@@ -512,7 +511,7 @@ export function settleCompletedMatch(
 
     const eloDeltasMap: Record<string, number> = {
       [humanPlayerId]: settlement.eloDelta,
-      ...(settlement.allEloDeltas ?? {})
+      ...settlement.allEloDeltas
     };
     botResults.forEach(b => {
       eloDeltasMap[b.playerId] = b.deltaElo;
@@ -554,7 +553,7 @@ export function settleCompletedMatch(
       botResults
     });
   } else if (activeGameType === 'ONLINE') {
-    gameStore.setAllEloDeltas(settlement.allEloDeltas ?? {});
+    gameStore.setAllEloDeltas(settlement.allEloDeltas);
   } else {
     gameStore.setAllEloDeltas({});
   }
@@ -573,7 +572,7 @@ export function settleCompletedMatch(
   viewStore.openModal('VICTORY');
   return {
     payouts: settlement.payouts,
-    eloDeltas: settlement.allEloDeltas ?? {},
+    eloDeltas: settlement.allEloDeltas,
     loanDeduction: loanSettlement.loanDeduction,
     perspectiveSettlement,
     updatedProfile

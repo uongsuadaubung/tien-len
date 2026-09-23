@@ -88,7 +88,6 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
     isValidPlaySelection,
     canPassTurn,
     playerCount,
-    customBotConfigs,
     topBot,
     leftBot,
     rightBot,
@@ -210,7 +209,6 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
         betAmount={gameSettings.betAmount}
         isDealing={isDealing}
         dealtCounts={dealtCounts}
-        customBotConfigs={customBotConfigs}
       />
 
       {/* HUD GÓC PHẢI: LOGIC SUY LUẬN REAL-TIME CỦA BOT */}

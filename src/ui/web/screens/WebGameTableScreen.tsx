@@ -79,7 +79,6 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     isValidPlaySelection,
     canPassTurn,
     playerCount,
-    customBotConfigs,
     topBot,
     leftBot,
     rightBot,
@@ -142,7 +141,6 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
         aiHint={activeAiHint}
         isHumanTurn={isMyTurn}
         aiHintEnabled={aiHintEnabled}
-        customBotConfigs={customBotConfigs}
       />
 
       {/* HUD GÓC PHẢI: LOGIC SUY LUẬN REAL-TIME CỦA BOT */}
