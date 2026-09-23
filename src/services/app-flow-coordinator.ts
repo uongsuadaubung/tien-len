@@ -456,7 +456,6 @@ export class AppFlowCoordinator {
       campaignChapter: config.campaignChapter ?? undefined,
       campaignResultMeta: useGameStore.getState().campaignResultMeta,
       enableDealingAnimation: true,
-      botPersonaIds: config.botPersonaIds,
       customBotConfigs: config.customBotConfigs,
       gameSpeed: () => useSettingsStore.getState().gameSpeed,
       onThinkingChange: (bId, thought) => {

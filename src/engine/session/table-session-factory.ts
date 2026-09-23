@@ -22,7 +22,6 @@ export interface CreateOfflineTableSessionOptions {
   enableDealingAnimation?: boolean;
   instantDelay?: boolean;
   gameSpeed?: GameSpeedMode | (() => GameSpeedMode);
-  botPersonaIds?: readonly string[];
   customBotConfigs?: readonly (Partial<BotConfig> | undefined)[];
   onThinkingChange?: (botId: string, thought: string | null) => void;
 }
@@ -94,7 +93,7 @@ export class TableSessionFactory {
       const botTransports = createMemoryDuplexTransport('HOST', bot.id);
       host.registerClient(bot.id, botTransports.hostTransport);
 
-      const personaId = bot.botPersonaId || options.botPersonaIds?.[i] || 'BOT_ELO_1150';
+      const personaId = bot.botPersonaId;
       const customConfig = options.customBotConfigs?.[i];
 
       const botAgent = new BotAgent({

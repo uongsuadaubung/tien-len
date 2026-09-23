@@ -97,7 +97,7 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
                   customBotConfigs && botIdx >= 0 && botIdx < customBotConfigs.length
                     ? customBotConfigs[botIdx]
                     : undefined;
-                const cfg = p.isBot ? getBotConfig(p.botPersonaId || 'BOT_ELO_1150', botOverride) : null;
+                const cfg = p.isBot ? getBotConfig(p.botPersonaId, botOverride) : null;
                 const liveBot = p.isBot
                   ? ecosystemBots.find(b => b.id === p.botPersonaId || b.id === p.id || b.name === p.name)
                   : null;
