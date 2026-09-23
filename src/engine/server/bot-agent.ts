@@ -94,16 +94,6 @@ export class BotAgent {
         this.thinkTimer = null;
       }
 
-      const decision = this.computeBotDecision(sync);
-
-      if (this.instantDelay) {
-        this.thinkTimer = setTimeout(() => {
-          if (this.isDisposed) return;
-          this.dispatchBotDecision(decision);
-        }, 0);
-        return;
-      }
-
       const currentMove = (sync.currentMoveCards && sync.currentMoveCards.length > 0 && sync.currentMovePlayerId)
         ? (() => {
             const cards = sync.currentMoveCards.map(c => createCard(c.rank, c.suit));
@@ -111,6 +101,15 @@ export class BotAgent {
             return combo ? createPlayedMove(sync.currentMovePlayerId, combo) : null;
           })()
         : null;
+
+      if (this.instantDelay) {
+        this.thinkTimer = setTimeout(() => {
+          if (this.isDisposed) return;
+          const decision = this.computeBotDecision(sync);
+          this.dispatchBotDecision(decision);
+        }, 0);
+        return;
+      }
 
       const isLeadMove = currentMove === null;
       const isFirstMoveOfGame = sync.isFirstMoveOfGame ?? false;
@@ -131,13 +130,15 @@ export class BotAgent {
         ? this.gameSpeed()
         : (this.gameSpeed || (typeof useSettingsStore !== 'undefined' ? useSettingsStore.getState().gameSpeed : 'REALISTIC'));
 
+      const hasLikelyValidMoves = isLeadMove || (currentMove ? this.hand.some(c => c.weight > currentMove.combination.highestCard.weight) : true);
+
       const { delayMs, thoughtText } = calculateDynamicBotDelay(
         {
           isLead: isLeadMove,
           leadingMove: currentMove,
           botHandLength: this.hand.length,
           isNextOneCard: nextPlayerCardCount === 1,
-          hasValidMoves: decision.type === 'PLAY',
+          hasValidMoves: hasLikelyValidMoves,
           isFacingHeoOrChop,
           isFirstMoveOfGame
         },
@@ -151,6 +152,7 @@ export class BotAgent {
       this.thinkTimer = setTimeout(() => {
         if (this.isDisposed) return;
         this.clearThinkingState();
+        const decision = this.computeBotDecision(sync);
         this.dispatchBotDecision(decision);
       }, delayMs);
     } else {

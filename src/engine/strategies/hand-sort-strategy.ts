@@ -1,6 +1,7 @@
 import type { Card, Suit } from '../types';
 import { sortCards, isTwo } from '../card';
 import { partitionHand } from '../../ai/hand-partitioner';
+import { sortCardsSmart } from '../hand-sorter';
 import { t } from '../../locales';
 
 export type HandSortMode = 'NATURAL' | 'BY_SUIT' | 'SMART_GROUP' | 'TWO_PRESERVE';
@@ -62,6 +63,15 @@ export class SmartGroupHandSortStrategy implements IHandSortStrategy {
 
   public sort(cards: readonly Card[]): Card[] {
     if (cards.length <= 1) return [...cards];
+
+    try {
+      const sortedNative = sortCardsSmart([...cards], 0);
+      if (sortedNative && sortedNative.length === cards.length) {
+        return sortedNative;
+      }
+    } catch {
+      // Fallback khi WASM chưa nạp hoặc môi trường mock test
+    }
 
     const partition = partitionHand([...cards], 1.0);
     const groupedCards: Card[] = [];

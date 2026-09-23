@@ -1,7 +1,6 @@
 import { isTwo, sortCards } from '../engine/card';
 import { identifyCombination } from '../engine/combinations';
 import { isValidMove } from '../engine/validator';
-import { partitionHand } from './hand-partitioner';
 import { MctsSolver } from './mcts-solver';
 import { OpponentProfiler } from './opponent-profiler';
 import { resolveCompositeRuleStrategy } from './rule-strategies';
@@ -38,7 +37,7 @@ import { EndgameSolverHandler } from './handlers/endgame-handler';
 import { LeadMoveHeuristicHandler } from './handlers/lead-move-handler';
 import { RespondingMoveHeuristicHandler } from './handlers/responding-move-handler';
 import { FallbackDecisionHandler } from './handlers/fallback-handler';
-import { BotThinkingPhaseStateMachine } from './thinking-phases';
+import { DEFAULT_PHASE_STATE_MACHINE } from './thinking-phases';
 
 /**
  * Xây dựng chuỗi Chain of Responsibility hoàn chỉnh cho AI
@@ -167,8 +166,7 @@ export function makeBotDecision(rawContext: DecisionContext | (BaseDecisionConte
     }
 
     const handTwoCount = hand.filter(isTwo).length;
-    const partition = partitionHand(hand, config.handPartitioningOptimality);
-    const trashCount = partition.trashCards.length;
+    const trashCount = hand.length - handTwoCount;
 
     const telemetry: BotDecisionTelemetry = {
       chosenReason: emptyDecision.reason || 'Bỏ lượt',
@@ -220,9 +218,8 @@ export function makeBotDecision(rawContext: DecisionContext | (BaseDecisionConte
   };
 
   // 5. Xử lý qua State Pattern: BotThinkingPhaseStateMachine điều phối theo giai đoạn nhận thức
-  const phaseFSM = new BotThinkingPhaseStateMachine();
-  const currentThinkingPhase = phaseFSM.transitionToPhase(enrichedContext).phase;
-  const phaseDecision = phaseFSM.evaluate(enrichedContext, validMoves);
+  const phaseDecision = DEFAULT_PHASE_STATE_MACHINE.evaluate(enrichedContext, validMoves);
+  const currentThinkingPhase = DEFAULT_PHASE_STATE_MACHINE.currentPhase;
 
   const fallbackDecision: BotDecision = isLeadMove ? buildBotDecision('PLAY', {
     cards: validMoves[0].cards,
@@ -237,8 +234,7 @@ export function makeBotDecision(rawContext: DecisionContext | (BaseDecisionConte
   const decision: BotDecision = phaseDecision || DEFAULT_DECISION_CHAIN.handle(enrichedContext, validMoves) || fallbackDecision;
 
   const handTwoCount = hand.filter(isTwo).length;
-  const partition = partitionHand(hand, config.handPartitioningOptimality);
-  const trashCount = partition.trashCards.length;
+  const trashCount = Math.max(0, hand.length - (decision.cards?.length ?? 0) - handTwoCount);
 
   let mctsBestWinRate: number | null = null;
   if (decision.cards && decision.cards.length > 0 && mctsMap.size > 0) {

@@ -72,9 +72,10 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
   dealBanner,
   openingReason,
   chopNotification,
-  reconnectNotice
+  reconnectNotice,
 }) => {
   const { t } = useI18n();
+  const userProfile = useUserStore(s => s.profile);
   const isReverseButtons = reverseButtons;
 
   const [reconnectRemainingSeconds, setReconnectRemainingSeconds] = React.useState<number>(0);
@@ -437,7 +438,6 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
 
       {/* Thông tin người chơi (Bản thân) - Hiển thị Avatar & Tên Vàng Sang Trọng */}
       {(() => {
-        const userProfile = useUserStore.getState().profile;
         const playerAvatar = player.avatar || userProfile?.avatar || '🤠';
 
         return (

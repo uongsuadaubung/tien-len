@@ -323,15 +323,21 @@ class EcosystemManager {
         .filter((n): n is string => Boolean(n))
     );
 
-    const deletedBotIds: string[] = [];
-    for (const [botId, bot] of this.activeBotsMap.entries()) {
+    const bankruptBots: BotEntity[] = [];
+    for (const bot of this.activeBotsMap.values()) {
       if (bot.coins <= ECOSYSTEM_CONSTANTS.BANKRUPTCY_THRESHOLD) {
-        deletedBotIds.push(botId);
-        // Đào thải bot cũ
+        bankruptBots.push(bot);
+      }
+    }
+
+    const deletedBotIds: string[] = [];
+    if (bankruptBots.length > 0) {
+      for (const bot of bankruptBots) {
+        deletedBotIds.push(bot.id);
         bot.status = 'BANKRUPT';
 
         // Xóa bot vỡ nợ khỏi map để tính toán đúng bậc thiếu hụt
-        this.activeBotsMap.delete(botId);
+        this.activeBotsMap.delete(bot.id);
 
         // Duyệt từ Tier 9 xuống Tier 1 xem bậc nào đang bị thiếu hụt để sinh bot bù đắp
         const underfilledTier = findUnderfilledTier(Array.from(this.activeBotsMap.values()));

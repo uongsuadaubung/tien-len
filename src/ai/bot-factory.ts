@@ -12,7 +12,7 @@ type BotPersonaRaw = Omit<BotConfig, 'name' | 'avatar' | 'useMinimaxEndgame' | '
   useDynamicRepartitioning?: boolean;
 };
 
-const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
+export const RAW_BOT_PERSONAS = {
   // ==========================================
   // TIER 1: TÂN THỦ / BEGINNER (ELO 0 - 899)
   // ==========================================
@@ -213,6 +213,27 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
   // ==========================================
   // TIER 3: LÀNH NGHỀ / SKILLED (ELO 1300 - 1699)
   // ==========================================
+  BOT_ELO_1300: {
+    id: 'BOT_ELO_1300',
+    elo: 1300,
+    description: 'Rex Bụi Đời: Tay chơi đường phố sừng sỏ, biết gom bài và gài bẫy.',
+    memoryDepth: 0.48,
+    riskAppetite: 0.75,
+    trapTendency: 0.32,
+    baitingTendency: 0.18,
+    antiLeaderAggression: 0.88,
+    tempoControl: 0.42,
+    damageControl: 0.42,
+    turnsToWinLookahead: 0.38,
+    dynamicHandSacrifice: 0.30,
+    bombInferenceRate: 0.05,
+    semiCooperativeCooperation: 0.0,
+    positionalAwareness: 0.38,
+    inMatchAdaptationRate: 0.28,
+    handPartitioningOptimality: 0.62,
+    simulationLookahead: 1,
+    mctsSimulations: 0
+  },
   BOT_ELO_1350: {
     id: 'BOT_ELO_1350',
     elo: 1350,
@@ -340,6 +361,27 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     positionalAwareness: 0.85,
     inMatchAdaptationRate: 0.85,
     handPartitioningOptimality: 0.85,
+    simulationLookahead: 3,
+    mctsSimulations: 0
+  },
+  BOT_ELO_1800: {
+    id: 'BOT_ELO_1800',
+    elo: 1800,
+    description: 'Sophia: Nữ hoàng bàn cược, kiểm soát nhịp độ và bẫy Heo đỉnh cao.',
+    memoryDepth: 0.95,
+    riskAppetite: 0.68,
+    trapTendency: 0.55,
+    baitingTendency: 0.78,
+    antiLeaderAggression: 0.91,
+    tempoControl: 0.80,
+    damageControl: 0.82,
+    turnsToWinLookahead: 0.80,
+    dynamicHandSacrifice: 0.84,
+    bombInferenceRate: 0.85,
+    semiCooperativeCooperation: 0.8,
+    positionalAwareness: 0.86,
+    inMatchAdaptationRate: 0.86,
+    handPartitioningOptimality: 0.86,
     simulationLookahead: 3,
     mctsSimulations: 0
   },
@@ -547,7 +589,7 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     useBayesianInference: true,
     useDynamicRepartitioning: true
   }
-};
+} satisfies Record<string, BotPersonaRaw>;
 
 export const GLOBAL_AVATARS_BY_TIER: Record<number, string[]> = {
   1: ['🤠', '👶', '🧒', '🧢', '🎣', '🎯', '🍀'],
@@ -590,28 +632,58 @@ export function sanitizeAvatar(avatar: unknown, fallbackSeed: number = 0): strin
   return GLOBAL_AVATARS[safeIdx] || '🤖';
 }
 
-export const BOT_PERSONAS: Record<string, BotConfig> = Object.fromEntries(
-  Object.entries(RAW_BOT_PERSONAS).map(([k, v]) => {
-    const safeElo = v.elo;
-    const tierInfo = getTierFromElo(safeElo);
-    const tierNum = tierInfo.tierNum;
-    const tierPool = GLOBAL_AVATARS_BY_TIER[tierNum] || GLOBAL_AVATARS;
-    const defaultAvatar = tierPool[0] || '🤖';
-    const defaultName = `${tierInfo.label} ${safeElo}`;
+function defineBotPersona(raw: BotPersonaRaw): BotConfig {
+  const safeElo = raw.elo;
+  const tierInfo = getTierFromElo(safeElo);
+  const tierNum = tierInfo.tierNum;
+  const tierPool = GLOBAL_AVATARS_BY_TIER[tierNum] || GLOBAL_AVATARS;
+  const defaultAvatar = tierPool[0] || '🤖';
+  const defaultName = `${tierInfo.label} ${safeElo}`;
 
-    return [
-      k,
-      {
-        useMinimaxEndgame: false,
-        useBayesianInference: false,
-        useDynamicRepartitioning: false,
-        ...v,
-        name: v.name || defaultName,
-        avatar: v.avatar || defaultAvatar
-      }
-    ];
-  })
-);
+  return {
+    useMinimaxEndgame: false,
+    useBayesianInference: false,
+    useDynamicRepartitioning: false,
+    ...raw,
+    name: raw.name || defaultName,
+    avatar: raw.avatar || defaultAvatar
+  };
+}
+
+export const BOT_PERSONAS = {
+  BOT_ELO_700: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_700),
+  BOT_ELO_750: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_750),
+  BOT_ELO_850: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_850),
+  BOT_ELO_900: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_900),
+  BOT_ELO_950: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_950),
+  BOT_ELO_1000: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_1000),
+  BOT_ELO_1150: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_1150),
+  BOT_ELO_1200: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_1200),
+  BOT_ELO_1250: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_1250),
+  BOT_ELO_1300: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_1300),
+  BOT_ELO_1350: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_1350),
+  BOT_ELO_1450: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_1450),
+  BOT_ELO_1550: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_1550),
+  BOT_ELO_1600: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_1600),
+  BOT_ELO_1650: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_1650),
+  BOT_ELO_1750: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_1750),
+  BOT_ELO_1800: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_1800),
+  BOT_ELO_1850: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_1850),
+  BOT_ELO_1900: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_1900),
+  BOT_ELO_1950: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_1950),
+  BOT_ELO_2050: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_2050),
+  BOT_ELO_2150: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_2150),
+  BOT_ELO_2300: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_2300),
+  BOT_ELO_2500: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_2500),
+  BOT_ELO_2750: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_2750),
+  BOT_ELO_3200: defineBotPersona(RAW_BOT_PERSONAS.BOT_ELO_3200)
+};
+
+export type BotPersonaId = keyof typeof BOT_PERSONAS;
+
+export function isBotPersonaId(key: string): key is BotPersonaId {
+  return Object.prototype.hasOwnProperty.call(BOT_PERSONAS, key);
+}
 
 export function convertBotEntityToBotConfig(bot: BotEntity): BotConfig {
   return {
@@ -651,12 +723,16 @@ export function getBotConfig(id: string, customOverrides?: Partial<BotConfig>): 
   let baseKey = id;
   if (id) {
     const match = id.match(/BOT_ELO_\d+/);
-    if (match && BOT_PERSONAS[match[0]]) {
+    if (match && isBotPersonaId(match[0])) {
       baseKey = match[0];
     }
   }
-  const base = BOT_PERSONAS[baseKey] ?? BOT_PERSONAS[id];
-  if (base) {
+  if (isBotPersonaId(baseKey)) {
+    const base = BOT_PERSONAS[baseKey];
+    return customOverrides ? { ...base, ...customOverrides } : { ...base };
+  }
+  if (isBotPersonaId(id)) {
+    const base = BOT_PERSONAS[id];
     return customOverrides ? { ...base, ...customOverrides } : { ...base };
   }
 
@@ -683,7 +759,8 @@ export function getBotConfig(id: string, customOverrides?: Partial<BotConfig>): 
   }
 
   // 4. Fallback an toàn tới Persona cơ sở
-  const defaultPersona = BOT_PERSONAS['BOT_ELO_1000'] ?? BOT_PERSONAS['BOT_ELO_1150'] ?? Object.values(BOT_PERSONAS)[0];
+  console.warn(`[BotFactory] Unknown bot persona ID: "${id}". Falling back to BOT_ELO_1000.`);
+  const defaultPersona = BOT_PERSONAS.BOT_ELO_1000 ?? BOT_PERSONAS.BOT_ELO_1150;
   return customOverrides ? { ...defaultPersona, ...customOverrides } : { ...defaultPersona };
 }
 

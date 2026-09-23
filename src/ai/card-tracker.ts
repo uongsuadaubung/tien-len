@@ -2,6 +2,10 @@ import { Card, Combination, CombinationType, PlayedMove, Rank } from '../engine/
 import { ALL_RANKS, ALL_SUITS, createCard, isRedTwo, isTwo } from '../engine/card';
 import { TwoSafetyReport } from './types';
 
+export const ALL_52_CARDS: readonly Card[] = Object.freeze(
+  ALL_RANKS.flatMap(rank => ALL_SUITS.map(suit => createCard(rank, suit)))
+);
+
 export class CardTracker {
   private memoryDepth: number; // 0.0 -> 1.0
   private playerCount: number = 4;
@@ -96,9 +100,8 @@ export class CardTracker {
 
   public getRemainingTwosCount(): number {
     let count = 0;
-    for (const suit of ALL_SUITS) {
-      const card = createCard(15, suit);
-      if (!this.playedCards.has(card.id) && !this.ownHandCardIds.has(card.id)) {
+    for (const card of ALL_52_CARDS) {
+      if (card.rank === 15 && !this.playedCards.has(card.id) && !this.ownHandCardIds.has(card.id)) {
         count++;
       }
     }
@@ -106,41 +109,20 @@ export class CardTracker {
   }
 
   public getSeenCards(): Card[] {
-    const cards: Card[] = [];
-    for (const rank of ALL_RANKS) {
-      for (const suit of ALL_SUITS) {
-        const card = createCard(rank, suit);
-        if (this.playedCards.has(card.id)) {
-          cards.push(card);
-        }
-      }
-    }
-    return cards;
+    return ALL_52_CARDS.filter(card => this.playedCards.has(card.id));
   }
 
   public getUnseenTwos(): Card[] {
-    const unseen: Card[] = [];
-    for (const suit of ALL_SUITS) {
-      const card = createCard(15, suit);
-      if (!this.playedCards.has(card.id) && !this.ownHandCardIds.has(card.id)) {
-        unseen.push(card);
-      }
-    }
-    return unseen;
+    return ALL_52_CARDS.filter(
+      card => card.rank === 15 && !this.playedCards.has(card.id) && !this.ownHandCardIds.has(card.id)
+    );
   }
 
   public getUnseenCards(myHandCards?: Card[]): Card[] {
-    const unseen: Card[] = [];
     const ownIds = myHandCards ? new Set(myHandCards.map(c => c.id)) : this.ownHandCardIds;
-    for (const rank of ALL_RANKS) {
-      for (const suit of ALL_SUITS) {
-        const card = createCard(rank, suit);
-        if (!this.playedCards.has(card.id) && !ownIds.has(card.id)) {
-          unseen.push(card);
-        }
-      }
-    }
-    return unseen;
+    return ALL_52_CARDS.filter(
+      card => !this.playedCards.has(card.id) && !ownIds.has(card.id)
+    );
   }
 
   public getDangerousFourOfAKindRanks(): Rank[] {
@@ -235,13 +217,10 @@ export class CardTracker {
     }
 
     // Với các lá rác thông thường (3 -> A)
-    for (const rank of ALL_RANKS) {
-      for (const suit of ALL_SUITS) {
-        const otherCard = createCard(rank, suit);
-        if (otherCard.weight > card.weight && !isTwo(otherCard)) {
-          if (!this.playedCards.has(otherCard.id) && !this.ownHandCardIds.has(otherCard.id)) {
-            return false;
-          }
+    for (const otherCard of ALL_52_CARDS) {
+      if (otherCard.weight > card.weight && !isTwo(otherCard)) {
+        if (!this.playedCards.has(otherCard.id) && !this.ownHandCardIds.has(otherCard.id)) {
+          return false;
         }
       }
     }
@@ -309,13 +288,10 @@ export class CardTracker {
       this.rankCountOnBoardAndHand.set(rank, 0);
     }
 
-    for (const rank of ALL_RANKS) {
-      for (const suit of ALL_SUITS) {
-        const card = createCard(rank, suit);
-        if (this.playedCards.has(card.id) || this.ownHandCardIds.has(card.id)) {
-          const current = this.rankCountOnBoardAndHand.get(rank) || 0;
-          this.rankCountOnBoardAndHand.set(rank, current + 1);
-        }
+    for (const card of ALL_52_CARDS) {
+      if (this.playedCards.has(card.id) || this.ownHandCardIds.has(card.id)) {
+        const current = this.rankCountOnBoardAndHand.get(card.rank) || 0;
+        this.rankCountOnBoardAndHand.set(card.rank, current + 1);
       }
     }
   }

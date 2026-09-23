@@ -17,13 +17,20 @@ export class MctsSolver {
     candidateMoves: { cards: Card[]; combination: Combination; isChop: boolean }[],
     tracker: CardTracker,
     remainingPlayerCards: Record<string, number>,
-    simulationsCount: number = 30
+    simulationsCount: number = 30,
+    seed?: number
   ): MctsEvaluation[] {
     if (candidateMoves.length === 0 || simulationsCount <= 0) {
       return [];
     }
 
     const playedCardIds = tracker.getPlayedCardIds();
+    const deterministicSeed = seed ?? (
+      (botHand.reduce((acc, c) => (acc * 31 + c.rank * 4 + (c.suit.charCodeAt(0) || 0)) | 0, 17) ^
+      (playedCardIds.length * 1337) ^
+      (botId.split('').reduce((acc, ch) => (acc * 33 + ch.charCodeAt(0)) | 0, 5381))) >>> 0
+    );
+
     return wasmEvaluateCandidateMovesMcts(
       botId,
       botHand,
@@ -31,7 +38,7 @@ export class MctsSolver {
       playedCardIds,
       remainingPlayerCards,
       simulationsCount,
-      Date.now()
+      deterministicSeed
     );
   }
 }

@@ -75,3 +75,5 @@ export class BotThinkingPhaseStateMachine {
     return activeState.evaluate(context, validMoves);
   }
 }
+
+export const DEFAULT_PHASE_STATE_MACHINE = new BotThinkingPhaseStateMachine();

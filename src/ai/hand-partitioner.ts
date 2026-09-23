@@ -124,13 +124,26 @@ function evaluateCombinationScore(combo: Combination): number {
   return COMBO_BASE_SCORES[combo.type] ?? 0;
 }
 
+const PARTITION_CACHE = new Map<string, HandPartition>();
+const MAX_PARTITION_CACHE_SIZE = 512;
+
+export function clearPartitionCache(): void {
+  PARTITION_CACHE.clear();
+}
+
 /**
- * Phân rã bài tối ưu bằng tìm kiếm vét cạn thông minh
+ * Phân rã bài tối ưu bằng tìm kiếm vét cạn thông minh có Memoization
  */
 export function partitionHand(hand: Card[], optimality: number = 1.0): HandPartition {
   const sorted = sortCards(hand);
   if (sorted.length === 0) {
     return { combinations: [], trashCards: [], totalScore: 0 };
+  }
+
+  const cacheKey = `${sorted.map(c => c.id).join(',')}:${optimality.toFixed(2)}`;
+  const cached = PARTITION_CACHE.get(cacheKey);
+  if (cached) {
+    return cached;
   }
 
   let bestPartition: HandPartition = {
@@ -174,6 +187,14 @@ export function partitionHand(hand: Card[], optimality: number = 1.0): HandParti
   }
 
   search(sorted, [], 0);
+
+  if (PARTITION_CACHE.size >= MAX_PARTITION_CACHE_SIZE) {
+    const keys = Array.from(PARTITION_CACHE.keys());
+    for (let i = 0; i < keys.length / 2; i++) {
+      PARTITION_CACHE.delete(keys[i]);
+    }
+  }
+  PARTITION_CACHE.set(cacheKey, bestPartition);
 
   return bestPartition;
 }
