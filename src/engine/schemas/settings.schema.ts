@@ -130,6 +130,41 @@ export const QuickTableConfigSchema = z.object({
   cascadeChopEnabled: z.boolean().default(true)
 });
 
+export const TableConfigStateSchema = z.object({
+  playerCount: PlayerCountSchema.default(4),
+  mode: GameModeSchema.default('COUNT_CARDS'),
+  betAmount: z.number().nonnegative().default(1000),
+  choppingMultiplier: z.number().min(1).max(5).default(1),
+  congMultiplier: z.number().min(1).max(5).default(1),
+  congEnabled: z.boolean().default(true),
+  prohibitEndingWithTwo: z.boolean().default(true),
+  allowFourPairsCutAnytime: z.boolean().default(true),
+  threeSpadesEndingBonus: z.boolean().default(true),
+  cascadeChopEnabled: z.boolean().default(true),
+  instantWinEnabled: z.boolean().default(true)
+});
+
+export const CustomGameModalConfigSchema = z.object({
+  selectedModeId: z.string().default('COUNT_CARDS'),
+  playerCount: PlayerCountSchema.default(4),
+  choppingMultiplier: z.number().min(1).max(5).default(1),
+  congMultiplier: z.number().min(1).max(5).default(1),
+  congEnabled: z.boolean().default(true),
+  settings: GameSettingsSchema.default({
+    mode: 'COUNT_CARDS',
+    playerCount: 4,
+    betAmount: 1000,
+    allowFourPairsCutAnytime: true,
+    instantWinEnabled: true,
+    soundEnabled: true,
+    prohibitEndingWithTwo: true,
+    threeSpadesEndingBonus: true,
+    cascadeChopEnabled: true
+  }),
+  botPersonaIds: z.tuple([z.string(), z.string(), z.string()]).default(['BOT_ELO_850', 'BOT_ELO_1150', 'BOT_ELO_1750']),
+  customBotConfigs: z.tuple([z.record(z.string(), z.any()), z.record(z.string(), z.any()), z.record(z.string(), z.any())]).default([{}, {}, {}])
+});
+
 export type GameSettlementRule = z.infer<typeof GameSettlementRuleSchema>;
 
 export type SavedSettings = z.infer<typeof SavedSettingsSchema>;
@@ -145,6 +180,8 @@ export type InstantWinRules = z.infer<typeof InstantWinRulesSchema>;
 export type GameFlowRules = z.infer<typeof GameFlowRulesSchema>;
 export type TableRules = z.infer<typeof TableRulesSchema>;
 export type QuickTableConfig = z.infer<typeof QuickTableConfigSchema>;
+export type TableConfigState = z.infer<typeof TableConfigStateSchema>;
+export type CustomGameModalConfig = z.infer<typeof CustomGameModalConfigSchema>;
 
 export type ValidatedSavedSettings = SavedSettings;
 

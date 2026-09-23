@@ -18,19 +18,8 @@ import { MobileVirtualInput } from '../mobile/components/MobileVirtualInput';
 import { useI18n } from '../../locales';
 import { calculateRequiredDeposit, calculateMaxSafeBet, canAffordDeposit } from '../../engine/constants/economy';
 
-export interface TableConfigState {
-  playerCount: PlayerCount;
-  mode: GameMode;
-  betAmount: number;
-  choppingMultiplier: number;
-  congMultiplier: number;
-  congEnabled: boolean;
-  prohibitEndingWithTwo: boolean;
-  allowFourPairsCutAnytime: boolean;
-  threeSpadesEndingBonus: boolean;
-  cascadeChopEnabled: boolean;
-  instantWinEnabled: boolean;
-}
+import type { TableConfigState } from '../../engine/schemas/settings.schema';
+export type { TableConfigState };
 
 export interface TableRulesConfigPanelProps {
   playerCoins: number;

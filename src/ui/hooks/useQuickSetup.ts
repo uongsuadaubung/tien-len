@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { GameSettlementRule } from '../../engine/types';
-import { ECONOMY_CONSTANTS, calculateRequiredDeposit } from '../../engine/constants/economy';
-import { TableConfigState } from '../components/TableRulesConfigPanel';
+import { calculateRequiredDeposit } from '../../engine/constants/economy';
+import { TableConfigState, TableConfigStateSchema } from '../../engine/schemas/settings.schema';
 
 export interface QuickSetupConfig {
   playerCount: 2 | 3 | 4;
@@ -36,24 +36,15 @@ export interface UseQuickSetupReturn {
 }
 
 /**
- * Hàm biên giới (boundary resolver): phân giải cấu hình bàn chơi nhanh, đảm bảo 100% thuộc tính hợp lệ và non-null
+ * Hàm biên giới (boundary resolver): phân giải cấu hình bàn chơi nhanh qua Zod Gatekeeper SSOT
  */
 export function resolveQuickSetupConfig(
   partial: Partial<TableConfigState> | null | undefined
 ): TableConfigState {
-  return {
-    playerCount: partial?.playerCount ?? 4,
-    mode: partial?.mode ?? 'COUNT_CARDS',
-    betAmount: partial?.betAmount ?? ECONOMY_CONSTANTS.DEFAULT_QUICK_BET,
-    choppingMultiplier: partial?.choppingMultiplier ?? 1,
-    congMultiplier: partial?.congMultiplier ?? 1,
-    congEnabled: partial?.congEnabled ?? true,
-    prohibitEndingWithTwo: partial?.prohibitEndingWithTwo ?? true,
-    allowFourPairsCutAnytime: partial?.allowFourPairsCutAnytime ?? true,
-    threeSpadesEndingBonus: partial?.threeSpadesEndingBonus ?? true,
-    cascadeChopEnabled: partial?.cascadeChopEnabled ?? true,
-    instantWinEnabled: partial?.instantWinEnabled ?? true
-  };
+  const clean = partial
+    ? Object.fromEntries(Object.entries(partial).filter(([, v]) => v !== undefined))
+    : {};
+  return TableConfigStateSchema.parse(clean);
 }
 
 /**

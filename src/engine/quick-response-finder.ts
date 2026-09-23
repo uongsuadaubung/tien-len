@@ -11,9 +11,9 @@ export interface QuickSelectContext {
   hand: Card[];
   leadingMove: PlayedMove | null;
   isLeadMove: boolean;
-  isFirstMoveOfGame: boolean | null;
-  allowFourPairsCutAnytime: boolean | null;
-  prohibitEndingWithTwo: boolean | null;
+  isFirstMoveOfGame?: boolean | null;
+  allowFourPairsCutAnytime?: boolean | null;
+  prohibitEndingWithTwo?: boolean | null;
   firstMoveRequiredCard?: Card | null;
 }
 
@@ -22,21 +22,18 @@ export interface QuickSelectContext {
  * và sắp xếp theo thứ tự "Vừa khít nhất" (Tối ưu từ nhỏ đến lớn qua Rust WASM)
  */
 export function getSortedQuickSelectCandidates(context: QuickSelectContext): QuickSelectCandidate[] {
-  const hand = context.hand;
-  const leadingMove = context.leadingMove;
-  const isLeadMove = context.isLeadMove;
-  const isFirstMoveOfGame = context.isFirstMoveOfGame ?? false;
-  const prohibitEndingWithTwo = context.prohibitEndingWithTwo ?? true;
-  const firstMoveRequiredCard = context.firstMoveRequiredCard ?? null;
+  const { hand, leadingMove, isLeadMove, firstMoveRequiredCard } = context;
+  const isFirstMoveOfGame = context.isFirstMoveOfGame === true;
+  const prohibitEndingWithTwo = context.prohibitEndingWithTwo !== false;
 
   if (!hand || hand.length === 0) return [];
 
   return wasmGetSortedQuickSelectCandidates(
     hand,
-    leadingMove?.combination ?? null,
+    leadingMove ? leadingMove.combination : null,
     isLeadMove,
     isFirstMoveOfGame,
-    firstMoveRequiredCard?.id ?? null,
+    firstMoveRequiredCard ? firstMoveRequiredCard.id : null,
     prohibitEndingWithTwo
   );
 }

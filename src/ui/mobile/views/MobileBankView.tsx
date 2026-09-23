@@ -89,7 +89,7 @@ export const MobileBankView: React.FC<MobileBankViewProps> = ({
         </div>
 
         {/* BẢNG HỢP ĐỒNG KHẾ ƯỚC NỢ ĐANG CÓ HIỆU LỰC */}
-        {hasActiveDebt && (
+        {hasActiveDebt && activeLoan && (
           <Card variant="card" className={`p-3.5 space-y-2.5 border-2 ${isLoanOverdue ? 'border-rose-500 bg-rose-950/20' : 'border-amber-500/50 bg-amber-950/10'}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -105,21 +105,21 @@ export const MobileBankView: React.FC<MobileBankViewProps> = ({
               <div className="p-2 rounded-lg bg-[var(--bg-container)] border border-[var(--border-container)]">
                 <div className="text-[10px] text-[var(--text-muted)] font-medium">{t('bank.loanProgressHeader')}</div>
                 <div className="text-xs font-bold text-[var(--text-primary)] mt-0.5">
-                  {t('bank.loanProgress', { current: activeLoan?.matchesPlayed ?? 0, max: activeLoan?.graceMatches ?? 7 })}
+                  {t('bank.loanProgress', { current: activeLoan.matchesPlayed, max: activeLoan.graceMatches })}
                 </div>
               </div>
 
               <div className="p-2 rounded-lg bg-[var(--bg-container)] border border-[var(--border-container)]">
                 <div className="text-[10px] text-[var(--text-muted)] font-medium">{t('bank.loanInterestHeader')}</div>
                 <div className="text-xs font-bold text-amber-400 mt-0.5">
-                  +{activeLoan?.interestPerMatchPercent ?? 3}%
+                  +{activeLoan.interestPerMatchPercent}%
                 </div>
               </div>
 
               <div className="p-2 rounded-lg bg-[var(--bg-container)] border border-[var(--border-container)]">
                 <div className="text-[10px] text-[var(--text-muted)] font-medium">{t('bank.loanGarnishHeader')}</div>
                 <div className="text-xs font-bold text-rose-400 mt-0.5">
-                  {isLoanOverdue ? (activeLoan?.overdueDeductionPercent ?? 65) : (activeLoan?.winDeductionPercent ?? 35)}%
+                  {isLoanOverdue ? activeLoan.overdueDeductionPercent : activeLoan.winDeductionPercent}%
                 </div>
               </div>
             </div>

@@ -49,7 +49,7 @@ export class BotAgent {
       ? options.customConfig
       : getBotConfig(this.personaId, options.customConfig);
     this.transport = options.transport;
-    this.instantDelay = options.instantDelay ?? false;
+    this.instantDelay = options.instantDelay === true;
     this.gameSpeed = options.gameSpeed;
     this.onThinkingChange = options.onThinkingChange;
 
@@ -112,7 +112,7 @@ export class BotAgent {
       }
 
       const isLeadMove = currentMove === null;
-      const isFirstMoveOfGame = sync.isFirstMoveOfGame ?? false;
+      const isFirstMoveOfGame = sync.isFirstMoveOfGame === true;
       const playerIds = Object.keys(sync.remainingCardCounts);
       const myIdx = playerIds.indexOf(this.botId);
       const nextPlayerId = myIdx !== -1 ? playerIds[(myIdx + 1) % playerIds.length] : '';
@@ -178,7 +178,7 @@ export class BotAgent {
       : null;
 
     const isLeadMove = currentMove === null;
-    const isFirstMoveOfGame = sync.isFirstMoveOfGame ?? false;
+    const isFirstMoveOfGame = sync.isFirstMoveOfGame === true;
     const firstMoveRequiredCard = sync.firstMoveRequiredCard 
       ? createCard(sync.firstMoveRequiredCard.rank, sync.firstMoveRequiredCard.suit)
       : null;

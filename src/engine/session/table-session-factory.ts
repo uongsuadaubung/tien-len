@@ -48,8 +48,8 @@ export class TableSessionFactory {
       rules: options.rules,
       players: options.initialPlayers,
       hostPlayerId: options.localPlayerId,
-      enableDealingAnimation: options.enableDealingAnimation ?? true,
-      instantDelay: options.instantDelay ?? false
+      enableDealingAnimation: options.enableDealingAnimation !== false,
+      instantDelay: options.instantDelay === true
     });
     disposables.add({ dispose: () => host.dispose() });
 
@@ -62,9 +62,9 @@ export class TableSessionFactory {
       transport: humanTransports.clientTransport,
       gameRules: options.rules,
       initialPlayers: options.initialPlayers,
-      activeGameType: options.activeGameType ?? 'QUICK',
-      campaignChapter: options.campaignChapter ?? undefined,
-      campaignResultMeta: options.campaignResultMeta ?? null
+      activeGameType: options.activeGameType || 'QUICK',
+      campaignChapter: options.campaignChapter || undefined,
+      campaignResultMeta: options.campaignResultMeta || null
     });
     disposables.add({ dispose: () => clientSession.dispose() });
 

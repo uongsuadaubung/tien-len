@@ -9,19 +9,11 @@ import {
 } from '../../engine/types';
 import { BOT_PERSONAS, getAllBotConfigs, getBotConfig } from '../../ai/bot-factory';
 import { BotConfig } from '../../ai/types';
-import { ECONOMY_CONSTANTS, calculateRequiredDeposit } from '../../engine/constants/economy';
+import { calculateRequiredDeposit } from '../../engine/constants/economy';
 import { TableConfigState } from '../components/TableRulesConfigPanel';
+import type { CustomGameModalConfig } from '../../engine/schemas/settings.schema';
 
-export interface CustomGameModalConfig {
-  selectedModeId: string;
-  settings: GameSettings;
-  botPersonaIds: BotPersonaIdTuple;
-  customBotConfigs: CustomBotConfigTuple<BotConfig>;
-  playerCount: PlayerCount;
-  choppingMultiplier: number;
-  congMultiplier: number;
-  congEnabled: boolean;
-}
+export type { CustomGameModalConfig };
 
 export type CustomGameTabType = 'MODE_RULES' | 'BOT_ROSTER' | 'ADVANCED_AI';
 
@@ -91,38 +83,33 @@ const getSeatLabels = () => [
   t('tableConfig.seatRight')
 ] as const;
 
+import { CustomGameModalConfigSchema } from '../../engine/schemas/settings.schema';
+
 /**
- * Hàm biên giới (boundary resolver): phân giải cấu hình custom game, đảm bảo 100% thuộc tính hợp lệ và non-null
+ * Hàm biên giới (boundary resolver): phân giải cấu hình custom game qua Zod Gatekeeper SSOT
  */
 export function resolveCustomGameConfig(
   partial: Partial<CustomGameModalConfig> | null | undefined,
   playerCoins: number
 ): CustomGameModalConfig {
-  const resolvedPlayerCount = normalizePlayerCount(partial?.playerCount);
+  const clean = partial
+    ? Object.fromEntries(Object.entries(partial).filter(([, v]) => v !== undefined))
+    : {};
+  const parsed = CustomGameModalConfigSchema.parse(clean);
+  const resolvedPlayerCount = normalizePlayerCount(partial?.playerCount ?? parsed.playerCount);
   const initialBet = Math.min(
-    partial?.settings?.betAmount ?? ECONOMY_CONSTANTS.DEFAULT_QUICK_BET,
+    partial?.settings?.betAmount ?? parsed.settings.betAmount,
     Math.max(1, playerCoins)
   );
 
   return {
-    selectedModeId: partial?.selectedModeId ?? 'COUNT_CARDS',
+    ...parsed,
     playerCount: resolvedPlayerCount,
-    choppingMultiplier: partial?.choppingMultiplier ?? 1,
-    congMultiplier: partial?.congMultiplier ?? 1,
-    congEnabled: partial?.congEnabled ?? true,
     settings: {
-      mode: partial?.settings?.mode ?? 'COUNT_CARDS',
-      betAmount: initialBet,
+      ...parsed.settings,
       playerCount: resolvedPlayerCount,
-      allowFourPairsCutAnytime: partial?.settings?.allowFourPairsCutAnytime ?? true,
-      instantWinEnabled: partial?.settings?.instantWinEnabled ?? true,
-      soundEnabled: partial?.settings?.soundEnabled ?? true,
-      prohibitEndingWithTwo: partial?.settings?.prohibitEndingWithTwo ?? true,
-      threeSpadesEndingBonus: partial?.settings?.threeSpadesEndingBonus ?? true,
-      cascadeChopEnabled: partial?.settings?.cascadeChopEnabled ?? true
-    },
-    botPersonaIds: partial?.botPersonaIds ?? ['BOT_ELO_850', 'BOT_ELO_1150', 'BOT_ELO_1750'],
-    customBotConfigs: partial?.customBotConfigs ?? [{}, {}, {}]
+      betAmount: initialBet
+    }
   };
 }
 

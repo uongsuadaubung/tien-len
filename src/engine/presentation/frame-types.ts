@@ -54,7 +54,7 @@ export interface ControlsRenderModel {
   canPlay: boolean;
   canPass: boolean;
   canQuickSelect: boolean;
-  quickSelectCandidatesCount?: number;
+  quickSelectCandidatesCount: number;
   playButtonLabel: string;
 }
 

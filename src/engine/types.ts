@@ -216,9 +216,9 @@ export function createPlayedMove(
       isChop: true,
       choppedPlayerId: chopData.choppedPlayerId,
       penaltyAmount: chopData.penaltyAmount,
-      isCascadeChop: chopData.isCascadeChop ?? false,
-      chopChainCount: chopData.chopChainCount ?? 1,
-      chopChainTotalAmount: chopData.chopChainTotalAmount ?? chopData.penaltyAmount
+      isCascadeChop: chopData.isCascadeChop === true,
+      chopChainCount: typeof chopData.chopChainCount === 'number' ? chopData.chopChainCount : 1,
+      chopChainTotalAmount: typeof chopData.chopChainTotalAmount === 'number' ? chopData.chopChainTotalAmount : chopData.penaltyAmount
     };
   }
   return {

@@ -73,7 +73,7 @@ export const useUserStore = create<UserState>((set) => ({
       ...state.profile,
       coins: state.profile.coins + amount,
       loans: state.profile.loans + amount,
-      activeLoan: activeLoan ?? state.profile.activeLoan ?? null
+      activeLoan: activeLoan !== undefined ? activeLoan : state.profile.activeLoan
     };
     savePlayerProfile(next);
     return { profile: next };

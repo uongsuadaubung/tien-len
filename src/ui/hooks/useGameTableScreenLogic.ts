@@ -196,7 +196,7 @@ export function useGameTableScreenLogic({
   const botThinkingThought = (activeTurn && activeTurn.botThinkingThought) || storeBotThinkingThought || null;
 
   const selectedCards = localPlayer.hand.filter(c => c && selectedCardIds.has(c.id));
-  const quickSelectCandidatesCount = frame.controls.quickSelectCandidatesCount ?? (canQuickSelect ? 1 : 0);
+  const quickSelectCandidatesCount = frame.controls.quickSelectCandidatesCount;
   const quickSelectCandidates: QuickSelectCandidate[] = [];
 
   const activeAiHint = aiHintEnabled ? frame.aiHint : null;

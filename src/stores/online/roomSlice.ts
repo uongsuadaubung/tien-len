@@ -633,8 +633,8 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         appFlowCoordinator.setActiveSession(clientSession);
       }
 
-      const isFirstMoveOfGame = dealPacket.isFirstMoveOfGame ?? false;
-      const isLeadMove = dealPacket.isLeadMove ?? true;
+      const isFirstMoveOfGame = dealPacket.isFirstMoveOfGame === true;
+      const isLeadMove = dealPacket.isLeadMove !== false;
 
       gameStore.setMyPlayerId(myId);
       gameStore.setPlayers(prevPlayers => {
@@ -700,7 +700,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
     globalP2PClient.onTableSync((sync: TableStateSyncPacket) => {
       set({ 
         lastTableSync: sync,
-        reconnectNotice: sync.reconnectNotice ?? null
+        reconnectNotice: sync.reconnectNotice || null
       });
       useGameStore.getState().applyAuthoritativeTableSync(sync);
     });

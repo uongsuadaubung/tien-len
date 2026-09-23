@@ -37,7 +37,7 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
   const { t } = useI18n();
   const actualPlayerCount = Math.min(
     4,
-    Math.max(2, (players && players.length > 0) ? players.length : (playerCount ?? 4))
+    Math.max(2, (players && players.length > 0) ? players.length : playerCount)
   );
   const totalDeckCards = actualPlayerCount * 13;
   const [flyingCards, setFlyingCards] = useState<FlyingCard[]>([]);

@@ -155,14 +155,11 @@ export function wasmIdentifyCombination(cards: readonly Card[]): Combination | n
 }
 
 function serializeCombination(c: Combination): string {
-  const cards = c.cards ?? [];
-  const highestCard = c.highestCard ?? (cards.length > 0 ? cards[cards.length - 1] : undefined);
-  const length = c.length ?? cards.length;
   return safeWasmJsonStringify({
     type: c.type,
-    length,
-    cards,
-    highestCard
+    length: c.length,
+    cards: c.cards,
+    highestCard: c.highestCard
   });
 }
 

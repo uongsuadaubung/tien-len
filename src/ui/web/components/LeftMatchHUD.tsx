@@ -115,7 +115,7 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
                   ? (isBotConfig(p.customBotConfig) ? p.customBotConfig : getBotConfig(p.botPersonaId, p.customBotConfig)) 
                   : null;
                 const liveBot = p.isBot ? ecosystemBots.find(b => b.id === p.botPersonaId || b.id === p.id || b.name === p.name) : null;
-                const displayElo = isMe ? profileElo : (liveBot?.elo ?? cfg?.elo ?? 1000);
+                const displayElo = isMe ? profileElo : (liveBot ? liveBot.elo : (cfg ? cfg.elo : 1000));
 
                 return (
                   <tr

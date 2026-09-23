@@ -170,7 +170,7 @@ export function useBank(): UseBankResult {
     remainingReliefCount,
     reliefThreshold: RELIEF_THRESHOLD,
     loanPackages: ECONOMY_CONSTANTS.LOAN_PACKAGES,
-    activeLoan: profile.activeLoan ?? null,
+    activeLoan: profile.activeLoan,
     isLoanOverdue,
     hasActiveDebt,
     handleClaimRelief,

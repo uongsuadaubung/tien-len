@@ -121,10 +121,10 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   autoSortEnabled: initial.autoSortEnabled,
   aiHintEnabled: initial.aiHintEnabled,
   quickResponseAssistEnabled: initial.quickResponseAssistEnabled,
-  reverseButtonsEnabled: initial.reverseButtonsEnabled ?? false,
+  reverseButtonsEnabled: initial.reverseButtonsEnabled,
   xrayEnabled: initial.xrayEnabled,
   botReasoningLogEnabled: initial.botReasoningLogEnabled,
-  onlineMultiplayerBetaEnabled: initial.onlineMultiplayerBetaEnabled ?? false,
+  onlineMultiplayerBetaEnabled: initial.onlineMultiplayerBetaEnabled,
   gameSpeed: initial.gameSpeed,
   githubToken: initial.githubToken,
   gistId: initial.gistId,
@@ -132,7 +132,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   lastSyncedHash: initial.lastSyncedHash,
   cachedGithubUser: initial.cachedGithubUser,
   autoBackupOnMatchEnd: initial.autoBackupOnMatchEnd,
-  autoBackupInterval: initial.autoBackupInterval || 5,
+  autoBackupInterval: initial.autoBackupInterval,
   autoSyncOnStartup: initial.autoSyncOnStartup,
 
   hydrateSettings: (settings) => set((state) => {
