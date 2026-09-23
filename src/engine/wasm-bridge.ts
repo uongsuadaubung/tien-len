@@ -26,13 +26,15 @@ import __wbg_init, {
   wasm_simulate_match_series,
   wasm_check_instant_win,
   wasm_simulate_single_table,
-  wasm_simulate_tables_batch
+  wasm_simulate_tables_batch,
+  wasm_partition_hand
 } from './wasm/pkg/tien_len_core.js';
 import type { Card, Combination, MatchPlayer, GameRules, InstantWinType } from './types';
 import type { MatchState } from './state-machine/types';
 import type { SmartCardGroup } from './hand-sorter';
 import type { TableGroup, SimulatedTableResult, BotEntity, EcosystemNewsItem } from './ecosystem/ecosystem-types';
 import type { EloPerformanceMetrics, EloDeltaResult } from './elo';
+import type { HandPartition } from '../ai/types';
 
 let isInitialized = false;
 let initPromise: Promise<void> | null = null;
@@ -609,5 +611,11 @@ export function wasmSimulateTablesBatch(
   return JSON.parse(json);
 }
 
-
-
+export function wasmPartitionHand(
+  cards: readonly Card[],
+  optimality: number = 1.0
+): HandPartition {
+  ensureWasmReady();
+  const json = wasm_partition_hand(safeWasmJsonStringify(cards), optimality);
+  return JSON.parse(json);
+}

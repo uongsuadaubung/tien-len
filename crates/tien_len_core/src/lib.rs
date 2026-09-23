@@ -30,4 +30,5 @@ pub use engine::{
 };
 pub use hand_sorter::{
     cycle_hand_groupings, get_available_smart_variants, sort_smart_groups, SmartCardGroup,
+    partition_hand, HandPartition,
 };

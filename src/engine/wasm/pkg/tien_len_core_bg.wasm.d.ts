@@ -20,6 +20,7 @@ export const wasm_get_available_smart_variants: (a: number, b: number, c: number
 export const wasm_get_optimal_move_hint: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => void;
 export const wasm_get_sorted_quick_select_candidates: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => void;
 export const wasm_identify_combination: (a: number, b: number, c: number) => void;
+export const wasm_partition_hand: (a: number, b: number, c: number, d: number) => void;
 export const wasm_pass_turn: (a: number, b: number, c: number, d: number, e: number) => void;
 export const wasm_play_move: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;
 export const wasm_simulate_match_series: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;

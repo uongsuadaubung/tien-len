@@ -39,6 +39,8 @@ export function wasm_get_sorted_quick_select_candidates(hand_json: string, targe
 
 export function wasm_identify_combination(cards_json: string): string;
 
+export function wasm_partition_hand(cards_json: string, optimality: number): string;
+
 export function wasm_pass_turn(state_json: string, player_id: string): string;
 
 export function wasm_play_move(state_json: string, player_id: string, card_ids_json: string, timestamp: number): string;
@@ -78,6 +80,7 @@ export interface InitOutput {
     readonly wasm_get_optimal_move_hint: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => void;
     readonly wasm_get_sorted_quick_select_candidates: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number, j: number) => void;
     readonly wasm_identify_combination: (a: number, b: number, c: number) => void;
+    readonly wasm_partition_hand: (a: number, b: number, c: number, d: number) => void;
     readonly wasm_pass_turn: (a: number, b: number, c: number, d: number, e: number) => void;
     readonly wasm_play_move: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;
     readonly wasm_simulate_match_series: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number) => void;
