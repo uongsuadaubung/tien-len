@@ -72,8 +72,8 @@ export function useQuickSetup({
 
   const depositRequired = calculateRequiredDeposit(
     config.betAmount,
-    config.congMultiplier ?? 1,
-    config.congEnabled ?? true
+    config.congMultiplier,
+    config.congEnabled
   );
   const isInsufficientCoins = playerCoins < config.betAmount;
   const actualDeposit = Math.min(playerCoins, depositRequired);

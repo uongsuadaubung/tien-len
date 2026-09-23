@@ -776,8 +776,8 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         winners: winningPlayers,
         allPlayers: updatedPlayers,
         betAmount: get().roomState?.betAmount ?? gameStore.gameRules.table.betAmount,
-        isThreeSpadesWin: endPacket.isThreeSpadesWin ?? false,
-        instantWinType: endPacket.instantWinType ?? null,
+        isThreeSpadesWin: endPacket.isThreeSpadesWin,
+        instantWinType: endPacket.instantWinType,
         heldDeposit: 0,
         congsGivenCount,
         activeGameType: 'ONLINE'
@@ -791,9 +791,9 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         eloDeltas: endPacket.eloDeltas,
         subjectEloDelta: myEloDelta,
         subjectEloBreakdown: null,
-        loanDeduction: endPacket.loanDeduction ?? 0,
-        isThreeSpadesWin: endPacket.isThreeSpadesWin ?? false,
-        instantWinType: endPacket.instantWinType ?? null,
+        loanDeduction: endPacket.loanDeduction,
+        isThreeSpadesWin: endPacket.isThreeSpadesWin,
+        instantWinType: endPacket.instantWinType,
         activeGameType: 'ONLINE',
         betAmount: get().roomState?.betAmount ?? gameStore.gameRules.table.betAmount,
         subjectCoins: updatedProfile.coins

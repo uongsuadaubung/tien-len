@@ -52,7 +52,7 @@ export const useUserStore = create<UserState>((set) => ({
       coins: state.profile.coins + amount,
       stats: {
         ...prevStats,
-        totalEarned: (prevStats.totalEarned || 0) + Math.max(0, amount)
+        totalEarned: prevStats.totalEarned + Math.max(0, amount)
       }
     };
     savePlayerProfile(next);
@@ -81,7 +81,7 @@ export const useUserStore = create<UserState>((set) => ({
     const next: PlayerProfile = {
       ...state.profile,
       coins: state.profile.coins + amount,
-      loans: (state.profile.loans || 0) + amount,
+      loans: state.profile.loans + amount,
       activeLoan: activeLoan ?? state.profile.activeLoan ?? null
     };
     savePlayerProfile(next);
@@ -89,8 +89,8 @@ export const useUserStore = create<UserState>((set) => ({
   }),
 
   repayLoan: (amount) => set((state) => {
-    const pay = Math.min(amount, state.profile.loans || 0);
-    const remainingLoans = Math.max(0, (state.profile.loans || 0) - pay);
+    const pay = Math.min(amount, state.profile.loans);
+    const remainingLoans = Math.max(0, state.profile.loans - pay);
     const next: PlayerProfile = {
       ...state.profile,
       coins: Math.max(0, state.profile.coins - pay),
@@ -105,7 +105,7 @@ export const useUserStore = create<UserState>((set) => ({
     const next: PlayerProfile = {
       ...state.profile,
       coins: state.profile.coins + amount,
-      dailyReliefClaimedCount: (state.profile.dailyReliefClaimedCount || 0) + 1
+      dailyReliefClaimedCount: state.profile.dailyReliefClaimedCount + 1
     };
     savePlayerProfile(next);
     return { profile: next };

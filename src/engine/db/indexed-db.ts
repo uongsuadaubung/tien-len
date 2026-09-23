@@ -398,10 +398,10 @@ export async function dbGetPlayerProfile(id?: string): Promise<PlayerProfile | n
   let bestCandidate = humanCandidates[0];
   if (humanCandidates.length > 1) {
     const calculateScore = (rec: PlayerRecord): number => {
-      const games = rec.stats?.gamesPlayed || 0;
-      const wins = rec.stats?.wins || 0;
-      const coins = rec.coins || 0;
-      const elo = rec.elo || 1000;
+      const games = rec.stats.gamesPlayed;
+      const wins = rec.stats.wins;
+      const coins = rec.coins;
+      const elo = rec.elo;
       // Người chơi chính chủ có số xu lớn hoặc số trận nhiều sẽ có điểm ưu tiên vượt trội
       return (games * 100_000_000) + (wins * 10_000_000) + coins + elo;
     };

@@ -310,7 +310,7 @@ export class ChoppingRuleStrategy implements RuleStrategyEvaluator {
       if (this.config.cascadeMultiplier && targetMove && targetMove.combination.cards.some(isTwo) && context?.tracker) {
         const twoSafety = context.tracker.getTwoSafetyReport();
         if (twoSafety.riskScore > 60) {
-          bonus -= (twoSafety.riskScore - 50) * (1 - (context.riskAppetite || 0.5)) * 0.8;
+          bonus -= (twoSafety.riskScore - 50) * (1 - context.riskAppetite) * 0.8;
         }
       }
     }
@@ -501,7 +501,7 @@ export class GameFlowRuleStrategy implements RuleStrategyEvaluator {
     // Bot tăng cường tính cảnh giác không cho đối thủ về bài dễ dàng
     const isOpponentOneCard = Object.values(context.remainingPlayerCards).some(c => c === 1);
     if (isOpponentOneCard && !context.isFirstMoveOfGame) {
-      return 40 * (context.antiLeaderAggression || 0.8);
+      return 40 * context.antiLeaderAggression;
     }
     return 0;
   }
@@ -533,7 +533,7 @@ export class TableScaleRuleStrategy implements RuleStrategyEvaluator {
     _targetMove: PlayedMove | null,
     context: RuleDecisionContext
   ): number {
-    const aggression = context.antiLeaderAggression || 0.8;
+    const aggression = context.antiLeaderAggression;
     if (this.config.playerCount === 2) {
       // Trong Solo 1v1: Đè bài thành công là 100% cướp được cái -> Thưởng nhịp độ (+90)
       // NHƯNG: Tuyệt đối KHÔNG thưởng cướp cái khi nước đi này xé nát combo (đôi, sám, sảnh, hàng) của chính mình

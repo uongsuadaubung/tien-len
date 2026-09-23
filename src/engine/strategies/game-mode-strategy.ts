@@ -354,7 +354,7 @@ export class TraditionalModeStrategy implements GameModeStrategy {
 
   setupMatch(context: MatchSetupContext): MatchSetupResult {
     const { rules, settings } = resolveMatchRulesAndSettings('TRADITIONAL', context);
-    const defaultBots = matchmakeRankedOpponents(context.profile?.elo ?? 1000);
+    const defaultBots = matchmakeRankedOpponents(context.profile.elo);
     return createMatchSetupResult(context, rules, settings, defaultBots);
   }
 
@@ -400,7 +400,7 @@ export class CountCardsModeStrategy implements GameModeStrategy {
 
   setupMatch(context: MatchSetupContext): MatchSetupResult {
     const { rules, settings } = resolveMatchRulesAndSettings('COUNT_CARDS', context);
-    const defaultBots = matchmakeRankedOpponents(context.profile?.elo ?? 1000);
+    const defaultBots = matchmakeRankedOpponents(context.profile.elo);
     return createMatchSetupResult(context, rules, settings, defaultBots);
   }
 
@@ -527,7 +527,7 @@ export class WinnerTakesAllModeStrategy implements GameModeStrategy {
 
   setupMatch(context: MatchSetupContext): MatchSetupResult {
     const { rules, settings } = resolveMatchRulesAndSettings('WINNER_TAKES_ALL', context);
-    const defaultBots = matchmakeRankedOpponents(context.profile?.elo ?? 1000);
+    const defaultBots = matchmakeRankedOpponents(context.profile.elo);
     return createMatchSetupResult(context, rules, settings, defaultBots);
   }
 

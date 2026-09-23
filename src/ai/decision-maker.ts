@@ -96,8 +96,8 @@ export function makeBotDecision(rawContext: DecisionContext | (BaseDecisionConte
 
   const isProhibitEndingWithTwo = context.prohibitEndingWithTwo !== undefined
     ? context.prohibitEndingWithTwo
-    : (context.rules ? (activeRules.gameFlow.prohibitEndingWithTwo ?? false) : false);
-  const allowFourPairsCutAnytime = activeRules.chopping.allowFourPairsCutAnytime ?? true;
+    : activeRules.gameFlow.prohibitEndingWithTwo;
+  const allowFourPairsCutAnytime = activeRules.chopping.allowFourPairsCutAnytime;
 
   // 2. Sinh danh sách nước đi hợp lệ
   const candidateMoveCards = generateCandidateMoves(hand);

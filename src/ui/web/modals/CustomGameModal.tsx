@@ -244,9 +244,9 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
                         {persona?.avatar}
                       </div>
                       <div>
-                        <div className="text-xs font-bold text-[var(--text-primary)]">{persona?.name}</div>
-                        <div className="text-[11px] text-[var(--color-gold)] font-bold">{persona?.elo || 1150} Elo</div>
-                        <div className="text-[10px] text-[var(--text-muted)] line-clamp-1">{persona?.description}</div>
+                        <div className="text-xs font-bold text-[var(--text-primary)]">{persona.name}</div>
+                        <div className="text-[11px] text-[var(--color-gold)] font-bold">{persona.elo} Elo</div>
+                        <div className="text-[10px] text-[var(--text-muted)] line-clamp-1">{persona.description}</div>
                       </div>
                     </div>
                   </div>
@@ -322,14 +322,14 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
             <Card variant="nested" className="p-3.5 space-y-2">
               <div className="flex justify-between text-xs">
                 <span className="font-semibold text-[var(--text-primary)]">{t('customGame.simulationsDepth')}</span>
-                <span className="font-mono text-[var(--color-gold)] font-bold">{currentConfig.mctsSimulations || 0} {t('customGame.simulationsUnit')}</span>
+                <span className="font-mono text-[var(--color-gold)] font-bold">{currentConfig.mctsSimulations} {t('customGame.simulationsUnit')}</span>
               </div>
               <input
                 type="range"
                 min={0}
                 max={100}
                 step={5}
-                value={currentConfig.mctsSimulations || 0}
+                value={currentConfig.mctsSimulations}
                 onChange={(e) => handleConfigChange('mctsSimulations', parseInt(e.target.value, 10))}
                 className="w-full accent-[var(--color-gold)] cursor-pointer"
               />
@@ -340,14 +340,14 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
             <Card variant="nested" className="p-3.5 space-y-2">
               <div className="flex justify-between text-xs">
                 <span className="font-semibold text-[var(--text-primary)]">{t('customGame.memoryDepth')}</span>
-                <span className="font-mono text-[var(--color-gold)] font-bold">{Math.round((currentConfig.memoryDepth || 0) * 100)}%</span>
+                <span className="font-mono text-[var(--color-gold)] font-bold">{Math.round(currentConfig.memoryDepth * 100)}%</span>
               </div>
               <input
                 type="range"
                 min={0}
                 max={1}
                 step={0.05}
-                value={currentConfig.memoryDepth || 0}
+                value={currentConfig.memoryDepth}
                 onChange={(e) => handleConfigChange('memoryDepth', parseFloat(e.target.value))}
                 className="w-full accent-[var(--color-gold)] cursor-pointer"
               />
@@ -358,14 +358,14 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
             <Card variant="nested" className="p-3.5 space-y-2">
               <div className="flex justify-between text-xs">
                 <span className="font-semibold text-[var(--text-primary)]">{t('customGame.tempoControl')}</span>
-                <span className="font-mono text-[var(--color-gold)] font-bold">{Math.round((currentConfig.tempoControl || 0) * 100)}%</span>
+                <span className="font-mono text-[var(--color-gold)] font-bold">{Math.round(currentConfig.tempoControl * 100)}%</span>
               </div>
               <input
                 type="range"
                 min={0}
                 max={1}
                 step={0.05}
-                value={currentConfig.tempoControl || 0}
+                value={currentConfig.tempoControl}
                 onChange={(e) => handleConfigChange('tempoControl', parseFloat(e.target.value))}
                 className="w-full accent-[var(--color-gold)] cursor-pointer"
               />
@@ -376,14 +376,14 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
             <Card variant="nested" className="p-3.5 space-y-2">
               <div className="flex justify-between text-xs">
                 <span className="font-semibold text-[var(--text-primary)]">{t('customGame.baitingTendency')}</span>
-                <span className="font-mono text-[var(--color-gold)] font-bold">{Math.round((currentConfig.baitingTendency || 0) * 100)}%</span>
+                <span className="font-mono text-[var(--color-gold)] font-bold">{Math.round(currentConfig.baitingTendency * 100)}%</span>
               </div>
               <input
                 type="range"
                 min={0}
                 max={1}
                 step={0.05}
-                value={currentConfig.baitingTendency || 0}
+                value={currentConfig.baitingTendency}
                 onChange={(e) => handleConfigChange('baitingTendency', parseFloat(e.target.value))}
                 className="w-full accent-[var(--color-gold)] cursor-pointer"
               />
@@ -394,14 +394,14 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
             <Card variant="nested" className="p-3.5 space-y-2">
               <div className="flex justify-between text-xs">
                 <span className="font-semibold text-[var(--text-primary)]">{t('customGame.damageControl')}</span>
-                <span className="font-mono text-[var(--color-gold)] font-bold">{Math.round((currentConfig.damageControl || 0) * 100)}%</span>
+                <span className="font-mono text-[var(--color-gold)] font-bold">{Math.round(currentConfig.damageControl * 100)}%</span>
               </div>
               <input
                 type="range"
                 min={0}
                 max={1}
                 step={0.05}
-                value={currentConfig.damageControl || 0}
+                value={currentConfig.damageControl}
                 onChange={(e) => handleConfigChange('damageControl', parseFloat(e.target.value))}
                 className="w-full accent-[var(--color-gold)] cursor-pointer"
               />
@@ -412,14 +412,14 @@ export const CustomGameModal: React.FC<CustomGameModalProps> = ({
             <Card variant="nested" className="p-3.5 space-y-2">
               <div className="flex justify-between text-xs">
                 <span className="font-semibold text-[var(--text-primary)]">{t('customGame.antiLeaderAggression')}</span>
-                <span className="font-mono text-[var(--color-gold)] font-bold">{Math.round((currentConfig.antiLeaderAggression || 0) * 100)}%</span>
+                <span className="font-mono text-[var(--color-gold)] font-bold">{Math.round(currentConfig.antiLeaderAggression * 100)}%</span>
               </div>
               <input
                 type="range"
                 min={0}
                 max={1}
                 step={0.05}
-                value={currentConfig.antiLeaderAggression || 0}
+                value={currentConfig.antiLeaderAggression}
                 onChange={(e) => handleConfigChange('antiLeaderAggression', parseFloat(e.target.value))}
                 className="w-full accent-[var(--color-gold)] cursor-pointer"
               />

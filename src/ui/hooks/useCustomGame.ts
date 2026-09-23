@@ -148,9 +148,9 @@ export function useCustomGame({
   const [botPersonaIds, setBotPersonaIds] = useState<BotPersonaIdTuple>(initialResolved.botPersonaIds);
   const [customBotConfigs, setCustomBotConfigs] = useState<CustomBotConfigTuple<BotConfig>>(initialResolved.customBotConfigs);
 
-  const [choppingMultiplier, setChoppingMultiplier] = useState<number>(initialResolved.choppingMultiplier ?? 1);
-  const [congMultiplier, setCongMultiplier] = useState<number>(initialResolved.congMultiplier ?? 1);
-  const [congEnabled, setCongEnabled] = useState<boolean>(initialResolved.congEnabled ?? true);
+  const [choppingMultiplier, setChoppingMultiplier] = useState<number>(initialResolved.choppingMultiplier);
+  const [congMultiplier, setCongMultiplier] = useState<number>(initialResolved.congMultiplier);
+  const [congEnabled, setCongEnabled] = useState<boolean>(initialResolved.congEnabled);
 
   const [activeTab, setActiveTab] = useState<CustomGameTabType>('MODE_RULES');
   const [activeBotSeatIndex, setActiveBotSeatIndex] = useState<number>(0);

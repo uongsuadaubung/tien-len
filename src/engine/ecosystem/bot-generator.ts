@@ -24,30 +24,30 @@ function applyJitter(baseValue: number, jitterRate: number = ECOSYSTEM_CONSTANTS
 /**
  * Sinh các nhãn phong cách chơi (Personality Tags) dựa trên chỉ số nổi bật của bot
  */
-export function generatePersonalityTags(config: Partial<BotConfig>): string[] {
+export function generatePersonalityTags(config: Pick<BotConfig, 'trapTendency' | 'baitingTendency' | 'memoryDepth' | 'riskAppetite' | 'damageControl' | 'turnsToWinLookahead' | 'positionalAwareness' | 'bombInferenceRate'>): string[] {
   const tags: string[] = [];
 
-  if ((config.trapTendency ?? 0) >= 0.55 || (config.baitingTendency ?? 0) >= 0.6) {
+  if (config.trapTendency >= 0.55 || config.baitingTendency >= 0.6) {
     tags.push('Thích Chặt Heo');
   }
-  if ((config.memoryDepth ?? 0) >= 0.75) {
+  if (config.memoryDepth >= 0.75) {
     tags.push('Đếm Bài Thần Sầu');
   }
-  if ((config.riskAppetite ?? 0) >= 0.8) {
+  if (config.riskAppetite >= 0.8) {
     tags.push('Hổ Báo Liều Lĩnh');
-  } else if ((config.riskAppetite ?? 0) <= 0.45) {
+  } else if (config.riskAppetite <= 0.45) {
     tags.push('Chắc Tay Phòng Thủ');
   }
-  if ((config.damageControl ?? 0) >= 0.75) {
+  if (config.damageControl >= 0.75) {
     tags.push('Cắt Lỗ Tinh Quái');
   }
-  if ((config.turnsToWinLookahead ?? 0) >= 0.8) {
+  if (config.turnsToWinLookahead >= 0.8) {
     tags.push('Dứt Điểm Chuẩn Xác');
   }
-  if ((config.positionalAwareness ?? 0) >= 0.75) {
+  if (config.positionalAwareness >= 0.75) {
     tags.push('Đì Nhà Dưới');
   }
-  if ((config.bombInferenceRate ?? 0) >= 0.7) {
+  if (config.bombInferenceRate >= 0.7) {
     tags.push('Khứu Giác Bắt Bài');
   }
 
@@ -139,17 +139,17 @@ export function createBotEntityFromDNA(
   const riskAppetite = applyJitter(basePersona.riskAppetite, 0.1, 0.1, 0.95);
   const trapTendency = applyJitter(basePersona.trapTendency, 0.1, 0.05, 0.95);
   const baitingTendency = applyJitter(basePersona.baitingTendency, 0.1, 0.05, 0.95);
-  const antiLeaderAggression = applyJitter(basePersona.antiLeaderAggression ?? 0.88, 0.05, 0.8, 1.0);
-  const tempoControl = applyJitter(basePersona.tempoControl ?? 0.5, 0.08, 0.1, 0.95);
+  const antiLeaderAggression = applyJitter(basePersona.antiLeaderAggression, 0.05, 0.8, 1.0);
+  const tempoControl = applyJitter(basePersona.tempoControl, 0.08, 0.1, 0.95);
   const damageControl = applyJitter(basePersona.damageControl, 0.1, 0.1, 0.95);
   const turnsToWinLookahead = applyJitter(basePersona.turnsToWinLookahead, 0.08, 0.1, 0.95);
-  const dynamicHandSacrifice = applyJitter(basePersona.dynamicHandSacrifice ?? 0.5, 0.08, 0.1, 0.95);
+  const dynamicHandSacrifice = applyJitter(basePersona.dynamicHandSacrifice, 0.08, 0.1, 0.95);
   const bombInferenceRate = applyJitter(basePersona.bombInferenceRate, 0.1, 0.05, 0.95);
-  const semiCooperativeCooperation = applyJitter(basePersona.semiCooperativeCooperation ?? 0.5, 0.08, 0.1, 0.95);
+  const semiCooperativeCooperation = applyJitter(basePersona.semiCooperativeCooperation, 0.08, 0.1, 0.95);
   const positionalAwareness = applyJitter(basePersona.positionalAwareness, 0.1, 0.1, 0.95);
-  const inMatchAdaptationRate = applyJitter(basePersona.inMatchAdaptationRate ?? 0.5, 0.08, 0.1, 0.95);
-  const handPartitioningOptimality = applyJitter(basePersona.handPartitioningOptimality ?? 0.6, 0.05, 0.5, 1.0);
-  const simulationLookahead = basePersona.simulationLookahead ?? (tierNum >= 5 ? 2 : 1);
+  const inMatchAdaptationRate = applyJitter(basePersona.inMatchAdaptationRate, 0.08, 0.1, 0.95);
+  const handPartitioningOptimality = applyJitter(basePersona.handPartitioningOptimality, 0.05, 0.5, 1.0);
+  const simulationLookahead = basePersona.simulationLookahead;
 
   const personalityTags = generatePersonalityTags({
     trapTendency,
@@ -170,7 +170,7 @@ export function createBotEntityFromDNA(
     dnaTier: tierNum,
     name,
     avatar,
-    description: basePersona.description || 'Cao thủ sới bạc',
+    description: basePersona.description,
     elo,
     memoryDepth,
     riskAppetite,
@@ -187,10 +187,10 @@ export function createBotEntityFromDNA(
     inMatchAdaptationRate,
     handPartitioningOptimality,
     simulationLookahead,
-    mctsSimulations: basePersona.mctsSimulations || 0,
-    useMinimaxEndgame: basePersona.useMinimaxEndgame || tierNum >= 5,
-    useBayesianInference: basePersona.useBayesianInference || tierNum >= 5,
-    useDynamicRepartitioning: basePersona.useDynamicRepartitioning || tierNum >= 4,
+    mctsSimulations: basePersona.mctsSimulations,
+    useMinimaxEndgame: basePersona.useMinimaxEndgame,
+    useBayesianInference: basePersona.useBayesianInference,
+    useDynamicRepartitioning: basePersona.useDynamicRepartitioning,
     coins,
     currentStreak: 0,
     highestStreak: 0,

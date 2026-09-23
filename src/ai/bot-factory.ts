@@ -834,7 +834,7 @@ export function getRandomBotConfigsForTable(
  * Sinh số tiền vốn (Bankroll) khởi điểm tự nhiên, sống động cho Bot
  * dựa trên Bậc Elo, tính cách (Risk Appetite) và Mức cược bàn chơi
  */
-export function generateRealisticBotBankroll(config: BotConfig, betAmount: number = 100): number {
+export function generateRealisticBotBankroll(config: { elo: number; riskAppetite?: number }, betAmount: number = 100): number {
   const elo = config.elo;
   const effectiveBet = Math.max(50, betAmount);
 

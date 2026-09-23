@@ -492,13 +492,13 @@ export class AuthoritativeMatchHost {
 
         const endPacket: GameEndPacket = {
           winners: this.engine.winners.map(w => w.id),
-          payouts: settlementResult?.payouts ?? {},
-          eloDeltas: settlementResult?.eloDeltas ?? {},
+          payouts: settlementResult.payouts,
+          eloDeltas: settlementResult.allEloDeltas,
           playerScores,
           allPlayerHands,
-          isThreeSpadesWin: this.engine.isThreeSpadesWin ?? false,
+          isThreeSpadesWin: this.engine.isThreeSpadesWin,
           instantWinType: this.instantWinType ?? null,
-          loanDeduction: settlementResult?.loanDeduction ?? 0
+          loanDeduction: settlementResult.loanDeduction
         };
 
         const hostEndMsg: HostToClientPacket = {
@@ -763,8 +763,8 @@ export class AuthoritativeMatchHost {
       nextPlayerId,
       isNextPlayerOneCard,
       this.engine.rules.gameFlow.prohibitEndingWithTwo,
-      undefined,
-      undefined,
+      this.engine.rules.settlementRule,
+      this.engine.rules,
       player.hasPlayedFirstCard,
       playerId
     );

@@ -68,14 +68,14 @@ export function hasProgress(save: TienLenSaveData | null | undefined): boolean {
   const p = save.profile;
 
   const hasName = Boolean(p.name && p.name.trim().length > 0);
-  const hasGames = (p.stats?.gamesPlayed || 0) > 0;
-  const hasWins = (p.stats?.wins || 0) > 0;
-  const hasEarnings = (p.stats?.totalEarned || 0) > 0;
-  const hasCampaignProgress = (p.campaignUnlockedChapter || 1) > 1;
-  const hasEloChanged = (p.elo || ECONOMY_CONSTANTS.DEFAULT_STARTING_ELO) !== ECONOMY_CONSTANTS.DEFAULT_STARTING_ELO;
-  const hasCoinsChanged = (p.coins || ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS) !== ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS;
-  const hasCompletedAchievements = (p.achievements || []).some((a) => a.isCompleted || a.isClaimed);
-  const hasCustomBots = Boolean(save.bots && save.bots.length > 0 && save.bots.some((b) => (b.stats?.gamesPlayed || 0) > 0));
+  const hasGames = p.stats.gamesPlayed > 0;
+  const hasWins = p.stats.wins > 0;
+  const hasEarnings = p.stats.totalEarned > 0;
+  const hasCampaignProgress = p.campaignUnlockedChapter > 1;
+  const hasEloChanged = p.elo !== ECONOMY_CONSTANTS.DEFAULT_STARTING_ELO;
+  const hasCoinsChanged = p.coins !== ECONOMY_CONSTANTS.DEFAULT_STARTING_COINS;
+  const hasCompletedAchievements = p.achievements.some((a) => a.isCompleted || a.isClaimed);
+  const hasCustomBots = Boolean(save.bots && save.bots.length > 0 && save.bots.some((b) => b.stats.gamesPlayed > 0));
 
   return (
     hasName ||

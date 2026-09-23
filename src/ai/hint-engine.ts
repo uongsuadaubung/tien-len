@@ -480,7 +480,7 @@ export interface SelectionFeedbackContext {
   isLeadMove: boolean;
   tracker: CardTracker;
   optimalHint: MoveHint | null;
-  prohibitEndingWithTwo: boolean | null;
+  prohibitEndingWithTwo: boolean;
 }
 
 /**
@@ -656,7 +656,7 @@ export function evaluateSelectionFeedback(context: SelectionFeedbackContext): Mo
   const firstMoveRequiredCard = context.firstMoveRequiredCard;
   const isLeadMove = context.isLeadMove;
   const tracker = context.tracker;
-  const prohibitEndingWithTwo = context.prohibitEndingWithTwo ?? true;
+  const prohibitEndingWithTwo = context.prohibitEndingWithTwo;
 
   if (!selectedCards || selectedCards.length === 0) return null;
 

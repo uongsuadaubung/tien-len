@@ -76,7 +76,7 @@ export const TableRulesConfigPanel: React.FC<TableRulesConfigPanelProps> = ({
 
   // Tính toán tiền cọc an toàn
   const currentMultiplier = config.choppingMultiplier;
-  const currentCongMultiplier = config.congMultiplier ?? 1;
+  const currentCongMultiplier = config.congMultiplier;
   const isCongEnabled = config.congEnabled;
   const isProhibitEndingWithTwo = config.prohibitEndingWithTwo;
   const isAllowFourPairsCutAnytime = config.allowFourPairsCutAnytime;
