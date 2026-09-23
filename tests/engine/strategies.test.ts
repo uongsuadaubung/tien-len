@@ -254,6 +254,7 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       createPlayer({
         avatar: '🤖',
         isBot: p.id !== 'p0',
+        botPersonaId: p.id !== 'p0' ? 'BOT_ELO_1150' : undefined,
         score: 10000,
         hasPlayedFirstCard: true,
         ...p

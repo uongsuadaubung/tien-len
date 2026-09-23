@@ -594,25 +594,26 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       }
     });
 
-    // Client lắng nghe gói tin chia 13 lá riêng tư
-    globalP2PClient.onDealHand((dealPacket: DealHandPacket) => {
+    globalP2PClient.onDealHand((dealPacket: DealHandPacket, senderPeerId?: string) => {
       const gameStore = useGameStore.getState();
       const room = get().roomState;
+
       const selfPeerId = globalP2PClient.selfPeerId;
       const me = room?.players.find(p => p.peerId === selfPeerId);
-      const myId = dealPacket.playerId || me?.playerId || get().myPlayerId;
+      const myId = dealPacket.playerId || (me ? me.playerId : get().myPlayerId);
       set({ myPlayerId: myId });
 
       const cards = dealPacket.cards.map(c => createCard(c.rank, c.suit));
+      const hostPeerId = room?.hostPeerId || senderPeerId || 'host';
 
-      const basePlayers = room && room.players.length > 0
-        ? room.players.map(p => {
-            return createPlayer({ id: p.playerId, name: p.name, avatar: p.avatar, score: p.coins });
-          })
-        : (gameStore.players.length > 0 ? gameStore.players : [
-            createPlayer({ id: room?.hostPeerId || 'host', name: 'Chủ Bàn', avatar: '🤠', score: 50000 }),
-            createPlayer({ id: myId, name: 'Đấu Thủ', avatar: '🤠', score: 50000 })
-          ]);
+      const basePlayers = (room && room.players.length > 0)
+        ? room.players.map(p => createPlayer({ id: p.playerId, name: p.name, avatar: p.avatar, score: p.coins }))
+        : (gameStore.players.length > 0
+          ? gameStore.players
+          : [
+              createPlayer({ id: hostPeerId, name: 'Chủ Bàn', avatar: '🤠', score: 50000 }),
+              createPlayer({ id: myId, name: 'Đấu Thủ', avatar: '🤠', score: 50000 })
+            ]);
 
       const currentPlayers = updatePlayersHand(
         maskOpponentHands(basePlayers, myId),
@@ -621,7 +622,6 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       );
 
       if (!get().isHost && !appFlowCoordinator.getActiveSession()) {
-        const hostPeerId = room?.hostPeerId || 'host';
         const clientSession = TableSessionFactory.createOnlineGuestSession({
           hostPeerId,
           localPlayerId: myId,

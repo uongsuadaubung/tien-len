@@ -172,9 +172,9 @@ function createMatchSetupResult(
 
   if (context.customBotPersonaIds && context.customBotPersonaIds.length >= 3) {
     botPersonaIds = [
-      context.customBotPersonaIds[0] || 'BOT_ELO_850',
-      context.customBotPersonaIds[1] || 'BOT_ELO_1150',
-      context.customBotPersonaIds[2] || 'BOT_ELO_1450'
+      context.customBotPersonaIds[0],
+      context.customBotPersonaIds[1],
+      context.customBotPersonaIds[2]
     ];
     bConfigs = [
       getBotConfig(botPersonaIds[0], customBotConfigs[0]),
@@ -184,9 +184,9 @@ function createMatchSetupResult(
   } else {
     bConfigs = defaultBotConfigs;
     botPersonaIds = [
-      bConfigs[0]?.id || 'BOT_ELO_850',
-      bConfigs[1]?.id || 'BOT_ELO_1150',
-      bConfigs[2]?.id || 'BOT_ELO_1450'
+      bConfigs[0].id,
+      bConfigs[1].id,
+      bConfigs[2].id
     ];
   }
 

@@ -23,6 +23,7 @@ describe('Extensible Game Modes & Settlement Engine Tests', () => {
     createPlayer({
       avatar: '🤖',
       isBot: p.id !== 'p0',
+      botPersonaId: p.id !== 'p0' ? 'BOT_ELO_1150' : undefined,
       score: 10000,
       hasPlayedFirstCard: true,
       ...p

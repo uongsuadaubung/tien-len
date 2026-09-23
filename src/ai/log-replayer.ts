@@ -29,7 +29,10 @@ export function replayTurnDecisionFromLog(
   }
 
   const turnEntry = report.turns[turnIndex];
-  const config = getBotConfig(turnEntry.botPersonaId || 'BOT_ELO_1150');
+  if (!turnEntry.isBot || !turnEntry.botPersonaId) {
+    throw new Error(`[LogReplayer] Lượt #${turnNumber} không phải là lượt đánh của Bot.`);
+  }
+  const config = getBotConfig(turnEntry.botPersonaId);
 
   // 1. Dựng lại bộ nhớ bài (CardTracker) từ đầu trận đến trước lượt hiện tại
   const tracker = new CardTracker(turnEntry.handBeforeTurn, config.memoryDepth);

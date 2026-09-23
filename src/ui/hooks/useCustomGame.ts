@@ -175,7 +175,7 @@ export function useCustomGame({
   const handleRandomizeBots = useCallback(() => {
     const personaKeys = Object.keys(BOT_PERSONAS);
     const shuffled = [...personaKeys].sort(() => 0.5 - Math.random());
-    setBotPersonaIds([shuffled[0] || 'BOT_ELO_850', shuffled[1] || 'BOT_ELO_1150', shuffled[2] || 'BOT_ELO_1450']);
+    setBotPersonaIds([shuffled[0], shuffled[1], shuffled[2]]);
   }, []);
 
   const handleUpdateBotPersona = useCallback((seatIndex: number, personaId: string) => {
@@ -184,7 +184,7 @@ export function useCustomGame({
 
   const handleConfigChange = useCallback(<K extends keyof BotConfig>(field: K, value: BotConfig[K]) => {
     setCustomBotConfigs(prev => {
-      const current = prev[activeBotSeatIndex] || {};
+      const current = prev[activeBotSeatIndex];
       const updated = { ...current, [field]: value };
       return updateTupleAt(prev, activeBotSeatIndex, updated);
     });

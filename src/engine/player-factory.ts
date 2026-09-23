@@ -23,7 +23,7 @@ export function deriveSynchronizedPlayers(
   currentPlayers: readonly MatchPlayer[],
   ctx: PlayerSyncContext
 ): MatchPlayer[] {
-  const playedCardIds = new Set(ctx.currentMoveCards?.map(c => c.id) || []);
+  const playedCardIds = new Set(ctx.currentMoveCards ? ctx.currentMoveCards.map(c => c.id) : []);
 
   return currentPlayers.map(p => {
     const isMe = p.id === ctx.myPlayerId;
@@ -327,10 +327,12 @@ export function createMatchPlayerFromProfile(
 export function createPlayer(overrides?: PlayerCreationOverrides): MatchPlayer {
   const id = overrides?.id ?? ('usr_' + Math.random().toString(36).slice(2, 10));
   if (overrides && overrides.isBot) {
-    const botPersonaId = overrides.botPersonaId ?? 'BOT_ELO_1150';
+    if (!overrides.botPersonaId) {
+      throw new Error('[createPlayer] Invariant Violated: botPersonaId is strictly required when isBot = true');
+    }
     return createBotPlayer(
       id,
-      botPersonaId,
+      overrides.botPersonaId,
       overrides
     );
   }
@@ -355,35 +357,12 @@ export function createPlayer(overrides?: PlayerCreationOverrides): MatchPlayer {
  * Tạo 1 đối tượng Bot MatchPlayer với cấu hình chuẩn xác
  */
 export function createBotPlayer(
-  idOrIndex: string | number | ({ id?: string; personaId?: string } & PlayerCreationOverrides),
-  personaId: string | null = null,
-  overrides: PlayerCreationOverrides | null = null
+  idOrIndex: string | number,
+  botPersonaId: string,
+  overrides?: PlayerCreationOverrides
 ): BotMatchPlayer {
-  if (typeof idOrIndex === 'object' && idOrIndex !== null) {
-    const opts = idOrIndex;
-    const rawId = opts.id || 'bot';
-    const resolvedPersonaId = opts.botPersonaId || opts.personaId || personaId || 'BOT_ELO_1150';
-    const hand = opts.hand ?? [];
-    const cardCount = opts.cardCount !== undefined ? opts.cardCount : hand.length;
-    return {
-      id: rawId,
-      name: opts.name ?? rawId,
-      avatar: opts.avatar ?? '🤖',
-      isBot: true,
-      botPersonaId: resolvedPersonaId,
-      hand,
-      cardCount,
-      playedCards: opts.playedCards ?? [],
-      score: opts.score ?? 1000,
-      isPassedCurrentRound: opts.isPassedCurrentRound ?? false,
-      hasPlayedFirstCard: opts.hasPlayedFirstCard ?? false,
-      customBotConfig: opts.customBotConfig ?? overrides?.customBotConfig
-    };
-  }
-
   const id = typeof idOrIndex === 'number' ? `p${idOrIndex}` : idOrIndex;
-  const defaultName = typeof id === 'string' && id.startsWith('p') && /^\d+$/.test(id.slice(1)) ? `Bot ${id.slice(1)}` : String(id);
-  const resolvedPersonaId = personaId || overrides?.botPersonaId || 'BOT_ELO_1150';
+  const defaultName = id.startsWith('p') && /^\d+$/.test(id.slice(1)) ? `Bot ${id.slice(1)}` : id;
   const hand = overrides?.hand ?? [];
   const cardCount = overrides?.cardCount !== undefined ? overrides.cardCount : hand.length;
 
@@ -392,7 +371,7 @@ export function createBotPlayer(
     name: overrides?.name ?? defaultName,
     avatar: overrides?.avatar ?? '🤖',
     isBot: true,
-    botPersonaId: resolvedPersonaId,
+    botPersonaId,
     hand,
     cardCount,
     playedCards: overrides?.playedCards ?? [],
@@ -409,7 +388,7 @@ export function createBotPlayer(
 export function createTestPlayers(
   count: number = 4,
   defaultScore: number = 1000,
-  botPersonaIds: (string | null)[] | null = null
+  botPersonaIds: readonly (string | null)[] | null = null
 ): MatchPlayer[] {
   const players: MatchPlayer[] = [
     createPlayer({
@@ -421,9 +400,9 @@ export function createTestPlayers(
   ];
 
   for (let i = 1; i < count; i++) {
-    const personaId = botPersonaIds?.[i - 1] ?? null;
+    const personaId = botPersonaIds?.[i - 1] ?? 'BOT_ELO_1150';
     players.push(
-      createBotPlayer(i, personaId, { score: defaultScore })
+      createBotPlayer(`p${i}`, personaId, { score: defaultScore })
     );
   }
 
@@ -441,8 +420,9 @@ export function createBotPlayers(
   for (let i = 0; i < count; i++) {
     const cfg = configs?.[i] ?? null;
     const id = cfg?.id ?? `p${i}`;
+    const personaId = cfg?.botPersonaId ?? 'BOT_ELO_1150';
     players.push(
-      createBotPlayer(id, cfg?.botPersonaId ?? null, {
+      createBotPlayer(id, personaId, {
         name: cfg?.name,
         avatar: cfg?.avatar,
         score: cfg?.score ?? 1000,

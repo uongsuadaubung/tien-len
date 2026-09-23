@@ -13,7 +13,7 @@ import { useSettingsStore } from '../../stores/useSettingsStore';
 
 export interface BotAgentOptions {
   botId: string;
-  personaId?: string;
+  personaId: string;
   customConfig?: Partial<BotConfig>;
   transport: IClientTransport;
   instantDelay?: boolean; // Cho unit tests chạy ngay lập tức
@@ -44,11 +44,8 @@ export class BotAgent {
 
   constructor(options: BotAgentOptions) {
     this.botId = options.botId;
-    this.personaId = options.personaId || 'BOT_ELO_1150';
-    this.botConfig = {
-      ...getBotConfig(this.personaId),
-      ...(options.customConfig || {})
-    };
+    this.personaId = options.personaId;
+    this.botConfig = getBotConfig(this.personaId, options.customConfig);
     this.transport = options.transport;
     this.instantDelay = options.instantDelay ?? false;
     this.gameSpeed = options.gameSpeed;

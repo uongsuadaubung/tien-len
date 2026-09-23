@@ -36,7 +36,7 @@ describe('Player & Bot Factory Helper Tests', () => {
   });
 
   test('3. createBotPlayer: Tự động gắn cờ isBot = true, avatar mặc định và parse id/name', () => {
-    const bot1 = createBotPlayer(1);
+    const bot1 = createBotPlayer('p1', 'BOT_ELO_1150', { name: 'Bot 1' });
     expect(bot1.id).toBe('p1');
     expect(bot1.name).toBe('Bot 1');
     expect(bot1.avatar).toBe('🤖');

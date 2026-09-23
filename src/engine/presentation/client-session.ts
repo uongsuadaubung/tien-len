@@ -162,12 +162,11 @@ export class ClientSession implements IGameSession {
           });
         }
 
-        const winners = (msg.packet.winners || [])
+        const winners = msg.packet.winners
           .map(id => this.players.find(p => p.id === id))
           .filter((p): p is MatchPlayer => p !== undefined && p !== null);
-        const effectiveWinners = winners.length > 0 ? winners : (this.players.length > 0 ? [this.players[0]] : []);
-        if (effectiveWinners.length > 0) {
-          this.lastWinnerId = effectiveWinners[0].id;
+        if (winners.length > 0) {
+          this.lastWinnerId = winners[0].id;
         }
         const packetPayouts = msg.packet.payouts ?? {};
         const packetEloDeltas = msg.packet.eloDeltas ?? {};
@@ -176,7 +175,7 @@ export class ClientSession implements IGameSession {
           ? createPerspectiveSettlement({
               subjectPlayerId: this.localPlayerId,
               allPlayers: this.players,
-              winners: effectiveWinners,
+              winners,
               payouts: packetPayouts,
               eloDeltas: packetEloDeltas,
               subjectEloDelta: packetEloDeltas[this.localPlayerId] ?? 0,
@@ -193,7 +192,7 @@ export class ClientSession implements IGameSession {
           : createPerspectiveSettlement({
               subjectPlayerId: this.localPlayerId,
               allPlayers: this.players,
-              winners: effectiveWinners,
+              winners,
               payouts: packetPayouts,
               eloDeltas: packetEloDeltas,
               subjectEloDelta: packetEloDeltas[this.localPlayerId] ?? 0,
@@ -213,7 +212,7 @@ export class ClientSession implements IGameSession {
           gameNumber: this.gameNumber,
           players: this.players,
           rules: this.gameRules,
-          winners: effectiveWinners,
+          winners: winners,
           winningMove: effectiveWinningMove,
           leadingMove: effectiveWinningMove,
           isThreeSpadesWin: msg.packet.isThreeSpadesWin ?? false,
@@ -380,7 +379,7 @@ export class ClientSession implements IGameSession {
         ? createPlayedMove(sync.currentMovePlayerId, leadingCombo)
         : this.lastPlayedMove;
 
-      const winners = (sync.winners || [])
+      const winners = sync.winners
         .map(id => this.players.find(p => p.id === id))
         .filter((p): p is MatchPlayer => p !== undefined && p !== null);
       const fallbackPayouts: Record<string, number> = {};
@@ -392,7 +391,7 @@ export class ClientSession implements IGameSession {
         ? createPerspectiveSettlement({
             subjectPlayerId: this.localPlayerId,
             allPlayers: this.players,
-            winners: winners.length > 0 ? winners : [this.players[0]],
+            winners,
             payouts: fallbackPayouts,
             eloDeltas: {},
             subjectEloDelta: 0,

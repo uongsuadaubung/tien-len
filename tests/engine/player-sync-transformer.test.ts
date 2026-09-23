@@ -26,7 +26,7 @@ describe('Player Sync Transformers (Single Source of Truth)', () => {
 
   const initialPlayers = [
     createPlayer({ id: localId, name: 'Me', hand: [card3S, card4H], cardCount: 2 }),
-    createPlayer({ id: opponentId, name: 'Opponent', hand: [], cardCount: 13, isBot: true })
+    createPlayer({ id: opponentId, name: 'Opponent', hand: [], cardCount: 13, isBot: true, botPersonaId: 'BOT_ELO_1150' })
   ];
 
   describe('deriveSynchronizedPlayers', () => {
@@ -96,7 +96,8 @@ describe('Player Sync Transformers (Single Source of Truth)', () => {
         name: 'Opponent',
         hand: [card5D],
         cardCount: 1,
-        isBot: true
+        isBot: true,
+        botPersonaId: 'BOT_ELO_1150'
       });
 
       const updated = deriveSynchronizedPlayers(initialPlayers, {
@@ -213,7 +214,7 @@ describe('Player Sync Transformers (Single Source of Truth)', () => {
     it('maskOpponentHands: Áp dụng chuẩn Fog-of-War, giữ nguyên bài mình và che bài đối thủ', () => {
       const playersWithCards = [
         createPlayer({ id: localId, hand: [card3S], cardCount: 1 }),
-        createPlayer({ id: opponentId, hand: [card4H, card5D], cardCount: 2, isBot: true })
+        createPlayer({ id: opponentId, hand: [card4H, card5D], cardCount: 2, isBot: true, botPersonaId: 'BOT_ELO_1150' })
       ];
 
       const masked = maskOpponentHands(playersWithCards, localId);
@@ -245,7 +246,8 @@ describe('Player Sync Transformers (Single Source of Truth)', () => {
           cardCount: 2, 
           playedCards: [card3S], 
           isPassedCurrentRound: true, 
-          isBot: true 
+          isBot: true,
+          botPersonaId: 'BOT_ELO_1150'
         })
       ];
 
