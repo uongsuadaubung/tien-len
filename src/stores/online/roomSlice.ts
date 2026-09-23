@@ -26,7 +26,7 @@ import { createPlayer, updatePlayersHand, maskOpponentHands, revealPlayersHands,
 import { applyAuthoritativeSettlementToProfile } from '../../services/match-settlement-service';
 import { createPerspectiveSettlement } from '../../engine/settlement/perspective-settlement';
 import { type PlayingTurnMatchState, type GameOverMatchState, createPlayingTurnMatchState } from '../../engine/state-machine/types';
-import { type RoomSlice, type OnlineSliceCreator } from './types';
+import { type RoomSlice, type OnlineSliceCreator, CreateRoomOptionsSchema } from './types';
 import { P2PHostPeerTransport } from '../../engine/transport/p2p-transport';
 import { appFlowCoordinator } from '../../services/app-flow-coordinator';
 import { TableSessionFactory } from '../../engine/session/table-session-factory';
@@ -166,10 +166,11 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
   },
 
   createRoom: (profile, options) => {
+    const validated = CreateRoomOptionsSchema.parse(options);
     const existingRooms = get().publicRooms;
     const roomCode = generateRoomPin(existingRooms);
     const selfPeerId = globalP2PClient.selfPeerId;
-    const isPublic = options.isPublic;
+    const isPublic = validated.isPublic;
 
     const hostPlayer: OnlinePlayer = {
       peerId: selfPeerId,
@@ -186,16 +187,16 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
     const initialRoomState: OnlineRoomState = {
       roomCode,
       hostPeerId: selfPeerId,
-      playerCount: options.playerCount,
-      betAmount: options.betAmount,
-      settlementRule: options.settlementRule,
-      choppingMultiplier: options.choppingMultiplier,
-      congMultiplier: options.congMultiplier,
-      congEnabled: options.congEnabled,
-      prohibitEndingWithTwo: options.prohibitEndingWithTwo,
-      allowFourPairsCutAnytime: options.allowFourPairsCutAnytime,
-      threeSpadesEndingBonus: options.threeSpadesEndingBonus,
-      cascadeChopEnabled: options.cascadeChopEnabled,
+      playerCount: validated.playerCount,
+      betAmount: validated.betAmount,
+      settlementRule: validated.settlementRule,
+      choppingMultiplier: validated.choppingMultiplier,
+      congMultiplier: validated.congMultiplier,
+      congEnabled: validated.congEnabled,
+      prohibitEndingWithTwo: validated.prohibitEndingWithTwo,
+      allowFourPairsCutAnytime: validated.allowFourPairsCutAnytime,
+      threeSpadesEndingBonus: validated.threeSpadesEndingBonus,
+      cascadeChopEnabled: validated.cascadeChopEnabled,
       players: [hostPlayer],
       status: 'WAITING',
       disbandReason: null,

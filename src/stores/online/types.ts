@@ -8,24 +8,29 @@ import {
   type ReconnectNotice
 } from '../../engine/network/network.schema';
 import type { AuthoritativeMatchHost } from '../../engine/server/match-host';
-import { type GameSettlementRule } from '../../engine/types';
 import { type PlayerProfile } from '../../engine/storage';
+import { GameSettlementRuleSchema, PlayerCountSchema } from '../../engine/schemas/settings.schema';
 
 export type { PublicRoomSummary };
 
-export interface CreateRoomOptions {
-  betAmount: number;
-  playerCount: 2 | 3 | 4;
-  settlementRule: GameSettlementRule;
-  choppingMultiplier: number;
-  congMultiplier: number;
-  congEnabled: boolean;
-  prohibitEndingWithTwo: boolean;
-  allowFourPairsCutAnytime: boolean;
-  threeSpadesEndingBonus: boolean;
-  cascadeChopEnabled: boolean;
-  isPublic: boolean;
-}
+import { z } from 'zod';
+
+export const CreateRoomOptionsSchema = z.object({
+  betAmount: z.number().default(1000),
+  playerCount: PlayerCountSchema.default(4),
+  settlementRule: GameSettlementRuleSchema.default('COUNT_CARDS'),
+  choppingMultiplier: z.number().default(1),
+  congMultiplier: z.number().default(1),
+  congEnabled: z.boolean().default(true),
+  prohibitEndingWithTwo: z.boolean().default(true),
+  allowFourPairsCutAnytime: z.boolean().default(true),
+  threeSpadesEndingBonus: z.boolean().default(true),
+  cascadeChopEnabled: z.boolean().default(true),
+  isPublic: z.boolean().default(true)
+});
+
+export type CreateRoomOptions = z.infer<typeof CreateRoomOptionsSchema>;
+export type CreateRoomInput = z.input<typeof CreateRoomOptionsSchema>;
 
 
 export interface OnlineDisbandNotice {
@@ -107,7 +112,7 @@ export interface RoomSliceState {
 
 export interface RoomSliceActions {
   setSessionState: (session: OnlineSessionState) => void;
-  createRoom: (profile: PlayerProfile, options: CreateRoomOptions) => void;
+  createRoom: (profile: PlayerProfile, options: CreateRoomInput) => void;
   joinRoom: (profile: PlayerProfile, roomCode: string) => void;
   joinPublicRoom: (profile: PlayerProfile, room: PublicRoomSummary) => void;
   removeSlot: (slotIdx: number) => void;

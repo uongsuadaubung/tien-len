@@ -6,7 +6,7 @@ import { MatchLogger } from '../../engine/match-logger';
 import { ActiveGameType, useGameStore, CampaignResultMeta } from '../../stores/useGameStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { useOnlineStore } from '../../stores/useOnlineStore';
-import { useI18n, type I18nKeyPath } from '../../locales';
+import { useI18n } from '../../locales';
 import { EloDeltaResult } from '../../engine/elo';
 import { 
   type PerspectiveMatchSettlement, 

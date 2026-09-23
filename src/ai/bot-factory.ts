@@ -449,7 +449,9 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     inMatchAdaptationRate: 1.0,
     handPartitioningOptimality: 0.9,
     simulationLookahead: 4,
-    mctsSimulations: 0
+    mctsSimulations: 0,
+    useMinimaxEndgame: true,
+    useBayesianInference: true
   },
   BOT_ELO_2300: {
     id: 'BOT_ELO_2300',
@@ -470,7 +472,9 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     inMatchAdaptationRate: 1.0,
     handPartitioningOptimality: 0.92,
     simulationLookahead: 4,
-    mctsSimulations: 0
+    mctsSimulations: 0,
+    useMinimaxEndgame: true,
+    useBayesianInference: true
   },
   BOT_ELO_2500: {
     id: 'BOT_ELO_2500',
@@ -491,7 +495,9 @@ const RAW_BOT_PERSONAS: Record<string, BotPersonaRaw> = {
     inMatchAdaptationRate: 1.0,
     handPartitioningOptimality: 0.94,
     simulationLookahead: 4,
-    mctsSimulations: 0
+    mctsSimulations: 0,
+    useMinimaxEndgame: true,
+    useBayesianInference: true
   },
   BOT_ELO_2750: {
     id: 'BOT_ELO_2750',

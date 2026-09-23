@@ -12,6 +12,7 @@ export interface SettledPlayerCardView {
   readonly isLocal: boolean;
   readonly rank: number;
   readonly rankLabelKey: I18nKeyPath;
+  readonly rankLabelTypeKey?: I18nKeyPath;
   readonly rankLabelParams: Readonly<Record<string, string | number>>;
   readonly isWinner: boolean;
   readonly isCong: boolean;
@@ -184,11 +185,13 @@ export function createPerspectiveSettlement(
     }
 
     let rankLabelKey: I18nKeyPath;
+    let rankLabelTypeKey: I18nKeyPath | undefined;
     let rankLabelParams: Record<string, string | number> = {};
 
     if (isWinner) {
       if (instantWinType !== null && instantWinKey !== null) {
         rankLabelKey = 'victory.instantWinBadge';
+        rankLabelTypeKey = instantWinKey;
         rankLabelParams = { typeKey: instantWinKey };
       } else {
         rankLabelKey = 'victory.rank1';
@@ -217,6 +220,7 @@ export function createPerspectiveSettlement(
       isLocal,
       rank: idx + 1,
       rankLabelKey,
+      rankLabelTypeKey,
       rankLabelParams,
       isWinner,
       isCong,

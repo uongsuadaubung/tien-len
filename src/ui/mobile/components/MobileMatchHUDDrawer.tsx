@@ -88,6 +88,7 @@ export const MobileMatchHUDDrawer: React.FC<MobileMatchHUDDrawerProps> = ({
                   : p.cardCount;
                 const rankIndex = winners.findIndex(w => w.id === p.id);
                 const rankPosition = rankIndex >= 0 ? rankIndex + 1 : 0;
+                const isOneCardLeft = !isDealing && cardCount === 1 && rankPosition === 0;
                 const cfg = p.isBot ? getBotConfig(p.botPersonaId, p.customBotConfig) : null;
                 const liveBot = p.isBot
                   ? ecosystemBots.find(b => b.id === p.botPersonaId || b.id === p.id || b.name === p.name)

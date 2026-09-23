@@ -17,7 +17,7 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
     ]
   });
 
-  const p1: MatchPlayer = createBotPlayer('p1', null, {
+  const p1: MatchPlayer = createBotPlayer('p1', 'BOT_ELO_1150', {
     name: 'Alex',
     avatar: '🧒',
     score: 1000,
@@ -27,7 +27,7 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
     ]
   });
 
-  const p2: MatchPlayer = createBotPlayer('p2', null, {
+  const p2: MatchPlayer = createBotPlayer('p2', 'BOT_ELO_1150', {
     name: 'Kai',
     avatar: '🤠',
     score: 1000,
@@ -36,7 +36,7 @@ describe('Luồng Chạy Trò Chơi: Quyền Đi Trước & Matchmaking Đấu H
     ]
   });
 
-  const p3: MatchPlayer = createBotPlayer('p3', null, {
+  const p3: MatchPlayer = createBotPlayer('p3', 'BOT_ELO_1150', {
     name: 'Marcus',
     avatar: '👴',
     score: 1000,

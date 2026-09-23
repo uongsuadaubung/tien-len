@@ -97,9 +97,9 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
     function createTestPlayers(): MatchPlayer[] {
       return [
         createPlayer({ id: 'p0', name: 'Player', avatar: '', score: 1000 }),
-        createBotPlayer('bot1', null, { name: 'Bot 1', avatar: '', score: 1000 }),
-        createBotPlayer('bot2', null, { name: 'Bot 2', avatar: '', score: 1000 }),
-        createBotPlayer('bot3', null, { name: 'Bot 3', avatar: '', score: 1000 })
+        createBotPlayer('bot1', 'BOT_ELO_1150', { name: 'Bot 1', avatar: '', score: 1000 }),
+        createBotPlayer('bot2', 'BOT_ELO_1150', { name: 'Bot 2', avatar: '', score: 1000 }),
+        createBotPlayer('bot3', 'BOT_ELO_1150', { name: 'Bot 3', avatar: '', score: 1000 })
       ];
     }
 
@@ -519,9 +519,9 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
     function createTestPlayers(): MatchPlayer[] {
       return [
         createPlayer({ id: 'p0', name: 'Player', avatar: '', score: 1000 }),
-        createBotPlayer('bot1', null, { name: 'Bot 1', avatar: '', score: 1000 }),
-        createBotPlayer('bot2', null, { name: 'Bot 2', avatar: '', score: 1000 }),
-        createBotPlayer('bot3', null, { name: 'Bot 3', avatar: '', score: 1000 })
+        createBotPlayer('bot1', 'BOT_ELO_1150', { name: 'Bot 1', avatar: '', score: 1000 }),
+        createBotPlayer('bot2', 'BOT_ELO_1150', { name: 'Bot 2', avatar: '', score: 1000 }),
+        createBotPlayer('bot3', 'BOT_ELO_1150', { name: 'Bot 3', avatar: '', score: 1000 })
       ];
     }
 
@@ -612,9 +612,9 @@ describe('Luật Cấm Đánh 2 Cuối Cùng & Thối Heo (Prohibit Ending on 2 
     function createTestPlayers(): MatchPlayer[] {
       return [
         createPlayer({ id: 'p0', name: 'Player', avatar: '', score: 1000 }),
-        createBotPlayer('bot1', null, { name: 'Bot 1', avatar: '', score: 1000 }),
-        createBotPlayer('bot2', null, { name: 'Bot 2', avatar: '', score: 1000 }),
-        createBotPlayer('bot3', null, { name: 'Bot 3', avatar: '', score: 1000 })
+        createBotPlayer('bot1', 'BOT_ELO_1150', { name: 'Bot 1', avatar: '', score: 1000 }),
+        createBotPlayer('bot2', 'BOT_ELO_1150', { name: 'Bot 2', avatar: '', score: 1000 }),
+        createBotPlayer('bot3', 'BOT_ELO_1150', { name: 'Bot 3', avatar: '', score: 1000 })
       ];
     }
 

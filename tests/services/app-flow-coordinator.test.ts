@@ -266,7 +266,10 @@ describe('AppFlowCoordinator Unit Tests (Kiểm Thử Cổng Điều Phối Chuy
         cascadeChopEnabled: false
       },
       botPersonaIds: ['BOT_ELO_850', 'BOT_ELO_1150', 'BOT_ELO_1450'],
-      customBotConfigs: [{}, {}, {}]
+      customBotConfigs: [{}, {}, {}],
+      choppingMultiplier: 1,
+      congMultiplier: 1,
+      congEnabled: true
     });
 
     expect(startSuccess).toBe(true);

@@ -6,7 +6,7 @@ import { P2PClientTransport } from '../transport/p2p-transport';
 import { globalP2PClient } from '../network/p2p-client';
 import { CompositeDisposable } from '../common/disposable';
 import { soundManager } from '../../ui/audio/sound-manager';
-import type { MatchPlayer, GameRules } from '../types';
+import type { MatchPlayer, BotMatchPlayer, GameRules } from '../types';
 import type { ActiveGameType, CampaignResultMeta } from '../../stores/game/types';
 import type { CampaignChapter } from '../campaign';
 import type { GameSpeedMode } from '../game-speed';
@@ -84,7 +84,9 @@ export class TableSessionFactory {
 
     // 4. Kết nối BotAgent độc lập cho từng Bot
     const botAgents: BotAgent[] = [];
-    const botPlayers = options.initialPlayers.filter(p => p.id !== options.localPlayerId && p.isBot);
+    const botPlayers = options.initialPlayers.filter(
+      (p): p is BotMatchPlayer => p.id !== options.localPlayerId && p.isBot
+    );
 
     for (let i = 0; i < botPlayers.length; i++) {
       const bot = botPlayers[i];

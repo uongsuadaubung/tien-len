@@ -6,9 +6,9 @@ import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 
 const createMockPlayers = (): MatchPlayer[] => [
   createPlayer({ id: 'p1', name: 'Người Chơi', avatar: 'user', score: 1000 }),
-  createBotPlayer('p2', null, { name: 'Bé Năm', avatar: 'bot1', score: 1000 }),
-  createBotPlayer('p3', null, { name: 'Chú Bảy', avatar: 'bot2', score: 1000 }),
-  createBotPlayer('p4', null, { name: 'Bác Tư', avatar: 'bot3', score: 1000 })
+  createBotPlayer('p2', 'BOT_ELO_1150', { name: 'Bé Năm', avatar: 'bot1', score: 1000 }),
+  createBotPlayer('p3', 'BOT_ELO_1150', { name: 'Chú Bảy', avatar: 'bot2', score: 1000 }),
+  createBotPlayer('p4', 'BOT_ELO_1150', { name: 'Bác Tư', avatar: 'bot3', score: 1000 })
 ];
 
 describe('Edge Cases & Advanced Tien Len Rules', () => {

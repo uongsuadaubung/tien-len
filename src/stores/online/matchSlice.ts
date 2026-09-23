@@ -215,17 +215,18 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
           host.handlePeerDisconnect(leavingPlayer.playerId, peerId, 25000, () => {
             const latestRoom = get().roomState;
             if (!latestRoom || latestRoom.status !== 'PLAYING') return;
+            const reason = `${leavingName} đã mất kết nối quá thời gian chờ (25s).`;
             const disbanded: OnlineRoomState = {
               ...latestRoom,
               status: 'DISBANDED',
-              disbandReason: `${leavingName} đã mất kết nối quá thời gian chờ (25s).`,
+              disbandReason: reason,
               updatedAt: Date.now()
             };
             set({
               roomState: disbanded,
               disbandNotice: {
                 title: 'BÀN CHƠI ĐÃ BỊ GIẢI TÁN',
-                message: disbanded.disbandReason
+                message: reason
               }
             });
             clearActiveOnlineSession();

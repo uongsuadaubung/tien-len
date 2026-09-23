@@ -358,7 +358,7 @@ export function createPlayer(overrides?: PlayerCreationOverrides): MatchPlayer {
  */
 export function createBotPlayer(
   idOrIndex: string | number,
-  botPersonaId: string,
+  botPersonaId: string = 'BOT_ELO_1150',
   overrides?: PlayerCreationOverrides
 ): BotMatchPlayer {
   const id = typeof idOrIndex === 'number' ? `p${idOrIndex}` : idOrIndex;

@@ -113,10 +113,10 @@ describe('MatchLogger & Bot Reasoning Telemetry', () => {
 
   it('should seamlessly log whole simulated match in GameEngine with bot telemetry', () => {
     const players: MatchPlayer[] = [
-      createBotPlayer('p0', null, { name: 'User', avatar: '🤠', score: 50000 }),
-      createBotPlayer('bot1', null, { name: 'Bot 1', avatar: '🤖', score: 50000 }),
-      createBotPlayer('bot2', null, { name: 'Bot 2', avatar: '🤖', score: 50000 }),
-      createBotPlayer('bot3', null, { name: 'Bot 3', avatar: '🤖', score: 50000 })
+      createBotPlayer('p0', 'BOT_ELO_1150', { name: 'User', avatar: '🤠', score: 50000 }),
+      createBotPlayer('bot1', 'BOT_ELO_1150', { name: 'Bot 1', avatar: '🤖', score: 50000 }),
+      createBotPlayer('bot2', 'BOT_ELO_1150', { name: 'Bot 2', avatar: '🤖', score: 50000 }),
+      createBotPlayer('bot3', 'BOT_ELO_1150', { name: 'Bot 3', avatar: '🤖', score: 50000 })
     ];
     const engine = new GameEngine(players, createDefaultGameRules());
 

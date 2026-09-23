@@ -17,9 +17,9 @@ describe('Luật Về 3 Bích Cuối Cùng (3♠ Last Card Win / Ăn Ba Bích)',
   function createTestPlayers(): MatchPlayer[] {
     return [
       createPlayer({ id: 'p0', name: 'Người Chơi', score: 10000, hasPlayedFirstCard: true }),
-      createBotPlayer('p1', null, { name: 'Bot 1', score: 10000, hasPlayedFirstCard: true }),
-      createBotPlayer('p2', null, { name: 'Bot 2', score: 10000, hasPlayedFirstCard: true }),
-      createBotPlayer('p3', null, { name: 'Bot 3', score: 10000, hasPlayedFirstCard: true })
+      createBotPlayer('p1', 'BOT_ELO_1150', { name: 'Bot 1', score: 10000, hasPlayedFirstCard: true }),
+      createBotPlayer('p2', 'BOT_ELO_1150', { name: 'Bot 2', score: 10000, hasPlayedFirstCard: true }),
+      createBotPlayer('p3', 'BOT_ELO_1150', { name: 'Bot 3', score: 10000, hasPlayedFirstCard: true })
     ];
   }
 

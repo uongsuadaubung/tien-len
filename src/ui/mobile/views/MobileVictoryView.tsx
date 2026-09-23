@@ -275,11 +275,9 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
           {/* DANH SÁCH BẢNG XẾP HẠNG & BÀI TÀN CUỘC CỦA TỪNG ĐẤU THỦ */}
           <div className="space-y-2">
             {settlement.players.map((p) => {
-              const rankLabelParams: Record<string, string | number> = { ...(p.rankLabelParams || {}) };
-              if (typeof rankLabelParams.typeKey === 'string') {
-                rankLabelParams.type = t(rankLabelParams.typeKey as I18nKeyPath);
-              }
-              const rankLabel = t(p.rankLabelKey, rankLabelParams);
+              const rankLabel = p.rankLabelTypeKey
+                ? t(p.rankLabelKey, { ...p.rankLabelParams, type: t(p.rankLabelTypeKey) })
+                : t(p.rankLabelKey, p.rankLabelParams);
 
               return (
                 <div

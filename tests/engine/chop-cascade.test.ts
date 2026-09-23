@@ -36,9 +36,9 @@ describe('Luật Chặt Chồng Tích Lũy (Chop Cascade Multiplier / Sòng Bạ
   function createTestPlayers(): MatchPlayer[] {
     return [
       createPlayer({ id: 'p0', name: 'Người Chơi A', score: 10000, hasPlayedFirstCard: true }),
-      createBotPlayer('p1', null, { name: 'Bot B', score: 10000, hasPlayedFirstCard: true }),
-      createBotPlayer('p2', null, { name: 'Bot C', score: 10000, hasPlayedFirstCard: true }),
-      createBotPlayer('p3', null, { name: 'Bot D', score: 10000, hasPlayedFirstCard: true })
+      createBotPlayer('p1', 'BOT_ELO_1150', { name: 'Bot B', score: 10000, hasPlayedFirstCard: true }),
+      createBotPlayer('p2', 'BOT_ELO_1150', { name: 'Bot C', score: 10000, hasPlayedFirstCard: true }),
+      createBotPlayer('p3', 'BOT_ELO_1150', { name: 'Bot D', score: 10000, hasPlayedFirstCard: true })
     ];
   }
 

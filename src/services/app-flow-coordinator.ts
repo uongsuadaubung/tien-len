@@ -28,6 +28,7 @@ import {
 import { matchBotsForPlayerTable } from '../engine/ecosystem/matchmaker';
 import { getRandomBotConfigsForTable, getBotConfig } from '../ai/bot-factory';
 import type { QuickTableConfig, GameSettlementRule } from '../engine/schemas/settings.schema';
+import type { CustomGameModalConfig } from '../ui/hooks/useCustomGame';
 import type { CampaignChapter } from '../engine/campaign';
 import { type BotConfig, isBotConfig } from '../ai/types';
 import { assertValidMatchStartup } from '../engine/invariants/match-invariants';

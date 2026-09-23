@@ -23,21 +23,21 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
       score: 10000,
       hasPlayedFirstCard: true
     }),
-    createBotPlayer('p1', null, {
+    createBotPlayer('p1', 'BOT_ELO_1150', {
       name: 'Bot 1',
       avatar: '🧒',
       hand: parseCards('4D 5D'), // 2 lá
       score: 10000,
       hasPlayedFirstCard: true
     }),
-    createBotPlayer('p2', null, {
+    createBotPlayer('p2', 'BOT_ELO_1150', {
       name: 'Bot 2',
       avatar: '🤠',
       hand: parseCards('7D 8D 2S'), // 3 lá (thối heo đen)
       score: 10000,
       hasPlayedFirstCard: true
     }),
-    createBotPlayer('p3', null, {
+    createBotPlayer('p3', 'BOT_ELO_1150', {
       name: 'Bot 3',
       avatar: '👑',
       hand: parseCards('9D 10D JD QD KD AD 2D 3C 4C 5C 6C 7C 8C'), // Cóng 13 lá + thối heo đỏ
@@ -365,7 +365,7 @@ describe('Game Mode Strategy Pattern Unit Tests (Kiểm Thử Mẫu Chiến Lư�
 
     const soloPlayers: MatchPlayer[] = [
       createPlayer({ id: 'p0', name: 'Player', avatar: '🤠', hand: parseCards('4D 5D'), score: 10000, hasPlayedFirstCard: true }),
-      createBotPlayer('p1', null, { name: 'Bot 1', avatar: '🤖', hand: parseCards('9S'), score: 10000, hasPlayedFirstCard: true })
+      createBotPlayer('p1', 'BOT_ELO_1150', { name: 'Bot 1', avatar: '🤖', hand: parseCards('9S'), score: 10000, hasPlayedFirstCard: true })
     ];
 
     const soloEngine = new GameEngine(soloPlayers, soloCustomRules);

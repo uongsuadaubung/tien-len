@@ -57,7 +57,7 @@ describe('Property-Based & Fuzz Testing (Kiểm Thử Thuộc Tính & Bất Bi�
         .build();
 
       const players: MatchPlayer[] = Array.from({ length: 4 }, (_, idx) =>
-        createBotPlayer(`p${idx}`, null, {
+        createBotPlayer(`p${idx}`, 'BOT_ELO_1150', {
           name: `Bot ${idx}`,
           score: 0
         })

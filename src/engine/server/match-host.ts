@@ -493,7 +493,7 @@ export class AuthoritativeMatchHost {
         const endPacket: GameEndPacket = {
           winners: this.engine.winners.map(w => w.id),
           payouts: settlementResult.payouts,
-          eloDeltas: settlementResult.allEloDeltas,
+          eloDeltas: settlementResult.eloDeltas,
           playerScores,
           allPlayerHands,
           isThreeSpadesWin: this.engine.isThreeSpadesWin,

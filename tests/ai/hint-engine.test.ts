@@ -142,7 +142,7 @@ describe('Quân Sư Thần Bài AI (Hint Engine)', () => {
         leadingMove: null,
         isFirstMoveOfGame: false,
         isLeadMove: true,
-        prohibitEndingWithTwo: null,
+        prohibitEndingWithTwo: false,
         tracker,
         optimalHint: null
       });
@@ -164,7 +164,7 @@ describe('Quân Sư Thần Bài AI (Hint Engine)', () => {
         leadingMove: null,
         isFirstMoveOfGame: false,
         isLeadMove: true,
-        prohibitEndingWithTwo: null,
+        prohibitEndingWithTwo: false,
         tracker,
         optimalHint: null
       });
@@ -199,7 +199,7 @@ describe('Quân Sư Thần Bài AI (Hint Engine)', () => {
         leadingMove: null,
         isFirstMoveOfGame: false,
         isLeadMove: true,
-        prohibitEndingWithTwo: null,
+        prohibitEndingWithTwo: false,
         tracker,
         optimalHint: null
       });
@@ -226,7 +226,7 @@ describe('Quân Sư Thần Bài AI (Hint Engine)', () => {
         leadingMove: null,
         isFirstMoveOfGame: false,
         isLeadMove: true,
-        prohibitEndingWithTwo: null,
+        prohibitEndingWithTwo: false,
         tracker,
         optimalHint: null
       });
@@ -253,7 +253,7 @@ describe('Quân Sư Thần Bài AI (Hint Engine)', () => {
         leadingMove: null,
         isFirstMoveOfGame: false,
         isLeadMove: true,
-        prohibitEndingWithTwo: null,
+        prohibitEndingWithTwo: false,
         tracker,
         optimalHint: null
       });

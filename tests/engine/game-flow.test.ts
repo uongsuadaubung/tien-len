@@ -8,9 +8,9 @@ import { createPlayer, createBotPlayer } from '../../src/engine/player-factory';
 
 const createMockPlayers = (): MatchPlayer[] => [
   createPlayer({ id: 'p1', name: 'Người Chơi', avatar: 'user', score: 1000 }),
-  createBotPlayer('p2', null, { name: 'Bé Năm', avatar: 'bot1', score: 1000 }),
-  createBotPlayer('p3', null, { name: 'Chú Bảy', avatar: 'bot2', score: 1000 }),
-  createBotPlayer('p4', null, { name: 'Bác Tư', avatar: 'bot3', score: 1000 })
+  createBotPlayer('p2', 'BOT_ELO_1150', { name: 'Bé Năm', avatar: 'bot1', score: 1000 }),
+  createBotPlayer('p3', 'BOT_ELO_1150', { name: 'Chú Bảy', avatar: 'bot2', score: 1000 }),
+  createBotPlayer('p4', 'BOT_ELO_1150', { name: 'Bác Tư', avatar: 'bot3', score: 1000 })
 ];
 
 describe('Game Flow & Lifecycle Engine', () => {
@@ -30,7 +30,7 @@ describe('Game Flow & Lifecycle Engine', () => {
 
   test('Bàn 2 người: Khi không ai có 3♠, người có lá bài nhỏ nhất đi trước và BẮT BUỘC phải đánh lá bài nhỏ nhất đó (hoặc tổ hợp chứa nó)', () => {
     const p1 = createPlayer({ id: 'p1', name: 'Người Chơi', avatar: 'user', score: 1000 });
-    const p2 = createBotPlayer('p2', null, { name: 'Bé Năm', avatar: 'bot1', score: 1000 });
+    const p2 = createBotPlayer('p2', 'BOT_ELO_1150', { name: 'Bé Năm', avatar: 'bot1', score: 1000 });
     // p1 lá nhỏ nhất là 4S, p2 lá nhỏ nhất là 3C (3 Chuồn < 4 Bích, không ai có 3 Bích 3S)
     p1.hand = parseCards('4S 5S 6S 7S 8S 9S 10S JS QS KS AS 2S 2C');
     p2.hand = parseCards('3C 4D 5D 6D 7D 8D 9D 10D JD QD KD AD 2D');

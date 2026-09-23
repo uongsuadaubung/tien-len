@@ -141,9 +141,9 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
     });
 
     const p0: MatchPlayer = createPlayer({ id: 'p0', name: 'Bạn', avatar: '🤠', score: 50000 });
-    const p1: MatchPlayer = createBotPlayer('p1', null, { name: 'Bot 1', avatar: '🤖', score: 35000 });
-    const p2: MatchPlayer = createBotPlayer('p2', null, { name: 'Bot 2', avatar: '🤖', score: 40000 });
-    const p3: MatchPlayer = createBotPlayer('p3', null, { name: 'Bot 3', avatar: '🤖', score: 65000 });
+    const p1: MatchPlayer = createBotPlayer('p1', 'BOT_ELO_1150', { name: 'Bot 1', avatar: '🤖', score: 35000 });
+    const p2: MatchPlayer = createBotPlayer('p2', 'BOT_ELO_1150', { name: 'Bot 2', avatar: '🤖', score: 40000 });
+    const p3: MatchPlayer = createBotPlayer('p3', 'BOT_ELO_1150', { name: 'Bot 3', avatar: '🤖', score: 65000 });
 
     const engine = new GameEngine([p0, p1, p2, p3], rules);
     engine.startNewGame(1, null, 1);
@@ -175,7 +175,7 @@ describe('Luồng Chơi Nhanh (Quick Setup Flow & Random Matchmaking)', () => {
     expect(chopX3.amount).toBe(600);
 
     // 3. Kết toán đếm lá ở x4
-    const loser: MatchPlayer = createBotPlayer('p1', null, {
+    const loser: MatchPlayer = createBotPlayer('p1', 'BOT_ELO_1150', {
       name: 'Bot',
       avatar: '🤖',
       hand: [

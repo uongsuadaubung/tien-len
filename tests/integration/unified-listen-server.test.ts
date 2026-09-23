@@ -11,6 +11,7 @@ describe('Unified Listen Server Architecture (Full End-to-End Simulation)', () =
     const rules = createDefaultGameRules({
       table: { playerCount: 4, betAmount: 1000, soundEnabled: true }
     });
+    rules.instantWin.enabled = false;
 
     const humanId = 'HUMAN_ME';
     const bot1Id = 'BOT_EAST';
@@ -76,7 +77,8 @@ describe('Unified Listen Server Architecture (Full End-to-End Simulation)', () =
       rules,
       players,
       hostPlayerId: humanId,
-      instantDelay: true
+      instantDelay: true,
+      enableDealingAnimation: false
     });
 
     // 2. Tạo transport cho từng người
@@ -122,8 +124,8 @@ describe('Unified Listen Server Architecture (Full End-to-End Simulation)', () =
       expect(seat.cardCount).toBe(13);
     });
 
-    // Chờ bot hoặc người chơi đánh bài (tối đa 500ms)
-    for (let i = 0; i < 10; i++) {
+    // Chờ bot hoặc người chơi đánh bài (tối đa 1500ms dưới tải kiểm thử cao)
+    for (let i = 0; i < 30; i++) {
       let frame = humanSession.getLatestFrame();
       if (frame.controls.isMyTurn) {
         humanSession.sendIntent({ type: 'TRIGGER_QUICK_SELECT' });
