@@ -584,7 +584,7 @@ export function sanitizeAvatar(avatar: unknown, fallbackSeed: number = 0): strin
 
 export const BOT_PERSONAS: Record<string, BotConfig> = Object.fromEntries(
   Object.entries(RAW_BOT_PERSONAS).map(([k, v]) => {
-    const safeElo = v.elo ?? 1000;
+    const safeElo = v.elo;
     const tierInfo = getTierFromElo(safeElo);
     const tierNum = tierInfo.tierNum;
     const tierPool = GLOBAL_AVATARS_BY_TIER[tierNum] || GLOBAL_AVATARS;

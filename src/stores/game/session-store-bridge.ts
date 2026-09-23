@@ -27,10 +27,10 @@ export function syncStoreFromSessionFrame(session: IGameSession, frame: TableRen
   const gameOverState = matchState.status === 'GAME_OVER' ? matchState : null;
   const hasValidSettlementPayouts = gameOverState !== null &&
     gameOverState.settlement !== undefined &&
-    Object.values(gameOverState.matchPayouts || {}).some(v => v !== 0);
+    Object.values(gameOverState.matchPayouts).some(v => v !== 0);
 
   const localPlayer = updatedPlayers.find(p => p.id === store.myPlayerId);
-  const myHandCardIds = new Set(localPlayer?.hand.map(c => c.id) ?? []);
+  const myHandCardIds = new Set(localPlayer ? localPlayer.hand.map(c => c.id) : []);
 
   // Bảo lưu các lá bài người chơi đã chọn sẵn (Pre-selection) khi nhận sự kiện từ đối thủ/server:
   let nextSelectedCardIds: Set<string>;

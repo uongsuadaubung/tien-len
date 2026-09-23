@@ -85,7 +85,7 @@ function syncLobbyBroadcast(roomState: OnlineRoomState): void {
     betAmount: roomState.betAmount,
     settlementRule: roomState.settlementRule,
     choppingMultiplier: roomState.choppingMultiplier,
-    congMultiplier: roomState.congMultiplier ?? 1,
+    congMultiplier: roomState.congMultiplier,
     congEnabled: roomState.congEnabled,
     prohibitEndingWithTwo: roomState.prohibitEndingWithTwo,
     allowFourPairsCutAnytime: roomState.allowFourPairsCutAnytime,
@@ -169,15 +169,15 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
     const existingRooms = get().publicRooms;
     const roomCode = generateRoomPin(existingRooms);
     const selfPeerId = globalP2PClient.selfPeerId;
-    const isPublic = options.isPublic ?? true;
+    const isPublic = options.isPublic;
 
     const hostPlayer: OnlinePlayer = {
       peerId: selfPeerId,
-      playerId: profile.id || loadPlayerProfile().id,
+      playerId: profile.id,
       name: (profile.name && !profile.name.startsWith('usr_')) ? profile.name : 'Chủ Bàn',
       avatar: (profile.avatar && profile.avatar !== '👤') ? profile.avatar : '🤠',
-      elo: profile.elo ?? 1000,
-      coins: profile.coins ?? 50000,
+      elo: profile.elo,
+      coins: profile.coins,
       isHost: true,
       isReady: true,
       isBot: false
@@ -189,13 +189,13 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       playerCount: options.playerCount,
       betAmount: options.betAmount,
       settlementRule: options.settlementRule,
-      choppingMultiplier: options.choppingMultiplier ?? 1,
-      congMultiplier: options.congMultiplier ?? 1,
-      congEnabled: options.congEnabled ?? true,
-      prohibitEndingWithTwo: options.prohibitEndingWithTwo ?? true,
-      allowFourPairsCutAnytime: true,
-      threeSpadesEndingBonus: true,
-      cascadeChopEnabled: true,
+      choppingMultiplier: options.choppingMultiplier,
+      congMultiplier: options.congMultiplier,
+      congEnabled: options.congEnabled,
+      prohibitEndingWithTwo: options.prohibitEndingWithTwo,
+      allowFourPairsCutAnytime: options.allowFourPairsCutAnytime,
+      threeSpadesEndingBonus: options.threeSpadesEndingBonus,
+      cascadeChopEnabled: options.cascadeChopEnabled,
       players: [hostPlayer],
       status: 'WAITING',
       disbandReason: null,
@@ -408,11 +408,11 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
 
     const candidatePlayer: OnlinePlayer = {
       peerId: globalP2PClient.selfPeerId,
-      playerId: profile.id || loadPlayerProfile().id,
+      playerId: profile.id,
       name: (profile.name && !profile.name.startsWith('usr_')) ? profile.name : 'Đấu Thủ',
       avatar: (profile.avatar && profile.avatar !== '👤') ? profile.avatar : '🤠',
-      elo: profile.elo ?? 1000,
-      coins: profile.coins ?? 50000,
+      elo: profile.elo,
+      coins: profile.coins,
       isHost: false,
       isReady: true,
       isBot: false
@@ -522,7 +522,7 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
           )
           .withCong((cg: CongRulesBuilder) => cg
             .enabled(roomState.congEnabled)
-            .multiplier(roomState.congMultiplier ?? 1)
+            .multiplier(roomState.congMultiplier)
           )
           .withGameFlow((f: GameFlowRulesBuilder) => f
             .prohibitEndingWithTwo(roomState.prohibitEndingWithTwo)

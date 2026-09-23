@@ -92,9 +92,7 @@ export function matchmakeRankedOpponents(playerElo: number): BotConfig[] {
   
   // Sắp xếp các bot theo độ gần với Elo người chơi
   const sorted = [...allBots].sort((a, b) => {
-    const aElo = a.elo ?? 1000;
-    const bElo = b.elo ?? 1000;
-    return Math.abs(aElo - playerElo) - Math.abs(bElo - playerElo);
+    return Math.abs(a.elo - playerElo) - Math.abs(b.elo - playerElo);
   });
 
   // Chọn ra 3 bot gần nhất nhưng có độ đa dạng phong cách (không trùng bot)

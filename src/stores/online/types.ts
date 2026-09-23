@@ -17,14 +17,14 @@ export interface CreateRoomOptions {
   betAmount: number;
   playerCount: 2 | 3 | 4;
   settlementRule: GameSettlementRule;
-  choppingMultiplier?: number;
-  congMultiplier?: number;
-  congEnabled?: boolean;
-  prohibitEndingWithTwo?: boolean;
-  allowFourPairsCutAnytime?: boolean;
-  threeSpadesEndingBonus?: boolean;
-  cascadeChopEnabled?: boolean;
-  isPublic?: boolean;
+  choppingMultiplier: number;
+  congMultiplier: number;
+  congEnabled: boolean;
+  prohibitEndingWithTwo: boolean;
+  allowFourPairsCutAnytime: boolean;
+  threeSpadesEndingBonus: boolean;
+  cascadeChopEnabled: boolean;
+  isPublic: boolean;
 }
 
 

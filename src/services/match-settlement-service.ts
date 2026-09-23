@@ -306,7 +306,7 @@ export function settleCompletedMatch(
       if (roomPlayer && roomPlayer.elo) {
         playerElos[p.id] = roomPlayer.elo;
       } else if (p.botPersonaId) {
-        playerElos[p.id] = getBotConfig(p.botPersonaId).elo ?? 1000;
+        playerElos[p.id] = getBotConfig(p.botPersonaId).elo;
       } else {
         playerElos[p.id] = 1000;
       }
@@ -530,7 +530,9 @@ export function settleCompletedMatch(
         if (!playerAtIdx) return cfg;
         const res = botResults.find(b => b.playerId === playerAtIdx.id);
         if (res) {
-          const currentElo = cfg.elo ?? 1000;
+          const currentElo = cfg.elo !== undefined
+            ? cfg.elo
+            : (playerAtIdx.botPersonaId ? getBotConfig(playerAtIdx.botPersonaId).elo : 1000);
           return {
             ...cfg,
             elo: Math.max(800, Math.min(2600, currentElo + res.deltaElo))

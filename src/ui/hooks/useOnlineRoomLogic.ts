@@ -259,13 +259,13 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
       playerCount: tableConfig.playerCount,
       betAmount: tableConfig.betAmount,
       settlementRule: currentSettlementRule,
-      choppingMultiplier: tableConfig.choppingMultiplier ?? 1,
-      congMultiplier: tableConfig.congMultiplier ?? 1,
-      congEnabled: tableConfig.congEnabled ?? true,
-      prohibitEndingWithTwo: tableConfig.prohibitEndingWithTwo ?? true,
-      allowFourPairsCutAnytime: tableConfig.allowFourPairsCutAnytime ?? true,
-      threeSpadesEndingBonus: tableConfig.threeSpadesEndingBonus ?? true,
-      cascadeChopEnabled: tableConfig.cascadeChopEnabled ?? true,
+      choppingMultiplier: tableConfig.choppingMultiplier,
+      congMultiplier: tableConfig.congMultiplier,
+      congEnabled: tableConfig.congEnabled,
+      prohibitEndingWithTwo: tableConfig.prohibitEndingWithTwo,
+      allowFourPairsCutAnytime: tableConfig.allowFourPairsCutAnytime,
+      threeSpadesEndingBonus: tableConfig.threeSpadesEndingBonus,
+      cascadeChopEnabled: tableConfig.cascadeChopEnabled,
       isPublic: isPublicRoom
     });
   }, [createRoom, profile, tableConfig, currentSettlementRule, isPublicRoom]);

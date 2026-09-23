@@ -137,7 +137,7 @@ export class AppFlowCoordinator {
       betAmount: config.betAmount,
       modeName: config.settlementRule === 'COUNT_CARDS' ? 'Đếm Lá (Đấu Hạng)' : config.settlementRule === 'WINNER_TAKES_ALL' ? 'Nhất Ăn Tất (Đấu Hạng)' : 'Tiến Lên Miền Nam',
       botConfigs,
-      playerCount: config.playerCount ?? 4,
+      playerCount: config.playerCount,
       onStart: () => {
         const customRules = new GameRulesBuilder()
           .withSettlement(config.settlementRule)
@@ -151,7 +151,7 @@ export class AppFlowCoordinator {
           .withCong(cg => cg
             .enabled(config.congEnabled)
             .penaltyCards(config.congEnabled ? 26 : 0)
-            .multiplier(config.congMultiplier ?? 1)
+            .multiplier(config.congMultiplier)
           )
           .withGameFlow(f => f
             .prohibitEndingWithTwo(config.prohibitEndingWithTwo)
@@ -262,9 +262,9 @@ export class AppFlowCoordinator {
    */
   public async enterCustomMatch(config: CustomGameModalConfig): Promise<boolean> {
     const liveProfile = useUserStore.getState().profile;
-    const choppingMultiplier = config.choppingMultiplier ?? 1;
-    const congMultiplier = config.congMultiplier ?? 1;
-    const congEnabled = config.congEnabled ?? true;
+    const choppingMultiplier = config.choppingMultiplier;
+    const congMultiplier = config.congMultiplier;
+    const congEnabled = config.congEnabled;
     const requiredDeposit = calculateRequiredDeposit(config.settings.betAmount, congMultiplier, congEnabled);
 
     if (liveProfile.coins < requiredDeposit) {

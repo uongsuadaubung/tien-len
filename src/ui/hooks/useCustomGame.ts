@@ -7,7 +7,7 @@ import {
   CustomBotConfigTuple,
   updateTupleAt
 } from '../../engine/types';
-import { BOT_PERSONAS, getAllBotConfigs } from '../../ai/bot-factory';
+import { BOT_PERSONAS, getAllBotConfigs, getBotConfig } from '../../ai/bot-factory';
 import { BotConfig } from '../../ai/types';
 import { ECONOMY_CONSTANTS, calculateRequiredDeposit } from '../../engine/constants/economy';
 import { TableConfigState } from '../components/TableRulesConfigPanel';
@@ -18,9 +18,9 @@ export interface CustomGameModalConfig {
   botPersonaIds: BotPersonaIdTuple;
   customBotConfigs: CustomBotConfigTuple<BotConfig>;
   playerCount: PlayerCount;
-  choppingMultiplier?: number;
-  congMultiplier?: number;
-  congEnabled?: boolean;
+  choppingMultiplier: number;
+  congMultiplier: number;
+  congEnabled: boolean;
 }
 
 export type CustomGameTabType = 'MODE_RULES' | 'BOT_ROSTER' | 'ADVANCED_AI';
@@ -239,11 +239,11 @@ export function useCustomGame({
   }, [isInsufficientCoins, onClose, onStartCustomGame, playerCount, playerCoins, settings, botPersonaIds, customBotConfigs, choppingMultiplier, congMultiplier, congEnabled]);
 
   const activeBotCount = playerCount - 1;
-  const currentActivePersona = BOT_PERSONAS[botPersonaIds[activeBotSeatIndex]] ?? BOT_PERSONAS.BOT_ELO_1150;
-  const currentActiveCustom = customBotConfigs[activeBotSeatIndex] ?? {};
+  const currentActivePersona = getBotConfig(botPersonaIds[activeBotSeatIndex]);
+  const currentActiveCustom = customBotConfigs[activeBotSeatIndex];
   const currentConfig: BotConfig = useMemo(() => ({
     ...currentActivePersona,
-    ...currentActiveCustom
+    ...(currentActiveCustom ? currentActiveCustom : {})
   }), [currentActivePersona, currentActiveCustom]);
 
   return {
