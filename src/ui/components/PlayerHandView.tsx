@@ -114,8 +114,8 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
     return player.hand.slice(0, visibleCardCount);
   }, [player.hand, visibleCardCount]);
 
-  const handCardFingerprint = React.useMemo(() => {
-    return hand.map(c => c.id).join(',');
+  const handCardsContentKey = React.useMemo(() => {
+    return hand.map(c => c.id).sort().join(',');
   }, [hand]);
 
   const requiredCard = firstMoveRequiredCard ?? (isFirstMoveOfGame ? hand[0] ?? null : null);
@@ -125,7 +125,7 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
   const isSmartMode = sortMode === 'SMART_GROUP';
   const availableVariants = React.useMemo(() => {
     return getAvailableSmartVariants(hand);
-  }, [handCardFingerprint]);
+  }, [handCardsContentKey]);
 
   const totalVariants = availableVariants.length;
   const smartGroups = React.useMemo(() => {
@@ -134,11 +134,12 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
     return availableVariants[safeIdx];
   }, [isSmartMode, variantIndex, availableVariants]);
 
-  // Áp dụng Strategy Pattern để sắp xếp danh sách lá bài hiển thị
+  // Áp dụng Strategy Pattern để sắp xếp danh sách lá bài hiển thị (chỉ tính khi không ở SMART_GROUP vì SMART_GROUP hiển thị smartGroups)
   const sortedHand = React.useMemo(() => {
+    if (isSmartMode) return hand;
     const strategy = resolveHandSortStrategy(sortMode);
     return strategy.sort(hand);
-  }, [handCardFingerprint, sortMode]);
+  }, [hand, sortMode, isSmartMode]);
 
   const currentStrategy = resolveHandSortStrategy(sortMode);
   // Xác định nhãn và tooltip của nút Xếp Bài khi xoay vòng:

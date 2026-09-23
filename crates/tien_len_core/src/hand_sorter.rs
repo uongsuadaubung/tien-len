@@ -196,10 +196,142 @@ pub struct HandPartition {
     pub total_score: i32,
 }
 
-fn partition_hand_by_strategy(cards: &[Card], strategy: PartitionStrategy) -> HandPartition {
-    let mut sorted = cards.to_vec();
-    sort_cards(&mut sorted);
+struct CandMeta<'a> {
+    mask: u64,
+    weight: i32,
+    combo: &'a Combination,
+}
 
+fn solve_best_partition<'a, F>(
+    sorted_cards: &[Card],
+    candidates: &'a [Combination],
+    calc_weight: F,
+    base_trash_score: i32,
+) -> HandPartition
+where
+    F: Fn(&Combination) -> i32,
+{
+    if sorted_cards.is_empty() {
+        return HandPartition {
+            combinations: Vec::new(),
+            trash_cards: Vec::new(),
+            total_score: 0,
+        };
+    }
+
+    let card_to_bit: HashMap<&str, usize> = sorted_cards
+        .iter()
+        .enumerate()
+        .map(|(i, c)| (c.id.as_str(), i))
+        .collect();
+
+    let mut cand_items: Vec<CandMeta<'a>> = Vec::with_capacity(candidates.len());
+    for combo in candidates {
+        let mut mask = 0u64;
+        let mut valid = true;
+        for c in &combo.cards {
+            if let Some(&bit) = card_to_bit.get(c.id.as_str()) {
+                mask |= 1u64 << bit;
+            } else {
+                valid = false;
+                break;
+            }
+        }
+        if valid && mask.count_ones() as usize == combo.cards.len() {
+            let weight = calc_weight(combo);
+            if weight > 0 {
+                cand_items.push(CandMeta { mask, weight, combo });
+            }
+        }
+    }
+
+    cand_items.sort_by(|a, b| b.weight.cmp(&a.weight));
+
+    let full_mask = if sorted_cards.len() >= 64 {
+        !0u64
+    } else {
+        (1u64 << sorted_cards.len()) - 1
+    };
+
+    let mut best_gain = 0;
+    let mut best_selected = Vec::new();
+    let mut selected = Vec::new();
+
+    fn search(
+        cand_idx: usize,
+        remaining_mask: u64,
+        current_gain: i32,
+        selected: &mut Vec<usize>,
+        candidates: &[CandMeta],
+        best_gain: &mut i32,
+        best_selected: &mut Vec<usize>,
+    ) {
+        if current_gain > *best_gain {
+            *best_gain = current_gain;
+            *best_selected = selected.clone();
+        }
+
+        for i in cand_idx..candidates.len() {
+            let cand = &candidates[i];
+            if (cand.mask & remaining_mask) == cand.mask {
+                selected.push(i);
+                search(
+                    i + 1,
+                    remaining_mask & !cand.mask,
+                    current_gain + cand.weight,
+                    selected,
+                    candidates,
+                    best_gain,
+                    best_selected,
+                );
+                selected.pop();
+            }
+        }
+    }
+
+    search(
+        0,
+        full_mask,
+        0,
+        &mut selected,
+        &cand_items,
+        &mut best_gain,
+        &mut best_selected,
+    );
+
+    let chosen_combos: Vec<Combination> = best_selected
+        .into_iter()
+        .map(|idx| cand_items[idx].combo.clone())
+        .collect();
+
+    let mut chosen_mask = 0u64;
+    for combo in &chosen_combos {
+        for c in &combo.cards {
+            if let Some(&bit) = card_to_bit.get(c.id.as_str()) {
+                chosen_mask |= 1u64 << bit;
+            }
+        }
+    }
+
+    let trash_cards: Vec<Card> = sorted_cards
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| (chosen_mask & (1u64 << i)) == 0)
+        .map(|(_, c)| c.clone())
+        .collect();
+
+    HandPartition {
+        combinations: chosen_combos,
+        trash_cards,
+        total_score: base_trash_score + best_gain,
+    }
+}
+
+pub(crate) fn partition_sorted_hand_by_strategy(
+    sorted: &[Card],
+    candidates: &[Combination],
+    strategy: PartitionStrategy,
+) -> HandPartition {
     if sorted.is_empty() {
         return HandPartition {
             combinations: Vec::new(),
@@ -208,72 +340,50 @@ fn partition_hand_by_strategy(cards: &[Card], strategy: PartitionStrategy) -> Ha
         };
     }
 
-    let initial_score = -(sorted.len() as i32) * 20;
-    let mut best_partition = HandPartition {
-        combinations: Vec::new(),
-        trash_cards: sorted.clone(),
-        total_score: initial_score,
+    let trash_penalty = if strategy == PartitionStrategy::BigHands {
+        -8
+    } else {
+        -20
+    };
+    let turns_mult = if strategy == PartitionStrategy::BigHands {
+        8
+    } else {
+        18
     };
 
-    fn search(
-        hand_len: usize,
-        remaining_cards: &[Card],
-        current_combos: &[Combination],
-        current_score: i32,
-        strategy: PartitionStrategy,
-        best: &mut HandPartition,
-    ) {
-        let trash_penalty = if strategy == PartitionStrategy::BigHands {
-            -8
-        } else {
-            -20
+    let base_trash_score: i32 = sorted
+        .iter()
+        .map(|c| if c.is_two() { 10 } else { trash_penalty })
+        .sum();
+
+    solve_best_partition(
+        sorted,
+        candidates,
+        |combo| {
+            let combo_score = evaluate_combination_score(combo, strategy);
+            let mut combo_trash = 0;
+            for c in &combo.cards {
+                combo_trash += if c.is_two() { 10 } else { trash_penalty };
+            }
+            let turns_gain = (combo.cards.len() as i32 - 1) * turns_mult;
+            combo_score - combo_trash + turns_gain
+        },
+        base_trash_score,
+    )
+}
+
+fn partition_hand_by_strategy(cards: &[Card], strategy: PartitionStrategy) -> HandPartition {
+    let mut sorted = cards.to_vec();
+    sort_cards(&mut sorted);
+    if sorted.is_empty() {
+        return HandPartition {
+            combinations: Vec::new(),
+            trash_cards: Vec::new(),
+            total_score: 0,
         };
-        let trash_score: i32 = remaining_cards
-            .iter()
-            .map(|c| if c.is_two() { 10 } else { trash_penalty })
-            .sum();
-
-        let num_turns = current_combos.len() + remaining_cards.len();
-        let turns_bonus = (hand_len as i32 - num_turns as i32)
-            * (if strategy == PartitionStrategy::BigHands {
-                8
-            } else {
-                18
-            });
-
-        let total = current_score + trash_score + turns_bonus;
-        if total > best.total_score {
-            best.total_score = total;
-            best.combinations = current_combos.to_vec();
-            best.trash_cards = remaining_cards.to_vec();
-        }
-
-        let candidates = find_all_candidate_combinations(remaining_cards);
-        for candidate in candidates {
-            let cand_ids: HashSet<&str> = candidate.cards.iter().map(|c| c.id.as_str()).collect();
-            let next_remaining: Vec<Card> = remaining_cards
-                .iter()
-                .filter(|c| !cand_ids.contains(c.id.as_str()))
-                .cloned()
-                .collect();
-
-            let combo_score = evaluate_combination_score(&candidate, strategy);
-            let mut next_combos = current_combos.to_vec();
-            next_combos.push(candidate);
-
-            search(
-                hand_len,
-                &next_remaining,
-                &next_combos,
-                current_score + combo_score,
-                strategy,
-                best,
-            );
-        }
     }
-
-    search(sorted.len(), &sorted, &[], 0, strategy, &mut best_partition);
-    best_partition
+    let candidates = find_all_candidate_combinations(&sorted);
+    partition_sorted_hand_by_strategy(&sorted, &candidates, strategy)
 }
 
 /// Canonical Hand Partitioning implementation matching TS SSOT with 100x Rust performance
@@ -289,47 +399,19 @@ pub fn partition_hand(cards: &[Card], optimality: f64) -> HandPartition {
         };
     }
 
-    let initial_score = -(sorted.len() as i32) * 15;
-    let mut best_partition = HandPartition {
-        combinations: Vec::new(),
-        trash_cards: sorted.clone(),
-        total_score: initial_score,
-    };
+    let candidates = find_all_candidate_combinations(&sorted);
 
-    fn search(
-        hand_len: usize,
-        remaining_cards: &[Card],
-        current_combos: &[Combination],
-        current_score: i32,
-        optimality: f64,
-        best: &mut HandPartition,
-    ) {
-        let trash_score: i32 = remaining_cards
-            .iter()
-            .map(|c| if c.is_two() { 10 } else { -15 })
-            .sum();
+    let base_trash_score: i32 = sorted
+        .iter()
+        .map(|c| if c.is_two() { 10 } else { -15 })
+        .sum();
 
-        let num_turns = current_combos.len() + remaining_cards.len();
-        let turns_bonus = ((hand_len as f64 - num_turns as f64) * 12.0 * optimality) as i32;
-
-        let total = current_score + trash_score + turns_bonus;
-        if total > best.total_score {
-            best.total_score = total;
-            best.combinations = current_combos.to_vec();
-            best.trash_cards = remaining_cards.to_vec();
-        }
-
-        let candidates = find_all_candidate_combinations(remaining_cards);
-        for candidate in candidates {
-            let cand_ids: HashSet<&str> = candidate.cards.iter().map(|c| c.id.as_str()).collect();
-            let next_remaining: Vec<Card> = remaining_cards
-                .iter()
-                .filter(|c| !cand_ids.contains(c.id.as_str()))
-                .cloned()
-                .collect();
-
-            let combo_score = match candidate.combo_type {
-                CombinationType::Straight => 15 + candidate.length as i32 * 8,
+    solve_best_partition(
+        &sorted,
+        &candidates,
+        |combo| {
+            let combo_score = match combo.combo_type {
+                CombinationType::Straight => 15 + combo.length as i32 * 8,
                 CombinationType::FivePairsSequential => 800,
                 CombinationType::FourPairsSequential => 600,
                 CombinationType::FourOfAKind => 400,
@@ -338,23 +420,15 @@ pub fn partition_hand(cards: &[Card], optimality: f64) -> HandPartition {
                 CombinationType::Pair => 22,
                 _ => 0,
             };
-
-            let mut next_combos = current_combos.to_vec();
-            next_combos.push(candidate);
-
-            search(
-                hand_len,
-                &next_remaining,
-                &next_combos,
-                current_score + combo_score,
-                optimality,
-                best,
-            );
-        }
-    }
-
-    search(sorted.len(), &sorted, &[], 0, optimality, &mut best_partition);
-    best_partition
+            let mut combo_trash = 0;
+            for c in &combo.cards {
+                combo_trash += if c.is_two() { 10 } else { -15 };
+            }
+            let turns_gain = ((combo.cards.len() as f64 - 1.0) * 12.0 * optimality) as i32;
+            combo_score - combo_trash + turns_gain
+        },
+        base_trash_score,
+    )
 }
 
 fn convert_partition_to_groups(partition: &HandPartition) -> Vec<SmartCardGroup> {
@@ -475,6 +549,11 @@ pub fn get_available_smart_variants(cards: &[Card]) -> Vec<Vec<SmartCardGroup>> 
         return Vec::new();
     }
 
+    let mut sorted = cards.to_vec();
+    sort_cards(&mut sorted);
+
+    let candidates = find_all_candidate_combinations(&sorted);
+
     let strategies = [
         PartitionStrategy::OptimalTurns,
         PartitionStrategy::BigHands,
@@ -486,7 +565,7 @@ pub fn get_available_smart_variants(cards: &[Card]) -> Vec<Vec<SmartCardGroup>> 
     let mut seen_signatures = HashSet::new();
 
     for strategy in strategies {
-        let partition = partition_hand_by_strategy(cards, strategy);
+        let partition = partition_sorted_hand_by_strategy(&sorted, &candidates, strategy);
         let groups = convert_partition_to_groups(&partition);
         if groups.is_empty() {
             continue;
@@ -500,13 +579,11 @@ pub fn get_available_smart_variants(cards: &[Card]) -> Vec<Vec<SmartCardGroup>> 
     }
 
     if variants.is_empty() {
-        let mut trash = cards.to_vec();
-        sort_cards(&mut trash);
         variants.push(vec![SmartCardGroup {
             id: "combo-trash".into(),
             group_type: "SINGLE".into(),
             name: "Bài Rác".into(),
-            cards: trash,
+            cards: sorted,
         }]);
     }
 

@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { sortCards } from '../../engine/card';
-import { sortCardsSmart, getAvailableSmartVariants } from '../../engine/hand-sorter';
+import { getAvailableSmartVariants } from '../../engine/hand-sorter';
 import { soundManager } from '../audio/sound-manager';
 import { useGameStore } from '../../stores/useGameStore';
 import { appFlowCoordinator } from '../../services/app-flow-coordinator';
@@ -32,14 +32,18 @@ export function useSmartHandSorting() {
       // Chuyển từ Điểm sang Bộ Phương Án 1 (index 0)
       setHandSortMode('SMART_GROUP');
       setSmartVariantIndex(0);
-      nextSortedHand = sortCardsSmart(localPlayer.hand, 0);
+      nextSortedHand = variants[0] && variants[0].length > 0
+        ? variants[0].flatMap(g => g.cards)
+        : sortCards(localPlayer.hand);
     } else {
       // Đang ở SMART_GROUP
       if (smartVariantIndex < variants.length - 1) {
         // Còn phương án bộ tiếp theo
         const nextIdx = smartVariantIndex + 1;
         setSmartVariantIndex(nextIdx);
-        nextSortedHand = sortCardsSmart(localPlayer.hand, nextIdx);
+        nextSortedHand = variants[nextIdx] && variants[nextIdx].length > 0
+          ? variants[nextIdx].flatMap(g => g.cards)
+          : sortCards(localPlayer.hand);
       } else {
         // Đã ở phương án bộ cuối -> Quay về Xếp Điểm (NATURAL)
         setHandSortMode('NATURAL');
