@@ -136,6 +136,12 @@ export const useViewStore = create<ViewState>((set, get) => ({
 
   setScreen: (screen: ScreenType) => {
     set({ currentScreen: screen });
+    try {
+      const { useGameStore } = require('./useGameStore');
+      if (useGameStore.getState().currentScreen !== screen) {
+        useGameStore.setState({ currentScreen: screen });
+      }
+    } catch {}
   },
 
   openModal: (modal) => {

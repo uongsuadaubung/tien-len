@@ -1,3 +1,5 @@
+import { useSettingsStore } from '../../stores/useSettingsStore';
+
 declare global {
   interface Window {
     webkitAudioContext?: typeof AudioContext;
@@ -10,7 +12,26 @@ declare global {
 class SoundManager {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
-  public enabled: boolean = true;
+  private _enabledOverride: boolean | null = null;
+
+  public get enabled(): boolean {
+    if (this._enabledOverride !== null) {
+      return this._enabledOverride;
+    }
+    try {
+      return useSettingsStore.getState().soundEnabled;
+    } catch {
+      return true;
+    }
+  }
+
+  public set enabled(val: boolean) {
+    this._enabledOverride = val;
+  }
+
+  public resetOverride(): void {
+    this._enabledOverride = null;
+  }
 
   private initCtx(): AudioContext | null {
     if (!this.ctx && typeof window !== 'undefined') {

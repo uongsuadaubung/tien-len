@@ -167,7 +167,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
           {topBot && (
             <BotSeat
               player={topBot}
-              botConfig={getBotConfig(topBotPersonaId, topBotCustomConfig || undefined)}
+              botConfig={getBotConfig(topBot.botPersonaId || topBotPersonaId, topBotCustomConfig || undefined)}
               isCurrentTurn={currentTurnPlayerId === topBot.id}
               position="top"
               isLeader={leadPlayerId === topBot.id}
@@ -186,7 +186,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
             {leftBot && (
               <BotSeat
                 player={leftBot}
-                botConfig={getBotConfig(botPersonaIds[0], customBotConfigs[0] || undefined)}
+                botConfig={getBotConfig(leftBot.botPersonaId || botPersonaIds[0], customBotConfigs[0] || undefined)}
                 isCurrentTurn={currentTurnPlayerId === leftBot.id}
                 position="left"
                 isLeader={leadPlayerId === leftBot.id}
@@ -238,7 +238,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
             {rightBot && (
               <BotSeat
                 player={rightBot}
-                botConfig={getBotConfig(botPersonaIds[2], customBotConfigs[2] || undefined)}
+                botConfig={getBotConfig(rightBot.botPersonaId || botPersonaIds[2], customBotConfigs[2] || undefined)}
                 isCurrentTurn={currentTurnPlayerId === rightBot.id}
                 position="right"
                 isLeader={leadPlayerId === rightBot.id}
