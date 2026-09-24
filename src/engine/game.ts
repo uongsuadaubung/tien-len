@@ -779,6 +779,12 @@ export class GameEngine {
       if (!lastMover) {
         // Toàn bộ người chơi còn bài đều bỏ lượt khi cầm cái (ví dụ: tất cả đều chỉ còn Heo và cấm về Heo)
         // Kết thúc ván đấu ngay để tránh lặp vô hạn, xử phạt Thối Heo/Hàng
+        if (this.winners.length === 0) {
+          // Bế tắc: Toàn bộ người chơi đều bỏ lượt khi chưa có ai về Nhất
+          // Phân định người có ít lá bài nhất trên tay dẫn đầu để kết toán an toàn
+          const sorted = [...this.players].sort((a, b) => a.hand.length - b.hand.length);
+          this.winners = [sorted[0]];
+        }
         this.isGameOver = true;
         this.settleEndGame();
         return;

@@ -259,4 +259,53 @@ describe('Bảo Vệ Danh Tính & Tài Sản Khi Chơi Online & Đồng Bộ D�
     expect(playersAfterLeave.length).toBe(1);
     expect(playersAfterLeave[0].id).toBe(localProfile.id);
   });
+
+  it('6. Online Settlement Invariant: Điểm số của đối thủ (Guest) không bị cộng dồn 2 lần (No double payout addition)', async () => {
+    const hostId = 'usr_host_test_1';
+    const guestId = 'usr_guest_test_2';
+    const betAmount = 1000;
+
+    const rules = new GameRulesBuilder()
+      .withSettlement(s => s.gameType('DEM_LA'))
+      .withTable(t => t.betAmount(betAmount))
+      .build();
+
+    const hostMatchPlayer = createPlayer({
+      id: hostId,
+      name: 'Host',
+      avatar: '🤠',
+      score: 7000000,
+      hand: [createCard(4, 'HEARTS')] // Thua, còn 1 lá
+    });
+
+    const guestMatchPlayer = createPlayer({
+      id: guestId,
+      name: 'Guest Winner',
+      avatar: '🦊',
+      score: 50000,
+      hand: [] // Thắng (hết bài)
+    });
+
+    const engine = new GameEngine([hostMatchPlayer, guestMatchPlayer], rules);
+    engine.winners = [guestMatchPlayer];
+    engine.isGameOver = true;
+
+    // Giả lập GameEngine kết thúc ván đấu và áp dụng payout ban đầu
+    engine.settleEndGame();
+    // Sau settleEndGame: Guest thắng 1 lá = +1,000 -> 51,000
+    expect(engine.players.find(p => p.id === guestId)?.score).toBe(51000);
+
+    useGameStore.getState().setActiveGameType('ONLINE');
+
+    // Host gọi settleCompletedMatch
+    const settlementResult = settleCompletedMatch(engine, hostId);
+
+    expect(settlementResult.payouts[guestId]).toBe(1000);
+    expect(settlementResult.payouts[hostId]).toBe(-1000);
+
+    // Điểm của Guest chỉ được +1,000 từ điểm gốc (50,000 -> 51,000), TUYỆT ĐỐI không thành 52,000
+    const finalGuest = engine.players.find(p => p.id === guestId);
+    expect(finalGuest?.score).toBe(51000);
+  });
 });
+

@@ -150,8 +150,6 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
     }
   }
 
-  const canPass = isMyTurn && !isFirstMoveOfGame && !isLeadMove && !hasPassedRound;
-
   // 3. Tính toán Quick Select Candidates
   let canQuickSelect = false;
   let quickSelectCandidatesCount = 0;
@@ -168,6 +166,14 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
     quickSelectCandidatesCount = quickCandidates.length;
     canQuickSelect = quickCandidates.length > 0;
   }
+
+  // Người chơi được bỏ lượt nếu:
+  // - Đang đến lượt của mình, không phải ván 1 bắt buộc 3 Bích đi đầu, và chưa bỏ lượt trong vòng.
+  // - VÀ: Hoặc không phải lượt mở vòng (!isLeadMove),
+  //       Hoặc là lượt mở vòng (isLeadMove) nhưng không có bất kỳ nước đi mở vòng nào hợp lệ
+  //       (ví dụ: trên tay chỉ còn Heo và game bật luật cấm về bằng lá 2 cuối cùng).
+  const hasNoValidMovesOnLead = isLeadMove && quickSelectCandidatesCount === 0;
+  const canPass = isMyTurn && !isFirstMoveOfGame && !hasPassedRound && (!isLeadMove || hasNoValidMovesOnLead);
 
   const controls: ControlsRenderModel = {
     isMyTurn,

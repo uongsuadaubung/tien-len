@@ -379,11 +379,17 @@ export function settleCompletedMatch(
   const { updatedProfile, loanSettlement } = applyAuthoritativeSettlementToProfile(settlementInput);
   gameStore.setLoanDeductionAmount(loanSettlement.loanDeduction);
 
-  // Cập nhật điểm số/xu (p.score) cho toàn bộ người chơi trong engine theo kết toán Server
+  // Đồng bộ điểm số/xu trong engine:
+  // 1. Với người chơi chính (humanPlayerId): Gán theo số dư ví chính thức (đã trừ nợ/thưởng/campaign).
+  // 2. Với các người chơi khác: Khi ván kết thúc (GAME_OVER / INSTANT_WIN), GameEngine ĐÃ tính toán
+  //    và cộng điểm chính xác 1 lần duy nhất. Tuyệt đối không cộng dồn thêm lần thứ hai.
+  const isEngineAlreadySettled = engine.state.status === 'GAME_OVER' || engine.state.status === 'INSTANT_WIN';
+
   for (const p of engine.players) {
     if (p.id === humanPlayerId) {
       p.score = updatedProfile.coins;
-    } else {
+    } else if (!isEngineAlreadySettled) {
+      // Chỉ áp dụng nếu engine chưa từng kết toán ván đấu (ví dụ mock engine trong unit test)
       const deltaCoins = settlement.payouts[p.id] || 0;
       p.score = Math.max(0, p.score + deltaCoins);
     }
