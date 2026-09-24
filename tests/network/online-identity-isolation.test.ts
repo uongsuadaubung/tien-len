@@ -266,7 +266,7 @@ describe('Bảo Vệ Danh Tính & Tài Sản Khi Chơi Online & Đồng Bộ D�
     const betAmount = 1000;
 
     const rules = new GameRulesBuilder()
-      .withSettlement(s => s.gameType('DEM_LA'))
+      .withSettlement('COUNT_CARDS')
       .withTable(t => t.betAmount(betAmount))
       .build();
 

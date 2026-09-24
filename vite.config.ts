@@ -1,10 +1,26 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
+const buildTime = Date.now();
+
+const versionGeneratorPlugin = {
+  name: 'version-generator',
+  generateBundle() {
+    this.emitFile({
+      type: 'asset',
+      fileName: 'version.json',
+      source: JSON.stringify({ buildTime }, null, 2)
+    });
+  }
+};
+
 // https://vite.dev/config/
 export default defineConfig({
   base: '/tien-len/',
-  plugins: [react()],
+  plugins: [react(), versionGeneratorPlugin],
+  define: {
+    __APP_BUILD_TIME__: JSON.stringify(buildTime)
+  },
   worker: {
     format: 'es'
   },

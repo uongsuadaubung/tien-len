@@ -34,9 +34,9 @@ self.addEventListener('fetch', (event) => {
   // Chỉ cache các request GET
   if (event.request.method !== 'GET') return;
 
-  // Bỏ qua GitHub API và external API requests
+  // Bỏ qua version.json, GitHub API và external API requests
   const url = new URL(event.request.url);
-  if (url.hostname.includes('github.com') || url.hostname.includes('googleapis.com')) {
+  if (url.pathname.endsWith('version.json') || url.hostname.includes('github.com') || url.hostname.includes('googleapis.com')) {
     return;
   }
 

@@ -169,7 +169,8 @@ describe('Kiểm thử Bỏ Lượt & Cấm Đánh 2 Cuối (Prohibit Ending Wit
       leadingMove: {
         playerId: 'p1',
         combination: combo5S,
-        isChop: false
+        isChop: false,
+        timestamp: Date.now()
       },
       isLeadMove: false,
       isFirstMoveOfGame: false,
@@ -237,7 +238,7 @@ describe('Kiểm thử Bỏ Lượt & Cấm Đánh 2 Cuối (Prohibit Ending Wit
 
     const rules = new GameRulesBuilder()
       .withGameFlow(g => g.prohibitEndingWithTwo(true))
-      .withSettlement(s => s.gameType('DEM_LA'))
+      .withSettlement('COUNT_CARDS')
       .withTable(t => t.betAmount(1000))
       .build();
 
@@ -279,7 +280,7 @@ describe('Kiểm thử Bỏ Lượt & Cấm Đánh 2 Cuối (Prohibit Ending Wit
 
     const rules = new GameRulesBuilder()
       .withGameFlow(g => g.prohibitEndingWithTwo(true))
-      .withSettlement(s => s.gameType('DEM_LA'))
+      .withSettlement('COUNT_CARDS')
       .withTable(t => t.betAmount(1000))
       .build();
 

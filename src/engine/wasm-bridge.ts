@@ -65,7 +65,6 @@ export async function initWasmCore(): Promise<void> {
       }
 
       // 2. Standard Web / Vite browser environment
-      // @ts-expect-error Vite URL import query for asset
       const wasmModule = await import('./wasm/pkg/tien_len_core_bg.wasm?url');
       const wasmUrl = wasmModule.default || wasmModule;
       await __wbg_init(wasmUrl);

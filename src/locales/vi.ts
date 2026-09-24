@@ -125,7 +125,10 @@ export const vi = {
     ready: 'SỚI BẠC ĐÃ SẴN SÀNG',
     complete: 'HOÀN TẤT',
     startup: 'KHỞI ĐỘNG',
-    enterGame: 'VÀO GAME'
+    enterGame: 'VÀO GAME',
+    updateAvailableTitle: 'ĐÃ CÓ BẢN CẬP NHẬT MỚI',
+    updateAvailableDesc: 'Trò chơi đã phát hành bản cập nhật mới. Vui lòng tải lại để cập nhật ngay!',
+    reloadToUpdate: 'TẢI LẠI ĐỂ CẬP NHẬT'
   },
   bot: {
     passed: 'BỎ LƯỢT',

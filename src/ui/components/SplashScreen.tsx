@@ -3,6 +3,7 @@ import { lockToLandscape } from '../utils/fullscreen';
 import { soundManager } from '../audio/sound-manager';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useI18n } from '../../locales';
+import { checkAppUpdate, reloadToUpdate } from '../../services/app-version-service';
 
 export interface SplashScreenProps {
   message?: string;
@@ -26,6 +27,20 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   const isMobile = isMobileProp !== undefined ? isMobileProp : deviceInfo.isMobile;
   const [progress, setProgress] = useState(10);
   const [isReady, setIsReady] = useState(false);
+  const [hasUpdate, setHasUpdate] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    let isCancelled = false;
+    checkAppUpdate().then((res) => {
+      if (!isCancelled && res.hasUpdate) {
+        setHasUpdate(true);
+      }
+    });
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const startTime = Date.now();
@@ -54,17 +69,17 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
     }
   };
 
-  // Trên Web / Desktop: Tự động vào game khi nạp xong dữ liệu & thanh tiến trình hoàn tất
+  // Trên Web / Desktop: Tự động vào game khi nạp xong dữ liệu & thanh tiến trình hoàn tất (chỉ vào nếu không có bản cập nhật mới)
   useEffect(() => {
-    if (!isMobile && isReady && isHydrated) {
+    if (!isMobile && isReady && isHydrated && !hasUpdate) {
       handleEnterGame();
     }
-  }, [isMobile, isReady, isHydrated]);
+  }, [isMobile, isReady, isHydrated, hasUpdate]);
 
   return (
     <div 
-      onClick={isMobile && isReady ? handleEnterGame : undefined}
-      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[var(--bg-table-dark)] text-white select-none ${isMobile && isReady ? 'cursor-pointer' : ''}`}
+      onClick={isMobile && isReady && !hasUpdate ? handleEnterGame : undefined}
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[var(--bg-table-dark)] text-white select-none ${isMobile && isReady && !hasUpdate ? 'cursor-pointer' : ''}`}
     >
       <div className="relative flex flex-col items-center gap-5 p-8 max-w-sm text-center">
         {/* Logo Icon phát sáng */}
@@ -99,8 +114,32 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
           </div>
         </div>
 
-        {/* Nút Vào Game trên Mobile (Kích hoạt Xoay Ngang & Âm Thanh) */}
-        {isMobile && isReady ? (
+        {/* Nút Cập Nhật khi có bản mới HOẶC Nút Vào Game trên Mobile */}
+        {hasUpdate ? (
+          <div className="w-full flex flex-col items-center gap-2.5 mt-2 animate-fade-in">
+            <div className="flex items-center gap-1.5 text-amber-300 font-black text-xs uppercase tracking-widest animate-pulse">
+              <span>🚀</span>
+              <span>{t('splash.updateAvailableTitle')}</span>
+              <span>🚀</span>
+            </div>
+            <p className="text-[11px] text-amber-100/80 leading-relaxed font-medium">
+              {t('splash.updateAvailableDesc')}
+            </p>
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                setIsUpdating(true);
+                await reloadToUpdate();
+              }}
+              disabled={isUpdating}
+              className="w-full py-3 px-6 rounded-2xl bg-gradient-to-r from-emerald-400 via-green-400 to-emerald-500 hover:from-emerald-300 hover:to-green-300 text-black font-black text-xs sm:text-sm uppercase tracking-widest shadow-[0_0_25px_rgba(16,185,129,0.6)] animate-pulse active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              <span>🔄</span>
+              <span>{isUpdating ? '...' : t('splash.reloadToUpdate')}</span>
+              <span>🔄</span>
+            </button>
+          </div>
+        ) : isMobile && isReady ? (
           <button
             onClick={(e) => {
               e.stopPropagation();

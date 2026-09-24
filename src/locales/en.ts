@@ -127,7 +127,10 @@ export const en: LocaleDictionary = {
     ready: 'GAMBLING DEN IS READY',
     complete: 'COMPLETE',
     startup: 'STARTING UP',
-    enterGame: 'ENTER GAME'
+    enterGame: 'ENTER GAME',
+    updateAvailableTitle: 'NEW UPDATE AVAILABLE',
+    updateAvailableDesc: 'A new version of the game has been released. Please reload to update now!',
+    reloadToUpdate: 'RELOAD TO UPDATE'
   },
   bot: {
     passed: 'PASSED',
