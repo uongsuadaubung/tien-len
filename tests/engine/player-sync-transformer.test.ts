@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'bun:test';
 import { 
-  deriveSynchronizedPlayers, 
   syncStorePlayersFromFrame, 
   createPlayer,
   cloneMatchPlayer,
@@ -29,91 +28,6 @@ describe('Player Sync Transformers (Single Source of Truth)', () => {
     createPlayer({ id: opponentId, name: 'Opponent', hand: [], cardCount: 13, isBot: true, botPersonaId: 'BOT_ELO_1150' })
   ];
 
-  describe('deriveSynchronizedPlayers', () => {
-    it('1. Bảo vệ nghiêm ngặt Fog-of-War: Giữ nguyên bài của mình, giấu bài đối thủ (hand = [])', () => {
-      const updated = deriveSynchronizedPlayers(initialPlayers, {
-        myPlayerId: localId,
-        myHand: [card3S, card4H],
-        passedPlayerIds: [],
-        remainingCardCounts: { [localId]: 2, [opponentId]: 11 },
-        isGameOver: false
-      });
-
-      const me = updated.find(p => p.id === localId)!;
-      const opp = updated.find(p => p.id === opponentId)!;
-
-      expect(me.hand.map(c => c.id)).toEqual([card3S.id, card4H.id]);
-      expect(me.cardCount).toBe(2);
-
-      expect(opp.hand).toEqual([]);
-      expect(opp.cardCount).toBe(11);
-    });
-
-    it('2. Đồng bộ cờ isPassedCurrentRound chính xác cho TẤT CẢ người chơi (kể cả localPlayerId)', () => {
-      // Khi localId bỏ lượt
-      const passedList = deriveSynchronizedPlayers(initialPlayers, {
-        myPlayerId: localId,
-        myHand: [card3S, card4H],
-        passedPlayerIds: [localId],
-        remainingCardCounts: { [localId]: 2, [opponentId]: 13 },
-        isGameOver: false
-      });
-      expect(passedList.find(p => p.id === localId)?.isPassedCurrentRound).toBe(true);
-      expect(passedList.find(p => p.id === opponentId)?.isPassedCurrentRound).toBe(false);
-
-      // Khi mở vòng mới: passedPlayerIds reset về []
-      const resetList = deriveSynchronizedPlayers(passedList, {
-        myPlayerId: localId,
-        myHand: [card3S, card4H],
-        passedPlayerIds: [],
-        remainingCardCounts: { [localId]: 2, [opponentId]: 12 },
-        isGameOver: false
-      });
-      expect(resetList.find(p => p.id === localId)?.isPassedCurrentRound).toBe(false);
-      expect(resetList.find(p => p.id === opponentId)?.isPassedCurrentRound).toBe(false);
-    });
-
-    it('3. Tự động khấu trừ lá bài đã đánh ra khỏi tay người chơi nội bộ và ghi nhận playedCards', () => {
-      const updated = deriveSynchronizedPlayers(initialPlayers, {
-        myPlayerId: localId,
-        myHand: [card3S, card4H],
-        passedPlayerIds: [],
-        currentMovePlayerId: localId,
-        currentMoveCards: [card3S],
-        remainingCardCounts: { [localId]: 1, [opponentId]: 13 },
-        isGameOver: false
-      });
-
-      const me = updated.find(p => p.id === localId)!;
-      expect(me.hand.map(c => c.id)).toEqual([card4H.id]);
-      expect(me.cardCount).toBe(1);
-      expect(me.playedCards.map(c => c.id)).toContain(card3S.id);
-    });
-
-    it('4. Khi ván kết thúc (Game Over), hiển thị bài đã lật của đối thủ', () => {
-      const revealedOpponent = createPlayer({
-        id: opponentId,
-        name: 'Opponent',
-        hand: [card5D],
-        cardCount: 1,
-        isBot: true,
-        botPersonaId: 'BOT_ELO_1150'
-      });
-
-      const updated = deriveSynchronizedPlayers(initialPlayers, {
-        myPlayerId: localId,
-        myHand: [],
-        passedPlayerIds: [],
-        remainingCardCounts: { [localId]: 0, [opponentId]: 1 },
-        isGameOver: true,
-        revealedPlayers: [revealedOpponent]
-      });
-
-      const opp = updated.find(p => p.id === opponentId)!;
-      expect(opp.hand.map(c => c.id)).toEqual([card5D.id]);
-      expect(opp.cardCount).toBe(1);
-    });
-  });
 
   describe('syncStorePlayersFromFrame', () => {
     it('Đồng bộ mượt mà từ TableRenderFrame vào Store (isPassed, cardCount, myHand)', () => {

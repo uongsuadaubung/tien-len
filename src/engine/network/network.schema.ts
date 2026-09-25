@@ -170,7 +170,6 @@ export const TableStateSyncPacketSchema = z.object({
   isChop: z.boolean().default(false),
   isCascadeChop: z.boolean().default(false),
   remainingCardCounts: z.record(z.string(), z.number()),
-  playerScores: z.record(z.string(), z.number()).optional(),
   passedPlayerIds: z.array(z.string()).default([]),
   roundNumber: z.number().default(1),
   chopNotification: NetworkChopNotificationSchema.nullable().optional(),
@@ -181,7 +180,7 @@ export const TableStateSyncPacketSchema = z.object({
   turnDeadline: z.number().nullable().optional(),
   lastAction: LastActionSchema.nullable().optional(),
   lastActionMessage: z.string().optional(),
-  seats: z.array(SyncedSeatSnapshotSchema).optional(),
+  seats: z.array(SyncedSeatSnapshotSchema).default([]),
   gameNumber: z.number().default(1),
   isFirstMoveOfGame: z.boolean().optional(),
   firstMoveRequiredCard: NetworkCardSchema.nullable().optional(),
@@ -189,9 +188,7 @@ export const TableStateSyncPacketSchema = z.object({
   isDealing: z.boolean().optional(),
   dealBanner: z.string().nullable().optional(),
   dealtCounts: z.record(z.string(), z.number()).optional(),
-  reconnectNotice: ReconnectNoticeSchema.nullable().optional(),
-  playerWins: z.record(z.string(), z.number()).optional(),
-  initialScores: z.record(z.string(), z.number()).optional()
+  reconnectNotice: ReconnectNoticeSchema.nullable().optional()
 });
 
 export type TableStateSyncPacket = z.infer<typeof TableStateSyncPacketSchema>;

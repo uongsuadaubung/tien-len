@@ -1,5 +1,6 @@
 import type {
   TableStateSyncPacket,
+  SyncedSeatSnapshot,
   GameEndPacket,
   DealHandPacket,
   PlayerActionPacket
@@ -16,21 +17,16 @@ export function createTableStateSyncPacket(
     ? { ...overrides.remainingCardCounts }
     : {};
 
-  // Tự động gán playerScores mặc định (50.000 xu) cho các người chơi có trong remainingCardCounts nếu không truyền tường minh
-  const defaultScores: Record<string, number> = {};
-  for (const pid of Object.keys(remainingCardCounts)) {
-    defaultScores[pid] = 50000;
-  }
-  const playerScores: Record<string, number> = overrides?.playerScores
-    ? { ...overrides.playerScores }
-    : defaultScores;
-
   const passedPlayerIds = overrides?.passedPlayerIds
     ? [...overrides.passedPlayerIds]
     : [];
 
   const winners = overrides?.winners
     ? [...overrides.winners]
+    : [];
+
+  const seats: SyncedSeatSnapshot[] = overrides?.seats
+    ? [...overrides.seats]
     : [];
 
   return {
@@ -48,7 +44,7 @@ export function createTableStateSyncPacket(
     openingReason: null,
     lastAction: null,
     currentMoveCombinationName: null,
-    seats: [],
+    seats,
     isFirstMoveOfGame: false,
     isLeadMove: true,
     firstMoveRequiredCard: null,
@@ -57,7 +53,6 @@ export function createTableStateSyncPacket(
     dealtCounts: {},
     ...overrides,
     remainingCardCounts,
-    playerScores,
     passedPlayerIds,
     winners
   };

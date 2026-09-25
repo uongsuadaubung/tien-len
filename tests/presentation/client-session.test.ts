@@ -185,16 +185,14 @@ describe('ClientSession (Dumb View Presentation Controller)', () => {
     // 3. Opponent wins round 1 and opens Round 2 with Pair of 9s (passedPlayerIds is reset to [])
     hostTransport.send({
       type: 'TABLE_SYNC',
-      packet: {
+      packet: createTableSyncPacket({
         gameNumber: 1,
         seq: 2,
-        timestamp: Date.now(),
         roundNumber: 2,
         isGameOver: false,
         currentTurnPlayerId: localPlayerId,
         leadPlayerId: botId,
         remainingCardCounts: { [localPlayerId]: 2, [botId]: 5 },
-        playerScores: { [localPlayerId]: 1000, [botId]: 1000 },
         passedPlayerIds: [],
         currentMoveCards: [createCard(9, 'CLUBS'), createCard(9, 'DIAMONDS')],
         currentMovePlayerId: botId,
@@ -206,10 +204,29 @@ describe('ClientSession (Dumb View Presentation Controller)', () => {
         firstMoveRequiredCard: null,
         isLeadMove: false,
         isDealing: false,
-        dealBanner: null,
-        dealtCounts: {},
-        reconnectNotice: null
-      }
+        seats: [
+          {
+            playerId: localPlayerId,
+            name: 'Me',
+            avatar: 'me.png',
+            cardCount: 2,
+            score: 1000,
+            isPassed: false,
+            isCurrentTurn: true,
+            isBot: false
+          },
+          {
+            playerId: botId,
+            name: 'Bot',
+            avatar: 'bot.png',
+            cardCount: 5,
+            score: 1000,
+            isPassed: false,
+            isCurrentTurn: false,
+            isBot: true
+          }
+        ]
+      })
     });
 
     frame = session.getLatestFrame();
@@ -228,7 +245,7 @@ describe('ClientSession (Dumb View Presentation Controller)', () => {
     session.dispose();
   });
 
-  it('should update player scores in frame and seats when receiving TABLE_SYNC and GAME_END with playerScores from host', () => {
+  it('should update player scores in frame and seats when receiving TABLE_SYNC with seats and GAME_END with playerScores from host', () => {
     const { hostTransport, clientTransport } = createMemoryDuplexTransport('HOST', localPlayerId);
     const session = new ClientSession({
       localPlayerId,
@@ -242,7 +259,7 @@ describe('ClientSession (Dumb View Presentation Controller)', () => {
     expect(frame.seats.find(s => s.playerId === localPlayerId)?.score).toBe(1000);
     expect(frame.seats.find(s => s.playerId === botId)?.score).toBe(1000);
 
-    // 1. Host sends TABLE_SYNC with updated playerScores
+    // 1. Host sends TABLE_SYNC with updated seats scores
     hostTransport.send({
       type: 'TABLE_SYNC',
       packet: createTableSyncPacket({
@@ -250,7 +267,28 @@ describe('ClientSession (Dumb View Presentation Controller)', () => {
         currentTurnPlayerId: localPlayerId,
         leadPlayerId: localPlayerId,
         remainingCardCounts: { [localPlayerId]: 13, [botId]: 13 },
-        playerScores: { [localPlayerId]: 15000, [botId]: 8500 }
+        seats: [
+          {
+            playerId: localPlayerId,
+            name: 'Me',
+            avatar: 'me.png',
+            cardCount: 13,
+            score: 15000,
+            isPassed: false,
+            isCurrentTurn: true,
+            isBot: false
+          },
+          {
+            playerId: botId,
+            name: 'Bot',
+            avatar: 'bot.png',
+            cardCount: 13,
+            score: 8500,
+            isPassed: false,
+            isCurrentTurn: false,
+            isBot: true
+          }
+        ]
       })
     });
 

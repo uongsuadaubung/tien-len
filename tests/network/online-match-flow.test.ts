@@ -1168,7 +1168,29 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       isFirstMoveOfGame: false,
       isLeadMove: false,
       isDealing: false,
-      dealtCounts: { host_p18: 7, [profileGuest.id]: 2 }
+      dealtCounts: { host_p18: 7, [profileGuest.id]: 2 },
+      seats: [
+        {
+          playerId: 'host_p18',
+          name: 'Host',
+          avatar: 'host.png',
+          cardCount: 7,
+          score: 100000,
+          isPassed: false,
+          isCurrentTurn: false,
+          isBot: false
+        },
+        {
+          playerId: profileGuest.id,
+          name: profileGuest.name,
+          avatar: profileGuest.avatar,
+          cardCount: 2,
+          score: 100000,
+          isPassed: false,
+          isCurrentTurn: true,
+          isBot: false
+        }
+      ]
     }), 'host_peer_18');
 
     const guestStoreInRound2 = useGameStore.getState();

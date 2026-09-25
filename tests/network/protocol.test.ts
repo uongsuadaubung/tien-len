@@ -99,7 +99,10 @@ describe('WebRTC P2P Multiplayer Protocol & Zod Validation Tests', () => {
       currentMoveCards: [{ rank: 9, suit: 'HEARTS', id: 'c_9_HEARTS' }],
       currentMovePlayerId: 'p0',
       remainingCardCounts: { p0: 12, p1: 13, p2: 13, p3: 13 },
-      playerScores: { p0: 50000, p1: 50000, p2: 50000, p3: 50000 },
+      seats: [
+        { playerId: 'p0', name: 'p0', avatar: 'avatar.png', cardCount: 12, score: 50000, isPassed: false, isCurrentTurn: false, isBot: false, wins: 0, initialScore: 50000 },
+        { playerId: 'p1', name: 'p1', avatar: 'avatar.png', cardCount: 13, score: 50000, isPassed: false, isCurrentTurn: true, isBot: false, wins: 0, initialScore: 50000 }
+      ],
       winners: [],
       isGameOver: false,
       lastActionMessage: 'Player 0 đã đánh 9♥'

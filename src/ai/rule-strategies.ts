@@ -705,67 +705,13 @@ export class CompositeRuleStrategy {
 }
 
 /**
- * Resolver Factory: Chuyển GameRules hoặc Legacy Mode Name thành CompositeRuleStrategy
+ * Resolver Factory: Chuyển GameRules thành CompositeRuleStrategy (Single Source of Truth)
  */
 export function resolveCompositeRuleStrategy(
-  rules?: Partial<GameRules> | null,
-  legacyModeName?: string
+  rules?: Partial<GameRules> | null
 ): CompositeRuleStrategy {
-  if (rules && rules.settlementRule) {
-    const fullRules = createDefaultGameRules(rules);
-    return new CompositeRuleStrategy(fullRules);
-  }
-
-  // Chuyển đổi từ Legacy GameMode string nếu rules chưa được truyền
-  const normalizedMode = (legacyModeName || 'TRADITIONAL').toUpperCase();
-  let defaultRules: GameRules;
-
-  switch (normalizedMode) {
-    case 'COUNT_CARDS':
-      defaultRules = createDefaultGameRules({
-        settlementRule: 'COUNT_CARDS',
-        table: { playerCount: 4, betAmount: 500, soundEnabled: true }
-      });
-      break;
-
-    case 'WINNER_TAKES_ALL':
-      defaultRules = createDefaultGameRules({
-        settlementRule: 'WINNER_TAKES_ALL',
-        table: { playerCount: 4, betAmount: 1000, soundEnabled: true }
-      });
-      break;
-
-    case 'SOLO_1V1':
-      defaultRules = createDefaultGameRules({
-        settlementRule: 'COUNT_CARDS',
-        table: { playerCount: 2, betAmount: 1000, soundEnabled: true }
-      });
-      break;
-
-    case 'CAMPAIGN':
-      defaultRules = createDefaultGameRules({
-        settlementRule: 'COUNT_CARDS',
-        table: { playerCount: 4, betAmount: 100, soundEnabled: true }
-      });
-      break;
-
-    case 'TRADITIONAL':
-      defaultRules = createDefaultGameRules({
-        settlementRule: 'TRADITIONAL',
-        table: { playerCount: 4, betAmount: 500, soundEnabled: true }
-      });
-      break;
-
-    case 'QUICK':
-    default:
-      defaultRules = createDefaultGameRules({
-        settlementRule: 'COUNT_CARDS',
-        table: { playerCount: 4, betAmount: 1000, soundEnabled: true }
-      });
-      break;
-  }
-
-  return new CompositeRuleStrategy(defaultRules);
+  const fullRules = createDefaultGameRules(rules ?? {});
+  return new CompositeRuleStrategy(fullRules);
 }
 
 // ============================================================================

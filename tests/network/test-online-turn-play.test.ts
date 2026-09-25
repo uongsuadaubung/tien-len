@@ -225,7 +225,29 @@ describe('Reproduce and test Online Turn Playing with appFlowCoordinator', () =>
       leadPlayerId: hostId,
       currentMovePlayerId: hostId,
       currentMoveCards: [createCard(3, 'HEARTS')],
-      remainingCardCounts: { [hostId]: 2, [guestId]: 1 }
+      remainingCardCounts: { [hostId]: 2, [guestId]: 1 },
+      seats: [
+        {
+          playerId: hostId,
+          name: 'Host',
+          avatar: '🤠',
+          cardCount: 2,
+          score: 50000,
+          isPassed: false,
+          isCurrentTurn: false,
+          isBot: false
+        },
+        {
+          playerId: guestId,
+          name: 'Guest',
+          avatar: '😎',
+          cardCount: 1,
+          score: 50000,
+          isPassed: false,
+          isCurrentTurn: true,
+          isBot: false
+        }
+      ]
     });
 
     // This must NOT throw TypeError: can't access property "id", c is null

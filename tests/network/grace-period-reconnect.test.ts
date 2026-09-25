@@ -51,7 +51,10 @@ describe('Online Multiplayer Grace Period & Reconnect Architecture', () => {
       currentTurnPlayerId: p1Id,
       leadPlayerId: p1Id,
       remainingCardCounts: { [p1Id]: 13, [p2Id]: 13 },
-      playerScores: { [p1Id]: 50000, [p2Id]: 50000 },
+      seats: [
+        { playerId: p1Id, name: 'P1', avatar: 'avatar.png', cardCount: 13, score: 50000, isPassed: false, isCurrentTurn: true, isBot: false, wins: 0, initialScore: 50000 },
+        { playerId: p2Id, name: 'P2', avatar: 'avatar.png', cardCount: 13, score: 50000, isPassed: false, isCurrentTurn: false, isBot: false, wins: 0, initialScore: 50000 }
+      ],
       winners: [],
       isGameOver: false,
       reconnectNotice: {

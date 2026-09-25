@@ -13,6 +13,7 @@ import { appFlowCoordinator } from '../../src/services/app-flow-coordinator';
 import { useUserStore } from '../../src/stores/useUserStore';
 
 import { loadPlayerProfile } from '../../src/engine/storage';
+import { createTableStateSyncPacket } from '../../src/engine/network/packet-factory';
 
 describe('Dealing Animation & Sound Coordination in Listen Server Architecture', () => {
   beforeEach(() => {
@@ -170,24 +171,26 @@ describe('Dealing Animation & Sound Coordination in Listen Server Architecture',
     // Giả lập Host gửi TABLE_SYNC với isDealing = true
     humanTransports.hostTransport.send({
       type: 'TABLE_SYNC',
-      packet: {
+      packet: createTableStateSyncPacket({
         gameNumber: 1,
         seq: 1,
-        timestamp: Date.now(),
         roundNumber: 1,
         isGameOver: false,
         currentTurnPlayerId: null,
         leadPlayerId: null,
         remainingCardCounts: { [p1.id]: 0, [p2.id]: 0 },
-        playerScores: { [p1.id]: 1000, [p2.id]: 1000 },
         passedPlayerIds: [],
         winners: [],
         isChop: false,
         isCascadeChop: false,
         isDealing: true,
         dealtCounts: { [p1.id]: 0, [p2.id]: 0 },
-        dealBanner: null
-      }
+        dealBanner: null,
+        seats: [
+          { playerId: p1.id, name: p1.name, avatar: 'avatar.png', cardCount: 0, score: 1000, isPassed: false, isCurrentTurn: false, isBot: false, wins: 0, initialScore: 1000 },
+          { playerId: p2.id, name: p2.name, avatar: 'avatar.png', cardCount: 0, score: 1000, isPassed: false, isCurrentTurn: false, isBot: true, wins: 0, initialScore: 1000 }
+        ]
+      })
     });
 
     // ClientSession phải ở trạng thái isDealing = true
@@ -202,23 +205,25 @@ describe('Dealing Animation & Sound Coordination in Listen Server Architecture',
     // Host gửi TABLE_SYNC với isDealing = false và dealBanner
     humanTransports.hostTransport.send({
       type: 'TABLE_SYNC',
-      packet: {
+      packet: createTableStateSyncPacket({
         gameNumber: 1,
         seq: 2,
-        timestamp: Date.now(),
         roundNumber: 1,
         isGameOver: false,
         currentTurnPlayerId: p1.id,
         leadPlayerId: p1.id,
         remainingCardCounts: { [p1.id]: 2, [p2.id]: 2 },
-        playerScores: { [p1.id]: 1000, [p2.id]: 1000 },
         passedPlayerIds: [],
         winners: [],
         isChop: false,
         isCascadeChop: false,
         isDealing: false,
-        dealBanner: 'Bạn giành quyền mở màn (3 Bích)!'
-      }
+        dealBanner: 'Bạn giành quyền mở màn (3 Bích)!',
+        seats: [
+          { playerId: p1.id, name: p1.name, avatar: 'avatar.png', cardCount: 2, score: 1000, isPassed: false, isCurrentTurn: true, isBot: false, wins: 0, initialScore: 1000 },
+          { playerId: p2.id, name: p2.name, avatar: 'avatar.png', cardCount: 2, score: 1000, isPassed: false, isCurrentTurn: false, isBot: true, wins: 0, initialScore: 1000 }
+        ]
+      })
     });
 
     const playingFrame = session.getLatestFrame();
@@ -264,23 +269,24 @@ describe('Dealing Animation & Sound Coordination in Listen Server Architecture',
     // Gửi TABLE_SYNC nhưng isDealing = true
     botTransports.hostTransport.send({
       type: 'TABLE_SYNC',
-      packet: {
+      packet: createTableStateSyncPacket({
         gameNumber: 1,
         seq: 1,
-        timestamp: Date.now(),
         roundNumber: 1,
         isGameOver: false,
         currentTurnPlayerId: botId,
         leadPlayerId: botId,
         remainingCardCounts: { [botId]: 1 },
-        playerScores: { [botId]: 1000 },
         passedPlayerIds: [],
         winners: [],
         isChop: false,
         isCascadeChop: false,
         isDealing: true,
-        dealBanner: null
-      }
+        dealBanner: null,
+        seats: [
+          { playerId: botId, name: 'Daiki', avatar: 'avatar.png', cardCount: 1, score: 1000, isPassed: false, isCurrentTurn: true, isBot: true, wins: 0, initialScore: 1000 }
+        ]
+      })
     });
 
     // Bot phải chờ, KHÔNG được gửi nước đi nào
@@ -289,23 +295,24 @@ describe('Dealing Animation & Sound Coordination in Listen Server Architecture',
     // Gửi TABLE_SYNC khi banner đang hiển thị
     botTransports.hostTransport.send({
       type: 'TABLE_SYNC',
-      packet: {
+      packet: createTableStateSyncPacket({
         gameNumber: 1,
         seq: 2,
-        timestamp: Date.now(),
         roundNumber: 1,
         isGameOver: false,
         currentTurnPlayerId: botId,
         leadPlayerId: botId,
         remainingCardCounts: { [botId]: 1 },
-        playerScores: { [botId]: 1000 },
         passedPlayerIds: [],
         winners: [],
         isChop: false,
         isCascadeChop: false,
         isDealing: false,
-        dealBanner: 'Daiki giành quyền mở màn (3 Bích)!'
-      }
+        dealBanner: 'Daiki giành quyền mở màn (3 Bích)!',
+        seats: [
+          { playerId: botId, name: 'Daiki', avatar: 'avatar.png', cardCount: 1, score: 1000, isPassed: false, isCurrentTurn: true, isBot: true, wins: 0, initialScore: 1000 }
+        ]
+      })
     });
 
     // Bot vẫn phải chờ banner kết thúc
@@ -314,23 +321,24 @@ describe('Dealing Animation & Sound Coordination in Listen Server Architecture',
     // Banner biến mất, chính thức vào lượt đánh
     botTransports.hostTransport.send({
       type: 'TABLE_SYNC',
-      packet: {
+      packet: createTableStateSyncPacket({
         gameNumber: 1,
         seq: 3,
-        timestamp: Date.now(),
         roundNumber: 1,
         isGameOver: false,
         currentTurnPlayerId: botId,
         leadPlayerId: botId,
         remainingCardCounts: { [botId]: 1 },
-        playerScores: { [botId]: 1000 },
         passedPlayerIds: [],
         winners: [],
         isChop: false,
         isCascadeChop: false,
         isDealing: false,
-        dealBanner: null
-      }
+        dealBanner: null,
+        seats: [
+          { playerId: botId, name: 'Daiki', avatar: 'avatar.png', cardCount: 1, score: 1000, isPassed: false, isCurrentTurn: true, isBot: true, wins: 0, initialScore: 1000 }
+        ]
+      })
     });
 
     // Bây giờ Bot mới gửi nước đi (chờ nhịp async 20ms của instantDelay)

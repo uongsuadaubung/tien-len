@@ -475,10 +475,6 @@ export class CampaignAllClearAchievementEvaluator implements ProgressEvaluator {
   }
 }
 
-// Backward compatibility alias for tests
-export const WinThreeMatchesEvaluator = WinMatchesEvaluator;
-export const MillionaireAchievementEvaluator = WealthAchievementEvaluator;
-
 // ============================================================================
 // 3. REGISTRY & DISPATCHER FACTORY (42 DAILY QUESTS + 34 ACHIEVEMENTS)
 // ============================================================================

@@ -2,10 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { GameEventBus, GameEvent, MatchCompletedEvent } from '../../src/engine/events/game-event-bus';
 import { 
   evaluateDailyQuests, 
-  evaluateAchievements,
-  WinThreeMatchesEvaluator,
-  ChopRedTwoEvaluator,
-  MillionaireAchievementEvaluator
+  evaluateAchievements
 } from '../../src/engine/evaluators/progress-evaluators';
 import { 
   identifyCombination 

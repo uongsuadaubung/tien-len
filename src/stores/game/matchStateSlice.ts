@@ -17,7 +17,7 @@ import { identifyCombination } from '../../engine/combinations';
 import { GameEventBus } from '../../engine/events/game-event-bus';
 import { type TableStateSyncPacket } from '../../engine/network/network.schema';
 import { ECONOMY_CONSTANTS } from '../../engine/constants/economy';
-import { createPlayer, createBotPlayer, deriveSynchronizedPlayers, cloneMatchPlayers, cloneMatchPlayer, updatePlayerInList } from '../../engine/player-factory';
+import { createPlayer, createBotPlayer, cloneMatchPlayers, cloneMatchPlayer, updatePlayerInList } from '../../engine/player-factory';
 import { loadPlayerProfile } from '../../engine/storage';
 import { createProvisionalOnlineGameOverState } from '../../engine/settlement/perspective-settlement';
 import { useViewStore } from '../useViewStore';
@@ -252,10 +252,6 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
     let leadingMove: PlayedMove | null = null;
     let isNewMove = false;
 
-    if (sync.lastAction) {
-      isNewMove = (sync.lastAction.type === 'PLAY' || sync.lastAction.type === 'CHOP');
-    }
-
     if (sync.currentMoveCards && sync.currentMoveCards.length > 0) {
       const moveCards = sync.currentMoveCards.map(c => createCard(c.rank, c.suit));
       const combo = identifyCombination(moveCards);
@@ -265,14 +261,13 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
           ? currentState.matchState.leadingMove
           : currentState.currentMove;
 
-        // Nếu có lastAction thì dựa vào lastAction, nếu không thì fallback so sánh đơn giản
-        const isSame = sync.lastAction
-          ? !isNewMove
-          : (prevLeading && prevLeading.playerId === sync.currentMovePlayerId && prevLeading.combination.cards.length === moveCards.length);
+        const isSameAsPrev = prevLeading &&
+          prevLeading.playerId === sync.currentMovePlayerId &&
+          prevLeading.combination.cards.length === moveCards.length &&
+          prevLeading.combination.cards.every((c, i) => c.id === moveCards[i].id);
 
-        if (isSame && prevLeading) {
+        if (isSameAsPrev) {
           leadingMove = prevLeading;
-          isNewMove = false;
         } else {
           leadingMove = createPlayedMove(
             sync.currentMovePlayerId || '',
@@ -284,9 +279,7 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
             } : undefined,
             Date.now()
           );
-          if (!sync.lastAction) {
-            isNewMove = true;
-          }
+          isNewMove = true;
         }
       }
     }
@@ -316,19 +309,6 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
             score: seat.score,
             isPassedCurrentRound: seat.isPassed
           };
-        });
-      } else {
-        const currentMoveCards = sync.currentMoveCards ? sync.currentMoveCards.map(c => createCard(c.rank, c.suit)) : undefined;
-        const myPlayer = state.players.find(p => p.id === state.myPlayerId);
-        updatedPlayers = deriveSynchronizedPlayers(state.players, {
-          myPlayerId: state.myPlayerId,
-          myHand: myPlayer ? myPlayer.hand : [],
-          passedPlayerIds: sync.passedPlayerIds,
-          remainingCardCounts: sync.remainingCardCounts,
-          playerScores: sync.playerScores,
-          currentMoveCards,
-          currentMovePlayerId: sync.currentMovePlayerId,
-          isGameOver: sync.isGameOver
         });
       }
 
@@ -440,12 +420,12 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
         isFirstMoveOfGame: isFirstMove,
         firstMoveRequiredCard: isFirstMove ? requiredCard : null,
         isLeadMove: isLead,
-        playerWins: sync.playerWins
-          ? { ...sync.playerWins }
-          : (sync.seats ? Object.fromEntries(sync.seats.filter(s => s.wins !== undefined).map(s => [s.playerId, s.wins!])) : state.playerWins),
-        initialScores: sync.initialScores
-          ? { ...sync.initialScores }
-          : (sync.seats ? Object.fromEntries(sync.seats.filter(s => s.initialScore !== undefined).map(s => [s.playerId, s.initialScore!])) : state.initialScores)
+        playerWins: (sync.seats && sync.seats.length > 0)
+          ? Object.fromEntries(sync.seats.filter(s => s.wins !== undefined).map(s => [s.playerId, s.wins!]))
+          : state.playerWins,
+        initialScores: (sync.seats && sync.seats.length > 0)
+          ? Object.fromEntries(sync.seats.filter(s => s.initialScore !== undefined).map(s => [s.playerId, s.initialScore!]))
+          : state.initialScores
       };
     });
 

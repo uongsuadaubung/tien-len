@@ -90,7 +90,7 @@ export function makeBotDecision(rawContext: DecisionContext | (BaseDecisionConte
 
   // 1. Tự động định vị và hợp thành Composite Rule Strategy từ GameRules hoặc GameMode
   const compositeRuleStrategy = context.compositeRuleStrategy 
-    || resolveCompositeRuleStrategy(context.rules, context.gameMode);
+    || resolveCompositeRuleStrategy(context.rules);
   const activeRules = compositeRuleStrategy.rules;
 
   const isProhibitEndingWithTwo = context.prohibitEndingWithTwo !== undefined

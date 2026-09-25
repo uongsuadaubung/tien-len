@@ -27,7 +27,6 @@ describe('Network Packet Factory Tests', () => {
       expect(packet.currentTurnPlayerId).toBeNull();
       expect(packet.leadPlayerId).toBeNull();
       expect(packet.remainingCardCounts).toEqual({});
-      expect(packet.playerScores).toEqual({});
       expect(packet.passedPlayerIds).toEqual([]);
       expect(packet.winners).toEqual([]);
       expect(packet.isChop).toBe(false);
@@ -49,33 +48,13 @@ describe('Network Packet Factory Tests', () => {
       expect(() => TableStateSyncPacketSchema.parse(packet)).not.toThrow();
     });
 
-    it('2. Tự động sinh playerScores mặc định (50.000 xu) dựa trên remainingCardCounts', () => {
-      const packet = createTableSyncPacket({
-        remainingCardCounts: { p0: 13, p1: 13, p2: 10 }
-      });
-
-      expect(packet.remainingCardCounts).toEqual({ p0: 13, p1: 13, p2: 10 });
-      expect(packet.playerScores).toEqual({ p0: 50000, p1: 50000, p2: 50000 });
-      expect(() => TableStateSyncPacketSchema.parse(packet)).not.toThrow();
-    });
-
-    it('3. Ưu tiên giữ nguyên playerScores nếu truyền tường minh', () => {
-      const packet = createTableSyncPacket({
-        remainingCardCounts: { p0: 13, p1: 13 },
-        playerScores: { p0: 100000, p1: 25000 }
-      });
-
-      expect(packet.playerScores).toEqual({ p0: 100000, p1: 25000 });
-    });
-
-    it('4. Override chính xác các trường đặc thù của ván bài', () => {
+    it('2. Override chính xác các trường đặc thù của ván bài', () => {
       const card3S = createCard(3, 'SPADES');
       const packet = createTableSyncPacket({
         seq: 5,
         currentTurnPlayerId: 'BOT_1',
         leadPlayerId: 'BOT_1',
         remainingCardCounts: { BOT_1: 2, HUMAN: 2 },
-        playerScores: { BOT_1: 45000, HUMAN: 55000 },
         isFirstMoveOfGame: true,
         firstMoveRequiredCard: card3S,
         isDealing: false

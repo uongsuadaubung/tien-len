@@ -1,5 +1,5 @@
 import { createPlayedMove, type Card, type MatchPlayer, type GameRules, type PlayedMove } from '../types';
-import { deriveSynchronizedPlayers, cloneMatchPlayers, updatePlayersHand, updatePlayerInList, revealPlayersHands, resetPlayersForNewGame } from '../player-factory';
+import { cloneMatchPlayers, updatePlayersHand, updatePlayerInList, revealPlayersHands, resetPlayersForNewGame } from '../player-factory';
 import type { IClientTransport, HostToClientPacket } from '../transport/transport.interface';
 import type { 
   TableStateSyncPacket,
@@ -60,7 +60,6 @@ export class ClientSession implements IGameSession {
   private readonly frameListeners: Set<(frame: TableRenderFrame) => void> = new Set();
   private readonly audioListeners: Set<(cue: AudioCue) => void> = new Set();
   private unsubscribeTransport: (() => void) | null = null;
-  private lastMoveSignature: string | null = null;
   private lastPlayedMove: PlayedMove | null = null;
   private campaignChapter: CampaignChapter | null = null;
   private campaignResultMeta: CampaignResultMeta | null = null;
@@ -293,21 +292,6 @@ export class ClientSession implements IGameSession {
       this.dealtCounts = { ...sync.remainingCardCounts };
     }
 
-    // Cập nhật số dư điểm xu chính thức từ Server (Authoritative Match Host) nếu có truyền riêng
-    if (sync.playerScores) {
-      this.players = this.players.map(p => {
-        const serverScore = sync.playerScores![p.id];
-        return serverScore !== undefined ? { ...p, score: serverScore } : p;
-      });
-    }
-
-    if (sync.playerWins) {
-      this.playerWins = { ...this.playerWins, ...sync.playerWins };
-    }
-    if (sync.initialScores) {
-      this.initialScores = { ...this.initialScores, ...sync.initialScores };
-    }
-
     if (sync.isDealing) {
       if (sync.dealtCounts) {
         this.dealtCounts = { ...sync.dealtCounts };
@@ -344,17 +328,6 @@ export class ClientSession implements IGameSession {
           this.emitAudioCue('PASS');
         }
       }
-    } else if (sync.currentMoveCards && sync.currentMoveCards.length > 0 && sync.currentMovePlayerId) {
-      // Fallback cho legacy packets trong unit tests cũ
-      const sig = `${sync.currentMovePlayerId}:${sync.currentMoveCards.map(c => c.id).sort().join(',')}`;
-      if (sig !== this.lastMoveSignature) {
-        this.lastMoveSignature = sig;
-        if (sync.isChop) {
-          this.emitAudioCue('CHOP');
-        } else {
-          this.emitAudioCue('CARD_PLAY');
-        }
-      }
     }
 
     // Chuyển đổi packet thành MatchState nội bộ
@@ -383,19 +356,7 @@ export class ClientSession implements IGameSession {
         this.selectedCardIds.clear();
       }
 
-      // Khi Server đã gửi snapshot ghế (seats), dùng trực tiếp 100% không cần derive tính toán lại
-      if (!sync.seats || sync.seats.length === 0) {
-        this.players = deriveSynchronizedPlayers(this.players, {
-          myPlayerId: this.localPlayerId,
-          myHand: this.myHand,
-          passedPlayerIds: sync.passedPlayerIds,
-          remainingCardCounts: sync.remainingCardCounts,
-          playerScores: sync.playerScores,
-          currentMoveCards: leadingMoveCards,
-          currentMovePlayerId: sync.currentMovePlayerId,
-          isGameOver: false
-        });
-      }
+
 
       this.latestMatchState = createPlayingTurnMatchState({
         status: 'PLAYING',
@@ -642,8 +603,6 @@ export class ClientSession implements IGameSession {
 
         // 2. Optimistic UI Projection: Chiếu ngay nước đi ra giữa bàn và phát âm thanh (0ms)
         if (playedMove) {
-          const sig = `${this.localPlayerId}:${selected.map(c => c.id).sort().join(',')}`;
-          this.lastMoveSignature = sig;
           if (playedMove.isChop) {
             this.emitAudioCue('CHOP');
           } else {

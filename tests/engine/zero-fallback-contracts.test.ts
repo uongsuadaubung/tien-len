@@ -92,11 +92,15 @@ describe('Zero-Fallback Boundary Gatekeeper Contract Tests', () => {
       currentTurnPlayerId: null,
       leadPlayerId: null,
       remainingCardCounts: { p1: 13 },
-      playerScores: { p1: 50000 },
+      seats: [
+        { playerId: 'p1', name: 'p1', avatar: 'avatar.png', cardCount: 13, score: 50000, isPassed: false, isCurrentTurn: false, isBot: false, wins: 0, initialScore: 50000 }
+      ],
       winners: [],
       isGameOver: false
     });
     expect(sync.remainingCardCounts.p1).toBe(13);
+    expect(sync.seats.length).toBe(1);
+    expect(sync.seats[0].score).toBe(50000);
     expect(sync.isGameOver).toBe(false);
     expect(sync.winners).toBeArray();
   });
