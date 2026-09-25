@@ -33,9 +33,14 @@ function generatePeerId(): string {
 
 export class P2PClient {
   public channel: RealtimeChannel | null = null;
+  public privateChannel: RealtimeChannel | null = null;
   public selfPeerId: string = generatePeerId();
   public currentRoomCode: string | null = null;
   private activePeers: Set<string> = new Set();
+  private peerChannels: Map<string, RealtimeChannel> = new Map();
+  private lastBroadcastTableSync: TableStateSyncPacket | null = null;
+  private lastBroadcastGameEnd: GameEndPacket | null = null;
+  private lastHandledDealHandKey: string | null = null;
 
   // Callbacks
   private onPeerJoinCallbacks: Array<(peerId: string) => void> = [];
@@ -59,7 +64,9 @@ export class P2PClient {
     this.pendingBroadcasts = [];
 
     this.currentRoomCode = roomCode.toUpperCase().trim();
-    const topic = `tl_room_${this.currentRoomCode.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    const cleanCode = this.currentRoomCode.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const topic = `tl_room_${cleanCode}`;
+    const privateTopic = `tl_room_${cleanCode}_p_${this.selfPeerId}`;
 
     const supabase = getSupabaseClient();
     this.channel = supabase.channel(topic, {
@@ -68,6 +75,27 @@ export class P2PClient {
         presence: { key: this.selfPeerId }
       }
     });
+
+    // Option B: Kênh riêng tư (Private Sub-Topic) chuyên nhận bài chia riêng (Fog of War)
+    this.privateChannel = supabase.channel(privateTopic, {
+      config: {
+        broadcast: { self: false }
+      }
+    });
+
+    this.privateChannel.on<BroadcastEnvelope<unknown>>('broadcast', { event: 'deal_hand' }, ({ payload }) => {
+      if (!payload || !payload.data) return;
+      const parsed = DealHandPacketSchema.safeParse(payload.data);
+      if (!parsed.success) return;
+      const key = `${parsed.data.gameNumber}_${parsed.data.playerId}_${parsed.data.cards.map(c => c.id).join(',')}`;
+      if (this.lastHandledDealHandKey === key) return;
+      this.lastHandledDealHandKey = key;
+      this.onDealHandCallbacks.forEach(cb => cb(parsed.data, payload.senderPeerId));
+    });
+
+    try {
+      this.privateChannel.subscribe();
+    } catch {}
 
     // 1. Quản lý Hiện diện Người chơi (Presence: Peer Join & Leave)
     this.channel.on('presence', { event: 'sync' }, () => {
@@ -84,6 +112,7 @@ export class P2PClient {
       currentPeers.forEach(peerId => {
         if (!this.activePeers.has(peerId)) {
           this.activePeers.add(peerId);
+          this.ensurePeerChannel(peerId);
           this.onPeerJoinCallbacks.forEach(cb => {
             try {
               cb(peerId);
@@ -98,6 +127,7 @@ export class P2PClient {
       this.activePeers.forEach(peerId => {
         if (!currentPeers.has(peerId)) {
           this.activePeers.delete(peerId);
+          this.removePeerChannel(peerId);
           this.onPeerLeaveCallbacks.forEach(cb => {
             try {
               cb(peerId);
@@ -112,6 +142,7 @@ export class P2PClient {
     this.channel.on('presence', { event: 'join' }, ({ key }) => {
       if (key && key !== this.selfPeerId && !this.activePeers.has(key)) {
         this.activePeers.add(key);
+        this.ensurePeerChannel(key);
         this.onPeerJoinCallbacks.forEach(cb => {
           try {
             cb(key);
@@ -125,6 +156,7 @@ export class P2PClient {
     this.channel.on('presence', { event: 'leave' }, ({ key }) => {
       if (key && this.activePeers.has(key)) {
         this.activePeers.delete(key);
+        this.removePeerChannel(key);
         this.onPeerLeaveCallbacks.forEach(cb => {
           try {
             cb(key);
@@ -157,6 +189,9 @@ export class P2PClient {
       if (payload.targetPeerId && payload.targetPeerId !== this.selfPeerId) return;
       const parsed = DealHandPacketSchema.safeParse(payload.data);
       if (!parsed.success) return;
+      const key = `${parsed.data.gameNumber}_${parsed.data.playerId}_${parsed.data.cards.map(c => c.id).join(',')}`;
+      if (this.lastHandledDealHandKey === key) return;
+      this.lastHandledDealHandKey = key;
       this.onDealHandCallbacks.forEach(cb => cb(parsed.data, payload.senderPeerId));
     });
 
@@ -216,6 +251,8 @@ export class P2PClient {
         for (const fn of queued) {
           await fn();
         }
+      } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        this.isSubscribed = false;
       }
     });
   }
@@ -229,10 +266,27 @@ export class P2PClient {
       } catch {}
       this.channel = null;
     }
+    if (this.privateChannel) {
+      try {
+        const supabase = getSupabaseClient();
+        void supabase.removeChannel(this.privateChannel);
+      } catch {}
+      this.privateChannel = null;
+    }
+    for (const chan of this.peerChannels.values()) {
+      try {
+        const supabase = getSupabaseClient();
+        void supabase.removeChannel(chan);
+      } catch {}
+    }
+    this.peerChannels.clear();
     this.isSubscribed = false;
     this.pendingBroadcasts = [];
     this.currentRoomCode = null;
     this.activePeers.clear();
+    this.lastBroadcastTableSync = null;
+    this.lastBroadcastGameEnd = null;
+    this.lastHandledDealHandKey = null;
     this.onPeerJoinCallbacks = [];
     this.onPeerLeaveCallbacks = [];
     this.onRoomStateCallbacks = [];
@@ -271,7 +325,45 @@ export class P2PClient {
     if (this.isSubscribed || this.channel?.state === 'joined') {
       await doSend();
     } else {
+      if (this.pendingBroadcasts.length >= 20) {
+        this.pendingBroadcasts.shift();
+      }
       this.pendingBroadcasts.push(doSend);
+    }
+  }
+
+  public ensurePeerChannel(peerId: string): RealtimeChannel | null {
+    if (!this.currentRoomCode || !peerId || peerId === this.selfPeerId) return null;
+    const cleanCode = this.currentRoomCode.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const privateTopic = `tl_room_${cleanCode}_p_${peerId}`;
+    let peerChan = this.peerChannels.get(privateTopic);
+    if (!peerChan) {
+      try {
+        const supabase = getSupabaseClient();
+        peerChan = supabase.channel(privateTopic, {
+          config: { broadcast: { self: false } }
+        });
+        peerChan.subscribe();
+        this.peerChannels.set(privateTopic, peerChan);
+      } catch (err) {
+        console.warn('[P2P:ensurePeerChannel] Error initializing peer channel:', err);
+        return null;
+      }
+    }
+    return peerChan;
+  }
+
+  public removePeerChannel(peerId: string): void {
+    if (!this.currentRoomCode || !peerId) return;
+    const cleanCode = this.currentRoomCode.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const privateTopic = `tl_room_${cleanCode}_p_${peerId}`;
+    const peerChan = this.peerChannels.get(privateTopic);
+    if (peerChan) {
+      try {
+        const supabase = getSupabaseClient();
+        void supabase.removeChannel(peerChan);
+      } catch {}
+      this.peerChannels.delete(privateTopic);
     }
   }
 
@@ -284,6 +376,28 @@ export class P2PClient {
   }
 
   public async sendPrivateDealHand(packet: DealHandPacket, targetPeerId: string): Promise<void> {
+    // Option B: Gửi bài chia riêng tư qua Private Sub-Topic của riêng targetPeerId (Bảo mật Fog of War mạng)
+    const peerChan = this.ensurePeerChannel(targetPeerId);
+    if (peerChan) {
+      try {
+        const res = await peerChan.send({
+          type: 'broadcast',
+          event: 'deal_hand',
+          payload: {
+            data: packet,
+            senderPeerId: this.selfPeerId,
+            targetPeerId
+          }
+        });
+        if (res === 'ok') {
+          return;
+        }
+      } catch (err) {
+        console.error('[P2P:sendPrivateDealHand] Error broadcasting to private channel:', err);
+      }
+    }
+
+    // Gửi kèm trên main channel có targetPeerId lọc danh tính làm kênh dự phòng an toàn (khi kênh riêng chưa sẵn sàng hoặc mock test)
     await this.sendBroadcast('deal_hand', packet, targetPeerId);
   }
 
@@ -292,10 +406,24 @@ export class P2PClient {
   }
 
   public async broadcastTableSync(packet: TableStateSyncPacket): Promise<void> {
+    // Deduplication: Triệt tiêu N-broadcast loop khi Host có nhiều Peer Transports
+    if (this.lastBroadcastTableSync === packet) return;
+    if (
+      this.lastBroadcastTableSync &&
+      packet.seq > 0 &&
+      this.lastBroadcastTableSync.seq === packet.seq &&
+      this.lastBroadcastTableSync.timestamp === packet.timestamp
+    ) {
+      return;
+    }
+    this.lastBroadcastTableSync = packet;
     await this.sendBroadcast('table_sync', packet);
   }
 
   public async broadcastGameEnd(packet: GameEndPacket): Promise<void> {
+    // Deduplication: Triệt tiêu N-broadcast loop khi Host kết thúc ván đấu
+    if (this.lastBroadcastGameEnd === packet) return;
+    this.lastBroadcastGameEnd = packet;
     await this.sendBroadcast('game_end', packet);
   }
 

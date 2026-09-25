@@ -99,3 +99,16 @@ export async function reloadToUpdate(): Promise<void> {
     window.location.reload();
   }
 }
+
+/**
+ * Trích xuất ngày từ buildTime thành chuỗi yyyymmdd (Ví dụ: 20260925)
+ */
+export function getAppVersionDate(buildTime?: number): string {
+  const time = buildTime !== undefined ? buildTime : getCurrentBuildTime();
+  const d = time > 0 ? new Date(time) : new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}${mm}${dd}`;
+}
+

@@ -3,6 +3,7 @@ import { PlayedMove, Combination, CombinationType } from '../../engine/types';
 import { CardView } from './CardView';
 import { Sparkles } from 'lucide-react';
 import { useGameStore } from '../../stores/useGameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useI18n, type I18nKeyPath, type I18nParams } from '../../locales';
 
 import type { ChopNotificationInfo } from '../../engine/state-machine/types';
@@ -43,20 +44,20 @@ function formatCombinationDisplayName(
   return t(key);
 }
 
-export const TableCenter: React.FC<TableCenterProps> = ({
+const TableCenterComponent: React.FC<TableCenterProps> = ({
   currentMove,
   isDealing,
   cardSize = 'md'
 }) => {
   const { t } = useI18n();
   const myPlayerId = useGameStore(s => s.myPlayerId);
-  const players = useGameStore(s => s.players);
+  const playerIds = useGameStore(useShallow(s => s.players.map(p => p.id)));
 
   const getSlideAnimationClass = (playerId?: string) => {
     if (!playerId) return 'card-slide-bottom';
-    const numPlayers = players.length || 4;
-    const myIndex = Math.max(0, players.findIndex(p => p.id === myPlayerId));
-    const targetIndex = players.findIndex(p => p.id === playerId);
+    const numPlayers = playerIds.length || 4;
+    const myIndex = Math.max(0, playerIds.indexOf(myPlayerId));
+    const targetIndex = playerIds.indexOf(playerId);
     
     if (targetIndex === -1 || targetIndex === myIndex) return 'card-slide-bottom';
     
@@ -115,3 +116,5 @@ export const TableCenter: React.FC<TableCenterProps> = ({
     </div>
   );
 };
+
+export const TableCenter = React.memo(TableCenterComponent);

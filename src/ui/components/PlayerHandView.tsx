@@ -124,8 +124,9 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
 
   const isSmartMode = sortMode === 'SMART_GROUP';
   const availableVariants = React.useMemo(() => {
+    if (isDealing || hand.length === 0) return [];
     return getAvailableSmartVariants(hand);
-  }, [handCardsContentKey]);
+  }, [handCardsContentKey, isDealing]);
 
   const totalVariants = availableVariants.length;
   const smartGroups = React.useMemo(() => {

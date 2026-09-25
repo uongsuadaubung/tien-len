@@ -243,6 +243,16 @@ export class ClientSession implements IGameSession {
   }
 
   private handleTableSync(sync: TableStateSyncPacket): void {
+    if (
+      this.latestSync &&
+      sync.seq > 0 &&
+      this.latestSync.seq > 0 &&
+      sync.seq <= this.latestSync.seq &&
+      sync.gameNumber === this.latestSync.gameNumber &&
+      (sync.seq < this.latestSync.seq || sync.timestamp <= this.latestSync.timestamp)
+    ) {
+      return;
+    }
     this.latestSync = sync;
     if (sync.gameNumber) {
       this.gameNumber = sync.gameNumber;
@@ -260,6 +270,12 @@ export class ClientSession implements IGameSession {
       this.players = this.players.map(p => {
         const seat = sync.seats!.find(s => s.playerId === p.id);
         if (seat) {
+          if (seat.wins !== undefined) {
+            this.playerWins[p.id] = seat.wins;
+          }
+          if (seat.initialScore !== undefined) {
+            this.initialScores[p.id] = seat.initialScore;
+          }
           return {
             ...p,
             cardCount: (p.id === this.localPlayerId && this.myHand.length > 0) ? this.myHand.length : seat.cardCount,
@@ -277,19 +293,19 @@ export class ClientSession implements IGameSession {
       this.dealtCounts = { ...sync.remainingCardCounts };
     }
 
-    // Cập nhật số dư điểm xu chính thức từ Server (Authoritative Match Host)
+    // Cập nhật số dư điểm xu chính thức từ Server (Authoritative Match Host) nếu có truyền riêng
     if (sync.playerScores) {
       this.players = this.players.map(p => {
-        const serverScore = sync.playerScores[p.id];
+        const serverScore = sync.playerScores![p.id];
         return serverScore !== undefined ? { ...p, score: serverScore } : p;
       });
     }
 
     if (sync.playerWins) {
-      this.playerWins = { ...sync.playerWins };
+      this.playerWins = { ...this.playerWins, ...sync.playerWins };
     }
     if (sync.initialScores) {
-      this.initialScores = { ...sync.initialScores };
+      this.initialScores = { ...this.initialScores, ...sync.initialScores };
     }
 
     if (sync.isDealing) {

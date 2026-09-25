@@ -3,7 +3,7 @@ import { lockToLandscape } from '../utils/fullscreen';
 import { soundManager } from '../audio/sound-manager';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { useI18n } from '../../locales';
-import { checkAppUpdate, reloadToUpdate } from '../../services/app-version-service';
+import { checkAppUpdate, reloadToUpdate, getAppVersionDate } from '../../services/app-version-service';
 
 export interface SplashScreenProps {
   message?: string;
@@ -11,6 +11,7 @@ export interface SplashScreenProps {
   isMobile?: boolean;
   isHydrated?: boolean;
   onStart?: () => void;
+  version?: string;
 }
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({
@@ -18,11 +19,13 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
   subMessage,
   isMobile: isMobileProp,
   isHydrated = true,
-  onStart
+  onStart,
+  version
 }) => {
   const { t } = useI18n();
   const displayMessage = message ?? t('splash.loadingData');
   const displaySubMessage = subMessage ?? t('splash.ready');
+  const displayVersion = version ?? `v${getAppVersionDate()}`;
   const deviceInfo = useIsMobile();
   const isMobile = isMobileProp !== undefined ? isMobileProp : deviceInfo.isMobile;
   const [progress, setProgress] = useState(10);
@@ -156,6 +159,11 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({
             {displaySubMessage}
           </span>
         )}
+      </div>
+
+      {/* Phiên bản ứng dụng dựa trên build time (yyyymmdd) */}
+      <div className="absolute bottom-3 text-center font-mono text-[10px] text-amber-400/40 tracking-widest uppercase pointer-events-none select-none">
+        <span>{displayVersion}</span>
       </div>
     </div>
   );

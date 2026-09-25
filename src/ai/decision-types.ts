@@ -234,8 +234,25 @@ export function generateCandidateMoves(hand: Card[]): Card[][] {
         consecutiveRanks.push(nonTwoRanks[j]);
         if (consecutiveRanks.length >= 3) {
           const rankCardLists = consecutiveRanks.map(r => rankMap.get(r)!);
-          const straightSubsets = cartesianProduct(rankCardLists);
-          candidates.push(...straightSubsets);
+          const totalCombos = rankCardLists.reduce((acc, l) => acc * l.length, 1);
+          if (totalCombos <= 6) {
+            const straightSubsets = cartesianProduct(rankCardLists);
+            candidates.push(...straightSubsets);
+          } else {
+            // Tối ưu Pruning: Độ mạnh của sảnh trong Tiến Lên do lá cao nhất quyết định.
+            // Bậc cao nhất sinh đủ các lá bài. Các bậc thấp hơn lấy đại diện lá nhỏ nhất và lớn nhất.
+            const highestRankCards = rankCardLists[rankCardLists.length - 1];
+            const lowerRankLists = rankCardLists.slice(0, -1);
+            for (const hCard of highestRankCards) {
+              const straightMin = lowerRankLists.map(list => list[0]);
+              straightMin.push(hCard);
+              candidates.push(straightMin);
+
+              const straightMax = lowerRankLists.map(list => list[list.length - 1]);
+              straightMax.push(hCard);
+              candidates.push(straightMax);
+            }
+          }
         }
       } else {
         break;
@@ -256,8 +273,20 @@ export function generateCandidateMoves(hand: Card[]): Card[][] {
         consecutivePairRanks.push(pairRanks[j]);
         if (consecutivePairRanks.length >= 3) {
           const pairChoices = consecutivePairRanks.map(r => getCombinations(rankMap.get(r)!, 2));
-          const seqPairSubsets = cartesianProduct(pairChoices).map(pairs => pairs.flat());
-          candidates.push(...seqPairSubsets);
+          const totalCombos = pairChoices.reduce((acc, l) => acc * l.length, 1);
+          if (totalCombos <= 4) {
+            const seqPairSubsets = cartesianProduct(pairChoices).map(pairs => pairs.flat());
+            candidates.push(...seqPairSubsets);
+          } else {
+            // Tối ưu Pruning: Độ mạnh đôi thông do đôi cao nhất quyết định.
+            const highestPairs = pairChoices[pairChoices.length - 1];
+            const lowerPairs = pairChoices.slice(0, -1);
+            for (const hPair of highestPairs) {
+              const seqMin = lowerPairs.map(list => list[0]).flat();
+              seqMin.push(...hPair);
+              candidates.push(seqMin);
+            }
+          }
         }
       } else {
         break;

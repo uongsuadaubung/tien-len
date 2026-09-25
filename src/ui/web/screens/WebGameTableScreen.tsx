@@ -36,6 +36,11 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
   const [isMatchHudOpen, setIsMatchHudOpen] = useState<boolean>(true);
   const [isReasoningHudOpen, setIsReasoningHudOpen] = useState<boolean>(false);
   const { openModal } = useViewStore();
+
+  const handleToggleMatchHud = React.useCallback(() => setIsMatchHudOpen(prev => !prev), []);
+  const handleToggleReasoningHud = React.useCallback(() => setIsReasoningHudOpen(prev => !prev), []);
+  const handleOpenRules = React.useCallback(() => openModal('RULES'), [openModal]);
+  const handleOpenSettings = React.useCallback(() => openModal('SETTINGS'), [openModal]);
   const {
     soundEnabled,
     aiHintEnabled,
@@ -119,13 +124,13 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
         activeGameType={activeGameType}
         soundEnabled={soundEnabled}
         onToggleSound={toggleSound}
-        onOpenRules={() => openModal('RULES')}
-        onOpenSettings={() => openModal('SETTINGS')}
+        onOpenRules={handleOpenRules}
+        onOpenSettings={handleOpenSettings}
         onOpenXRay={handleOpenXRay}
         onReturnToLobby={onReturnToLobby}
         xrayEnabled={xrayEnabled}
-        onToggleMatchHud={() => setIsMatchHudOpen(prev => !prev)}
-        onToggleReasoningHud={() => setIsReasoningHudOpen(prev => !prev)}
+        onToggleMatchHud={handleToggleMatchHud}
+        onToggleReasoningHud={handleToggleReasoningHud}
         isMatchHudOpen={isMatchHudOpen}
         isReasoningHudOpen={isReasoningHudOpen}
         botReasoningLogEnabled={botReasoningLogEnabled}
@@ -134,7 +139,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
       {/* HUD GÓC TRÁI: QUÂN SƯ AI & THỐNG KÊ CHIẾN THUẬT */}
       <LeftMatchHUD
         isOpen={isMatchHudOpen}
-        onToggle={() => setIsMatchHudOpen(prev => !prev)}
+        onToggle={handleToggleMatchHud}
         players={players}
         currentTurnPlayerId={currentTurnPlayerId}
         leadPlayerId={leadPlayerId}
@@ -151,7 +156,7 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
       {botReasoningLogEnabled && (
         <BotReasoningHUD
           isOpen={isReasoningHudOpen}
-          onToggle={() => setIsReasoningHudOpen(prev => !prev)}
+          onToggle={handleToggleReasoningHud}
           gameNumber={gameNumber}
           betAmount={gameSettings.betAmount}
           isDealing={isDealing}

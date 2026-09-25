@@ -440,8 +440,12 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
         isFirstMoveOfGame: isFirstMove,
         firstMoveRequiredCard: isFirstMove ? requiredCard : null,
         isLeadMove: isLead,
-        ...(sync.playerWins ? { playerWins: { ...sync.playerWins } } : {}),
-        ...(sync.initialScores ? { initialScores: { ...sync.initialScores } } : {})
+        playerWins: sync.playerWins
+          ? { ...sync.playerWins }
+          : (sync.seats ? Object.fromEntries(sync.seats.filter(s => s.wins !== undefined).map(s => [s.playerId, s.wins!])) : state.playerWins),
+        initialScores: sync.initialScores
+          ? { ...sync.initialScores }
+          : (sync.seats ? Object.fromEntries(sync.seats.filter(s => s.initialScore !== undefined).map(s => [s.playerId, s.initialScore!])) : state.initialScores)
       };
     });
 

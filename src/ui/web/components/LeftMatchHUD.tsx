@@ -27,7 +27,7 @@ interface LeftMatchHUDProps {
   onToggle?: () => void;
 }
 
-export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
+const LeftMatchHUDComponent: React.FC<LeftMatchHUDProps> = ({
   players,
   currentTurnPlayerId,
   leadPlayerId,
@@ -277,3 +277,5 @@ export const LeftMatchHUD: React.FC<LeftMatchHUDProps> = ({
     </div>
   );
 };
+
+export const LeftMatchHUD = React.memo(LeftMatchHUDComponent);

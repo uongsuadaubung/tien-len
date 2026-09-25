@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
-import { checkAppUpdate, getCurrentBuildTime, reloadToUpdate } from '../../src/services/app-version-service';
+import { checkAppUpdate, getCurrentBuildTime, reloadToUpdate, getAppVersionDate } from '../../src/services/app-version-service';
 
 describe('App Version Service (Kiểm tra cập nhật phiên bản build)', () => {
   const originalFetch = globalThis.fetch;
@@ -71,5 +71,10 @@ describe('App Version Service (Kiểm tra cập nhật phiên bản build)', () 
     expect(mockReload).toHaveBeenCalled();
 
     (globalThis as unknown as { window: unknown }).window = originalWindow;
+  });
+
+  it('7. getAppVersionDate: Trích xuất chính xác ngày dạng yyyymmdd từ buildTime', () => {
+    const specificDate = new Date(2026, 8, 25, 12, 0, 0); // Tháng 9 (0-indexed: 8)
+    expect(getAppVersionDate(specificDate.getTime())).toBe('20260925');
   });
 });

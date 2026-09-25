@@ -25,4 +25,15 @@ describe('SplashScreen Component & Version Update Tests', () => {
     expect(html).toContain('ĐANG KIỂM TRA PHIÊN BẢN MỚI');
     expect(html).toContain('CHỜ TRONG GIÂY LÁT');
   });
+
+  it('3. Render SplashScreen hiển thị version theo build time dạng yyyymmdd', () => {
+    const html = renderToString(
+      <SplashScreen
+        isHydrated={true}
+        version="v20260925"
+      />
+    );
+
+    expect(html).toContain('v20260925');
+  });
 });

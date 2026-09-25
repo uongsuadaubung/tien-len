@@ -20,7 +20,7 @@ interface BotReasoningHUDProps {
   isDealing: boolean;
 }
 
-export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
+const BotReasoningHUDComponent: React.FC<BotReasoningHUDProps> = ({
   isOpen,
   onToggle,
   gameNumber,
@@ -295,3 +295,5 @@ export const BotReasoningHUD: React.FC<BotReasoningHUDProps> = ({
     </div>
   );
 };
+
+export const BotReasoningHUD = React.memo(BotReasoningHUDComponent);

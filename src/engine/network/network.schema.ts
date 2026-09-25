@@ -170,7 +170,7 @@ export const TableStateSyncPacketSchema = z.object({
   isChop: z.boolean().default(false),
   isCascadeChop: z.boolean().default(false),
   remainingCardCounts: z.record(z.string(), z.number()),
-  playerScores: z.record(z.string(), z.number()),
+  playerScores: z.record(z.string(), z.number()).optional(),
   passedPlayerIds: z.array(z.string()).default([]),
   roundNumber: z.number().default(1),
   chopNotification: NetworkChopNotificationSchema.nullable().optional(),

@@ -390,10 +390,8 @@ export class AuthoritativeMatchHost {
     this.stateSyncSeq += 1;
 
     const remainingCardCounts: Record<string, number> = {};
-    const playerScores: Record<string, number> = {};
     for (const p of this.engine.players) {
       remainingCardCounts[p.id] = p.hand.length;
-      playerScores[p.id] = p.score;
     }
 
     const currentTurnId = this.engine.getCurrentPlayer()?.id || null;
@@ -449,7 +447,6 @@ export class AuthoritativeMatchHost {
       currentTurnPlayerId: this.isDealing ? null : currentTurnId,
       leadPlayerId: this.isDealing ? null : leadId,
       remainingCardCounts: this.isDealing ? { ...this.dealtCounts } : remainingCardCounts,
-      playerScores,
       passedPlayerIds: this.engine.currentRound ? [...this.engine.currentRound.passedPlayerIds] : [],
       currentMoveCards: effectiveMove ? effectiveMove.combination.cards : undefined,
       currentMovePlayerId: effectiveMove ? effectiveMove.playerId : undefined,
@@ -463,10 +460,8 @@ export class AuthoritativeMatchHost {
       isLeadMove,
       isDealing: this.isDealing,
       dealBanner: this.dealBanner,
-      dealtCounts: { ...this.dealtCounts },
-      reconnectNotice,
-      playerWins: { ...this.playerWins },
-      initialScores: { ...this.initialScores }
+      dealtCounts: this.isDealing ? { ...this.dealtCounts } : undefined,
+      reconnectNotice
     };
 
     const hostToClientPacket: HostToClientPacket = {
@@ -804,7 +799,6 @@ export class AuthoritativeMatchHost {
     const player = this.engine.getPlayer(playerId);
     if (!player) return [];
     player.hand = sortCards(player.hand);
-    this.broadcastTableSync();
     return [...player.hand];
   }
 

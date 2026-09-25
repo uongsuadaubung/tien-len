@@ -25,7 +25,7 @@ export interface HeaderBarProps {
   botReasoningLogEnabled?: boolean;
 }
 
-export const HeaderBar: React.FC<HeaderBarProps> = ({
+const HeaderBarComponent: React.FC<HeaderBarProps> = ({
   gameNumber,
   mode,
   activeGameType,
@@ -199,3 +199,5 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
     </header>
   );
 };
+
+export const HeaderBar = React.memo(HeaderBarComponent);
