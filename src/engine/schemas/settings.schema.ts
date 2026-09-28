@@ -12,7 +12,6 @@ export const GithubUserSchema = z.object({
 export const SavedSettingsSchema = z.object({
   soundEnabled: z.boolean().default(true),
   autoSortEnabled: z.boolean().default(true),
-  aiHintEnabled: z.boolean().default(false),
   quickResponseAssistEnabled: z.boolean().default(false),
   reverseButtonsEnabled: z.boolean().default(false),
   xrayEnabled: z.boolean().default(false),

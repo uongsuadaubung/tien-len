@@ -288,8 +288,6 @@ export const vi = {
     autoSortDesc: 'Tự sắp xếp sảnh, đôi, tứ quý ngay sau khi chia bài',
     quickResponseTitle: 'Hỗ Trợ Bắt Bài Nhanh',
     quickResponseDesc: 'Hiển thị nút chọn nhanh các tổ hợp hợp lệ để chặn đối thủ',
-    aiHintTitle: 'Trợ Lý AI Gợi Ý Nước Đi',
-    aiHintDesc: 'Hiển thị nút tư vấn chiến thuật tối ưu khi đến lượt đánh',
     reverseButtonsTitle: 'Đảo Ngược Nút Bấm',
     reverseButtonsDesc: 'Đảo ngược thứ tự toàn bộ nút bấm thao tác khi đánh bài (phù hợp tay thuận)',
     advancedSection: 'Phân Tích & Nâng Cao',

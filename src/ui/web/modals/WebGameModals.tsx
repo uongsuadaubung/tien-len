@@ -1,6 +1,5 @@
 import React from 'react';
 import { useViewStore } from '../../../stores/useViewStore';
-import { useGameStore } from '../../../stores/useGameStore';
 import { ConfirmForfeitModal } from './ConfirmForfeitModal';
 import { F5PenaltyNoticeModal } from './F5PenaltyNoticeModal';
 import { NameSetupModal } from './NameSetupModal';
@@ -37,7 +36,8 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
   campaignResultMeta,
   onOpenCampaignMap
 }) => {
-  const { cancelMatchmaking, executeMatch } = useMatchmakingStore();
+  const cancelMatchmaking = useMatchmakingStore(s => s.cancelMatchmaking);
+  const executeMatch = useMatchmakingStore(s => s.executeMatch);
   // Modal Store
   const {
     activeModal,
@@ -57,7 +57,6 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
     closeModal
   } = useViewStore();
 
-  const currentHint = useGameStore(s => s.currentHint);
   const { quickSetupInitialConfig, customGameInitialConfig } = useGameSetupConfigs();
 
   return (
@@ -139,7 +138,6 @@ export const WebGameModals: React.FC<WebGameModalsProps> = ({
           onClose={() => closeModal('XRAY')}
           tracker={activeModal.tracker}
           ownHand={activeModal.ownHand}
-          currentHint={currentHint}
         />
       )}
 

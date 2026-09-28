@@ -1,5 +1,4 @@
 import type { Card } from '../types';
-import type { MoveHint } from '../../ai/hint-engine';
 import type { OpeningReason, LastAction } from '../network/network.schema';
 
 export type HandSortMode = 'NATURAL' | 'SMART_GROUP' | 'BY_SUIT' | 'TWO_PRESERVE';
@@ -88,7 +87,6 @@ export interface TableRenderFrame {
   readonly dealtCounts: Readonly<Record<string, number>>;
   readonly isGameOver: boolean;
   readonly winners: readonly { id: string; name: string }[];
-  readonly aiHint: MoveHint | null;
   readonly botThinkingThought: { botId: string; text: string } | null;
   readonly turnDeadline: number | null;
   readonly openingReason: OpeningReason | null;
@@ -109,8 +107,7 @@ export type UserIntent =
   | { type: 'SUBMIT_PASS' }
   | { type: 'TRIGGER_QUICK_SELECT' }
   | { type: 'SORT_HAND'; mode?: HandSortMode }
-  | { type: 'REORDER_HAND'; newHand: Card[] }
-  | { type: 'APPLY_HINT' };
+  | { type: 'REORDER_HAND'; newHand: Card[] };
 
 /**
  * AudioCue

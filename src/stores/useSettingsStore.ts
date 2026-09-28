@@ -35,7 +35,6 @@ function persistSettings(state: SettingsState): void {
   const data: SavedSettings = {
     soundEnabled: state.soundEnabled,
     autoSortEnabled: state.autoSortEnabled,
-    aiHintEnabled: state.aiHintEnabled,
     quickResponseAssistEnabled: state.quickResponseAssistEnabled,
     reverseButtonsEnabled: state.reverseButtonsEnabled,
     xrayEnabled: state.xrayEnabled,
@@ -66,7 +65,6 @@ function persistSettings(state: SettingsState): void {
 interface SettingsState {
   soundEnabled: boolean;
   autoSortEnabled: boolean;
-  aiHintEnabled: boolean;
   quickResponseAssistEnabled: boolean;
   reverseButtonsEnabled: boolean;
   xrayEnabled: boolean;
@@ -85,7 +83,6 @@ interface SettingsState {
   // Actions
   toggleSound: () => void;
   toggleAutoSort: () => void;
-  toggleAiHint: () => void;
   toggleQuickResponseAssist: () => void;
   toggleReverseButtons: () => void;
   toggleXRay: () => void;
@@ -95,7 +92,6 @@ interface SettingsState {
   toggleAutoSyncOnStartup: () => void;
   setSoundEnabled: (enabled: boolean) => void;
   setAutoSortEnabled: (enabled: boolean) => void;
-  setAiHintEnabled: (enabled: boolean) => void;
   setQuickResponseAssistEnabled: (enabled: boolean) => void;
   setReverseButtonsEnabled: (enabled: boolean) => void;
   setXRayEnabled: (enabled: boolean) => void;
@@ -119,7 +115,6 @@ const initial = loadInitialSettings();
 export const useSettingsStore = create<SettingsState>((set) => ({
   soundEnabled: initial.soundEnabled,
   autoSortEnabled: initial.autoSortEnabled,
-  aiHintEnabled: initial.aiHintEnabled,
   quickResponseAssistEnabled: initial.quickResponseAssistEnabled,
   reverseButtonsEnabled: initial.reverseButtonsEnabled,
   xrayEnabled: initial.xrayEnabled,
@@ -140,7 +135,6 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     const data: SavedSettings = {
       soundEnabled: next.soundEnabled,
       autoSortEnabled: next.autoSortEnabled,
-      aiHintEnabled: next.aiHintEnabled,
       quickResponseAssistEnabled: next.quickResponseAssistEnabled,
       reverseButtonsEnabled: next.reverseButtonsEnabled,
       xrayEnabled: next.xrayEnabled,
@@ -172,11 +166,6 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   }),
   toggleAutoSort: () => set((state) => {
     const next = { ...state, autoSortEnabled: !state.autoSortEnabled };
-    persistSettings(next);
-    return next;
-  }),
-  toggleAiHint: () => set((state) => {
-    const next = { ...state, aiHintEnabled: !state.aiHintEnabled };
     persistSettings(next);
     return next;
   }),
@@ -243,11 +232,6 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   }),
   setAutoSortEnabled: (enabled) => set((state) => {
     const next = { ...state, autoSortEnabled: enabled };
-    persistSettings(next);
-    return next;
-  }),
-  setAiHintEnabled: (enabled) => set((state) => {
-    const next = { ...state, aiHintEnabled: enabled };
     persistSettings(next);
     return next;
   }),

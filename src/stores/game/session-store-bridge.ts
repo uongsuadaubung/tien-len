@@ -47,7 +47,6 @@ export function syncStoreFromSessionFrame(session: IGameSession, frame: TableRen
     players: updatedPlayers,
     currentMove: effectiveCurrentMove,
     selectedCardIds: nextSelectedCardIds,
-    currentHint: frame.aiHint,
     dealtCounts: frame.dealtCounts,
     gameNumber: frame.gameNumber,
     isDealing: frame.isDealing,

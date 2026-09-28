@@ -7,8 +7,9 @@ import { useI18n } from '../../locales';
 
 export const OnlineDisbandModal: React.FC = () => {
   const { t } = useI18n();
-  const { disbandNotice, clearDisbandNotice } = useOnlineStore();
-  const { openModal } = useViewStore();
+  const disbandNotice = useOnlineStore(s => s.disbandNotice);
+  const clearDisbandNotice = useOnlineStore(s => s.clearDisbandNotice);
+  const openModal = useViewStore(s => s.openModal);
 
   if (disbandNotice === null) return null;
 

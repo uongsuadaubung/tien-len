@@ -63,7 +63,6 @@ describe('TableFrameProjector (Pure Game Engine Projector)', () => {
 
     const defaultContextParams = {
       dealtCounts: {},
-      currentHint: null,
       botThinkingThought: null,
       isDealing: false,
       dealBanner: null
@@ -113,7 +112,6 @@ describe('TableFrameProjector (Pure Game Engine Projector)', () => {
       gameRules: rules,
       players,
       dealtCounts: {},
-      currentHint: null,
       botThinkingThought: null,
       isDealing: false,
       dealBanner: null
@@ -150,7 +148,6 @@ describe('TableFrameProjector (Pure Game Engine Projector)', () => {
       gameRules: rules,
       players,
       dealtCounts: {},
-      currentHint: null,
       botThinkingThought: null,
       isDealing: false,
       dealBanner: null
@@ -177,7 +174,6 @@ describe('TableFrameProjector (Pure Game Engine Projector)', () => {
       gameRules: rules,
       players,
       dealtCounts: {},
-      currentHint: null,
       botThinkingThought: null,
       isDealing: false,
       dealBanner: null
@@ -232,7 +228,6 @@ describe('TableFrameProjector (Pure Game Engine Projector)', () => {
         players[1]
       ],
       dealtCounts: {},
-      currentHint: null,
       botThinkingThought: null,
       isDealing: false,
       dealBanner: null
@@ -272,7 +267,6 @@ describe('TableFrameProjector (Pure Game Engine Projector)', () => {
       gameRules: rules,
       players,
       dealtCounts: {},
-      currentHint: null,
       botThinkingThought: null,
       isDealing: false,
       dealBanner: null
@@ -311,7 +305,6 @@ describe('TableFrameProjector (Pure Game Engine Projector)', () => {
       gameRules: rules,
       players: passedPlayers,
       dealtCounts: {},
-      currentHint: null,
       botThinkingThought: null,
       isDealing: false,
       dealBanner: null

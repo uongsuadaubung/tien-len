@@ -1,12 +1,12 @@
 import { isTwo, sortCards } from '../engine/card';
 import { identifyCombination } from '../engine/combinations';
 import { isValidMove } from '../engine/validator';
-import { MctsSolver } from './mcts-solver';
+import { ScaledMctsEngine } from './mcts-async-engine';
 import { OpponentProfiler } from './opponent-profiler';
 import { resolveCompositeRuleStrategy } from './rule-strategies';
 import { BotDecisionTelemetry } from '../engine/match-logger';
 import { getBotConfig } from './bot-factory';
-import { Card, PlayedMove } from '../engine/types';
+import { Card, PlayedMove, GameRules } from '../engine/types';
 
 // 1. Re-export toàn bộ Types & Helpers cơ sở
 export * from './decision-types';
@@ -20,6 +20,7 @@ export * from './handlers/endgame-handler';
 export * from './handlers/lead-move-handler';
 export * from './handlers/responding-move-handler';
 export * from './handlers/fallback-handler';
+import { CardTracker } from './card-tracker';
 
 // Imports nội bộ cho orchestrator
 import { 
@@ -60,13 +61,29 @@ export function buildBotDecisionChain(): BotDecisionHandler {
 
 const DEFAULT_DECISION_CHAIN = buildBotDecisionChain();
 
-/**
- * Hàm quyết định nước đi của AI Bot áp dụng Kiến trúc Rule-First & Chain of Responsibility
- */
-export function makeBotDecision(rawContext: DecisionContext | (BaseDecisionContext & {
-  isLeadMove: boolean;
-  currentRoundLeadingMove?: PlayedMove | null;
-})): BotDecision {
+interface DecisionCandidateState {
+  readonly context: DecisionContext;
+  readonly config: ReturnType<typeof getBotConfig>;
+  readonly hand: Card[];
+  readonly validMoves: ValidMoveInfo[];
+  readonly isLeadMove: boolean;
+  readonly remainingPlayerCards: Record<string, number>;
+  readonly tracker: CardTracker | null;
+  readonly activeRules: GameRules;
+  readonly isProhibitEndingWithTwo: boolean;
+  readonly compositeRuleStrategy: ReturnType<typeof resolveCompositeRuleStrategy>;
+}
+
+type PreparedDecision = 
+  | { readonly kind: 'EARLY_EXIT'; readonly decision: BotDecision }
+  | { readonly kind: 'READY'; readonly state: DecisionCandidateState };
+
+function prepareDecisionContextAndCandidates(
+  rawContext: DecisionContext | (BaseDecisionContext & {
+    isLeadMove: boolean;
+    currentRoundLeadingMove?: PlayedMove | null;
+  })
+): PreparedDecision {
   const context = createDecisionContext(rawContext);
   const config = {
     ...getBotConfig('BOT_ELO_1150'),
@@ -184,27 +201,46 @@ export function makeBotDecision(rawContext: DecisionContext | (BaseDecisionConte
     };
 
     return {
-      ...emptyDecision,
-      telemetry
+      kind: 'EARLY_EXIT',
+      decision: {
+        ...emptyDecision,
+        telemetry
+      }
     };
   }
 
-  // 4. Chạy MCTS nếu Bot có cấu hình mctsSimulations > 0 (Tier 4 / Tier 5)
-  const mctsMap: Map<string, number> = new Map();
-  if (config.mctsSimulations && config.mctsSimulations > 0 && validMoves.length > 0) {
-    const evaluations = MctsSolver.evaluateCandidateMoves(
-      config.id,
+  return {
+    kind: 'READY',
+    state: {
+      context,
+      config,
       hand,
       validMoves,
-      tracker,
+      isLeadMove,
       remainingPlayerCards,
-      config.mctsSimulations
-    );
-    for (const ev of evaluations) {
-      const key = ev.moveCards.map(c => c.id).sort().join('_');
-      mctsMap.set(key, ev.winRate);
+      tracker,
+      activeRules,
+      isProhibitEndingWithTwo,
+      compositeRuleStrategy
     }
-  }
+  };
+}
+
+function finalizeBotDecisionWithMcts(
+  state: DecisionCandidateState,
+  mctsMap: Map<string, number>
+): BotDecision {
+  const {
+    context,
+    config,
+    hand,
+    validMoves,
+    isLeadMove,
+    remainingPlayerCards,
+    activeRules,
+    isProhibitEndingWithTwo,
+    compositeRuleStrategy
+  } = state;
 
   const opponentProfiles = context.opponentProfiles || OpponentProfiler.getInstance().getAllProfiles();
 
@@ -268,4 +304,75 @@ export function makeBotDecision(rawContext: DecisionContext | (BaseDecisionConte
     ...decision,
     telemetry
   };
+}
+
+/**
+ * Hàm quyết định nước đi của AI Bot áp dụng Kiến trúc Rule-First & Chain of Responsibility (Phiên bản đồng bộ)
+ */
+export function makeBotDecision(rawContext: DecisionContext | (BaseDecisionContext & {
+  isLeadMove: boolean;
+  currentRoundLeadingMove?: PlayedMove | null;
+})): BotDecision {
+  const prep = prepareDecisionContextAndCandidates(rawContext);
+  if (prep.kind === 'EARLY_EXIT') {
+    return prep.decision;
+  }
+
+  const { state } = prep;
+  const mctsMap: Map<string, number> = new Map();
+  if (state.config.mctsSimulations && state.config.mctsSimulations > 0 && state.validMoves.length > 0) {
+    const tracker = state.tracker ?? new CardTracker(state.hand, 1.0);
+    const evaluations = ScaledMctsEngine.evaluateMovesSync(
+      state.config.id,
+      state.hand,
+      state.validMoves,
+      tracker,
+      state.remainingPlayerCards,
+      state.config.mctsSimulations
+    );
+    for (const ev of evaluations) {
+      const key = ev.moveCards.map(c => c.id).sort().join('_');
+      mctsMap.set(key, ev.winRate);
+    }
+  }
+
+  return finalizeBotDecisionWithMcts(state, mctsMap);
+}
+
+/**
+ * Hàm quyết định nước đi của AI Bot qua Web Worker hoặc bất đồng bộ nhường luồng (Async MCTS Non-Blocking)
+ * Giải phóng hoàn toàn 100% CPU Main Thread trong suốt quá trình chạy MCTS Rollouts cho Bot Bậc Cao
+ */
+export async function makeBotDecisionAsync(rawContext: DecisionContext | (BaseDecisionContext & {
+  isLeadMove: boolean;
+  currentRoundLeadingMove?: PlayedMove | null;
+})): Promise<BotDecision> {
+  const prep = prepareDecisionContextAndCandidates(rawContext);
+  if (prep.kind === 'EARLY_EXIT') {
+    return prep.decision;
+  }
+
+  const { state } = prep;
+  const mctsMap: Map<string, number> = new Map();
+  if (state.config.mctsSimulations && state.config.mctsSimulations > 0 && state.validMoves.length > 0) {
+    const tracker = state.tracker ?? new CardTracker(state.hand, 1.0);
+    const evaluations = await ScaledMctsEngine.evaluateMovesAsync(
+      state.config.id,
+      state.hand,
+      state.validMoves,
+      tracker,
+      state.remainingPlayerCards,
+      {
+        simulationsCount: state.config.mctsSimulations,
+        maxCandidates: 10,
+        useWorkerIfAvailable: true
+      }
+    );
+    for (const ev of evaluations) {
+      const key = ev.moveCards.map(c => c.id).sort().join('_');
+      mctsMap.set(key, ev.winRate);
+    }
+  }
+
+  return finalizeBotDecisionWithMcts(state, mctsMap);
 }

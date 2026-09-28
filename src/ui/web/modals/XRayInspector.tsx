@@ -2,8 +2,7 @@ import React from 'react';
 import { Card, Rank } from '../../../engine/types';
 import { ALL_RANKS, ALL_SUITS, RANK_NAMES, SUIT_SYMBOLS, createCard, isRedCard } from '../../../engine/card';
 import { CardTracker } from '../../../ai/card-tracker';
-import { MoveHint } from '../../../ai/hint-engine';
-import { Eye, ShieldAlert, Sparkles, X, BrainCircuit, CheckCircle2 } from 'lucide-react';
+import { Eye, ShieldAlert, Sparkles, X, CheckCircle2 } from 'lucide-react';
 import { useGameStore } from '../../../stores/useGameStore';
 import { useI18n } from '../../../locales';
 
@@ -12,15 +11,13 @@ interface XRayInspectorProps {
   onClose: () => void;
   tracker: CardTracker;
   ownHand: readonly Card[];
-  currentHint: MoveHint | null;
 }
 
 export const XRayInspector: React.FC<XRayInspectorProps> = ({
   isOpen,
   onClose,
   tracker,
-  ownHand,
-  currentHint
+  ownHand
 }) => {
   const { t } = useI18n();
 
@@ -56,19 +53,6 @@ export const XRayInspector: React.FC<XRayInspectorProps> = ({
             </p>
           </div>
         </div>
-
-        {/* Khung Gợi Ý Nước Đi Realtime */}
-        {currentHint && (
-          <div className="mb-5 p-4 rounded-2xl bg-gradient-to-r from-purple-950/80 to-red-950/80 border border-purple-400/50 shadow-lg">
-            <div className="flex items-center gap-2 text-purple-300 font-extrabold text-sm mb-1.5">
-              <BrainCircuit className="w-5 h-5 text-yellow-300 animate-pulse" />
-              <span>{t('xray.realtimeAnalysis')}</span>
-            </div>
-            <p className="text-sm font-medium text-yellow-100 leading-relaxed">
-              {currentHint.explanation}
-            </p>
-          </div>
-        )}
 
         {/* Thước Đo An Toàn Ra Heo (Bayesian Two Safety Meter) */}
         <div className="mb-5 p-4 rounded-2xl bg-black/40 border border-yellow-500/30">

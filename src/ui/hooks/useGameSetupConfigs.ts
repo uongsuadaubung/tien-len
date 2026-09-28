@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '../../stores/useGameStore';
 import { normalizePlayerCount } from '../../engine/types';
 import type { TableConfigState } from '../components/TableRulesConfigPanel';
@@ -59,7 +60,13 @@ export function useGameSetupConfigs(): GameSetupConfigs {
     playerCount,
     botPersonaIds,
     customBotConfigs
-  } = useGameStore();
+  } = useGameStore(useShallow(s => ({
+    gameSettings: s.gameSettings,
+    quickTableConfig: s.quickTableConfig,
+    playerCount: s.playerCount,
+    botPersonaIds: s.botPersonaIds,
+    customBotConfigs: s.customBotConfigs
+  })));
 
   return useMemo(
     () => computeGameSetupConfigs({

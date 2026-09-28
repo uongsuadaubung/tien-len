@@ -1,6 +1,7 @@
-import { describe, expect, it, beforeEach, afterEach } from 'bun:test';
+import { describe, expect, it, beforeEach, afterEach, spyOn } from 'bun:test';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
+import * as handSorter from '../../src/engine/hand-sorter';
 import { SavedSettingsSchema } from '../../src/engine/schemas/settings.schema';
 import { useSettingsStore, resetSettingsStore } from '../../src/stores/useSettingsStore';
 import { getLocalSaveData } from '../../src/engine/sync/sync-service';
@@ -355,5 +356,93 @@ describe('Kiểm Thử Tính Năng Đảo Ngược Nút Bấm (Reverse Button La
     );
     expect(htmlWithoutBanner).not.toContain('giành quyền mở màn');
     expect(htmlWithoutBanner).not.toContain('👑');
+  });
+
+  it('8. PlayerHandView: Hoãn tính toán availableVariants khi không ở chế độ SMART_GROUP (Lazy Computation)', () => {
+    const mockPlayer: MatchPlayer = {
+      id: 'p0',
+      name: 'Người Chơi',
+      hand: [createCard(3, 'SPADES'), createCard(4, 'HEARTS'), createCard(5, 'DIAMONDS')],
+      cardCount: 3,
+      playedCards: [],
+      score: 10000,
+      avatar: '🤠',
+      isBot: false,
+      isPassedCurrentRound: false,
+      hasPlayedFirstCard: false
+    };
+
+    const spy = spyOn(handSorter, 'getAvailableSmartVariants');
+
+    // 1. Khi ở chế độ NATURAL (hoặc BY_SUIT): KHÔNG được gọi getAvailableSmartVariants
+    renderToString(
+      <PlayerHandView
+        player={mockPlayer}
+        selectedCardIds={new Set()}
+        onToggleCardSelect={() => {}}
+        onClearCardSelection={() => {}}
+        onPlaySelectedCards={() => {}}
+        onPassTurn={() => {}}
+        onAutoSort={() => {}}
+        onQuickSelect={() => {}}
+        canQuickSelect={false}
+        quickSelectCandidatesCount={0}
+        isCurrentTurn={true}
+        canPlay={false}
+        canPass={false}
+        isLeader={false}
+        isDealing={false}
+        dealtCardsCount={0}
+        isFirstMoveOfGame={false}
+        firstMoveRequiredCard={null}
+        sortMode="NATURAL"
+        variantIndex={0}
+        cardSize="md"
+        reverseButtons={false}
+        quickResponseAssistEnabled={true}
+        dealBanner={null}
+        openingReason={null}
+        chopNotification={null}
+        reconnectNotice={null}
+      />
+    );
+
+    expect(spy).not.toHaveBeenCalled();
+
+    // 2. Khi chuyển sang chế độ SMART_GROUP: MỚI được gọi getAvailableSmartVariants
+    renderToString(
+      <PlayerHandView
+        player={mockPlayer}
+        selectedCardIds={new Set()}
+        onToggleCardSelect={() => {}}
+        onClearCardSelection={() => {}}
+        onPlaySelectedCards={() => {}}
+        onPassTurn={() => {}}
+        onAutoSort={() => {}}
+        onQuickSelect={() => {}}
+        canQuickSelect={false}
+        quickSelectCandidatesCount={0}
+        isCurrentTurn={true}
+        canPlay={false}
+        canPass={false}
+        isLeader={false}
+        isDealing={false}
+        dealtCardsCount={0}
+        isFirstMoveOfGame={false}
+        firstMoveRequiredCard={null}
+        sortMode="SMART_GROUP"
+        variantIndex={0}
+        cardSize="md"
+        reverseButtons={false}
+        quickResponseAssistEnabled={true}
+        dealBanner={null}
+        openingReason={null}
+        chopNotification={null}
+        reconnectNotice={null}
+      />
+    );
+
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
   });
 });

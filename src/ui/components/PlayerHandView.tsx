@@ -1,7 +1,7 @@
 import React from 'react';
 import { MatchPlayer, Card } from '../../engine/types';
 import { formatCardVietnamese } from '../../engine/card';
-import { HandSortMode } from '../../stores/useGameStore';
+import { HandSortMode, useGameStore } from '../../stores/useGameStore';
 import { getAvailableSmartVariants } from '../../engine/hand-sorter';
 import { resolveHandSortStrategy } from '../../engine/strategies/hand-sort-strategy';
 import { useI18n } from '../../locales';
@@ -16,7 +16,7 @@ interface HandCardStyle extends React.CSSProperties {
 
 export interface PlayerHandViewProps {
   readonly player: MatchPlayer;
-  readonly selectedCardIds: ReadonlySet<string>;
+  readonly selectedCardIds?: ReadonlySet<string>;
   readonly onToggleCardSelect: (cardId: string) => void;
   readonly onClearCardSelection: () => void;
   readonly onPlaySelectedCards: () => void;
@@ -46,7 +46,7 @@ export interface PlayerHandViewProps {
 
 const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
   player,
-  selectedCardIds,
+  selectedCardIds: selectedCardIdsProp,
   onToggleCardSelect,
   onClearCardSelection,
   onPlaySelectedCards,
@@ -74,6 +74,8 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
   reconnectNotice,
 }) => {
   const { t } = useI18n();
+  const storeSelectedCardIds = useGameStore(s => s.selectedCardIds);
+  const selectedCardIds = selectedCardIdsProp ?? storeSelectedCardIds;
   const isReverseButtons = reverseButtons;
 
   const [reconnectRemainingSeconds, setReconnectRemainingSeconds] = React.useState<number>(0);
@@ -124,9 +126,9 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
 
   const isSmartMode = sortMode === 'SMART_GROUP';
   const availableVariants = React.useMemo(() => {
-    if (isDealing || hand.length === 0) return [];
+    if (!isSmartMode || isDealing || hand.length === 0) return [];
     return getAvailableSmartVariants(hand);
-  }, [handCardsContentKey, isDealing]);
+  }, [isSmartMode, handCardsContentKey, isDealing]);
 
   const totalVariants = availableVariants.length;
   const smartGroups = React.useMemo(() => {

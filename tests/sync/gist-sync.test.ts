@@ -28,7 +28,6 @@ describe('GitHub Gist Synchronization Unit Tests', () => {
     settings: {
       soundEnabled: true,
       autoSortEnabled: true,
-      aiHintEnabled: true,
       gameSpeed: 'FAST'
     }
   };

@@ -830,13 +830,6 @@ export class AppFlowCoordinator {
     }
   }
 
-  public getAiHint(playerId: string) {
-    if (this.activeHost) {
-      return this.activeHost.getAiHint(playerId);
-    }
-    return null;
-  }
-
   public getPlayerTracker(playerId: string): CardTracker | null {
     if (this.activeHost) {
       return this.activeHost.getTracker(playerId);

@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useOnlineStore } from '../../stores/useOnlineStore';
 import { useUserStore } from '../../stores/useUserStore';
 import { useViewStore } from '../../stores/useViewStore';
@@ -115,7 +116,22 @@ export function useOnlineRoomLogic(): UseOnlineRoomLogicResult {
     startBrowsingLobby,
     stopBrowsingLobby,
     refreshLobbyRooms
-  } = useOnlineStore();
+  } = useOnlineStore(useShallow(s => ({
+    roomState: s.roomState,
+    roomCode: s.roomCode,
+    isHost: s.isHost,
+    publicRooms: s.publicRooms,
+    isLobbyLoading: s.isLobbyLoading,
+    createRoom: s.createRoom,
+    joinRoom: s.joinRoom,
+    joinPublicRoom: s.joinPublicRoom,
+    removeSlot: s.removeSlot,
+    startMatch: s.startMatch,
+    leaveRoom: s.leaveRoom,
+    startBrowsingLobby: s.startBrowsingLobby,
+    stopBrowsingLobby: s.stopBrowsingLobby,
+    refreshLobbyRooms: s.refreshLobbyRooms
+  })));
 
   const activeRoom: ActiveOnlineRoom | null = useMemo(() => {
     if ((sessionState.status === 'IN_ROOM_WAITING' || sessionState.status === 'IN_ROOM_PLAYING') && roomState !== null && roomCode !== null) {

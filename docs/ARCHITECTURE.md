@@ -120,7 +120,7 @@ Triển khai tại [`src/services/app-flow-coordinator.ts`](../src/services/app-
 3. **Phiên Trình Diễn Khách (`ClientSession` & `TableFrameProjector`)**:
    - Đóng vai trò Dumb View Controller duy nhất cho giao diện người dùng.
    - Nhận gói tin đồng bộ `TABLE_SYNC` và phát ra `TableRenderFrame` đã che bài đối thủ qua giao thức chống soi bài (Fog of War).
-   - Tiếp nhận `UserIntent` (`SUBMIT_PLAY`, `SUBMIT_PASS`, `SORT_HAND`, `REORDER_HAND`, `APPLY_HINT`) từ Web & Mobile UI để truyền về Host.
+   - Tiếp nhận `UserIntent` (`SUBMIT_PLAY`, `SUBMIT_PASS`, `SORT_HAND`, `REORDER_HAND`) từ Web & Mobile UI để truyền về Host.
 4. **Tầng Truyền Tin Song Công (Duplex Transport Layer)**:
    - **Offline Mode**: `createMemoryDuplexTransport` kết nối Host, ClientSession và các `BotAgent` trực tiếp trong RAM (độ trễ 0ms, không phụ thuộc mạng, 0% rò rỉ bộ nhớ).
    - **Online Mode**: `P2PHostPeerTransport` và `P2PClientTransport` kết nối Host với các máy khách từ xa thông qua **Supabase Realtime Channels (WebSocket Broadcast & Presence)**, triệt tiêu hoàn toàn sự cố rớt mạng NAT/STUN của WebRTC cũ.

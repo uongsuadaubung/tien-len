@@ -43,7 +43,6 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
   const handleOpenSettings = React.useCallback(() => openModal('SETTINGS'), [openModal]);
   const {
     soundEnabled,
-    aiHintEnabled,
     quickResponseAssistEnabled,
     xrayEnabled,
     botReasoningLogEnabled,
@@ -51,7 +50,6 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     toggleSound
   } = useSettingsStore(useShallow(s => ({
     soundEnabled: s.soundEnabled,
-    aiHintEnabled: s.aiHintEnabled,
     quickResponseAssistEnabled: s.quickResponseAssistEnabled,
     xrayEnabled: s.xrayEnabled,
     botReasoningLogEnabled: s.botReasoningLogEnabled,
@@ -64,7 +62,6 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     gameNumber,
     gameSettings,
     activeGameType,
-    selectedCardIds,
     handSortMode,
     smartVariantIndex
   } = useGameStore(useShallow(s => ({
@@ -72,7 +69,6 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     gameNumber: s.gameNumber,
     gameSettings: s.gameSettings,
     activeGameType: s.activeGameType,
-    selectedCardIds: s.selectedCardIds,
     handSortMode: s.handSortMode,
     smartVariantIndex: s.smartVariantIndex
   })));
@@ -88,7 +84,6 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
     rightBot,
     quickSelectCandidatesCount,
     canQuickSelect,
-    activeAiHint,
     handleQuickSelect,
     handlePlayCards,
     handlePassTurnAction,
@@ -147,9 +142,6 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
         betAmount={gameSettings.betAmount}
         isDealing={isDealing}
         dealtCounts={dealtCounts}
-        aiHint={activeAiHint}
-        isHumanTurn={isMyTurn}
-        aiHintEnabled={aiHintEnabled}
       />
 
       {/* HUD GÓC PHẢI: LOGIC SUY LUẬN REAL-TIME CỦA BOT */}
@@ -262,7 +254,6 @@ export const WebGameTableScreen: React.FC<WebGameTableScreenProps> = ({
           <div className="w-full flex justify-center">
             <PlayerHandView
               player={localPlayer}
-              selectedCardIds={selectedCardIds}
               onToggleCardSelect={handleToggleCardSelect}
               onClearCardSelection={handleClearCardSelection}
               onPlaySelectedCards={handlePlayCards}

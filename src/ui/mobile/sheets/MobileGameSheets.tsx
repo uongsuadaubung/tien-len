@@ -1,6 +1,5 @@
 import React from 'react';
 import { useViewStore } from '../../../stores/useViewStore';
-import { useGameStore } from '../../../stores/useGameStore';
 import { ConfirmForfeitModal } from '../../web/modals/ConfirmForfeitModal';
 import { F5PenaltyNoticeModal } from '../../web/modals/F5PenaltyNoticeModal';
 import { MobileOnlineDisbandView } from '../views/MobileOnlineDisbandView';
@@ -58,8 +57,8 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
     closeModal
   } = useViewStore();
 
-  const { disbandNotice, clearDisbandNotice } = useOnlineStore();
-  const currentHint = useGameStore(s => s.currentHint);
+  const disbandNotice = useOnlineStore(s => s.disbandNotice);
+  const clearDisbandNotice = useOnlineStore(s => s.clearDisbandNotice);
   const { quickSetupInitialConfig, customGameInitialConfig } = useGameSetupConfigs();
 
   return (
@@ -108,7 +107,6 @@ export const MobileGameSheets: React.FC<MobileGameSheetsProps> = ({
           onClose={() => closeModal('XRAY')}
           tracker={activeModal.tracker}
           ownHand={activeModal.ownHand}
-          currentHint={currentHint}
         />
       )}
 

@@ -53,32 +53,81 @@ class SoundManager {
     return this.masterGain ?? this.ctx?.destination ?? null;
   }
 
-  // Âm thanh đánh bài xuống chiếu "Chát"
+  private cardSlapBuffer: AudioBuffer | null = null;
+  private passBuffer: AudioBuffer | null = null;
+
+  private getCardSlapBuffer(): AudioBuffer {
+    if (!this.cardSlapBuffer || this.cardSlapBuffer.sampleRate !== this.ctx!.sampleRate) {
+      const sampleRate = this.ctx!.sampleRate;
+      const duration = 0.085;
+      const bufferSize = Math.floor(sampleRate * duration);
+      this.cardSlapBuffer = this.ctx!.createBuffer(1, bufferSize, sampleRate);
+      const data = this.cardSlapBuffer.getChannelData(0);
+
+      let phase = 0;
+      let lpValue = 0;
+      const dt = 1 / sampleRate;
+      const rc = 1 / (2 * Math.PI * 800);
+      const alpha = dt / (rc + dt);
+
+      for (let i = 0; i < bufferSize; i++) {
+        const t = i * dt;
+        const freqRatio = Math.pow(30 / 160, Math.min(t / 0.08, 1));
+        const freq = 160 * freqRatio;
+        phase += 2 * Math.PI * freq * dt;
+
+        const p = (phase / (2 * Math.PI)) % 1;
+        const tri = 2 * Math.abs(2 * (p - Math.floor(p + 0.5))) - 1;
+
+        lpValue += alpha * (tri - lpValue);
+
+        const env = t <= 0.08
+          ? 0.6 * Math.pow(0.01 / 0.6, t / 0.08)
+          : 0.01 * Math.max(0, 1 - (t - 0.08) / 0.005);
+
+        data[i] = lpValue * Math.max(0, env);
+      }
+    }
+    return this.cardSlapBuffer;
+  }
+
+  private getPassBuffer(): AudioBuffer {
+    if (!this.passBuffer || this.passBuffer.sampleRate !== this.ctx!.sampleRate) {
+      const sampleRate = this.ctx!.sampleRate;
+      const duration = 0.16;
+      const bufferSize = Math.floor(sampleRate * duration);
+      this.passBuffer = this.ctx!.createBuffer(1, bufferSize, sampleRate);
+      const data = this.passBuffer.getChannelData(0);
+
+      let phase = 0;
+      const dt = 1 / sampleRate;
+
+      for (let i = 0; i < bufferSize; i++) {
+        const t = i * dt;
+        const freqRatio = Math.pow(180 / 350, Math.min(t / 0.15, 1));
+        const freq = 350 * freqRatio;
+        phase += 2 * Math.PI * freq * dt;
+
+        const env = t <= 0.15
+          ? 0.25 * Math.pow(0.01 / 0.25, t / 0.15)
+          : 0.01 * Math.max(0, 1 - (t - 0.15) / 0.01);
+
+        data[i] = Math.sin(phase) * Math.max(0, env);
+      }
+    }
+    return this.passBuffer;
+  }
+
+  // Âm thanh đánh bài xuống chiếu "Chát" (Tái sử dụng AudioBuffer tối ưu GC)
   public playCardSlap() {
     if (!this.enabled) return;
     this.initCtx();
     if (!this.ctx) return;
 
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    const filter = this.ctx.createBiquadFilter();
-
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(160, this.ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.08);
-
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(800, this.ctx.currentTime);
-
-    gain.gain.setValueAtTime(0.6, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
-
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.ctx.destination);
-
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.09);
+    const source = this.ctx.createBufferSource();
+    source.buffer = this.getCardSlapBuffer();
+    source.connect(this.ctx.destination);
+    source.start();
   }
 
   // Âm thanh Chặt Heo / Chặt Hàng "BÙM / RẦM"
@@ -118,26 +167,51 @@ class SoundManager {
     osc2.stop(this.ctx.currentTime + 0.55);
   }
 
-  // Âm thanh Bỏ Lượt "Vút"
+  // Âm thanh Bỏ Lượt "Vút" (Tái sử dụng AudioBuffer tối ưu GC)
   public playPass() {
     if (!this.enabled) return;
     this.initCtx();
     if (!this.ctx) return;
 
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
+    const source = this.ctx.createBufferSource();
+    source.buffer = this.getPassBuffer();
+    source.connect(this.ctx.destination);
+    source.start();
+  }
 
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(350, this.ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(180, this.ctx.currentTime + 0.15);
+  private dealNoiseBuffer: AudioBuffer | null = null;
+  private shuffleNoiseBuffer: AudioBuffer | null = null;
 
-    gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+  private getDealNoiseBuffer(): AudioBuffer {
+    if (!this.dealNoiseBuffer || this.dealNoiseBuffer.sampleRate !== this.ctx!.sampleRate) {
+      const bufferSize = Math.floor(this.ctx!.sampleRate * 0.04);
+      this.dealNoiseBuffer = this.ctx!.createBuffer(1, bufferSize, this.ctx!.sampleRate);
+      const data = this.dealNoiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+    }
+    return this.dealNoiseBuffer;
+  }
 
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.16);
+  private getShuffleNoiseBuffer(): AudioBuffer {
+    if (!this.shuffleNoiseBuffer || this.shuffleNoiseBuffer.sampleRate !== this.ctx!.sampleRate) {
+      const duration = 0.32;
+      const bufferSize = Math.floor(this.ctx!.sampleRate * duration);
+      this.shuffleNoiseBuffer = this.ctx!.createBuffer(1, bufferSize, this.ctx!.sampleRate);
+      const data = this.shuffleNoiseBuffer.getChannelData(0);
+      let b0 = 0;
+      let b1 = 0;
+      let b2 = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        data[i] = (b0 + b1 + b2 + white * 0.5362) * 0.12;
+      }
+    }
+    return this.shuffleNoiseBuffer;
   }
 
   // Âm thanh Chia bài vút nhẹ & đanh "Tách / Phựt"
@@ -146,16 +220,9 @@ class SoundManager {
     this.initCtx();
     if (!this.ctx) return;
 
-    // Tiếng vút giấy nhanh (noise sweep)
-    const bufferSize = this.ctx.sampleRate * 0.04;
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
-
+    // Tiếng vút giấy nhanh (cached noise buffer)
     const noise = this.ctx.createBufferSource();
-    noise.buffer = buffer;
+    noise.buffer = this.getDealNoiseBuffer();
 
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'bandpass';
@@ -196,22 +263,8 @@ class SoundManager {
     if (!this.ctx) return;
 
     const duration = 0.32;
-    const bufferSize = Math.floor(this.ctx.sampleRate * duration);
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    let b0 = 0;
-    let b1 = 0;
-    let b2 = 0;
-    for (let i = 0; i < bufferSize; i++) {
-      const white = Math.random() * 2 - 1;
-      b0 = 0.99886 * b0 + white * 0.0555179;
-      b1 = 0.99332 * b1 + white * 0.0750759;
-      b2 = 0.96900 * b2 + white * 0.1538520;
-      data[i] = (b0 + b1 + b2 + white * 0.5362) * 0.12;
-    }
-
     const source = this.ctx.createBufferSource();
-    source.buffer = buffer;
+    source.buffer = this.getShuffleNoiseBuffer();
 
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'bandpass';

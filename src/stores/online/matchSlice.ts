@@ -331,7 +331,6 @@ export const createMatchSlice: OnlineSliceCreator<MatchSlice> = (set, get) => ({
     gameStore.setWinners([]);
     gameStore.clearCardSelection();
     gameStore.setCurrentMove(null);
-    gameStore.setCurrentHint(null);
     gameStore.setPlayers(prevPlayers => {
       if (prevPlayers && prevPlayers.length > 0) {
         return resetPlayersForNewGame(prevPlayers, myPlayerId, []);

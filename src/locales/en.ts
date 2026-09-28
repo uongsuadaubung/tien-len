@@ -290,8 +290,6 @@ export const en: LocaleDictionary = {
     autoSortDesc: 'Automatically organize straights, pairs, and quads right after deal',
     quickResponseTitle: 'Quick Play Assistant',
     quickResponseDesc: 'Show quick action buttons for valid counters against opponents',
-    aiHintTitle: 'AI Tactical Advisor',
-    aiHintDesc: 'Provide optimal tactical suggestions when it is your turn',
     reverseButtonsTitle: 'Reverse Button Layout',
     reverseButtonsDesc: 'Reverse the order of all in-game action buttons (useful for left/right handed play)',
     advancedSection: 'Analytics & Advanced',

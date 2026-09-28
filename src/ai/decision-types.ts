@@ -200,10 +200,29 @@ export function cartesianProduct<T>(arrays: T[][]): T[][] {
 }
 
 /**
+ * Bộ đệm lưu trữ danh sách nước đi ứng viên theo tay bài (LRU Memoization Cache)
+ * Triệt tiêu việc phân rã tổ hợp và giải thuật tích Descartes lặp lại trên cùng bộ bài,
+ * đặc biệt tăng tốc độ tìm kiếm cho Minimax Solver và giải phóng áp lực rác bộ nhớ (GC churn).
+ */
+const CANDIDATE_MOVES_CACHE = new Map<string, Card[][]>();
+const MAX_CANDIDATE_CACHE_SIZE = 256;
+
+export function clearCandidateMovesCache(): void {
+  CANDIDATE_MOVES_CACHE.clear();
+}
+
+/**
  * Thuật toán tổng quát sinh toàn bộ tập con các lá bài có thể tạo thành nước đi hợp lệ
  */
 export function generateCandidateMoves(hand: Card[]): Card[][] {
+  if (hand.length === 0) return [];
   const sorted = sortCards(hand);
+  const cacheKey = sorted.map(c => c.id).join(',');
+  const cached = CANDIDATE_MOVES_CACHE.get(cacheKey);
+  if (cached !== undefined) {
+    return cached;
+  }
+
   const candidates: Card[][] = [];
 
   // 1. Gom nhóm lá bài theo Rank
@@ -293,6 +312,14 @@ export function generateCandidateMoves(hand: Card[]): Card[][] {
       }
     }
   }
+
+  if (CANDIDATE_MOVES_CACHE.size >= MAX_CANDIDATE_CACHE_SIZE) {
+    const firstKey = CANDIDATE_MOVES_CACHE.keys().next().value;
+    if (firstKey !== undefined) {
+      CANDIDATE_MOVES_CACHE.delete(firstKey);
+    }
+  }
+  CANDIDATE_MOVES_CACHE.set(cacheKey, candidates);
 
   return candidates;
 }

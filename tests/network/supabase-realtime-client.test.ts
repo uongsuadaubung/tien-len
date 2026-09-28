@@ -182,4 +182,30 @@ describe('Supabase Realtime Network Client Unit Tests (P2PClient Adapter)', () =
     expect(receivedEnd?.winners[0]).toBe('p0');
     expect(receivedEnd?.payouts.p0).toBe(10000);
   });
+
+  it('9. Tự động kích hoạt cơ chế Auto-Reconnect khi gặp CHANNEL_ERROR hoặc TIMED_OUT', async () => {
+    client.join('TL-RECON');
+    expect(client.getReconnectAttemptsForTest()).toBe(0);
+    expect(client.getIsReconnectingForTest()).toBe(false);
+
+    // Kích hoạt CHANNEL_ERROR
+    await client.handleStatusChangeForTest('CHANNEL_ERROR');
+    expect(client.getReconnectAttemptsForTest()).toBe(1);
+    expect(client.getIsReconnectingForTest()).toBe(true);
+
+    // Thành công kết nối lại SUBSCRIBED -> reset số lần retry
+    await client.handleStatusChangeForTest('SUBSCRIBED');
+    expect(client.getReconnectAttemptsForTest()).toBe(0);
+    expect(client.getIsReconnectingForTest()).toBe(false);
+  });
+
+  it('10. leave() hủy hoàn toàn timer reconnect và reset trạng thái an toàn', async () => {
+    client.join('TL-LEAVE');
+    await client.handleStatusChangeForTest('TIMED_OUT');
+    expect(client.getIsReconnectingForTest()).toBe(true);
+
+    client.leave();
+    expect(client.getIsReconnectingForTest()).toBe(false);
+    expect(client.getReconnectAttemptsForTest()).toBe(0);
+  });
 });

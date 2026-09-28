@@ -15,8 +15,8 @@ export const MobileOnlineDisbandView: React.FC<MobileOnlineDisbandViewProps> = (
   onClose
 }) => {
   const { t } = useI18n();
-  const { disbandNotice } = useOnlineStore();
-  const { openModal } = useViewStore();
+  const disbandNotice = useOnlineStore(s => s.disbandNotice);
+  const openModal = useViewStore(s => s.openModal);
 
   if (!isOpen || disbandNotice === null) return null;
 

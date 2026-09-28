@@ -6,7 +6,6 @@ import {
   isGameOverMatchState,
   isRoundEndedMatchState
 } from '../state-machine/types';
-import type { MoveHint } from '../../ai/hint-engine';
 import { isValidMove } from '../validator';
 import { getSortedQuickSelectCandidates } from '../quick-response-finder';
 import { identifyCombination } from '../combinations';
@@ -28,7 +27,6 @@ export interface TableFrameProjectionContext {
   readonly gameRules: GameRules;
   readonly players: readonly MatchPlayer[];
   readonly dealtCounts: Readonly<Record<string, number>>;
-  readonly currentHint: MoveHint | null;
   readonly botThinkingThought: { botId: string; text: string } | null;
   readonly isDealing: boolean;
   readonly dealBanner: string | null;
@@ -67,7 +65,6 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
     gameRules,
     players,
     dealtCounts,
-    currentHint,
     botThinkingThought,
     isDealing,
     dealBanner,
@@ -291,7 +288,6 @@ export function projectTableFrame(ctx: TableFrameProjectionContext): TableRender
     dealtCounts,
     isGameOver,
     winners: winnersList,
-    aiHint: currentHint,
     botThinkingThought,
     turnDeadline: turnDeadline ?? null,
     openingReason: openingReason ?? null,

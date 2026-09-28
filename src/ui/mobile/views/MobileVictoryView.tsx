@@ -13,6 +13,7 @@ import {
   Building2
 } from 'lucide-react';
 import type { CampaignResultMeta } from '../../../stores/useGameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { useSettingsStore } from '../../../stores/useSettingsStore';
 import { useOnlineStore } from '../../../stores/useOnlineStore';
 import { MatchLogger } from '../../../engine/match-logger';
@@ -56,8 +57,11 @@ export const MobileVictoryView: React.FC<MobileVictoryViewProps> = ({
   campaignResultMeta
 }) => {
   const { t } = useI18n();
-  const { githubToken, autoBackupOnMatchEnd } = useSettingsStore();
-  const { roomState } = useOnlineStore();
+  const { githubToken, autoBackupOnMatchEnd } = useSettingsStore(useShallow(s => ({
+    githubToken: s.githubToken,
+    autoBackupOnMatchEnd: s.autoBackupOnMatchEnd
+  })));
+  const roomState = useOnlineStore(s => s.roomState);
 
   const {
     isCampaign,

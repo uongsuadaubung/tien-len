@@ -55,10 +55,22 @@ export class P2PClient {
   private onRematchVoteCallbacks: Array<MessageHandler<RematchVotePacket>> = [];
   private isSubscribed: boolean = false;
   private pendingBroadcasts: Array<() => Promise<void>> = [];
+  private reconnectAttempts: number = 0;
+  private reconnectTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private isLeaving: boolean = false;
+  private readonly maxReconnectAttempts: number = 5;
+  private readonly baseReconnectDelayMs: number = 1000;
+  private readonly maxReconnectDelayMs: number = 15000;
 
   public join(roomCode: string): void {
     if (this.channel) {
       this.leave();
+    }
+    this.isLeaving = false;
+    this.reconnectAttempts = 0;
+    if (this.reconnectTimeoutId) {
+      clearTimeout(this.reconnectTimeoutId);
+      this.reconnectTimeoutId = null;
     }
     this.isSubscribed = false;
     this.pendingBroadcasts = [];
@@ -237,27 +249,76 @@ export class P2PClient {
 
     // 3. Đăng ký kênh và theo dõi Hiện diện
     this.channel.subscribe(async (status) => {
-      if (status === 'SUBSCRIBED' && this.channel) {
-        this.isSubscribed = true;
-        try {
-          await this.channel.track({
-            online_at: Date.now()
-          });
-        } catch (err) {
-          console.error('[SupabaseRealtime] track presence error:', err);
-        }
-        const queued = [...this.pendingBroadcasts];
-        this.pendingBroadcasts = [];
-        for (const fn of queued) {
-          await fn();
-        }
-      } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        this.isSubscribed = false;
-      }
+      await this.handleChannelStatusChange(status);
     });
   }
 
+  private async handleChannelStatusChange(status: string): Promise<void> {
+    if (status === 'SUBSCRIBED' && this.channel) {
+      this.isSubscribed = true;
+      this.reconnectAttempts = 0;
+      if (this.reconnectTimeoutId) {
+        clearTimeout(this.reconnectTimeoutId);
+        this.reconnectTimeoutId = null;
+      }
+      try {
+        await this.channel.track({
+          online_at: Date.now()
+        });
+      } catch (err) {
+        console.error('[SupabaseRealtime] track presence error:', err);
+      }
+      const queued = [...this.pendingBroadcasts];
+      this.pendingBroadcasts = [];
+      for (const fn of queued) {
+        await fn();
+      }
+    } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+      this.isSubscribed = false;
+      if (!this.isLeaving && this.currentRoomCode && (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT')) {
+        this.scheduleAutoReconnect();
+      }
+    }
+  }
+
+  private scheduleAutoReconnect(): void {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.warn(`[SupabaseRealtime] Max reconnect attempts (${this.maxReconnectAttempts}) reached.`);
+      return;
+    }
+
+    const backoff = Math.min(
+      this.maxReconnectDelayMs,
+      this.baseReconnectDelayMs * Math.pow(2, this.reconnectAttempts)
+    );
+    const jitter = Math.floor(Math.random() * 500);
+    const delay = backoff + jitter;
+    this.reconnectAttempts++;
+
+    if (this.reconnectTimeoutId) {
+      clearTimeout(this.reconnectTimeoutId);
+    }
+
+    this.reconnectTimeoutId = setTimeout(() => {
+      if (!this.isLeaving && this.currentRoomCode && !this.isSubscribed && this.channel) {
+        try {
+          this.channel.subscribe(async (status) => {
+            await this.handleChannelStatusChange(status);
+          });
+        } catch (err) {
+          console.error('[SupabaseRealtime] Reconnection error:', err);
+        }
+      }
+    }, delay);
+  }
+
   public leave(): void {
+    this.isLeaving = true;
+    if (this.reconnectTimeoutId) {
+      clearTimeout(this.reconnectTimeoutId);
+      this.reconnectTimeoutId = null;
+    }
+    this.reconnectAttempts = 0;
     if (this.channel) {
       try {
         void this.channel.untrack();
@@ -541,6 +602,18 @@ export class P2PClient {
 
   public emitRematchVoteForTest(packet: RematchVotePacket, senderPeerId: string): void {
     this.onRematchVoteCallbacks.forEach(cb => cb(packet, senderPeerId));
+  }
+
+  public getReconnectAttemptsForTest(): number {
+    return this.reconnectAttempts;
+  }
+
+  public getIsReconnectingForTest(): boolean {
+    return this.reconnectTimeoutId !== null;
+  }
+
+  public handleStatusChangeForTest(status: string): Promise<void> {
+    return this.handleChannelStatusChange(status);
   }
 }
 

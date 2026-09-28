@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import confetti from 'canvas-confetti';
 import { MatchPlayer, InstantWinType } from '../../engine/types';
 import { clearActiveMatchSession } from '../../engine/storage';
@@ -88,7 +89,60 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     campaignResultMeta = null
   } = props;
 
-  const gameStore = useGameStore();
+  const rawGameSlice = useGameStore(useShallow(s => ({
+    winners: s.winners,
+    players: s.players,
+    gameSettings: s.gameSettings,
+    instantWinType: s.instantWinType,
+    isThreeSpadesWin: s.isThreeSpadesWin,
+    matchPayouts: s.matchPayouts,
+    loanDeductionAmount: s.loanDeductionAmount,
+    lastEloDelta: s.lastEloDelta,
+    lastEloBreakdown: s.lastEloBreakdown,
+    allEloDeltas: s.allEloDeltas,
+    activeGameType: s.activeGameType,
+    currentCampaignChapter: s.currentCampaignChapter,
+    myPlayerId: s.myPlayerId,
+    perspectiveSettlement: s.perspectiveSettlement
+  })));
+
+  // Trong môi trường SSR/test (renderToString không có window), useSyncExternalStore trả về initial state
+  const isSSR = typeof window === 'undefined';
+  const liveStore = useGameStore.getState();
+  const gameSlice = isSSR
+    ? {
+        winners: liveStore.winners,
+        players: liveStore.players,
+        gameSettings: liveStore.gameSettings,
+        instantWinType: liveStore.instantWinType,
+        isThreeSpadesWin: liveStore.isThreeSpadesWin,
+        matchPayouts: liveStore.matchPayouts,
+        loanDeductionAmount: liveStore.loanDeductionAmount,
+        lastEloDelta: liveStore.lastEloDelta,
+        lastEloBreakdown: liveStore.lastEloBreakdown,
+        allEloDeltas: liveStore.allEloDeltas,
+        activeGameType: liveStore.activeGameType,
+        currentCampaignChapter: liveStore.currentCampaignChapter,
+        myPlayerId: liveStore.myPlayerId,
+        perspectiveSettlement: liveStore.perspectiveSettlement
+      }
+    : rawGameSlice;
+
+  const rawProfile = useUserStore(s => s.profile);
+  const profile = isSSR ? useUserStore.getState().profile : rawProfile;
+
+  const rawOnlineSlice = useOnlineStore(useShallow(s => ({
+    roomState: s.roomState,
+    isOnlineHost: s.isHost,
+    voteRematch: s.voteRematch
+  })));
+  const onlineSlice = isSSR
+    ? {
+        roomState: useOnlineStore.getState().roomState,
+        isOnlineHost: useOnlineStore.getState().isHost,
+        voteRematch: useOnlineStore.getState().voteRematch
+      }
+    : rawOnlineSlice;
 
   const {
     winners,
@@ -105,18 +159,13 @@ export function useVictoryLogic(props: UseVictoryLogicProps): VictoryLogicResult
     currentCampaignChapter: campaignChapter,
     myPlayerId: storeMyPlayerId,
     perspectiveSettlement: storeSettlement
-  } = gameStore;
+  } = gameSlice;
 
-  const { profile } = useUserStore();
-  const onlineStore = useOnlineStore();
+  const { roomState, isOnlineHost, voteRematch } = onlineSlice;
 
   const playerCoins = profile.coins;
   const betAmount = gameSettings.betAmount;
   const chapterWins = campaignResultMeta?.currentWins ?? (campaignChapter ? (profile.campaignChapterWins[campaignChapter.id] || 0) : 0);
-
-  const roomState = onlineStore.roomState;
-  const isOnlineHost = onlineStore.isHost;
-  const voteRematch = onlineStore.voteRematch;
 
   const isOnline = activeGameType === 'ONLINE';
   const isCampaign = activeGameType === 'CAMPAIGN';

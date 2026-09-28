@@ -20,7 +20,6 @@ import { GameEventBus } from '../events/game-event-bus';
 import { UI_TIMINGS } from '../../ui/constants/ui-timings';
 import { formatCardVietnamese, sortCards } from '../card';
 import { CardTracker } from '../../ai/card-tracker';
-import { getOptimalMoveHint, type MoveHint } from '../../ai/hint-engine';
 import { getSortedQuickSelectCandidates } from '../quick-response-finder';
 import { cloneMatchPlayers } from '../player-factory';
 
@@ -753,33 +752,6 @@ export class AuthoritativeMatchHost {
 
   public getTracker(playerId: string): CardTracker | null {
     return this.trackers[playerId] ?? null;
-  }
-
-  public getAiHint(playerId: string): MoveHint | null {
-    const player = this.engine.getPlayer(playerId);
-    if (!player || player.hand.length === 0) return null;
-    const tracker = this.getTracker(playerId);
-    if (!tracker) return null;
-    const remainingCounts = this.engine.players.reduce((acc, p) => ({ ...acc, [p.id]: p.hand.length }), {});
-    const nextPlayerId = this.engine.getNextActivePlayerId(playerId);
-    const nextPlayer = nextPlayerId ? this.engine.getPlayer(nextPlayerId) : null;
-    const isNextPlayerOneCard = nextPlayer ? nextPlayer.hand.length === 1 : false;
-
-    return getOptimalMoveHint(
-      player.hand,
-      this.engine.getLeadingMove(),
-      this.engine.isFirstMoveOfGame,
-      this.engine.isRoundLeadMove(),
-      tracker,
-      remainingCounts,
-      nextPlayerId,
-      isNextPlayerOneCard,
-      this.engine.rules.gameFlow.prohibitEndingWithTwo,
-      this.engine.rules.settlementRule,
-      this.engine.rules,
-      player.hasPlayedFirstCard,
-      playerId
-    );
   }
 
   public getValidMoves(playerId: string): Card[][] {

@@ -26,9 +26,6 @@ describe('LeftMatchHUD Component Tests', () => {
         betAmount={1000}
         isDealing={false}
         dealtCounts={{ human_1: 13, bot_1: 13 }}
-        aiHint={null}
-        isHumanTurn={true}
-        aiHintEnabled={true}
       />
     );
 
@@ -101,7 +98,6 @@ describe('LeftMatchHUD Component Tests', () => {
         dealtCounts: { human_1: 5, bot_1: 8 },
         isGameOver: false,
         winners: [{ id: 'human_1', name: 'Player 1' }],
-        aiHint: null,
         botThinkingThought: null,
         turnDeadline: null,
         openingReason: null,
@@ -120,9 +116,6 @@ describe('LeftMatchHUD Component Tests', () => {
         betAmount={1000}
         isDealing={false}
         dealtCounts={{ human_1: 5, bot_1: 8 }}
-        aiHint={null}
-        isHumanTurn={true}
-        aiHintEnabled={true}
       />
     );
 

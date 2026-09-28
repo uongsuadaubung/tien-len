@@ -5,13 +5,11 @@ import type { ChopNotificationInfo, BotThinkingInfo } from '../../engine/state-m
 import { computeRelativeTableSeats } from '../../engine/seating';
 import { projectTableFrame } from '../../engine/presentation/table-frame-projector';
 import type { TableRenderFrame } from '../../engine/presentation/frame-types';
-import type { MoveHint } from '../../ai/hint-engine';
 import { CardTracker } from '../../ai/card-tracker';
 import type { QuickSelectCandidate } from '../../engine/quick-response-finder';
 import type { OpeningReason, ReconnectNotice } from '../../engine/network/network.schema';
 
 // Stores
-import { useSettingsStore } from '../../stores/useSettingsStore';
 import { useGameStore } from '../../stores/useGameStore';
 import { useViewStore } from '../../stores/useViewStore';
 import { useOnlineStore } from '../../stores/useOnlineStore';
@@ -38,8 +36,6 @@ export interface GameTableScreenLogicResult {
   quickSelectCandidates: QuickSelectCandidate[];
   quickSelectCandidatesCount: number;
   canQuickSelect: boolean;
-  currentHint: MoveHint | null;
-  activeAiHint: MoveHint | null;
   handleQuickSelect: () => void;
   handlePlayCards: () => void;
   handlePassTurnAction: () => void;
@@ -68,15 +64,11 @@ export function useGameTableScreenLogic({
   onPlaySelectedCards,
   onPassTurn
 }: UseGameTableScreenLogicProps): GameTableScreenLogicResult {
-  const aiHintEnabled = useSettingsStore(s => s.aiHintEnabled);
-
   const stateSlice = useGameStore(useShallow(s => ({
     myPlayerId: s.myPlayerId,
     playerCount: s.playerCount,
     players: s.players,
     matchState: s.matchState,
-    selectedCardIds: s.selectedCardIds,
-    currentHint: s.currentHint,
     gameRules: s.gameRules,
     dealtCounts: s.dealtCounts,
     botThinkingThought: s.botThinkingThought,
@@ -96,8 +88,6 @@ export function useGameTableScreenLogic({
     playerCount,
     players,
     matchState,
-    selectedCardIds,
-    currentHint,
     gameRules,
     dealtCounts: storeDealtCounts,
     botThinkingThought: storeBotThinkingThought,
@@ -132,11 +122,10 @@ export function useGameTableScreenLogic({
       matchState,
       localPlayerId: localPlayer.id,
       localHand: localPlayer.hand,
-      selectedCardIds,
+      selectedCardIds: useGameStore.getState().selectedCardIds,
       gameRules,
       players,
       dealtCounts: storeDealtCounts,
-      currentHint,
       botThinkingThought: storeBotThinkingThought,
       isDealing: storeIsDealing,
       dealBanner: storeDealBanner
@@ -146,11 +135,9 @@ export function useGameTableScreenLogic({
     matchState,
     localPlayer.id,
     localPlayer.hand,
-    selectedCardIds,
     gameRules,
     players,
     storeDealtCounts,
-    currentHint,
     storeBotThinkingThought,
     storeIsDealing,
     storeDealBanner
@@ -196,11 +183,9 @@ export function useGameTableScreenLogic({
     : (matchState.status === 'GAME_OVER' ? (matchState.chopNotification ?? null) : null);
   const botThinkingThought = frame.botThinkingThought || (activeTurn && activeTurn.botThinkingThought) || storeBotThinkingThought || null;
 
-  const selectedCards = localPlayer.hand.filter(c => c && selectedCardIds.has(c.id));
+  const selectedCards = localPlayer.hand.filter(c => c && useGameStore.getState().selectedCardIds.has(c.id));
   const quickSelectCandidatesCount = frame.controls.quickSelectCandidatesCount;
   const quickSelectCandidates: QuickSelectCandidate[] = [];
-
-  const activeAiHint = aiHintEnabled ? frame.aiHint : null;
 
   const handleQuickSelect = useCallback(() => {
     const session = appFlowCoordinator.getActiveSession();
@@ -268,8 +253,6 @@ export function useGameTableScreenLogic({
     quickSelectCandidates,
     quickSelectCandidatesCount,
     canQuickSelect,
-    currentHint,
-    activeAiHint,
     handleQuickSelect,
     handlePlayCards,
     handlePassTurnAction,

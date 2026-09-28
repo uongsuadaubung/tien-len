@@ -468,7 +468,6 @@ export const createMatchStateSlice: GameSliceCreator<MatchStateSlice> = (set, ge
     firstMoveRequiredCard: null,
     isLeadMove: true,
     selectedCardIds: new Set<string>(),
-    currentHint: null,
     smartVariantIndex: 0,
     handSortMode: 'NATURAL',
     matchPayouts: {},

@@ -47,7 +47,6 @@ describe('Zero-Fallback Boundary Gatekeeper Contract Tests', () => {
     const settings = SavedSettingsSchema.parse({});
     expect(settings.soundEnabled).toBe(true);
     expect(settings.autoSortEnabled).toBe(true);
-    expect(settings.aiHintEnabled).toBe(false);
     expect(settings.reverseButtonsEnabled).toBe(false);
     expect(settings.onlineMultiplayerBetaEnabled).toBe(false);
     expect(settings.gameSpeed).toBe('REALISTIC');
@@ -143,7 +142,6 @@ describe('Zero-Fallback Boundary Gatekeeper Contract Tests', () => {
       gameRules: rules,
       players: [p1, p2],
       dealtCounts: { p1: 0, p2: 0 },
-      currentHint: null,
       botThinkingThought: null,
       isDealing: true,
       dealBanner: 'Bắt đầu chia bài...'

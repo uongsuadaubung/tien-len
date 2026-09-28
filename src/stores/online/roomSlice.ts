@@ -512,7 +512,6 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
         gameStore.setWinners([]);
         gameStore.clearCardSelection();
         gameStore.setCurrentMove(null);
-        gameStore.setCurrentHint(null);
 
         const customRules = new GameRulesBuilder()
           .withSettlement(roomState.settlementRule)
@@ -661,7 +660,6 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       gameStore.setIsGameOver(false);
       gameStore.setCurrentMove(null);
       gameStore.setSelectedCardIds(new Set<string>());
-      gameStore.setCurrentHint(null);
       gameStore.setActiveGameType('ONLINE');
       gameStore.setCurrentScreen('GAME_TABLE');
 

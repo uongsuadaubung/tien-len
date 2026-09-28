@@ -27,11 +27,12 @@ export interface UseLobbyLogicResult {
 
 export function useLobbyLogic(): UseLobbyLogicResult {
   const { t } = useI18n();
-  const { profile } = useUserStore();
-  const { openModal } = useViewStore();
-  const { newsfeed, initEcosystem } = useEcosystemStore();
-  const { quickTableConfig } = useGameStore();
-  const { onlineMultiplayerBetaEnabled } = useSettingsStore();
+  const profile = useUserStore(s => s.profile);
+  const openModal = useViewStore(s => s.openModal);
+  const newsfeed = useEcosystemStore(s => s.newsfeed);
+  const initEcosystem = useEcosystemStore(s => s.initEcosystem);
+  const quickTableConfig = useGameStore(s => s.quickTableConfig);
+  const onlineMultiplayerBetaEnabled = useSettingsStore(s => s.onlineMultiplayerBetaEnabled);
   const [isFullscreenState, setIsFullscreenState] = useState<boolean>(isFullScreen());
 
   const getSettlementLabel = useCallback((rule?: GameSettlementRule | GameMode): string => {

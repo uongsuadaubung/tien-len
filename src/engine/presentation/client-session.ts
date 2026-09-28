@@ -11,8 +11,6 @@ import type { TableRenderFrame, UserIntent, AudioCue, HandSortMode } from './fra
 import { projectTableFrame } from './table-frame-projector';
 import { sortCards, createCard } from '../card';
 import { identifyCombination } from '../combinations';
-import { CardTracker } from '../../ai/card-tracker';
-import { getOptimalMoveHint, type MoveHint } from '../../ai/hint-engine';
 import { getSortedQuickSelectCandidates } from '../quick-response-finder';
 import { createPlayingTurnMatchState, isPlayingMatchState, type MatchState } from '../state-machine/types';
 import { createPerspectiveSettlement } from '../settlement/perspective-settlement';
@@ -52,10 +50,8 @@ export class ClientSession implements IGameSession {
   private myHand: Card[] = [];
   private selectedCardIds: Set<string> = new Set();
   private handSortMode: HandSortMode = 'NATURAL';
-  private currentHint: MoveHint | null = null;
   private latestSync: TableStateSyncPacket | null = null;
   private latestMatchState: MatchState;
-  private tracker: CardTracker | null = null;
 
   private readonly frameListeners: Set<(frame: TableRenderFrame) => void> = new Set();
   private readonly audioListeners: Set<(cue: AudioCue) => void> = new Set();
@@ -119,10 +115,8 @@ export class ClientSession implements IGameSession {
             this.turnDeadline = msg.packet.turnDeadline;
           }
           this.lastPlayedMove = null;
-          this.currentHint = null;
           this.myHand = sortCards(msg.packet.cards.map(c => createCard(c.rank, c.suit)));
           this.players = resetPlayersForNewGame(this.players, this.localPlayerId, this.myHand);
-          this.tracker = new CardTracker(this.myHand, 1.0, this.players.length);
           const reqCard = msg.packet.firstMoveRequiredCard
             ? createCard(msg.packet.firstMoveRequiredCard.rank, msg.packet.firstMoveRequiredCard.suit)
             : null;
@@ -340,9 +334,6 @@ export class ClientSession implements IGameSession {
         if (combo) {
           leadingMove = createPlayedMove(sync.currentMovePlayerId, combo);
           this.lastPlayedMove = leadingMove;
-          if (this.tracker) {
-            this.tracker.recordMove(leadingMove);
-          }
         }
       }
 
@@ -470,45 +461,7 @@ export class ClientSession implements IGameSession {
     this.updateAndEmitFrame();
   }
 
-  private computeCurrentAiHint(): MoveHint | null {
-    if (this.latestMatchState.status !== 'PLAYING') return null;
-    if (this.latestMatchState.currentTurnPlayerId !== this.localPlayerId) return null;
-    if (this.myHand.length === 0) return null;
-
-    if (!this.tracker) {
-      this.tracker = new CardTracker(this.myHand, 1.0, this.players.length);
-    } else {
-      this.tracker.updateOwnHand(this.myHand);
-    }
-    const currentMove = this.latestMatchState.leadingMove ?? null;
-    const isLead = this.latestMatchState.isLeadMove;
-    const isFirst = this.latestMatchState.isFirstMoveOfGame;
-
-    return getOptimalMoveHint(
-      [...this.myHand],
-      currentMove,
-      isFirst,
-      isLead,
-      this.tracker,
-      this.latestSync?.remainingCardCounts ?? {},
-      '',
-      false,
-      this.gameRules.gameFlow.prohibitEndingWithTwo,
-      this.gameRules.settlementRule ?? 'COUNT_CARDS',
-      this.gameRules,
-      true,
-      this.localPlayerId
-    );
-  }
-
   private buildCurrentFrame(): TableRenderFrame {
-    const aiHint = this.computeCurrentAiHint();
-    if (aiHint) {
-      this.currentHint = aiHint;
-    } else if (this.latestMatchState.status !== 'PLAYING' || this.latestMatchState.currentTurnPlayerId !== this.localPlayerId) {
-      this.currentHint = null;
-    }
-
     return projectTableFrame({
       matchState: this.latestMatchState,
       localPlayerId: this.localPlayerId,
@@ -517,7 +470,6 @@ export class ClientSession implements IGameSession {
       gameRules: this.gameRules,
       players: this.players,
       dealtCounts: this.isDealing ? this.dealtCounts : (this.latestSync?.remainingCardCounts ?? this.dealtCounts),
-      currentHint: aiHint ?? this.currentHint,
       botThinkingThought: isPlayingMatchState(this.latestMatchState) ? this.latestMatchState.botThinkingThought : null,
       isDealing: this.isDealing,
       dealBanner: this.dealBanner,
@@ -599,7 +551,6 @@ export class ClientSession implements IGameSession {
         this.myHand = this.myHand.filter(c => !playedIds.has(c.id));
         this.players = updatePlayersHand(this.players, this.localPlayerId, this.myHand);
         this.selectedCardIds.clear();
-        this.currentHint = null;
 
         // 2. Optimistic UI Projection: Chiếu ngay nước đi ra giữa bàn và phát âm thanh (0ms)
         if (playedMove) {
@@ -639,7 +590,6 @@ export class ClientSession implements IGameSession {
       }
       case 'SUBMIT_PASS': {
         this.selectedCardIds.clear();
-        this.currentHint = null;
         this.emitAudioCue('PASS');
         this.players = updatePlayerInList(this.players, this.localPlayerId, { isPassedCurrentRound: true });
         if (this.latestMatchState.status === 'PLAYING') {
@@ -698,16 +648,6 @@ export class ClientSession implements IGameSession {
         this.players = updatePlayersHand(this.players, this.localPlayerId, this.myHand);
         this.emitAudioCue('CARD_SLIDE');
         this.updateAndEmitFrame();
-        break;
-      }
-      case 'APPLY_HINT': {
-        const hint = this.computeCurrentAiHint() ?? this.currentHint;
-        if (hint && hint.action === 'PLAY' && hint.cards.length > 0) {
-          this.currentHint = hint;
-          this.selectedCardIds = new Set(hint.cards.map(c => c.id));
-          this.emitAudioCue('CARD_SLIDE');
-          this.updateAndEmitFrame();
-        }
         break;
       }
     }

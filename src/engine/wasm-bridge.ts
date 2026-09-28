@@ -22,7 +22,6 @@ import __wbg_init, {
   wasm_calculate_elo_delta,
   wasm_compute_table_elo_settlement,
   wasm_evaluate_candidate_moves_mcts,
-  wasm_get_optimal_move_hint,
   wasm_simulate_match_series,
   wasm_check_instant_win,
   wasm_simulate_single_table,
@@ -469,34 +468,6 @@ export function wasmEvaluateCandidateMovesMcts(
     safeWasmJsonStringify(remainingCards),
     simulationsCount,
     seed
-  );
-  return JSON.parse(json);
-}
-
-export function wasmGetOptimalMoveHint(
-  hand: readonly Card[],
-  leadingCombo: Combination | null,
-  isLeadMove: boolean,
-  isFirstMoveOfGame: boolean = false,
-  firstMoveRequiredCardId: string | null = null,
-  prohibitEndingWithTwo: boolean = true
-): {
-  action: 'PLAY' | 'PASS';
-  cards: Card[];
-  hintType: string;
-  title: string;
-  message: string;
-  explanation: string;
-  details: string | null;
-} {
-  ensureWasmReady();
-  const json = wasm_get_optimal_move_hint(
-    safeWasmJsonStringify(hand),
-    leadingCombo ? safeWasmJsonStringify(leadingCombo) : null,
-    isLeadMove,
-    isFirstMoveOfGame,
-    firstMoveRequiredCardId,
-    prohibitEndingWithTwo
   );
   return JSON.parse(json);
 }

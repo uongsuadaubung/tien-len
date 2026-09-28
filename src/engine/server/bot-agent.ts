@@ -5,7 +5,7 @@ import { CardTracker } from '../../ai/card-tracker';
 import { getBotConfig } from '../../ai/bot-factory';
 import { type BotConfig, isBotConfig } from '../../ai/types';
 import { createCard, isTwo } from '../card';
-import { makeBotDecision, createDecisionContext, type BotDecision } from '../../ai/decision-maker';
+import { makeBotDecision, makeBotDecisionAsync, createDecisionContext, type BotDecision } from '../../ai/decision-maker';
 import { createPlayedMove, createDefaultGameRules } from '../types';
 import { identifyCombination } from '../combinations';
 import { calculateDynamicBotDelay, type GameSpeedMode } from '../game-speed';
@@ -103,9 +103,10 @@ export class BotAgent {
         : null;
 
       if (this.instantDelay) {
-        this.thinkTimer = setTimeout(() => {
+        this.thinkTimer = setTimeout(async () => {
           if (this.isDisposed) return;
-          const decision = this.computeBotDecision(sync);
+          const decision = await this.computeBotDecisionAsync(sync);
+          if (this.isDisposed) return;
           this.dispatchBotDecision(decision);
         }, 0);
         return;
@@ -149,10 +150,11 @@ export class BotAgent {
         this.onThinkingChange(this.botId, thoughtText);
       }
 
-      this.thinkTimer = setTimeout(() => {
+      this.thinkTimer = setTimeout(async () => {
         if (this.isDisposed) return;
         this.clearThinkingState();
-        const decision = this.computeBotDecision(sync);
+        const decision = await this.computeBotDecisionAsync(sync);
+        if (this.isDisposed) return;
         this.dispatchBotDecision(decision);
       }, delayMs);
     } else {
@@ -164,7 +166,7 @@ export class BotAgent {
     }
   }
 
-  private computeBotDecision(sync: TableStateSyncPacket): BotDecision {
+  private createBotDecisionContext(sync: TableStateSyncPacket) {
     if (!this.tracker) {
       this.tracker = new CardTracker(this.hand, this.botConfig.memoryDepth);
     }
@@ -197,7 +199,7 @@ export class BotAgent {
       }
     });
 
-    const decisionContext = createDecisionContext({
+    return createDecisionContext({
       hand: [...this.hand],
       isFirstMoveOfGame,
       firstMoveRequiredCard,
@@ -213,8 +215,16 @@ export class BotAgent {
       isLeadMove,
       currentRoundLeadingMove: currentMove
     });
+  }
 
+  private computeBotDecision(sync: TableStateSyncPacket): BotDecision {
+    const decisionContext = this.createBotDecisionContext(sync);
     return makeBotDecision(decisionContext);
+  }
+
+  private async computeBotDecisionAsync(sync: TableStateSyncPacket): Promise<BotDecision> {
+    const decisionContext = this.createBotDecisionContext(sync);
+    return makeBotDecisionAsync(decisionContext);
   }
 
   private dispatchBotDecision(decision: BotDecision): void {

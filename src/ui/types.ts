@@ -9,7 +9,6 @@ export interface AppScreenProps {
   handlePlaySelectedCards: () => void;
   handlePassTurn: () => void;
   handleAutoSort: () => void;
-  handleApplyAiHint: () => void;
   handleDealCard: (playerIndex: number, currentCardCount: number) => void;
   handleDealComplete: () => void;
   handleForfeitMatch: () => void;

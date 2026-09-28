@@ -4,8 +4,6 @@ import { getBotConfig } from '../../../ai/bot-factory';
 import { isBotConfig } from '../../../ai/types';
 import { Trophy, Coins, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '../../primitives';
-import { MoveHint } from '../../../ai/hint-engine';
-import { AIAssistantMascot } from '../../components/AIAssistantMascot';
 
 import { useUserStore } from '../../../stores/useUserStore';
 import { useEcosystemStore } from '../../../stores/useEcosystemStore';
@@ -20,9 +18,6 @@ interface LeftMatchHUDProps {
   betAmount: number;
   isDealing: boolean;
   dealtCounts: { [playerId: string]: number };
-  aiHint: MoveHint | null;
-  isHumanTurn: boolean;
-  aiHintEnabled: boolean;
   isOpen?: boolean;
   onToggle?: () => void;
 }
@@ -35,9 +30,6 @@ const LeftMatchHUDComponent: React.FC<LeftMatchHUDProps> = ({
   betAmount,
   isDealing,
   dealtCounts,
-  aiHint,
-  isHumanTurn = false,
-  aiHintEnabled = true,
   isOpen: isOpenProp,
   onToggle: onToggleProp
 }) => {
@@ -249,15 +241,6 @@ const LeftMatchHUDComponent: React.FC<LeftMatchHUDProps> = ({
           </table>
         </div>
       </div>
-
-      {/* TRỢ LÝ AI (NGAY BÊN DƯỚI BẢNG HUD) */}
-      {aiHintEnabled && (
-        <AIAssistantMascot
-          hint={aiHint || null}
-          isHumanTurn={isHumanTurn}
-          enabled={aiHintEnabled}
-        />
-      )}
       </div>
 
       {/* NÚT TAY CẦM MỞ / ĐÓNG HUD BÊN PHẢI PANEL */}

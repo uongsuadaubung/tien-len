@@ -13,18 +13,7 @@ interface DealingDeckAnimationProps {
   onSkip?: () => void;
 }
 
-interface FlyingCard {
-  id: number;
-  dx: number;
-  dy: number;
-  rot: number;
-}
 
-interface FlyingCardStyle extends React.CSSProperties {
-  '--dx': string;
-  '--dy': string;
-  '--rot': string;
-}
 
 export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
   isDealing,
@@ -40,7 +29,7 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
     Math.max(2, (players && players.length > 0) ? players.length : playerCount)
   );
   const totalDeckCards = actualPlayerCount * 13;
-  const [flyingCards, setFlyingCards] = useState<FlyingCard[]>([]);
+  const flyingCardsContainerRef = useRef<HTMLDivElement | null>(null);
   const [remainingDeckCards, setRemainingDeckCards] = useState<number>(totalDeckCards);
   const [isShuffling, setIsShuffling] = useState<boolean>(true);
   const deckRef = useRef<HTMLDivElement | null>(null);
@@ -69,7 +58,9 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
     if (!isDealing) {
       isFinishedRef.current = false;
       clearAllTimeouts();
-      setFlyingCards([]);
+      if (flyingCardsContainerRef.current) {
+        flyingCardsContainerRef.current.innerHTML = '';
+      }
       setRemainingDeckCards(totalDeckCards);
       setIsShuffling(false);
       return;
@@ -78,7 +69,9 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
     isFinishedRef.current = false;
     setIsShuffling(true);
     setRemainingDeckCards(totalDeckCards);
-    setFlyingCards([]);
+    if (flyingCardsContainerRef.current) {
+      flyingCardsContainerRef.current.innerHTML = '';
+    }
 
     // 1. Giai đoạn Xào bài
     soundManager.playShuffle();
@@ -151,16 +144,25 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
           // Âm thanh vút bài
           soundManager.playCardDeal(playerIndex * 0.4);
 
-          // Tạo lá bài bay
-          const newCard: FlyingCard = {
-            id: Date.now() + i,
-            dx,
-            dy,
-            rot
-          };
+          // Tạo lá bài bay trực tiếp trên GPU Compositor mà không kích hoạt React reconciliation
+          const container = flyingCardsContainerRef.current;
+          if (container && typeof document !== 'undefined') {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'fly-card-to-seat card-back-premium shadow-2xl pointer-events-none';
+            cardEl.style.setProperty('--dx', `${dx}px`);
+            cardEl.style.setProperty('--dy', `${dy}px`);
+            cardEl.style.setProperty('--rot', `${rot}deg`);
+            cardEl.innerHTML = '<div class="w-full h-full flex items-center justify-center"><span class="text-[#d4af37] text-xs">♠</span></div>';
+            container.appendChild(cardEl);
+            setTimeout(() => {
+              cardEl.remove();
+            }, UI_TIMINGS.DEAL_HIT_DELAY_MS + 250);
+          }
 
-          setFlyingCards(prev => [...prev.slice(-6), newCard]);
-          setRemainingDeckCards(totalCards - (i + 1));
+          // Cập nhật số bài trên cỗ bài theo từng vòng người chơi (hoặc lá cuối) để giảm 75% tần suất render
+          if ((i + 1) % actualPlayerCount === 0 || i === totalCards - 1) {
+            setRemainingDeckCards(totalCards - (i + 1));
+          }
 
           // Khi lá bài bay tới ghế -> cập nhật số bài tăng lên
           const hitTimeout = setTimeout(() => {
@@ -197,7 +199,9 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
   const handleSkip = () => {
     isFinishedRef.current = true;
     clearAllTimeouts();
-    setFlyingCards([]);
+    if (flyingCardsContainerRef.current) {
+      flyingCardsContainerRef.current.innerHTML = '';
+    }
     setRemainingDeckCards(0);
     setIsShuffling(false);
     // Cập nhật đủ 13 lá cho tất cả
@@ -259,25 +263,8 @@ export const DealingDeckAnimation: React.FC<DealingDeckAnimationProps> = ({
           </div>
         )}
 
-        {/* CÁC LÁ BÀI BAY CHÍNH XÁC TỪ CỖ BÀI VỀ TÂM TỪNG GHẾ */}
-        {flyingCards.map(fc => {
-          const fcStyle: FlyingCardStyle = {
-            '--dx': `${fc.dx}px`,
-            '--dy': `${fc.dy}px`,
-            '--rot': `${fc.rot}deg`
-          };
-          return (
-            <div
-              key={fc.id}
-              className="fly-card-to-seat card-back-premium shadow-2xl pointer-events-none"
-              style={fcStyle}
-            >
-              <div className="w-full h-full flex items-center justify-center">
-                <span className="text-[#d4af37] text-xs">♠</span>
-              </div>
-            </div>
-          );
-        })}
+        {/* CÁC LÁ BÀI BAY CHÍNH XÁC TỪ CỖ BÀI VỀ TÂM TỪNG GHẾ (GPU COMPOSITOR CONTAINER) */}
+        <div ref={flyingCardsContainerRef} className="absolute inset-0 pointer-events-none overflow-visible" />
       </div>
 
       {/* Nút Bỏ qua Chia Bài (Skip Deal) */}

@@ -100,7 +100,6 @@ export async function getLocalSaveData(): Promise<TienLenSaveData> {
   const settings: SavedSettings = {
     soundEnabled: settingsState.soundEnabled,
     autoSortEnabled: settingsState.autoSortEnabled,
-    aiHintEnabled: settingsState.aiHintEnabled,
     quickResponseAssistEnabled: settingsState.quickResponseAssistEnabled,
     reverseButtonsEnabled: settingsState.reverseButtonsEnabled,
     xrayEnabled: settingsState.xrayEnabled,

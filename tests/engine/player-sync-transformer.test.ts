@@ -60,7 +60,6 @@ describe('Player Sync Transformers (Single Source of Truth)', () => {
           { ...initialPlayers[1], isPassedCurrentRound: true, cardCount: 8 }
         ],
         dealtCounts: { [localId]: 2, [opponentId]: 8 },
-        currentHint: null,
         botThinkingThought: null,
         isDealing: false,
         dealBanner: null

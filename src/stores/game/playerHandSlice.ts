@@ -2,7 +2,6 @@ import type { PlayerHandSlice, GameSliceCreator, HandSortMode } from './types';
 
 export const createPlayerHandSlice: GameSliceCreator<PlayerHandSlice> = (set) => ({
   selectedCardIds: new Set<string>(),
-  currentHint: null,
   handSortMode: 'NATURAL',
   smartVariantIndex: 0,
 
@@ -19,7 +18,6 @@ export const createPlayerHandSlice: GameSliceCreator<PlayerHandSlice> = (set) =>
     return { selectedCardIds: next };
   }),
   clearCardSelection: () => set({ selectedCardIds: new Set<string>() }),
-  setCurrentHint: (hint) => set({ currentHint: hint }),
   setHandSortMode: (mode) => set({ handSortMode: mode }),
   toggleHandSortMode: () => set((state) => {
     const modes: HandSortMode[] = ['NATURAL', 'SMART_GROUP', 'BY_SUIT', 'TWO_PRESERVE'];

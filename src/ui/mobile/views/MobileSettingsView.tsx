@@ -6,7 +6,6 @@ import {
   CheckCircle, 
   Timer, 
   Crosshair, 
-  Wand2, 
   Cloud, 
   CloudUpload, 
   CloudDownload, 
@@ -58,8 +57,6 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
     toggleSound: onToggleSound,
     autoSortEnabled,
     toggleAutoSort: onToggleAutoSort,
-    aiHintEnabled,
-    toggleAiHint: onToggleAiHint,
     quickResponseAssistEnabled,
     toggleQuickResponseAssist: onToggleQuickResponseAssist,
     reverseButtonsEnabled,
@@ -707,25 +704,7 @@ export const MobileSettingsView: React.FC<MobileSettingsViewProps> = ({
               <ToggleSwitch checked={quickResponseAssistEnabled} />
             </div>
 
-            {/* 3. Trợ lý AI Gợi Ý Nước Đi */}
-            <div
-              onClick={onToggleAiHint}
-              className="px-4 py-3.5 flex items-center justify-between hover:bg-white/[0.02] cursor-pointer transition-colors select-none"
-            >
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl border transition-colors shrink-0 flex items-center justify-center ${aiHintEnabled ? 'bg-[var(--bg-card-active)] border-[var(--color-gold-border)] text-[var(--color-gold)]' : 'bg-[var(--bg-container)] border-[var(--border-container)] text-[var(--text-muted)]'}`}>
-                  <Wand2 className="w-4 h-4 shrink-0" />
-                </div>
-                <div>
-                  <div className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] leading-tight">{t('settings.aiHintTitle')}</div>
-                  <div className="text-[11px] text-[var(--text-muted)] mt-0.5">{t('settings.aiHintDesc')}</div>
-                </div>
-              </div>
-
-              <ToggleSwitch checked={aiHintEnabled} />
-            </div>
-
-            {/* 4. Đảo Ngược Nút Bấm */}
+            {/* 3. Đảo Ngược Nút Bấm */}
             <div
               onClick={onToggleReverseButtons}
               className="px-4 py-3.5 flex items-center justify-between hover:bg-white/[0.02] cursor-pointer transition-colors select-none"

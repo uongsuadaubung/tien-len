@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { useSmartHandSorting } from './useSmartHandSorting';
 import { useGameStore, type CampaignResultMeta } from '../../stores/useGameStore';
-import { useMatchAIHints } from './useMatchAIHints';
 import { appFlowCoordinator } from '../../services/app-flow-coordinator';
 import { getActiveMatchSession } from '../../engine/storage';
 import { useViewStore } from '../../stores/useViewStore';
@@ -16,9 +15,8 @@ export type { CampaignResultMeta };
 export function useGameMatchLoop() {
   const campaignResultMeta = useGameStore(s => s.campaignResultMeta);
 
-  // Hook Xếp bài thông minh & Gợi ý AI
+  // Hook Xếp bài thông minh
   const { handleAutoSort } = useSmartHandSorting();
-  const { handleApplyAiHint } = useMatchAIHints();
 
   const handleNextGame = useCallback(() => {
     appFlowCoordinator.nextGame(
@@ -84,7 +82,6 @@ export function useGameMatchLoop() {
     handlePlaySelectedCards,
     handlePassTurn,
     handleAutoSort,
-    handleApplyAiHint,
     handleDealCard,
     handleDealComplete,
     handleForfeitMatch,

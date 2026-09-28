@@ -163,7 +163,6 @@ describe('useGameTableScreenLogic (Dumb View Presentation Hook)', () => {
       gameRules: rules,
       players: store.players,
       dealtCounts: {},
-      currentHint: null,
       botThinkingThought: null,
       isDealing: false,
       dealBanner: null

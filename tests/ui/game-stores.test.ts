@@ -68,11 +68,8 @@ describe('Zustand State Stores Integration Tests (Kiểm Thử Tích Hợp State
     expect(useViewStore.getState().isSettingsOpen).toBe(false);
   });
 
-  it('4. useSettingsStore: Tùy chỉnh AI Hint, Tự Động Xếp Bài & Âm Thanh', () => {
+  it('4. useSettingsStore: Tùy chỉnh Tự Động Xếp Bài & Âm Thanh', () => {
     const settingsStore = useSettingsStore.getState();
-
-    settingsStore.setAiHintEnabled(false);
-    expect(useSettingsStore.getState().aiHintEnabled).toBe(false);
 
     settingsStore.setAutoSortEnabled(false);
     expect(useSettingsStore.getState().autoSortEnabled).toBe(false);

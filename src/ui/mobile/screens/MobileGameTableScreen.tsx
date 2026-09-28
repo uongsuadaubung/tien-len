@@ -54,14 +54,12 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
 
   const {
     soundEnabled,
-    aiHintEnabled,
     quickResponseAssistEnabled,
     botReasoningLogEnabled,
     reverseButtonsEnabled,
     toggleSound
   } = useSettingsStore(useShallow(s => ({
     soundEnabled: s.soundEnabled,
-    aiHintEnabled: s.aiHintEnabled,
     quickResponseAssistEnabled: s.quickResponseAssistEnabled,
     botReasoningLogEnabled: s.botReasoningLogEnabled,
     reverseButtonsEnabled: s.reverseButtonsEnabled,
@@ -72,14 +70,12 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
     players,
     gameNumber,
     gameSettings,
-    selectedCardIds,
     handSortMode,
     smartVariantIndex
   } = useGameStore(useShallow(s => ({
     players: s.players,
     gameNumber: s.gameNumber,
     gameSettings: s.gameSettings,
-    selectedCardIds: s.selectedCardIds,
     handSortMode: s.handSortMode,
     smartVariantIndex: s.smartVariantIndex
   })));
@@ -95,7 +91,6 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
     rightBot,
     quickSelectCandidatesCount,
     canQuickSelect,
-    activeAiHint,
     handleQuickSelect,
     handlePlayCards,
     handlePassTurnAction,
@@ -215,9 +210,6 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
         betAmount={gameSettings.betAmount}
         isDealing={isDealing}
         dealtCounts={dealtCounts}
-        aiHint={activeAiHint}
-        isHumanTurn={isMyTurn}
-        aiHintEnabled={aiHintEnabled}
       />
 
       {/* HUD GÓC PHẢI: LOGIC SUY LUẬN REAL-TIME CỦA BOT */}
@@ -330,8 +322,7 @@ export const MobileGameTableScreen: React.FC<MobileGameTableScreenProps> = ({
           <div className="w-full flex justify-center">
             <PlayerHandView
               player={localPlayer}
-            selectedCardIds={selectedCardIds}
-            onToggleCardSelect={handleToggleCardSelect}
+              onToggleCardSelect={handleToggleCardSelect}
             onClearCardSelection={handleClearCardSelection}
             onPlaySelectedCards={handlePlayCards}
             onPassTurn={handlePassTurnAction}

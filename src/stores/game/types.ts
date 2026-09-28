@@ -13,7 +13,6 @@ import type { MatchState } from '../../engine/state-machine/types';
 import type { QuickTableConfig } from '../../engine/schemas/settings.schema';
 import type { CampaignChapter } from '../../engine/campaign';
 import type { BotConfig } from '../../ai/types';
-import type { MoveHint } from '../../ai/hint-engine';
 import type { MatchLogReport } from '../../engine/match-logger';
 import type { EloDeltaResult } from '../../engine/elo';
 import type { TableStateSyncPacket, OpeningReason } from '../../engine/network/network.schema';
@@ -78,14 +77,12 @@ export interface TableConfigSlice {
  */
 export interface PlayerHandSlice {
   selectedCardIds: Set<string>;
-  currentHint: MoveHint | null;
   handSortMode: HandSortMode;
   smartVariantIndex: number;
 
   setSelectedCardIds: (idsOrUpdater: Set<string> | ((prev: Set<string>) => Set<string>)) => void;
   toggleCardSelect: (cardId: string) => void;
   clearCardSelection: () => void;
-  setCurrentHint: (hint: MoveHint | null) => void;
   setHandSortMode: (mode: HandSortMode) => void;
   toggleHandSortMode: () => void;
   setSmartVariantIndex: (index: number) => void;
