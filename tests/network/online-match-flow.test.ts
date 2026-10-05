@@ -1225,6 +1225,142 @@ describe('Online P2P Match Flow & State Transition Tests', () => {
       expect(frame.seats.find(s => s.playerId === profileGuest.id)?.isPassed).toBe(false);
     }
   });
+
+  it('19. Monotonic Sequence Guard: Loại bỏ gói TABLE_SYNC lỗi thời hoặc trễ mạng trong cùng ván đấu', () => {
+    const profileGuest = { ...loadPlayerProfile(), name: 'Guest Sequence Guard', coins: 50000 };
+    useOnlineStore.getState().joinRoom(profileGuest, 'TL-GUARD-TEST');
+
+    // 1. Nhận gói TABLE_SYNC hợp lệ với seq = 5, gameNumber = 1
+    const syncSeq5 = createTableSyncPacket({
+      seq: 5,
+      gameNumber: 1,
+      currentTurnPlayerId: 'host_p19',
+      leadPlayerId: 'host_p19',
+      remainingCardCounts: { host_p19: 10, [profileGuest.id]: 11 },
+      roundNumber: 1
+    });
+    globalP2PClient.emitTableSyncForTest(syncSeq5, 'host_peer_19');
+
+    expect(useOnlineStore.getState().lastTableSync?.seq).toBe(5);
+    expect(useOnlineStore.getState().lastTableSync?.currentTurnPlayerId).toBe('host_p19');
+    expect(useOnlineStore.getState().lastTableSync?.remainingCardCounts.host_p19).toBe(10);
+
+    // 2. Nhận gói TABLE_SYNC cũ/trễ mạng đến sau với seq = 4 (nhỏ hơn 5) trong cùng ván 1 -> Phải bị bỏ qua (Drop stale packet)
+    const staleSyncSeq4 = createTableSyncPacket({
+      seq: 4,
+      gameNumber: 1,
+      currentTurnPlayerId: 'stale_player',
+      leadPlayerId: 'stale_player',
+      remainingCardCounts: { host_p19: 13, [profileGuest.id]: 13 },
+      roundNumber: 1
+    });
+    globalP2PClient.emitTableSyncForTest(staleSyncSeq4, 'host_peer_19');
+
+    // Trạng thái KHÔNG bị rollback về seq 4 hay stale_player
+    expect(useOnlineStore.getState().lastTableSync?.seq).toBe(5);
+    expect(useOnlineStore.getState().lastTableSync?.currentTurnPlayerId).toBe('host_p19');
+    expect(useOnlineStore.getState().lastTableSync?.remainingCardCounts.host_p19).toBe(10);
+
+    // 3. Nhận gói TABLE_SYNC trùng lặp với seq = 5 -> Bị bỏ qua
+    const duplicateSyncSeq5 = createTableSyncPacket({
+      seq: 5,
+      gameNumber: 1,
+      currentTurnPlayerId: 'duplicate_player',
+      remainingCardCounts: { host_p19: 9, [profileGuest.id]: 11 }
+    });
+    globalP2PClient.emitTableSyncForTest(duplicateSyncSeq5, 'host_peer_19');
+    expect(useOnlineStore.getState().lastTableSync?.currentTurnPlayerId).toBe('host_p19');
+
+    // 4. Nhận gói TABLE_SYNC mới với seq = 6 (lớn hơn 5) trong cùng ván 1 -> Chấp nhận
+    const syncSeq6 = createTableSyncPacket({
+      seq: 6,
+      gameNumber: 1,
+      currentTurnPlayerId: profileGuest.id,
+      leadPlayerId: 'host_p19',
+      remainingCardCounts: { host_p19: 9, [profileGuest.id]: 11 },
+      roundNumber: 1
+    });
+    globalP2PClient.emitTableSyncForTest(syncSeq6, 'host_peer_19');
+    expect(useOnlineStore.getState().lastTableSync?.seq).toBe(6);
+    expect(useOnlineStore.getState().lastTableSync?.currentTurnPlayerId).toBe(profileGuest.id);
+
+    // 5. Ván mới bắt đầu (gameNumber = 2), seq được reset về 1 (nhỏ hơn 6) -> Vẫn chấp nhận vì gameNumber tăng
+    const syncGame2Seq1 = createTableSyncPacket({
+      seq: 1,
+      gameNumber: 2,
+      currentTurnPlayerId: 'host_p19',
+      leadPlayerId: 'host_p19',
+      remainingCardCounts: { host_p19: 13, [profileGuest.id]: 13 },
+      roundNumber: 1
+    });
+    globalP2PClient.emitTableSyncForTest(syncGame2Seq1, 'host_peer_19');
+    expect(useOnlineStore.getState().lastTableSync?.gameNumber).toBe(2);
+    expect(useOnlineStore.getState().lastTableSync?.seq).toBe(1);
+    expect(useOnlineStore.getState().lastTableSync?.remainingCardCounts.host_p19).toBe(13);
+  });
+
+  it('20. Handshake Deduplication: Gửi đúng 1 join request có chủ đích tới Host/Peer, loại bỏ duplicate broadcast', () => {
+    const profileGuest = { ...loadPlayerProfile(), name: 'Guest Handshake Dedup', coins: 50000 };
+    useOnlineStore.getState().joinRoom(profileGuest, 'TL-HANDSHAKE');
+
+    const sendJoinSpy = spyOn(globalP2PClient, 'sendJoinRequest');
+
+    // 1. Nhận roomState từ Host khi khách chưa có trong phòng -> Chỉ gửi đúng 1 lần có chủ đích tới hostPeerId
+    const waitingRoomState = {
+      roomCode: 'TL-HANDSHAKE',
+      hostPeerId: 'host_peer_20',
+      playerCount: 4 as const,
+      betAmount: 1000,
+      settlementRule: 'COUNT_CARDS' as const,
+      choppingMultiplier: 1,
+      congMultiplier: 1,
+      congEnabled: true,
+      prohibitEndingWithTwo: true,
+      allowFourPairsCutAnytime: true,
+      threeSpadesEndingBonus: true,
+      cascadeChopEnabled: true,
+      players: [
+        {
+          peerId: 'host_peer_20',
+          playerId: 'host_p20',
+          name: 'Host 20',
+          avatar: '👑',
+          elo: 1500,
+          coins: 100000,
+          isHost: true,
+          isReady: true,
+          isBot: false
+        }
+      ],
+      status: 'WAITING' as const,
+      disbandReason: null,
+      isPublic: true,
+      updatedAt: Date.now()
+    };
+
+    globalP2PClient.emitRoomStateForTest(waitingRoomState, 'host_peer_20');
+
+    // Kiểm tra: sendJoinRequest chỉ được gọi 1 lần tới host_peer_20 (không gọi thêm broadcast)
+    expect(sendJoinSpy).toHaveBeenCalledTimes(1);
+    expect(sendJoinSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ playerId: profileGuest.id }),
+      'host_peer_20'
+    );
+
+    sendJoinSpy.mockClear();
+
+    // 2. Khi có peer mới gia nhập (onPeerJoin) -> Chỉ gửi đúng 1 lần có chủ đích tới peer mới đó
+    const onPeerJoinListeners = (globalP2PClient as unknown as { handlers: { peerJoin: Set<(peerId: string) => void> } }).handlers.peerJoin;
+    [...onPeerJoinListeners].forEach(cb => cb('new_peer_99'));
+
+    expect(sendJoinSpy).toHaveBeenCalledTimes(1);
+    expect(sendJoinSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ playerId: profileGuest.id }),
+      'new_peer_99'
+    );
+
+    sendJoinSpy.mockRestore();
+  });
 });
 
 

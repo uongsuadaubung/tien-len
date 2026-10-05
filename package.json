@@ -21,7 +21,7 @@
     "benchmark:balance:4p": "bun run scripts/balance/benchmark-4p-stage.ts"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.116.0",
+    "ably": "^2.29.0",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
     "dexie": "^4.4.5",

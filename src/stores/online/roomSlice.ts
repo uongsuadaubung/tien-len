@@ -464,7 +464,6 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       // Nếu nhận roomState từ Host nhưng mình chưa được ghi nhận vào danh sách players
       if (!me && roomState.status === 'WAITING' && roomState.players.length < roomState.playerCount) {
         void globalP2PClient.sendJoinRequest(candidatePlayer, roomState.hostPeerId);
-        void globalP2PClient.sendJoinRequest(candidatePlayer);
       }
 
       if (me) {
@@ -696,6 +695,17 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
 
     // Client lắng nghe đồng bộ bàn đấu công khai từ Host (Authoritative Single Source of Truth)
     globalP2PClient.onTableSync((sync: TableStateSyncPacket) => {
+      const currentLastSync = get().lastTableSync;
+      // Monotonic sequence guard: Bỏ qua các gói sync lỗi thời / đến muộn trong cùng ván
+      if (
+        currentLastSync &&
+        sync.gameNumber === currentLastSync.gameNumber &&
+        sync.seq > 0 &&
+        sync.seq <= currentLastSync.seq
+      ) {
+        return;
+      }
+
       set({ 
         lastTableSync: sync,
         reconnectNotice: sync.reconnectNotice || null
@@ -828,10 +838,9 @@ export const createRoomSlice: OnlineSliceCreator<RoomSlice> = (set, get) => ({
       set(s => ({ chatMessages: [...s.chatMessages.slice(-50), chat] }));
     });
 
-    // Handshake đa tầng
+    // Handshake có chủ đích tới peer mới gia nhập
     globalP2PClient.onPeerJoin((peerId) => {
       void globalP2PClient.sendJoinRequest(candidatePlayer, peerId);
-      void globalP2PClient.sendJoinRequest(candidatePlayer);
     });
 
     // Thử gửi ngay 1 lần lập tức và định kỳ mỗi 1000ms tối đa 8 lần nếu chưa được ghi nhận vào phòng

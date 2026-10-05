@@ -10,7 +10,7 @@ import {
   createGameEndPacket
 } from '../../src/engine/network/network.schema';
 
-describe('Supabase Realtime Network Client Unit Tests (P2PClient Adapter)', () => {
+describe('Ably Realtime Network Client Unit Tests (P2PClient Adapter)', () => {
   let client: P2PClient;
 
   beforeEach(() => {
@@ -32,7 +32,7 @@ describe('Supabase Realtime Network Client Unit Tests (P2PClient Adapter)', () =
     client.join('tl-9999');
     expect(client.currentRoomCode).toBe('TL-9999');
     expect(client.channel).not.toBeNull();
-    expect(client.channel?.topic).toBe('realtime:tl_room_tl_9999');
+    expect(client.channel?.name).toBe('tl_room_tl_9999');
   });
 
   it('3. leave(): Dọn dẹp an toàn channel, activePeers và toàn bộ callbacks', () => {
@@ -207,5 +207,182 @@ describe('Supabase Realtime Network Client Unit Tests (P2PClient Adapter)', () =
     client.leave();
     expect(client.getIsReconnectingForTest()).toBe(false);
     expect(client.getReconnectAttemptsForTest()).toBe(0);
+  });
+
+  it('11. pingPeer(): Trả về WebSocket RTT chuẩn hoặc fallback an toàn 30ms', async () => {
+    const { getAblyClient } = await import('../../src/config/ably');
+    const ably = getAblyClient();
+
+    // 1. Khi chưa kết nối / offline -> fallback 30ms
+    const originalState = ably.connection.state;
+    Object.defineProperty(ably.connection, 'state', { value: 'initialized', configurable: true });
+    const fallbackPing = await client.pingPeer();
+    expect(fallbackPing).toBe(30);
+
+    // 2. Khi đang kết nối -> đo RTT qua ably.connection.ping()
+    Object.defineProperty(ably.connection, 'state', { value: 'connected', configurable: true });
+    const originalPing = ably.connection.ping;
+    ably.connection.ping = async () => 42.6;
+
+    const realPing = await client.pingPeer();
+    expect(realPing).toBe(43);
+
+    // 3. Khi ping() ném ngoại lệ -> an toàn fallback 30ms
+    ably.connection.ping = async () => {
+      throw new Error('Timeout');
+    };
+    const errorPing = await client.pingPeer();
+    expect(errorPing).toBe(30);
+
+    // Dọn dẹp
+    ably.connection.ping = originalPing;
+    Object.defineProperty(ably.connection, 'state', { value: originalState, configurable: true });
+  });
+
+  it('12. Kênh đã ở trạng thái attached: Kích hoạt ngay lập tức onAttached', () => {
+    const { getAblyClient } = require('../../src/config/ably');
+    const ably = getAblyClient();
+    const channel = ably.channels.get('tl_room_tl_attached_test');
+    channel.presence.get = async () => [];
+    Object.defineProperty(channel, 'state', { value: 'attached', configurable: true });
+
+    client.join('TL-ATTACHED-TEST');
+    expect(client['isSubscribed']).toBe(true);
+
+    Object.defineProperty(channel, 'state', { value: 'initialized', configurable: true });
+  });
+
+  it('13. Boundary Validation & Filtering trong listen(): Lọc đúng targetPeerId và schema Zod', () => {
+    client.join('TL-LISTEN-FILTER');
+    const channel = client.channel;
+    expect(channel).not.toBeNull();
+    if (!channel) return;
+
+    let receivedCount = 0;
+    let lastReceivedMessage = '';
+
+    client.onChat((chat) => {
+      receivedCount++;
+      lastReceivedMessage = chat.message;
+    });
+
+    const validChat = {
+      id: 'msg_1',
+      senderId: 'user_1',
+      senderName: 'Player 1',
+      senderAvatar: '🤠',
+      message: 'Xin chào',
+      timestamp: Date.now()
+    };
+
+    const subscriptions = (channel as unknown as { subscriptions: { emit: (event: string, msg: unknown) => void } }).subscriptions;
+
+    // 1. Gói tin target đích danh cho peer khác -> Phải bị bỏ qua
+    subscriptions.emit('chat', {
+      data: {
+        event: 'chat',
+        senderPeerId: 'peer_other',
+        targetPeerId: 'peer_someone_else',
+        data: validChat
+      }
+    });
+    expect(receivedCount).toBe(0);
+
+    // 2. Gói tin sai schema Zod (thiếu message và timestamp) -> Bỏ qua an toàn không crash
+    subscriptions.emit('chat', {
+      data: {
+        event: 'chat',
+        senderPeerId: 'peer_other',
+        data: { id: 'invalid_msg' }
+      }
+    });
+    expect(receivedCount).toBe(0);
+
+    // 3. Gói tin hợp lệ gửi đích danh cho mình -> Tiếp nhận thành công
+    subscriptions.emit('chat', {
+      data: {
+        event: 'chat',
+        senderPeerId: 'peer_other',
+        targetPeerId: client.selfPeerId,
+        data: validChat
+      }
+    });
+    expect(receivedCount).toBe(1);
+    expect(lastReceivedMessage).toBe('Xin chào');
+
+    // 4. Gói tin hợp lệ broadcast (không có targetPeerId) -> Tiếp nhận thành công
+    subscriptions.emit('chat', {
+      data: {
+        event: 'chat',
+        senderPeerId: 'peer_other',
+        data: { ...validChat, message: 'Broadcast tới phòng' }
+      }
+    });
+    expect(receivedCount).toBe(2);
+    expect(lastReceivedMessage).toBe('Broadcast tới phòng');
+  });
+
+  it('14. Handlers Set snapshot iteration: Cho phép callback tự unregister an toàn trong lúc dispatch', () => {
+    let unregisterSecond: (() => void) | null = null;
+    const executionOrder: string[] = [];
+
+    client.onChat(() => {
+      executionOrder.push('first');
+      if (unregisterSecond) {
+        unregisterSecond();
+      }
+    });
+
+    unregisterSecond = client.onChat(() => {
+      executionOrder.push('second');
+    });
+
+    client.onChat(() => {
+      executionOrder.push('third');
+    });
+
+    const validChat = {
+      id: 'msg_snap',
+      senderId: 'user_1',
+      senderName: 'Player 1',
+      senderAvatar: '🤠',
+      message: 'Snapshot test',
+      timestamp: Date.now()
+    };
+
+    client.join('TL-SNAP');
+    const channel = client.channel;
+    const subscriptions = (channel as unknown as { subscriptions: { emit: (event: string, msg: unknown) => void } }).subscriptions;
+
+    // Lần 1: Kích hoạt, unregisterSecond được gọi nhưng vòng lặp snapshot [...set] vẫn an toàn
+    subscriptions.emit('chat', {
+      data: {
+        event: 'chat',
+        senderPeerId: 'peer_test',
+        data: validChat
+      }
+    });
+
+    expect(executionOrder).toContain('first');
+    expect(executionOrder).toContain('third');
+
+    // Lần 2: Callback 2 đã bị unregister hoàn toàn, chỉ còn 1 và 3 chạy
+    executionOrder.length = 0;
+    subscriptions.emit('chat', {
+      data: {
+        event: 'chat',
+        senderPeerId: 'peer_test',
+        data: validChat
+      }
+    });
+
+    expect(executionOrder).toEqual(['first', 'third']);
+  });
+
+  it('15. Cấu hình Ably Realtime: Tắt echoMessages để tránh tự nhận lại tin broadcast của chính mình', () => {
+    const { getAblyClient } = require('../../src/config/ably');
+    const ably = getAblyClient();
+    expect(ably).toBeDefined();
+    expect(ably.options.echoMessages).toBe(false);
   });
 });

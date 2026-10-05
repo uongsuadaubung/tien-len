@@ -225,8 +225,8 @@ describe('WebRTC P2P Public Lobby Discovery & Room Browser Tests', () => {
     }
   });
 
-  it('8. Supabase Realtime Presence: LobbyDiscoveryClient quản lý vòng đời phát thanh phòng', () => {
-    const { LobbyDiscoveryClient, SUPABASE_LOBBY_CHANNEL_NAME } = require('../../src/engine/network/lobby-discovery');
+  it('8. Ably Presence: LobbyDiscoveryClient quản lý vòng đời phát thanh phòng', () => {
+    const { LobbyDiscoveryClient, LOBBY_CHANNEL_NAME } = require('../../src/engine/network/lobby-discovery');
     const client = new LobbyDiscoveryClient();
 
     const summary: PublicRoomSummary = {
@@ -250,7 +250,7 @@ describe('WebRTC P2P Public Lobby Discovery & Room Browser Tests', () => {
       updatedAt: Date.now()
     };
 
-    expect(SUPABASE_LOBBY_CHANNEL_NAME).toBe('tl_global_lobby_v1');
+    expect(LOBBY_CHANNEL_NAME).toBe('tl_global_lobby_v1');
 
     // Bắt đầu broadcast
     client.startBroadcasting(summary);
@@ -273,7 +273,7 @@ describe('WebRTC P2P Public Lobby Discovery & Room Browser Tests', () => {
     client.cleanup();
   });
 
-  it('9. Supabase Realtime Presence: Khách duyệt sảnh và nhận đồng bộ phòng tức thì', () => {
+  it('9. Ably Presence: Khách duyệt sảnh và nhận đồng bộ phòng tức thì', () => {
     const { LobbyDiscoveryClient } = require('../../src/engine/network/lobby-discovery');
     const client = new LobbyDiscoveryClient();
 
@@ -325,6 +325,97 @@ describe('WebRTC P2P Public Lobby Discovery & Room Browser Tests', () => {
 
     client.cleanup();
     expect(client['lobbyChannel']).toBeNull();
+  });
+
+  it('10. Ably Presence Delta: Xử lý tức thì các sự kiện push delta (enter, update, leave, absent)', () => {
+    const {
+      LobbyDiscoveryClient,
+      HEARTBEAT_INTERVAL_MS,
+      ROOM_EXPIRY_TIMEOUT_MS,
+      AUTO_QUERY_INTERVAL_MS
+    } = require('../../src/engine/network/lobby-discovery');
+
+    // Kiểm tra cấu hình chu kỳ tối ưu hạn mức Ably
+    expect(HEARTBEAT_INTERVAL_MS).toBe(30000);
+    expect(ROOM_EXPIRY_TIMEOUT_MS).toBe(50000);
+    expect(AUTO_QUERY_INTERVAL_MS).toBe(30000);
+
+    const client = new LobbyDiscoveryClient();
+    let latestRooms: PublicRoomSummary[] = [];
+    client.startListening((rooms: PublicRoomSummary[]) => {
+      latestRooms = rooms;
+    });
+
+    const roomSummary: PublicRoomSummary = {
+      roomCode: 'TL-DELTA-1',
+      hostName: 'Cao Thủ Delta',
+      hostAvatar: '⚡',
+      hostElo: 1900,
+      playerCount: 1,
+      maxPlayers: 4,
+      betAmount: 5000,
+      settlementRule: 'COUNT_CARDS',
+      choppingMultiplier: 2,
+      congMultiplier: 1,
+      congEnabled: true,
+      prohibitEndingWithTwo: true,
+      allowFourPairsCutAnytime: true,
+      threeSpadesEndingBonus: true,
+      cascadeChopEnabled: true,
+      status: 'WAITING',
+      isPublic: true,
+      updatedAt: Date.now()
+    };
+
+    // 1. Nhận push 'enter': Phòng được thêm ngay tức khắc (0ms round-trip)
+    client['handlePresenceDelta']({
+      action: 'enter',
+      clientId: 'TL-DELTA-1',
+      data: {
+        summary: roomSummary,
+        updatedAt: Date.now()
+      }
+    });
+
+    expect(latestRooms.length).toBe(1);
+    expect(latestRooms[0].roomCode).toBe('TL-DELTA-1');
+    expect(latestRooms[0].playerCount).toBe(1);
+
+    // 2. Nhận push 'update': Cập nhật số người trong phòng tức thì
+    client['handlePresenceDelta']({
+      action: 'update',
+      clientId: 'TL-DELTA-1',
+      data: {
+        summary: { ...roomSummary, playerCount: 3 },
+        updatedAt: Date.now()
+      }
+    });
+
+    expect(latestRooms.length).toBe(1);
+    expect(latestRooms[0].playerCount).toBe(3);
+
+    // 3. Bỏ qua gói tin không hợp lệ hoặc trạng thái đang chơi PLAYING
+    client['handlePresenceDelta']({
+      action: 'enter',
+      clientId: 'TL-PLAYING-1',
+      data: {
+        summary: { ...roomSummary, roomCode: 'TL-PLAYING-1', status: 'PLAYING' },
+        updatedAt: Date.now()
+      }
+    });
+    expect(latestRooms.find(r => r.roomCode === 'TL-PLAYING-1')).toBeUndefined();
+
+    // 4. Nhận push 'leave' hoặc 'absent': Phòng bị xóa ngay lập tức khỏi sảnh
+    client['handlePresenceDelta']({
+      action: 'leave',
+      clientId: 'TL-DELTA-1'
+    });
+
+    expect(latestRooms.length).toBe(0);
+    expect(latestRooms.find(r => r.roomCode === 'TL-DELTA-1')).toBeUndefined();
+
+    client.stopListening();
+    client.cleanup();
   });
 });
 

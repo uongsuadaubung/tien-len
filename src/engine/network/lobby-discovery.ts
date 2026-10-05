@@ -1,13 +1,13 @@
 import { type PublicRoomSummary } from './network.schema';
-import { getSupabaseClient } from '../../config/supabase';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import { getAblyClient } from '../../config/ably';
+import type { RealtimeChannel, PresenceMessage } from 'ably';
 
-export const SUPABASE_LOBBY_CHANNEL_NAME = 'tl_global_lobby_v1';
+export const LOBBY_CHANNEL_NAME = 'tl_global_lobby_v1';
 export const LOCAL_BROADCAST_CHANNEL_NAME = 'TL_LOCAL_LOBBY_DISCOVERY_V1';
 export const LOCAL_STORAGE_REGISTRY_KEY = 'TL_ACTIVE_PUBLIC_ROOMS_REGISTRY';
-export const HEARTBEAT_INTERVAL_MS = 15000;
-export const ROOM_EXPIRY_TIMEOUT_MS = 25000;
-export const AUTO_QUERY_INTERVAL_MS = 10000;
+export const HEARTBEAT_INTERVAL_MS = 30000;
+export const ROOM_EXPIRY_TIMEOUT_MS = 50000;
+export const AUTO_QUERY_INTERVAL_MS = 30000;
 
 export interface RoomClosePacket {
   [key: string]: string;
@@ -75,7 +75,7 @@ export class LobbyDiscoveryClient {
   private localChannel: BroadcastChannel | null = null;
   private lobbyChannel: RealtimeChannel | null = null;
   private isChannelSubscribed = false;
-  private pendingTrackPayload: { roomCode: string; summary: PublicRoomSummary; updatedAt: number } | null = null;
+  private trackedClientId: string | null = null;
 
   private currentSummary: PublicRoomSummary | null = null;
   private broadcastIntervalId: ReturnType<typeof setInterval> | null = null;
@@ -117,43 +117,31 @@ export class LobbyDiscoveryClient {
     }
 
     try {
-      const supabase = getSupabaseClient();
-      this.lobbyChannel = supabase.channel(SUPABASE_LOBBY_CHANNEL_NAME, {
-        config: {
-          presence: {
-            key: this.currentSummary?.roomCode || `guest_${Math.random().toString(36).slice(2, 8)}`
-          }
+      const channel = getAblyClient().channels.get(LOBBY_CHANNEL_NAME);
+      this.lobbyChannel = channel;
+
+      // Lắng nghe delta presence (enter, update, present, leave, absent) tức thời 0ms
+      channel.presence.subscribe((msg: PresenceMessage) => {
+        this.handlePresenceDelta(msg);
+      }).catch(() => {});
+
+      const onAttached = () => {
+        this.isChannelSubscribed = true;
+        if (this.isListening) {
+          void this.handlePresenceSync();
         }
+      };
+      channel.on('attached', onAttached);
+      channel.on(['detached', 'suspended', 'failed'], () => {
+        this.isChannelSubscribed = false;
       });
+      if (channel.state === 'attached') {
+        onAttached();
+      }
 
-      this.lobbyChannel
-        .on('presence', { event: 'sync' }, () => {
-          this.handlePresenceSync();
-        })
-        .on('presence', { event: 'join' }, () => {
-          this.handlePresenceSync();
-        })
-        .on('presence', { event: 'leave' }, () => {
-          this.handlePresenceSync();
-        });
-
-      this.lobbyChannel.subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          this.isChannelSubscribed = true;
-          if (this.pendingTrackPayload) {
-            this.lobbyChannel?.track(this.pendingTrackPayload).catch(() => {});
-          }
-          if (this.isListening) {
-            this.handlePresenceSync();
-          }
-        } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          this.isChannelSubscribed = false;
-        }
-      });
-
-      return this.lobbyChannel;
+      return channel;
     } catch (err) {
-      console.warn('[LobbyDiscoveryClient] Failed to initialize Supabase lobby channel:', err);
+      console.warn('[LobbyDiscoveryClient] Failed to initialize Ably lobby channel:', err);
       return null;
     }
   }
@@ -174,7 +162,7 @@ export class LobbyDiscoveryClient {
     // 1. Lưu vào LocalStorage
     writeLocalStorageRoom(summary);
 
-    // 2. Bắn tin lên Supabase Presence & BroadcastChannel
+    // 2. Bắn tin lên Ably Presence & BroadcastChannel
     this.broadcastAnnounce();
 
     // 3. Duy trì phát thanh định kỳ
@@ -209,11 +197,11 @@ export class LobbyDiscoveryClient {
 
     const roomCode = this.currentSummary?.roomCode;
 
-    // 1. Untrack khỏi Supabase Realtime Presence
-    this.pendingTrackPayload = null;
-    if (this.lobbyChannel && this.isChannelSubscribed) {
-      this.lobbyChannel.untrack().catch(() => {});
+    // 1. Rời khỏi Ably Presence
+    if (this.lobbyChannel && this.trackedClientId) {
+      this.lobbyChannel.presence.leaveClient(this.trackedClientId).catch(() => {});
     }
+    this.trackedClientId = null;
 
     // 2. Xóa khỏi LocalStorage
     if (roomCode) {
@@ -245,15 +233,17 @@ export class LobbyDiscoveryClient {
       updatedAt: Date.now()
     };
 
-    // 1. Gửi lên Supabase Realtime Presence
-    this.pendingTrackPayload = {
-      roomCode: payload.roomCode,
-      summary: payload,
-      updatedAt: payload.updatedAt
-    };
-
-    if (this.lobbyChannel && this.isChannelSubscribed) {
-      this.lobbyChannel.track(this.pendingTrackPayload).catch(() => {});
+    // 1. Gửi lên Ably Presence (enter lần nữa = update; tự attach kênh nếu chưa attach)
+    if (this.lobbyChannel) {
+      if (this.trackedClientId && this.trackedClientId !== payload.roomCode) {
+        this.lobbyChannel.presence.leaveClient(this.trackedClientId).catch(() => {});
+      }
+      this.trackedClientId = payload.roomCode;
+      this.lobbyChannel.presence.enterClient(payload.roomCode, {
+        roomCode: payload.roomCode,
+        summary: payload,
+        updatedAt: payload.updatedAt
+      }).catch(() => {});
     }
 
     // 2. Phát qua Local BroadcastChannel (cùng máy / nhiều tab)
@@ -285,10 +275,10 @@ export class LobbyDiscoveryClient {
     this.ensureLocalChannel();
     this.ensureLobbyChannel();
 
-    // 2. Gửi truy vấn tức thì qua Supabase Presence & Local Channel
+    // 2. Gửi truy vấn tức thì qua Ably Presence & Local Channel
     this.requestRoomList();
 
-    // 3. Tự động truy vấn định kỳ mỗi 10s khi đang mở Sảnh
+    // 3. Tự động truy vấn định kỳ an toàn khi đang mở Sảnh
     if (this.activeQueryIntervalId) {
       clearInterval(this.activeQueryIntervalId);
     }
@@ -312,7 +302,7 @@ export class LobbyDiscoveryClient {
 
   public requestRoomList(): void {
     if (this.lobbyChannel && this.isChannelSubscribed) {
-      this.handlePresenceSync();
+      void this.handlePresenceSync();
     } else {
       // Đọc thêm từ LocalStorage
       const localRooms = readLocalStorageRooms();
@@ -353,24 +343,50 @@ export class LobbyDiscoveryClient {
     this.checkCleanup();
   }
 
-  private handlePresenceSync(): void {
+  /**
+   * Xử lý tức thì các sự kiện push delta từ Ably Presence (0ms round-trip, tiết kiệm request mạng)
+   */
+  private handlePresenceDelta(msg: PresenceMessage): void {
+    if (!this.isListening) return;
+
+    if (msg.action === 'leave' || msg.action === 'absent') {
+      const roomCode = msg.clientId;
+      if (roomCode && this.activeRoomsMap.has(roomCode)) {
+        this.activeRoomsMap.delete(roomCode);
+        this.notifyUpdate();
+      }
+      return;
+    }
+
+    const item: unknown = msg.data;
+    if (!isPresenceItem(item)) return;
+    const summary = item.summary;
+    if (summary && summary.roomCode && summary.isPublic && summary.status === 'WAITING') {
+      this.activeRoomsMap.set(summary.roomCode, {
+        summary,
+        lastSeen: item.updatedAt || Date.now()
+      });
+      this.notifyUpdate();
+    }
+  }
+
+  private async handlePresenceSync(): Promise<void> {
     if (!this.isListening || !this.lobbyChannel) return;
 
     try {
-      const state = this.lobbyChannel.presenceState();
+      const members = await this.lobbyChannel.presence.get();
+      if (!this.isListening) return;
       const roomsMap = new Map<string, { summary: PublicRoomSummary; lastSeen: number }>();
       const now = Date.now();
-      for (const presences of Object.values(state)) {
-        if (!Array.isArray(presences)) continue;
-        for (const item of presences) {
-          if (!isPresenceItem(item)) continue;
-          const summary = item.summary;
-          if (summary && summary.roomCode && summary.isPublic && summary.status === 'WAITING') {
-            roomsMap.set(summary.roomCode, {
-              summary,
-              lastSeen: item.updatedAt || now
-            });
-          }
+      for (const member of members) {
+        const item: unknown = member.data;
+        if (!isPresenceItem(item)) continue;
+        const summary = item.summary;
+        if (summary && summary.roomCode && summary.isPublic && summary.status === 'WAITING') {
+          roomsMap.set(summary.roomCode, {
+            summary,
+            lastSeen: item.updatedAt || now
+          });
         }
       }
 
@@ -448,12 +464,17 @@ export class LobbyDiscoveryClient {
   private checkCleanup(): void {
     if (!this.isBroadcasting && !this.isListening) {
       if (this.lobbyChannel) {
+        const channel = this.lobbyChannel;
         try {
-          getSupabaseClient().removeChannel(this.lobbyChannel);
+          channel.presence.unsubscribe();
+          channel.off();
+          if (channel.state === 'attached') {
+            channel.detach().catch(() => {});
+          }
         } catch {}
         this.lobbyChannel = null;
         this.isChannelSubscribed = false;
-        this.pendingTrackPayload = null;
+        this.trackedClientId = null;
       }
       if (this.localChannel) {
         try {
