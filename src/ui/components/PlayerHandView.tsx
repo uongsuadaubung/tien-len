@@ -212,7 +212,7 @@ const PlayerHandViewComponent: React.FC<PlayerHandViewProps> = ({
           )}
 
           {/* 3. Banner Thông Báo Quyền Mở Màn / Lý do đi đầu ván đấu */}
-          {!reconnectNotice && (!chopNotification || !chopNotification.visible) && resolvedOpeningText && (
+          {!reconnectNotice && (!chopNotification || !chopNotification.visible) && !isDealing && resolvedOpeningText && (
             <div className="animate-bounce shadow-2xl">
               <div className="flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-slate-950 font-black text-xs sm:text-sm tracking-wide border-2 border-amber-200">
                 <span className="text-sm sm:text-base">👑</span>

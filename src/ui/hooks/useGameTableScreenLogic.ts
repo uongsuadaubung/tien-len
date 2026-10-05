@@ -75,7 +75,9 @@ export function useGameTableScreenLogic({
     isDealing: s.isDealing,
     dealBanner: s.dealBanner,
     activeGameType: s.activeGameType,
-    currentFrame: s.currentFrame
+    currentFrame: s.currentFrame,
+    leadPlayerId: s.leadPlayerId,
+    currentTurnPlayerId: s.currentTurnPlayerId
   })));
 
   // Trong môi trường SSR/test (renderToString không có window), useSyncExternalStore trả về initial state
@@ -92,7 +94,9 @@ export function useGameTableScreenLogic({
     dealtCounts: storeDealtCounts,
     botThinkingThought: storeBotThinkingThought,
     isDealing: storeIsDealing,
-    dealBanner: storeDealBanner
+    dealBanner: storeDealBanner,
+    leadPlayerId: storeLeadPlayerId,
+    currentTurnPlayerId: storeCurrentTurnPlayerId
   } = state;
 
   const targetPlayerId = state.activeGameType === 'ONLINE'
@@ -158,8 +162,8 @@ export function useGameTableScreenLogic({
 
   const activeTurn = matchState.status === 'PLAYING' ? matchState : null;
   const frameCurrentTurnPlayerId = frame.seats.find(s => s.isCurrentTurn)?.playerId ?? null;
-  const currentTurnPlayerId = frameCurrentTurnPlayerId || (activeTurn ? activeTurn.currentTurnPlayerId : null);
-  const leadPlayerId = activeTurn ? activeTurn.leadPlayerId : null;
+  const currentTurnPlayerId = frameCurrentTurnPlayerId || (activeTurn ? activeTurn.currentTurnPlayerId : (storeCurrentTurnPlayerId ?? null));
+  const leadPlayerId = activeTurn ? activeTurn.leadPlayerId : (storeLeadPlayerId ?? null);
   const isLeadMove = activeTurn ? activeTurn.isLeadMove : false;
   const isFirstMoveOfGame = activeTurn ? activeTurn.isFirstMoveOfGame : false;
   const firstMoveRequiredCard = (activeTurn && activeTurn.isFirstMoveOfGame) ? activeTurn.firstMoveRequiredCard : null;

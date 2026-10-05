@@ -13,7 +13,8 @@ export const UI_TIMINGS = {
   SHUFFLE_DURATION_MS: 360,       // Thời gian xào bài (0.36s cho đúng 1 chu kỳ riffle flourish đồng bộ với âm thanh)
 
   // Thông báo & Banner
-  BANNER_DISPLAY_DURATION_MS: 2800, // Thời gian hiển thị Banner mở màn
+  BANNER_DISPLAY_DURATION_MS: 2800, // Thời gian hiển thị Banner mở màn khi không có hoạt ảnh chia bài
+  BANNER_POST_DEAL_DURATION_MS: 1200, // Thời gian hiển thị Banner mở màn sau khi hoàn tất chia bài
   CHOP_ALERT_DURATION_MS: 2500,     // Thời gian hiển thị Thông báo chặt Heo/Hàng
 
   // Hạ màn ván đấu (Endgame Grace Period)

@@ -1,13 +1,13 @@
 import { GameEngine } from '../game';
 import type { MatchPlayer, Card, GameRules, InstantWinType, PlayedMove } from '../types';
-import type { 
-  IHostPeerTransport, 
-  HostToClientPacket, 
-  ClientToHostPacket 
+import type {
+  IHostPeerTransport,
+  HostToClientPacket,
+  ClientToHostPacket
 } from '../transport/transport.interface';
-import type { 
-  TableStateSyncPacket, 
-  GameEndPacket, 
+import type {
+  TableStateSyncPacket,
+  GameEndPacket,
   NetworkChopNotification,
   PlayerActionPacket,
   OpeningReason,
@@ -196,21 +196,53 @@ export class AuthoritativeMatchHost {
         initialCounts[p.id] = 0;
       }
       this.dealtCounts = initialCounts;
+      this.dealBanner = null; // Chỉ phát sinh banner sau khi chia bài kết thúc
       this.broadcastTableSync();
 
-      // Timer an toàn kết thúc chia bài sau 6s nếu client không phản hồi
+      // Timer an toàn kết thúc chia bài sau 3.5s nếu client không phản hồi
       this.dealingSafetyTimer = setTimeout(() => {
         if (this.isDealing) {
           this.finishDealing();
         }
-      }, 6000);
+      }, 3500);
       return;
     }
 
     // 4. Phát sóng trạng thái bàn đấu ban đầu cho tất cả mọi người
     this.isDealing = false;
     this.turnDeadline = this.instantDelay ? null : Date.now() + 15000;
+    this.dealBanner = this.generateOpeningBanner();
     this.broadcastTableSync();
+
+    const bannerDuration = this.instantDelay ? 0 : UI_TIMINGS.BANNER_DISPLAY_DURATION_MS;
+    this.bannerTimer = setTimeout(() => {
+      if (this.isDisposed) return;
+      this.dealBanner = null;
+      this.broadcastTableSync();
+    }, bannerDuration);
+  }
+
+  /**
+   * Tạo nội dung Banner mở màn thông báo người giành quyền đi đầu ván đấu
+   */
+  private generateOpeningBanner(): string {
+    const leadPlayer = this.engine.getCurrentPlayer();
+    if (!leadPlayer) return '';
+    if (this.gameNumber > 1) {
+      return leadPlayer.isBot
+        ? `${leadPlayer.name} (${leadPlayer.avatar}) giành quyền mở màn (Thắng ván trước)!`
+        : (leadPlayer.id === this.options.hostPlayerId
+            ? 'Bạn (Người Chơi) giành quyền mở màn (Thắng ván trước)!'
+            : `${leadPlayer.name} giành quyền mở màn (Thắng ván trước)!`);
+    } else {
+      const requiredCard = this.engine.firstMoveRequiredCard;
+      const reason = requiredCard ? formatCardVietnamese(requiredCard) : (this.engine.isFirstMoveOfGame ? '3 Bích' : 'Bài nhỏ nhất');
+      return leadPlayer.isBot
+        ? `${leadPlayer.name} (${leadPlayer.avatar}) giành quyền mở màn (${reason})!`
+        : (leadPlayer.id === this.options.hostPlayerId
+            ? `Bạn (Người Chơi) giành quyền mở màn (${reason})!`
+            : `${leadPlayer.name} giành quyền mở màn (${reason})!`);
+    }
   }
 
   /**
@@ -238,24 +270,15 @@ export class AuthoritativeMatchHost {
       this.dealtCounts[p.id] = p.hand.length;
     }
 
-    const leadPlayer = this.engine.getCurrentPlayer();
-    let leadText = '';
-    if (this.gameNumber > 1) {
-      leadText = leadPlayer?.isBot
-        ? `${leadPlayer.name} (${leadPlayer.avatar}) giành quyền mở màn (Thắng ván trước)!`
-        : 'Bạn (Người Chơi) giành quyền mở màn (Thắng ván trước)!';
-    } else {
-      const requiredCard = this.engine.firstMoveRequiredCard;
-      const reason = requiredCard ? formatCardVietnamese(requiredCard) : (this.engine.isFirstMoveOfGame ? '3 Bích' : 'Bài nhỏ nhất');
-      leadText = leadPlayer?.isBot
-        ? `${leadPlayer.name} (${leadPlayer.avatar}) giành quyền mở màn (${reason})!`
-        : `Bạn (Người Chơi) giành quyền mở màn (${reason})!`;
+    if (!this.dealBanner) {
+      this.dealBanner = this.generateOpeningBanner();
     }
-
-    this.dealBanner = leadText;
     this.broadcastTableSync();
 
-    const bannerDuration = this.instantDelay ? 0 : UI_TIMINGS.BANNER_DISPLAY_DURATION_MS;
+    const bannerDuration = this.instantDelay ? 0 : UI_TIMINGS.BANNER_POST_DEAL_DURATION_MS;
+    if (this.bannerTimer) {
+      clearTimeout(this.bannerTimer);
+    }
     this.bannerTimer = setTimeout(() => {
       if (this.isDisposed) return;
       this.dealBanner = null;
@@ -443,8 +466,8 @@ export class AuthoritativeMatchHost {
       lastAction: this.lastAction,
       currentMoveCombinationName,
       seats,
-      currentTurnPlayerId: this.isDealing ? null : currentTurnId,
-      leadPlayerId: this.isDealing ? null : leadId,
+      currentTurnPlayerId: this.engine.isGameOver ? null : currentTurnId,
+      leadPlayerId: this.engine.isGameOver ? null : leadId,
       remainingCardCounts: this.isDealing ? { ...this.dealtCounts } : remainingCardCounts,
       passedPlayerIds: this.engine.currentRound ? [...this.engine.currentRound.passedPlayerIds] : [],
       currentMoveCards: effectiveMove ? effectiveMove.combination.cards : undefined,
